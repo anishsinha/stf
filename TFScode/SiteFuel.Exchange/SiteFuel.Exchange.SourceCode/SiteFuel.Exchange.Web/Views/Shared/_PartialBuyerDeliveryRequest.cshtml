@@ -1,0 +1,314 @@
+﻿@model CreateDeliveryRequestModel
+@if (Model != null && Model.ProductTypes.Any())
+{
+    var productTypes = Model.ProductTypes.Select(t => new DropdownDisplayItem { Id = t.FuelTypeId, Name = t.ProductType }).ToList();
+    <div class="row">
+        <div class="col-sm-3">
+            <div class="form-group">
+                @Html.DropDownList("ddlProductTypes", new SelectList(productTypes, "Id", "Name", 0), Resource.lblProductType, new { @onchange = "onChangeProductType(this.value);", @class = "select2_Product" })
+
+            </div>
+        </div>
+    </div>
+    <form id="create-deliveryrequest-form">
+        @Html.HiddenFor(m => m.JobId)
+        @Html.HiddenFor(m => m.JobName)
+        <div class="row" id="product-types-div">
+            @foreach (var item in Model.ProductTypes)
+            {
+                <div id="@Model.JobId.ToString()_@item.FuelTypeId.ToString()" class="product-type col-sm-4 mb15 align-items-stretch">
+                    @Html.Partial("_PartialProductTypes", item)
+                </div>
+            }
+        </div>
+        <div class="row mt-1" id="SaveButtonforBuyerDR">
+            <div class="col-6">
+                @if (Model.ProductTypes.Any(x => x.IsRetainJob))
+                {
+                    <div class="text-left">
+                        <button type="button" id="btnRetainInfo" onclick="calculateRetainInfo()" class="btn btn-lg btn-default">
+                            @Resource.btnLabelCalculate
+                        </button>
+                    </div>
+                }
+            </div>
+            <div class="col-6 text-right">
+                <button type="button" id="btnSave" onclick="createBuyerDr()" class="btn btn-lg btn-primary">
+                    @Resource.btnLabelSave
+                </button>
+            </div>
+        </div>
+    </form>
+}
+else
+{
+    <div class="alert alert-danger d-inline-block"><i class="fas fa-exclamation-circle fs14 mr5"></i> @Resource.warningNoProductsForSelectedJob</div>
+}
+<script>
+    function onChnageScheduleQuantityType(productTypeId, ctrValue) {
+        var strId = $(ctrValue).val();
+        if (strId == 1) {
+            $("#drQuantityDiv_" + productTypeId).show();
+        }
+        else {
+            $("#drQuantityDiv_" + productTypeId).hide();
+        }
+    }
+
+    function onChangeProductType(productTypeId) {
+        if (productTypeId > 0) {
+            $('#product-types-div .product-type').hide();
+            $('#@Model.JobId.ToString()_' + productTypeId).show();
+        }
+        else {
+             $('#product-types-div .product-type').show();
+        }
+    }
+
+    function validateQty(controlVal)
+    {
+        var $this = $(controlVal);
+        $this.val($this.val().replace(/[^\d.]/g, ''));
+    }
+
+    function onSave(response) {
+        if (response) {
+            if (response.StatusCode == 0) {
+                msgsuccess(response.StatusMessage);
+            }
+            else {
+                msgerror(response.StatusMessage);
+            }
+        }
+    }
+
+    function getRecurringSchedule(jobId, productTypeId,prefix,uom, ctrValue)
+    {
+        if ($(ctrValue).prop('checked') == true) {
+            $("#dr_Quantity_" + productTypeId).hide();
+            $("#slider-loader").show();
+            var getRecurringDrUrl = '@Url.Action("GetRecurringSchedulesByProductTypeId", "Dashboard", new { area = "Buyer" })?jobId=' + jobId + '&productTypeId=' + productTypeId + '&prefix=' + prefix+ '&uom=' + uom;
+            $.get(getRecurringDrUrl, function(response) {
+                if (response != null)
+                {
+                    $("#dvRecurringDetails" + productTypeId).html('');
+                    $("#dvRecurringDetails" + productTypeId).html(response);
+                    $("#dvaddSchedule" + productTypeId).show();
+                    $('.user-weekDetails').select2({
+                        multiple: true,
+                        closeOnSelect: false,
+                        placeholder: "Select Day(s)",
+                        tags: true
+                    });
+                    $('.datepicker').datetimepicker({
+                    format: 'MM/DD/YYYY'
+                    });
+                    $("#slider-loader").hide();
+                }
+            });
+         }
+         else {
+            $("#dr_Quantity_" + productTypeId).show();
+            $("#dvRecurringDetails" + productTypeId).html('');
+            $("#dvaddSchedule" + productTypeId).hide();
+        }
+    }
+
+    function addSchedule(index, prefix, uom)
+    {
+        $("#slider-loader").show();
+        var createdeliveryRequestUrl = '@Url.Action("AddDefaultScheduleDetailsForBuyer", "DashBoard", new { area = "Buyer" })';
+        var totalRecords = $(".rId_" + index).length;
+        $.post(createdeliveryRequestUrl, { Index: index, Records: totalRecords, prefix : prefix, uom: uom }, function (response) {
+            if (response != null)
+            {
+                $("#dvRecurringDetails" + index).append(response);
+                $('.user-weekDetails').select2({
+                    multiple: true,
+                    closeOnSelect: false,
+                    placeholder: "Select Day(s)",
+                    tags: true
+                });
+                $('.datepicker').datetimepicker({
+                    format: 'MM/DD/YYYY'
+                });
+                $("#slider-loader").hide();
+            }
+        });
+    }
+
+    function enableControl(index, ctrValue)
+    {
+        var strId = $(ctrValue).val();
+        if (strId == 1 || strId == 2)
+        {
+            $("#dvWeekDay_" + index).show();
+            $("#dvDate_" + index).hide();
+        }
+        else
+        {
+            $("#dvWeekDay_" + index).hide();
+            $("#dvDate_" + index).show();
+        }
+    }
+
+    function DeleteSchedule(index, Id)
+    {
+        $("#slider-loader").show();
+        if (Id != '' && Id != null)
+        {
+            var deleteRecurringScheduleURL = '@Url.Action("DeleteRecurringSchedule", "Freight", new { area = "Carrier" })';
+            $.post(deleteRecurringScheduleURL, { Id: Id }, function(data) {
+                if (data.StatusCode == 0)
+                {
+                    msgsuccess(data.StatusMessage);
+                    $("#" + index).remove();
+                    $("#slider-loader").hide();
+                }
+            });
+        }
+        else
+        {
+            $("#" + index).remove();
+            $("#slider-loader").hide();
+        }
+    }
+
+    function enableReqQtyControl(index, ctrValue)
+    {
+        var strId = $(ctrValue).val();
+        if (strId == 1)
+        {
+            $("#dvRqOty_" + index).show();
+        }
+        else
+        {
+            $("#dvRqOty_" + index).hide();
+        }
+    }
+
+    function createBuyerDr()
+    {
+        var drs = $('.product-type');
+        var isQuantityEntered = false;
+        var isRecurring = false;
+        var errorCount = 0;
+        var isRecurringExists = false;
+        $(drs).each(function (i, productType) {
+            var recurringElement = $(productType).find('.is-recurring');
+            var isRecurring = false;
+            if (recurringElement && recurringElement.first().is(":checked"))
+                isRecurring = true;
+            var productName =  $(productType).find("input[id*='_ProductType']")[0].value;
+            if (!isRecurring) {
+                var scheduleQuantityType = $(productType).find('select[id*="__ScheduleQuantityType"]')[0].value;
+                var requiredQuantity = $(productType).find('.requiredQuantity')[0].value;
+                if (scheduleQuantityType != 1 || requiredQuantity > 0) {
+                    isQuantityEntered = true;
+                }
+            }
+            else {
+                isRecurringExists = true;
+                var recurringDrs = $(productType).find('.recurring-dr');
+                if (typeof (recurringDrs) === 'undefined' || recurringDrs == null || recurringDrs.length == 0) {
+                    msgerror("Please add at least one recurring schedule for [" + productName + "]");
+                    errorCount++;
+                }
+                else {
+                    $(recurringDrs).each(function (j, recurringDr) {
+                        var scheduleType = $(recurringDr).find("select[id*='_ScheduleType']")[0].value;
+                        if (scheduleType == 3) {
+                            var selectedDate = $(recurringDr).find("input[id*='_Date']")[0].value;
+                            if (!moment(selectedDate, "MM/DD/YYYY", true).isValid()) {
+                                errorCount++;
+                                msgerror("Please enter valid date in recurring schedule for [" + productName + "].");
+                            }
+                        }
+                        else {
+                            var selectedWeekDays = $(recurringDr).find("select[id*='_WeekDayId']")[0].value;
+                            if (selectedWeekDays.length <= 0)
+                            {
+                                errorCount++;
+                                msgerror("Please select week days in recurring schedule for [" + productName + "].");
+                            }
+                        }
+                        var quantityType = $(recurringDr).find("select[id*='_ScheduleQuantityType']")[0].value;
+                        if (quantityType == 1) {
+                            var quantity = $(recurringDr).find("input[id*='_RequiredQuantity']")[0].value;
+                            if (quantity <= 0) {
+                                errorCount++;
+                                msgerror("Please enter valid required quantity in recurring schedule for [" + productName + "]");
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        if (!isQuantityEntered && !isRecurringExists) {
+            msgerror("Please enter Quantity for at least one product type to create Delivery Request.");
+            return;
+        }
+        if (errorCount > 0) {
+            return;
+        }
+        var request = $('#create-deliveryrequest-form').serialize();
+        $("#slider-loader").show();
+        var url = '@Url.Action("CreateDeliveryRequest","DashBoard", new { area = "Buyer"})';
+        $.post(url, request, function (response) {
+            $("#slider-loader").hide();
+            if (response.StatusCode == 0)
+            {
+                $('.product-type').find('.requiredQuantity').each(function (k, quantityControl) {
+                    $(quantityControl).val('');
+                });
+                $('.product-type').find('input[id*="_Priority"]').each(function (m, priorityControl) {
+                    if ($(priorityControl).val() == 'MustGo'){
+                        $(priorityControl).prop('checked', true);
+                    }
+                });
+                $('.product-type').find('.is-recurring').each(function (l, isRecurringControl) {
+                    if ($(isRecurringControl).is(':checked')) {
+                        $(isRecurringControl).trigger('click');
+                    }
+                });
+
+                $('.product-type').find('.add-note-tarea').each(function (i, DRNotes) {
+                    $(DRNotes).val('');
+                });
+                $('.product-type').find('.deliveryLevelPO').each(function (i, deliveryLevelPO) {
+                    $(deliveryLevelPO).val('');
+                });
+               msgsuccess(response.StatusMessage);
+            }
+            else
+            {
+                msgerror(response.StatusMessage);
+            }
+        });
+    }
+    function calculateRetainInfo() {
+        var request = $('#create-deliveryrequest-form').serialize();
+        $("#slider-loader").show();
+        var url = '@Url.Action("GetRetainWindowInfo", "DashBoard", new { area = "Buyer"})';
+        $.post(url, request, function (response) {
+                $("#createdrTab").html('');
+                $('#createdrTab').html(response);
+        }).always(function () {
+                $('#slider-loader').hide();
+            });
+
+    }
+
+    $(document).ready(function () {
+        $(".select2_Product").select2({
+            //placeholder: "Select Product (Optional)",
+            //allowClear: false
+        });
+         $(".select2_Supplier").select2({
+            //placeholder: "Select Product (Optional)",
+            //allowClear: false
+         });
+       
+    });
+
+</script>

@@ -1,0 +1,667 @@
+﻿@model JobFilterViewModel
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadowb-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div id="job-details-grid" class="table-responsive">
+                        <table id="supplier-job-datatable" data-gridname="@GridName.SupplierJobGrid" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th data-key="CustomerName">@Resource.gridColumnCustomer</th>
+                                    <th data-key="UserOnboardedTypeId">@Resource.gridColumnType</th>
+                                    <th data-key="JobName">@Resource.gridColumnLocationName</th>
+                                    <th data-key="JobID">@Resource.gridColumnLocationID</th>
+                                    <th data-key="AccountingCompanyId">@Resource.lblAccountingCompanyId</th>
+                                    <th data-key="AssetAssigned">@Resource.lblAssetsTanks</th>
+                                    <th data-key="RegionName">@Resource.lblAssignedRegion</th>
+                                    <th data-key="Address">@Resource.gridColumnAddress</th>
+                                    <th data-key="ContactPerson">@Resource.lblOnsiteContact</th>
+                                    <th data-key="LastUpdated">@Resource.gridColumnLastUpdated</th>
+                                    <th data-key="CreatedBy">@Resource.gridColumnCreatedBy</th>
+                                    @*<th data-key="CompanyOwnedLocation">@Resource.lblCompanyOwnedLocation</th>*@
+                                    <th data-key="IsRetailJob">@Resource.gridColumnIsRetailJob</th>
+                                    <th data-key="InventoryDataCaptureType">@Resource.lblInventoryCaptureMethod</th>
+                                    <th data-key="CarrierName">@Resource.gridColumnAssignedCarrier</th>
+                                    <th data-key="IsBadgeMandatory">@Resource.gridIsBadgeNumberMandatory</th>
+                                    <th data-key="RouteName">@Resource.gridRouteAssignmentMandatory</th>
+                                    <th data-key="LocationInventoryManagedByNames">@Resource.gridColumnLocationInventoryManagedBy</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="regionassignment-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-sm">
+        @using (Html.BeginForm("SaveRegionAssignmentForJob", "Job", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "EditLocationToRegionForm" }))
+        {
+            @*Add Modal Content here*@
+            <div class="modal-content">
+                <div class="pa bg-white z-index5 loading-wrapper edit-loader"><span class='spinner-dashboard pa'></span></div>
+                <div class="modal-body modal-autoscroll">
+                    <h4 class="pt0">@Resource.lblRegionToLocation</h4>
+                    <p style="word-wrap: break-word;">
+                        <div id="edit-region-form"></div>
+                    </p>
+                    <div class="text-right mt20">
+                        <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                        <input type="button" onclick="saveLocationToRegion()" id="btn-save-locationToRegionAssignment" class="btn btn-primary btn-lg" value="@Resource.btnLabelSave" />
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div id="carrierassignment-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-sm">
+        @using (Html.BeginForm("SaveCarrierAssignmentForJob", "Job", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "EditLocationToCarrierForm" }))
+        {
+            <div class="modal-content">
+                <div class="pa bg-white z-index5 loading-wrapper edit-loader"><span class='spinner-dashboard pa'></span></div>
+                <div class="modal-body modal-autoscroll" id="carrier-assignment-confirmation">
+                    <h4 class="pt0">@Resource.lblCarrierToLocation</h4>
+                    <p style="word-wrap: break-word;">
+                        <div id="edit-carrier-form"></div>
+                    </p>
+                    <div class="text-right mt20">
+                        <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                        <input type="button" onclick="saveLocationToCarrier()" id="btn-save-locationToCarrierAssignment" class="btn btn-primary btn-lg" value="@Resource.btnLabelSave" />
+                    </div>
+                </div>
+                <div class="modal-body modal-autoscroll" id="freight-onlyOrder-confirmation" style="display:none">
+                    <h4 class="pt0 mb5">@Resource.lblHeadingPassOrder</h4>
+                    <div>
+                        @Resource.valMessageFreightOrder
+                    </div>
+                    <div class="text-right mt15">
+                        <button type="button" id="btnDismissCreateFreightOrder" class="btn btn-lg"
+                                onclick="IscreateFreightOrders(false)">
+                            @Resource.lblNo
+                        </button>
+                        <button type="button" id="btnCreateFreightOrder" class="btn btn-lg btn-primary"
+                                onclick="IscreateFreightOrders(true)">
+                            @Resource.lblYes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<div id="accoutingCompanyId-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-lg">
+        @using (Html.BeginForm("EditAccountingCompanyId", "Dashboard", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "EditAccCompForm" }))
+        {
+            @*Add Modal Content here*@
+            <div class="modal-content">
+                <div class="modal-body modal-autoscroll">
+                    <h4>@Resource.lblEditAccCompanyId</h4>
+                    <p style="word-wrap: break-word;">
+                        <div class="pa bg-white z-index5 loading-wrapper edit-loader"><span class='spinner-dashboard pa'></span></div>
+                        <div id="edit-Id-form"></div>
+                    </p>
+                </div>
+                <div class="text-right pa15 shadow-t">
+                    <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                    <input type="button" onclick="saveAccountCompanyIdForJob()" id="btn-save-accCompanyId" class="btn btn-primary btn-lg" value="@Resource.btnLabelSave" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<div id="routeassignment-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-sm">
+        @using (Html.BeginForm("SaveRouteAssignmentForJob", "Job", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "EditLocationToRouteForm" }))
+        {
+            @*Add Modal Content here*@
+            <div class="modal-content">
+                <div class="pa bg-white z-index5 loading-wrapper edit-loader"><span class='spinner-dashboard pa'></span></div>
+                <div class="modal-body modal-autoscroll">
+                    <h4 class="pt0">@Resource.lblRouteToLocation</h4>
+                    <p style="word-wrap: break-word;">
+                        <div id="edit-route-form"></div>
+                    </p>
+                    <div class="text-right mt20">
+                        <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                        <input type="button" onclick="saveLocationToRoute();" id="btn-save-locationToRouteAssignment" class="btn btn-primary btn-lg" value="@Resource.btnLabelSave" />
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<div id="inventoryassignment-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-sm">
+        @using (Html.BeginForm("SaveInventoryAssignmentForJob", "Job", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "EditLocationToInventoryForm" }))
+                {
+            //Add Modal Content here
+            <div class="modal-content">
+                <div class="pa bg-white z-index5 loading-wrapper edit-loader"><span class='spinner-dashboard pa'></span></div>
+                <div class="modal-body modal-autoscroll">
+                    <h4 class="pt0">@Resource.lblInventoryTypeLocation</h4>
+                    <p style="word-wrap: break-word;">
+                        <div id="edit-inventory-form"></div>
+                    </p>
+                    <div class="text-right mt20">
+                        <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                        <input type="button" onclick="saveLocationToInventory()" id="btn-save-locationToInventoryAssignment" class="btn btn-primary btn-lg" value="@Resource.btnLabelSave" />
+                    </div>
+                </div>
+            </div>
+         }
+    </div>
+</div>
+<script type="text/javascript">
+    var buyerJobGrid;
+    var currentCarrierId = 0;
+    $(document).ready(function () {
+        buyerJobGrid = $('#supplier-job-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("JobGrid", "Job", new { area ="Supplier" })",
+                "type": "GET",
+                "datatype": "json",
+                "data": function () {
+                    var jobFilter = {
+                        Id: '@Model.Id',
+                        Filter: '@Model.Filter',
+                        Currency: getSelectedCountryAndCurrency().currencyType,
+                        CountryId: getSelectedCountryAndCurrency().countryId
+                    };
+                    //$('#job-details-grid').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                    return jobFilter;
+                },
+                "dataSrc": function (json) {
+                    $("#job-details-grid").find('.loading-wrapper').remove();
+                    return json;
+                },
+            },
+            "columns": [
+                { "data": "CustomerName", className: "break-word" },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.UserOnboardedTypeId == @((int)OnboardedType.ThirdPartyOrderOnboarded))
+                            return '@Resource.lblTPO';
+                        else
+                            return '@Resource.lblRegular';
+                    }, "autoWidth": true
+                },
+               {
+                    "data": function (data, type, row, meta) {
+                        if ( data.CreatedBy == "@(Html.Raw(CurrentUser.CompanyName))")
+                        return '<a href="@Url.Action("Details", "Job", new { area = "Supplier"})?id='+ data.Id +'">' + data.JobName + '</a>';
+                       else
+                            return '<a href="@Url.Action("ShowDetails", "Job", new { area = "Supplier"})?id='+ data.Id +'">' + data.JobName + '</a>';
+                    },className: "break-word"
+                },
+                { "data": "JobID" },
+                {
+                    "data": function (data) {
+                            if (data.AccountingCompanyId) {
+                                return data.AccountingCompanyId + '<a id="btnAddAccountingCompId" onclick="editAccountingCompanyId(' + data.CustomerId + ',' + data.Id +')"data-toggle="modal" data-target="#accoutingCompanyId-modal"><span class="fas fa-edit ml5" data-placement="top" class ="accCompId" title="@Resource.btnLabelEdit"></span></a>'
+                        }
+                            else {
+                                return '<a id="btnAddAccountingCompId" onclick="editAccountingCompanyId(' + data.CustomerId +','+ data.Id +')" data-toggle="modal" data-target="#accoutingCompanyId-modal"><span class="fas fa-edit ml5" data-placement="top" class ="accCompId" title="@Resource.btnLabelEdit">' +
+                                '</span ></a>'
+                        }
+                    }, "autoWidth": true
+                 },
+                { "data": "AssetAssigned"},
+                {
+                    "data": function (data) {
+                        if ('@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True' || '@CurrentUser.IsDispatcher' == 'True') {
+                            if ((data.RegionName != null) && (data.RegionName != '')) {
+                                return data.RegionName + '<a id="btnEditRegion"  class ="regionassign"  data-toggle="modal" data-target="#regionassignment-modal"><span class="fas fa-edit ml5" data-placement="top" title="@Resource.btnLabelEdit"></span></a>'
+                            }
+                            else {
+                                return '<a id="btnEditRegion" class ="regionassign" data-toggle="modal" data-target="#regionassignment-modal"><span class="fas fa-edit ml5" data-placement="top"  title="@Resource.btnLabelEdit"></span></a>'
+                            }
+                        }
+                        else {
+                            return data.RegionName == null ? "--" : data.RegionName;
+                        }
+                    }, className: "break-word"
+                },
+                { "data": "Address", className: "break-word" },
+                {
+                    "data": function (data) {
+                        return data.ContactPerson == null ? '<div class="text-center">@Resource.lblHyphen<div>' : data.ContactPerson.substring(0, data.ContactPerson.length - 1).replace(/\;/g, '<br/><br/>');
+                    }, "className": "contact-person break-word"
+                },
+                { "data": "LastUpdated",  "sType": "date" },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.CreatedBy == "@(Html.Raw(CurrentUser.CompanyName))")
+                            return data.CreatedBy;
+                        else
+                            return 'Others';
+                    }, className:"break-word"
+                },
+               @*{
+					"data": function (data, type, row, meta) {
+                        var url = '@Url.Action("SetCompanyOwnedLocation", "Job", new { area = "Supplier"})';
+                        var checked = data.CompanyOwnedLocation ? "checked=\"checked\"" : "";
+                        var columnCtrl = '<input type = "checkbox" data-url = "' + url + '" onchange = "SetCompanyOwnedLocation('+ data.Id +',' + data.CustomerId +',this)" ' + checked + '></input>';
+                        columnCtrl += '<span class="hidden">' + (data.CompanyOwnedLocation ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+                        return columnCtrl;
+                    }, className: "break-word",
+                },*@
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.CreatedBy == "@(Html.Raw(CurrentUser.CompanyName))" && ('@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True' || '@CurrentUser.IsDispatcher' == 'True')) {
+                            var url = '@Url.Action("UpdateJobType", "Job", new { area = "Supplier"})/' + data.Id + '';
+                            var checked = data.IsRetailJob ? "checked=\"checked\"" : "";
+
+                            var columnCtrl = '<input type = "checkbox" data-url = "' + url + '" onchange = "updateJobTypeStatus(this)" ' + checked + '></input>';
+                            columnCtrl += '<span class="hidden">' + (data.IsRetailJob ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+
+                            return columnCtrl;
+                        }
+                        else {
+                            if (data.IsRetailJob == true) {
+                                return '@Resource.lblYes'
+                            }
+                            else {
+                                return '@Resource.lblNo'
+                            }
+                        }
+                    }, className: "break-word"
+                },
+                {
+                    "data": function (data) {
+						if ('@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True' || '@CurrentUser.IsDispatcher' == 'True') {
+                                var InventorydataTypeCapture = ''; 
+                                if (data.InventoryDataCaptureType ==@((int)InventoryDataCaptureType.CallIn)) {
+                                    InventorydataTypeCapture = '@InventoryDataCaptureType.CallIn.GetDisplayName()';
+                                }
+                                else if (data.InventoryDataCaptureType ==@((int)InventoryDataCaptureType.Connected)) {
+                                    InventorydataTypeCapture = '@InventoryDataCaptureType.Connected.GetDisplayName()';
+                                }
+                                else if (data.InventoryDataCaptureType ==@((int)InventoryDataCaptureType.Manual)) {
+                                    InventorydataTypeCapture = '@InventoryDataCaptureType.Manual.GetDisplayName()';
+                                }
+                                else if (data.InventoryDataCaptureType ==@((int)InventoryDataCaptureType.Mixed)) {
+                                    InventorydataTypeCapture = '@InventoryDataCaptureType.Mixed.GetDisplayName()';
+                                }
+                                else if(data.InventoryDataCaptureType ==@((int)InventoryDataCaptureType.NotSpecified)){
+                                     InventorydataTypeCapture = '@InventoryDataCaptureType.NotSpecified.GetDisplayName()';
+                                }                                 
+                                return InventorydataTypeCapture + '<a id="btnEditInventoryDetails"  class ="inventoryassign"  data-toggle="modal" data-target="#inventoryassignment-modal"><span class="fas fa-edit ml5" data-placement="top" title="@Resource.btnLabelEdit"></span></a>'
+						}
+						else {
+                            return data.InventoryDataCaptureType == null ? "--" : data.InventoryDataCaptureType;
+						}
+                    }, className: "break-word"
+                },
+                {
+					"data": function (data) {
+						if ('@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True' || '@CurrentUser.IsDispatcher' == 'True') {
+							if ((data.CarrierName != null) && (data.CarrierName != '')) {
+								return data.CarrierName + '<a id="btnEditCarrier"  class ="carrierassign"  data-toggle="modal" data-target="#carrierassignment-modal"><span class="fas fa-edit ml5" data-placement="top" title="@Resource.btnLabelEdit"></span></a>'
+							}
+							else {
+								return '<a id="btnEditCarrier" class ="carrierassign" data-toggle="modal" data-target="#carrierassignment-modal"><span class="fas fa-edit ml5" data-placement="top"  title="@Resource.btnLabelEdit"></span></a>'
+							}
+						}
+						else {
+							return data.CarrierName == null ? "--" : data.CarrierName;
+						}
+                    }, className: "break-word"
+                },
+                {
+					"data": function (data, type, row, meta) {
+                        var url = '@Url.Action("SetSupplierIsBadgeMandatory", "Dashboard", new { area = "Supplier"})';
+                        var checked = data.IsBadgeMandatory ? "checked=\"checked\"" : "";
+                        var columnCtrl = '<input type = "checkbox" data-url = "' + url + '" onchange = "updateIsBadgeMandatory('+ data.Id +',' + data.CustomerId +',this)" ' + checked + '></input>';
+                        columnCtrl += '<span class="hidden">' + (data.IsBadgeMandatory ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+                        return columnCtrl;
+                    }, className: "break-word"
+                },
+                {
+                    "data": function (data) {                      
+						if ('@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True' || '@CurrentUser.IsDispatcher' == 'True') {
+                            if ((data.RouteName != null) && (data.RouteName != '')) {
+                                return data.RouteName + '<a id="btnEditRoute"  class ="routeassign"  data-toggle="modal" data-target="#routeassignment-modal"><span class="fas fa-edit ml5" data-placement="top" title="@Resource.btnLabelEdit"></span></a>'
+							}
+                            else {
+                                if ((data.RegionName == null) || (data.RegionName == '')) {
+                                    return '<p style="color:red;">Region assignment compulsory for route assignment.</p>';
+                                }
+                                else {
+                                    return '<a id="btnEditRoute" class ="routeassign" data-toggle="modal" data-target="#routeassignment-modal"><span class="fas fa-edit ml5" data-placement="top"  title="@Resource.btnLabelEdit"></span></a>'
+                                }
+							}
+						}
+						else {
+                            return data.RouteName?data.RegionName:"";
+						}
+                    }, className: "break-word"
+                },
+                { "data": "LocationInventoryManagedByNames" },
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'colvis' },
+                { extend: 'copy' },
+                { extend: 'csv', title: '@Resource.headingJobs' },
+                { extend: 'excel', title: '@Resource.headingJobs' },
+                { extend: 'pdf', title: '@Resource.headingJobs', orientation: 'landscape', pageSize: 'LETTER' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+		});
+        $('#supplier-job-datatable tbody').on('click', '.regionassign', function () {
+			var $row = $(this).closest('tr');
+            var data = $('#supplier-job-datatable').DataTable().row($row).data();
+			var jobInfo = {
+                JobId: data.Id,
+                JobName: data.JobName,
+				RegionId: data.RegionId,
+			};
+			editLocationToRegion(jobInfo);
+        });
+
+        $('#supplier-job-datatable tbody').on('click', '.carrierassign', function () {
+            var $row = $(this).closest('tr');
+            var data = $('#supplier-job-datatable').DataTable().row($row).data();
+            currentCarrierId = data.CarrierId;
+            var jobInfo = {
+                JobId: data.Id,
+                JobName: data.JobName,
+                CarrierId: data.CarrierId,
+                CarrierName: data.CarrierName
+            };
+            editLocationToCarrier(jobInfo);
+        });
+        $('#supplier-job-datatable tbody').on('click', '.routeassign', function () {
+            var $row = $(this).closest('tr');
+            var data = $('#supplier-job-datatable').DataTable().row($row).data();
+            var jobInfo = {
+                JobId: data.Id,
+                JobName: data.JobName,
+                RegionId: data.RegionId,
+                RouteId: data.RouteId,
+            };
+            editLocationToRoute(jobInfo);
+        });
+        $('#supplier-job-datatable tbody').on('click', '.inventoryassign', function () {
+            var $row = $(this).closest('tr');
+            var data = $('#supplier-job-datatable').DataTable().row($row).data();
+            var jobInfo = {
+                JobID: data.Id,
+                JobName: data.JobName,
+                InventoryDataCaptureType: data.InventoryDataCaptureType
+            };
+            editLocationToInventoryTypes(jobInfo);
+        });
+        exportDdtGrid();
+    });
+
+    function ReloadDataTable() {
+        buyerJobGrid.ajax.reload();
+	}
+
+    function editLocationToRegion(data) {
+        var url = '@Url.Action("EditLocationToRegion", "Job", new { area="Supplier"})';
+        $(".edit-loader").show();
+        $.post(url, { jobInfo: data }, function (response) {
+            if (response != null || response != undefined) {
+                $("#edit-region-form").html(response);
+                parseForm();
+            }
+        }).always(
+            function () {
+                $(".edit-loader").hide();
+            }
+        );
+    }
+    function editLocationToRoute(data) {
+        var url = '@Url.Action("EditLocationToRoute", "Job", new { area="Supplier"})';
+        $(".edit-loader").show();
+        $.post(url, { jobInfo: data }, function (response) {
+            if (response != null || response != undefined) {
+                $("#edit-route-form").html(response);
+                parseForm();
+            }
+        }).always(
+            function () {
+                $(".edit-loader").hide();
+            }
+        );
+    }
+
+	function editLocationToCarrier(data) {
+        var url = '@Url.Action("EditLocationToCarrier", "Job", new { area="Supplier"})';
+        $(".edit-loader").show();
+        $.post(url, { jobInfo: data }, function (response) {
+            if (response != null || response != undefined) {
+                $("#edit-carrier-form").html(response);
+                parseForm();
+            }
+        }).always(
+            function () {
+                $(".edit-loader").hide();
+            }
+        );
+    }
+
+    function editLocationToInventoryTypes(data) {
+        var url = '@Url.Action("EditLocationToInventory", "Job", new { area="Supplier"})';
+        $(".edit-loader").show();
+        $.post(url, { jobInfo: data }, function (response) {
+            if (response != null || response != undefined) {
+                $("#edit-inventory-form").html(response);
+                parseForm();
+            }
+        }).always(
+            function () {
+                $(".edit-loader").hide();
+            }
+        );
+    }
+	function updateJobTypeStatus(element) {
+            var url = $(element).data('url') + '?isRetail=' + $(element).is(':checked') + '';
+		$.get(url, function (response) {
+			if (response.StatusCode == 0) {
+				msgsuccess(response.StatusMessage);
+			}
+			else {
+				msgerror(response.StatusMessage);
+			}
+        });
+    }
+    function updateIsBadgeMandatory(jobId,buyerCompanyId,element) {
+        var url = $(element).data('url') + '?Id='+jobId+'&buyerCompanyId='+buyerCompanyId+'&isBadgeMandatory=' + $(element).is(':checked') + '';
+        $.get(url, function (response) {
+            if (response.StatusCode == 0) {
+                msgsuccess(response.StatusMessage);
+            }
+            else {
+                msgerror(response.StatusMessage);
+            }
+        });
+    }
+    function SetCompanyOwnedLocation(jobId, buyerCompanyId, element) {
+        var url = $(element).data('url') + '?Id=' + jobId + '&buyerCompanyId=' + buyerCompanyId + '&companyOwnedLocation=' + $(element).is(':checked') + '';
+        $.get(url, function (response) {
+            if (response.StatusCode == 0) {
+                msgsuccess(response.StatusMessage);
+            }
+            else {
+                msgerror(response.StatusMessage);
+            }
+        });
+    }
+    function saveLocationToRegion() {
+        var $form = $("#EditLocationToRegionForm");
+        var isValid = $form.valid();
+        var url = $form.attr("action");
+        var data = $form.serialize();
+        $(".edit-loader").show();
+        $.post(url, data, function (response) {
+            if (response.StatusCode == 0) {
+                $("#regionassignment-modal").modal("hide");
+                msgsuccess(response.StatusMessage);
+                window.location.reload(true);
+            } else {
+                msgerror(response.StatusMessage);
+            }
+        }).always(function () {
+            $(".edit-loader").hide();
+        });
+    }
+
+    function saveLocationToCarrier() {
+        var $form = $("#EditLocationToCarrierForm");
+        var url = $form.attr("action");
+         var data = $form.serialize();
+        var selectedCarrierId = $("#CarrierId").val();
+        $(".edit-loader").show();
+        //$("#btn-save-locationToCarrierAssignment").attr("disabled", true);
+        //$.post(url, data, function (response) {
+        //    if (response.StatusCode == 0) {
+        //        msgsuccess(response.StatusMessage);
+        //        $("#carrierassignment-modal").modal("hide");
+        //        $("#btn-save-locationToCarrierAssignment").attr("disabled", false);
+        //        window.location.reload(true);
+        //    } else {
+        //        msgerror(response.StatusMessage);
+        //        $("#btn-save-locationToCarrierAssignment").attr("disabled", false);
+        //    }
+         //});
+         if (currentCarrierId === selectedCarrierId) {
+             //Direct save call. logic to not add duplicate entries of job is there in freight service repo.
+             $("#btn-save-locationToCarrierAssignment").attr("disabled", true);
+             $.post(url, data, function (response) {
+                 if (response.StatusCode == 0) {
+                     msgsuccess(response.StatusMessage);
+                     $("#carrierassignment-modal").modal("hide");
+                     $("#btn-save-locationToCarrierAssignment").attr("disabled", false);
+                     window.location.reload(true);
+                 } else {
+                     msgerror(response.StatusMessage);
+                     $("#btn-save-locationToCarrierAssignment").attr("disabled", false);
+                 }
+             }).always(function () {
+                 $(".edit-loader").hide();
+             });
+         }
+         else if (selectedCarrierId == '' || selectedCarrierId == null || selectedCarrierId == undefined) {
+             $("#btn-save-locationToCarrierAssignment").attr("disabled", true);
+             $.post(url, data, function (response) {
+                 if (response.StatusCode == 0) {
+                     msgsuccess(response.StatusMessage);
+                     $("#carrierassignment-modal").modal("hide");
+                     $("#btn-save-locationToCarrierAssignment").attr("disabled", false);
+                     window.location.reload(true);
+                 } else {
+                     msgerror(response.StatusMessage);
+                     $("#btn-save-locationToCarrierAssignment").attr("disabled", false);
+                 }
+             }).always(function () {
+                 $(".edit-loader").hide();
+             });
+         }
+         else {
+             document.getElementById('freight-onlyOrder-confirmation').style.display = "block";
+             document.getElementById('carrier-assignment-confirmation').style.display = "None";
+             $(".edit-loader").hide();
+         }
+    }
+    function editAccountingCompanyId(BuyerCompanyId, JobId) {
+        var url = '@Url.Action("GetAccountingCompanyId","Dashboard", new { area="Supplier"})';
+        editAccountingCompanyIdForJob(BuyerCompanyId,JobId,url);
+    }
+
+    function IscreateFreightOrders(IsCreateOrder) {
+        if (IsCreateOrder != null || IsCreateOrder != undefined) {
+            $("#IsCreateFreightOnlyOrder").val(IsCreateOrder);
+            var $form = $("#EditLocationToCarrierForm");
+            var url = $form.attr("action");
+            var data = $form.serialize();
+            $("#btn-save-locationToCarrierAssignment").attr("disabled", true);
+            $("#btnDismissCreateFreightOrder").attr("disabled", true);
+            $("#btnCreateFreightOrder").attr("disabled", true);
+            $(".edit-loader").show();
+            $.post(url, data, function (response) {
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.StatusMessage);
+                    $("#carrierassignment-modal").modal("hide");
+                    $("#btn-save-locationToCarrierAssignment").attr("disabled", false);
+                    window.location.reload(true);
+                } else {
+                    msgerror(response.StatusMessage);
+                    $("#btn-save-locationToCarrierAssignment").attr("disabled", false);
+                }
+            }).always(function () {
+                $(".edit-loader").hide();
+            });
+        }
+    }
+    function saveLocationToRoute() {
+        var $form = $("#EditLocationToRouteForm");
+        var isValid = $form.valid();
+        var url = $form.attr("action");
+        var data = $form.serialize();
+        $(".edit-loader").show();
+        $.post(url, data, function (response) {
+            if (response.StatusCode == 0) {
+                $("#routeassignment-modal").modal("hide");
+                msgsuccess(response.StatusMessage);
+                window.location.reload(true);
+            } else {
+                msgerror(response.StatusMessage);
+            }
+        }).always(function () {
+            $(".edit-loader").hide();
+        });
+    }
+    function exportDdtGrid() {
+        ExportDataEvent('#supplier-job-datatable',  @ApplicationConstants.ExportRestrictionCount,
+            '@Url.Action("JobGrid", "Job", new { area ="Supplier" })',
+            '@string.Format(Resource.messageExportRestrictionCount, ApplicationConstants.ExportRestrictionCount)'
+        );
+    }
+    function saveLocationToInventory() {
+        var $form = $("#EditLocationToInventoryForm");
+        var isValid = $form.valid();
+        var url = $form.attr("action");
+        var data = $form.serialize();
+        $(".edit-loader").show();
+        $.post(url, data, function (response) {
+            if (response.StatusCode == 0) {
+                $("#inventoryassignment-modal").modal("hide");
+                msgsuccess(response.StatusMessage);
+                window.location.reload(true);
+            } else {
+                msgerror(response.StatusMessage);
+            }
+        }).always(function () {
+            $(".edit-loader").hide();
+        });
+    }
+</script>
+

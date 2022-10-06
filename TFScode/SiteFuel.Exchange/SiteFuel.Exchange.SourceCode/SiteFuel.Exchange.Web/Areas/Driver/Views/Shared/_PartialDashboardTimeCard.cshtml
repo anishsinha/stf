@@ -1,0 +1,132 @@
+﻿<div class="well bg-white shadow-b">
+    <div class="row">
+        <div class="col-sm-6 col-xs-6">
+            <h2 class="mt0 pt0 f-normal">
+                <span class="far fa-clock mr5"></span> @Resource.headingTimeCard
+            </h2>
+        </div>
+        <div class="col-sm-6 col-xs-6 text-right grey-btn-group mtm5">
+            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                <label class="btn active">
+                    <input type="radio" class="timeCardView" name="options" id="@(TimeCardView.All)" checked> @Resource.lblAll
+                </label>
+                <label class="btn">
+                    <input type="radio" class="timeCardView" name="options" id="@(TimeCardView.Day)"> @Resource.lblDay
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive grid-loader mt15 driver-timecardgrid">
+        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+        <table class="table table-hover margin bottom fs12 tbl-text-center" id="table-time-card-all">
+            <thead>
+                <tr class="timeCardAllView">
+                    <th>@Resource.gridColumnDate</th>
+                    <th>@Resource.gridColumnCheckInTime</th>
+                    <th>@Resource.gridColumnDeliveryTime</th>
+                    <th>@Resource.gridcolumnTransitTime</th>
+                    <th>@Resource.gridColumnBreakTime</th>
+                    <th>@Resource.gridColumnCheckOutTime</th>
+                    <th>@Resource.gridColumnTotalShiftTime</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <table class="table table-hover margin bottom fs12 tbl-text-center" id="table-time-card-day" style="display:none">
+            <thead>
+                <tr class="timeCardDayView">
+                    <th>@Resource.gridcolumnEventName</th>
+                    <th>@Resource.gridColumnDate</th>
+                    <th>@Resource.gridColumnStartTime</th>
+                    <th>@Resource.gridColumnEndTime</th>
+                    <th>@Resource.gridcolumnElapsedTime</th>
+                    <th>@Resource.gridColumnLocation</th>
+                    <th>@Resource.gridColumnDistance</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script>
+        $(document).ready(function () {
+            GetTimeCardData();
+        });
+
+        function GetTimeCardData() {
+            $.ajax({
+                type: "get",
+                url: "@Url.Action("TimeCardGrid", "Dashboard", new { area = "Driver"})",
+                dataType: "json",
+                data: { timeCardView: $('.timeCardView:checked').attr('id') },
+                success: function (data) {
+                    $("#table-time-card-all,#table-time-card-day").closest(".grid-loader").find('.loading-wrapper').hide();
+
+                    if (data.length > 0) {
+                        $("#table-time-card-all tbody").html("");
+                        $("#table-time-card-day tbody").html("");
+
+                        for (i = 0; i < data.length; i++) {
+                            if ($('.timeCardView:checked').attr('id') == '@TimeCardView.All') {
+                                $("#table-time-card-all tbody").append("<tr>" +
+                                    "<td>" + data[i].ActionDate + "</td>" +
+                                    "<td>" + data[i].ClockIn + "</td>" +
+                                    "<td>" + data[i].FuelDropTime + "</td>" +
+                                    "<td>" + data[i].TransitTime + "</td>" +
+                                    "<td>" + data[i].BreakTime + "</td>" +
+                                    "<td>" + data[i].ClockOut + "</td>" +
+                                    "<td>" + data[i].TotalShiftTime + "</td>" +
+                                    "</td></tr>");
+                            }
+                            else {
+                                $("#table-time-card-day tbody").append("<tr>" +
+                                    "<td>" + data[i].ActionName + "</td>" +
+                                    "<td>" + data[i].ActionDate + "</td>" +
+                                    "<td>" + data[i].StartTime + "</td>" +
+                                    "<td>" + data[i].EndTime + "</td>" +
+                                    "<td>" + data[i].Duration + "</td>" +
+                                    "<td>" + data[i].UserLocation + "</td>" +
+                                    "<td>" + data[i].Distance + "</td>" +
+                                    "</td></tr>");
+                            }
+                        }
+                        wrapperHeight();
+                    }
+                    else {
+                        if ($('.timeCardView:checked').attr('id') == '@TimeCardView.All') {
+                            if ($("#table-time-card-all >tbody >tr:visible").length < 1) {
+                                $("#table-time-card-all tbody").append("<tr><td colspan='7' class='text-left'>There are no items to display</td ></tr >");
+                            }
+                        } else {
+                            if ($("#table-time-card-day >tbody >tr:visible").length < 1) {
+                                $("#table-time-card-day tbody").append("<tr><td colspan='7' class='text-left'>There are no items to display</td ></tr >");
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        $(document).ajaxComplete(function () {
+            $('[data-toggle=confirmation]').confirmation({
+                rootSelector: '[data-toggle=confirmation]',
+                html: true
+            });
+        });
+
+        $('.timeCardView').on('change', function () {
+            if ($('.timeCardView:checked').attr('id') == '@TimeCardView.All'){
+                $('#table-time-card-day').hide();
+                $('#table-time-card-all').show();
+            } else {
+                $('#table-time-card-all').hide();
+                $('#table-time-card-day').show();
+            }
+
+            $("#table-time-card-all,#table-time-card-day").closest(".grid-loader").find('.loading-wrapper').show();
+            GetTimeCardData();
+        });
+    </script>
+}

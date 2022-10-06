@@ -1,0 +1,394 @@
+﻿<div class="well bg-white shadow-b">
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div id="RetainException" class="table-responsive">
+                <table id="tbl-dqv-RetainException" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.lblTrailerId</th>
+                            <th>@Resource.lblTrailerName</th>
+                            <th>@Resource.lblTrailerOwner</th>
+                            <th>@Resource.lblTrailerLicencePlate</th>
+                            <th>@Resource.lblTrailerFuelCapacity</th>
+                            <th>@Resource.lblTrailerCompartments</th>
+                            <th>@Resource.lblTrailerFuelRetained</th>
+                            <th>@Resource.lblTrailerFuelRetainedInfo</th>
+                            <th>@Resource.gridColumnAction</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="confirm-EdittrailerInfo" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                @*<div class="overflow-h">
+                    <div class="pull-right">
+                        <button class="close color-grey pull-right pa" data-dismiss="modal" type="button"><i class="fa fa-close fs21"></i></button>
+                    </div>
+                </div>*@
+                <div class="overflow-h">
+                    <h4 class="pull-left mt2 mb15 pt0 pb0">Edit</h4><button aria-label="Close" class="close color-grey pull-right pa" data-dismiss="modal" type="button"><i class="fa fa-close fs21"></i></button></div>
+
+                <div class="retain-compartments overflow-auto vh50">
+                    <table id="member-datatable" class="table fs12 table-sm table-borderless mb0">
+                        <thead>
+                            <tr class="f-bold">
+                                <th>@Resource.lblGridHeaderCompartment</th>
+                                <th>@Resource.lblGridHeaderFuelType</th>
+                                <th>@Resource.lblGridHeaderQuantity</th>
+                                <th>@Resource.lblGridHeaderUOM</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbdFuelRetain"></tbody>
+                    </table>
+                </div>
+                <div class="text-right mt10">
+                    <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="UpdateFuelRetain()">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirm-ResetFuelInfo" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <div>
+
+                        <h3>
+                            <label id="lblconfirm">
+
+                            </label>
+                        </h3>
+                    </div>
+                    <input type="hidden" id="TruckId" />
+                </div>
+
+                <div class="text-right mt10">
+                    <button type="button" id="BtnResetFuelInfoClose" class="btn btn-lg"
+                            data-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="resetTrailerFuelRetained()">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirm-FuelInfoException" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <div>
+                        <h3>
+                            <label id="lblconfirmException">
+
+                            </label>
+                        </h3>
+                    </div>
+                    <input type="hidden" id="exTruckId" />
+                    <input type="hidden" id="exId" />
+                </div>
+
+                <div class="text-right mt10">
+                    <button type="button" id="BtnResetFuelInfoClose" class="btn btn-lg"
+                            data-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="ConfirmTrailerFuelRetainException()">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var RetainExceptionsGrid, exportManageRetainColumns = { columns: [0, 2, 3, 4, 5, 6, 7, 8]};
+    var odata,oExceptioData; var IDs = [];
+    $(document).ready(function () {
+        RetainExceptionsGrid = $("#tbl-dqv-RetainException").DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetRetainFuelExceptionData", "Exception", new { area = "Supplier" })",
+                "type": "POST",
+                "data": function (data) {
+                    $("#RetainException").append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "datatype": "json",
+                "dataSrc": function (json) {
+
+                    $("#RetainException").find('.loading-wrapper').hide();
+                    odata = json.data;
+                    oExceptioData = json.data.companyExceptionModel;
+                    return json.data.truckDetailViewModels
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": false,
+            "searchDelay": 500,
+            processing: true,
+            "searching": true,
+            "bProcessing": true,
+            lengthChange: true,
+            responsive: true,
+            "columns": [
+                { "data": "TruckId", "autoWidth": true },
+                { "data": "Name", "autoWidth": true },
+                { "data": "Owner", "autoWidth": true },
+                { "data": "LicencePlate", "autoWidth": true },
+                { "data": "FuelCapacity", "autoWidth": true },
+                {
+                    "data": function (data) {
+
+                        if (data.Compartments != null && data.Compartments.length > 0) {
+                            var Compartments = "<div><p>";
+                            $.each(data.Compartments, function (key, value) {
+                                Compartments +=  value.CompartmentId + "<br>"
+                            });
+                            Compartments += "<p></div>";
+                            return Compartments;
+                        }
+                        else {
+                            return "--";
+                        }
+
+                    },
+                    "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        var totalFuelRetaiined = 0;
+                        if (data.TrailerFuelRetains != null && data.TrailerFuelRetains.length > 0) {
+                            $.each(data.TrailerFuelRetains, function (key, value) {
+                                totalFuelRetaiined += value.Quantity;
+                            });
+                        }
+                        return totalFuelRetaiined;
+                    },
+                    "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+
+                        if (data.TrailerFuelRetains != null) {
+                            var CompartmentswithFuelDetails = "<div>";
+                            CompartmentswithFuelDetails += '<table id="member-datatable" class="table fs12 table-sm table-borderless mb0"> <thead><tr class="f-bold"><tr class="f-bold"> <th>@Resource.lblGridHeaderCompartment</th><th>@Resource.lblGridHeaderFuelType</th><th>@Resource.lblGridHeaderQuantity</th></tr> </thead> <tbody id="tbdFuelRetainGrid">';
+
+                            $.each(data.TrailerFuelRetains, function (key, value) {
+                                var compartment = value.CompartmentId ? value.CompartmentId : "--"
+                                var UOM = value.UOM == 1 ? "G" : "L";
+                                CompartmentswithFuelDetails += '<tr><td>' + compartment + '</td><td>' + value.ProductType + '</td><td>' + value.Quantity + " "+ UOM + '</td></tr>';
+                            });
+                            CompartmentswithFuelDetails += "</tbody ></table ></div>";
+                            return CompartmentswithFuelDetails;
+                        }
+                        else
+                        return "--";
+                    },
+                    "autoWidth": true
+                },
+                {
+                    "data": function (data) {                    
+                        if (oExceptioData != null && oExceptioData.IsActive && data.TrailerFuelRetains != null && data.TrailerFuelRetains.length > 0) {
+                            var columnData = "<div class='btn-group'><button data-toggle='dropdown' class='btn btn-primary btn-sm dropdown-toggle' aria-expanded='false'>Action<span class='caret'>";
+                            columnData += "</span></button><ul class='dropdown-menu dropdown-menu-right'>";
+                            columnData += '<li  class="dropdown-item" ><a onclick="openResetDialogBox(\'' + data.Id + '\'\,\'' + data.TruckId + '\'\);">'+oExceptioData.Resolutions[0].Name+'</a></li>';
+                            columnData += '<li class="divider" ></li>';
+                            columnData += '<li class=dropdown-item><a  onclick="EditFuelRetainDetails(\'' + data.Id + '\'\,\'' + data.TruckId + '\'\)";>' + oExceptioData.Resolutions[1].Name +'</a></li>';
+                            columnData += '<li class="divider" ></li>';
+                            columnData += '<li class=dropdown-item><a  onclick="openConfirmExceptionDialogBox(\'' + data.Id + '\'\,\'' + data.TruckId + '\'\)";>' + oExceptioData.Resolutions[2].Name +'</a></li>';
+                            columnData += "</ul></div>";
+                            return columnData;
+                        }
+                        else
+                            return "";
+                    }, "autoWidth": true
+                }
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "columnDefs": [
+                { "name": "TruckId", "targets": 0 },
+                { "name": "Name", "targets": 1 },
+                { "name": "Owner", "targets": 2 },
+                { "name": "LicencePlate", "targets": 3 },
+                { "name": "FuelCapacity", "targets": 4 },
+                { "name": "Compartments", "targets": 5 },
+                { "name": "totalFuelRetaiined", "targets": 6 },
+                { "name": "CompartmentswithFuelDetals", "targets": 7 },
+                { "name": "Id", "targets": 8 }
+
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'colvis', columns: exportManageRetainColumns.columns },
+                { extend: 'csv', title: '@Resource.gridColumnManageRetain', exportOptions: exportManageRetainColumns.columns },
+                { extend: 'excel', title: '@Resource.gridColumnManageRetain', exportOptions: exportManageRetainColumns.columns },
+                {
+                    extend: 'print', exportOptions: exportManageRetainColumns,
+                    customize: function (win) {                    
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+
+    function openResetDialogBox(Id, TruckId) {
+        $('#TruckId').val(TruckId);
+        let data = odata.truckDetailViewModels.find(x => x.TruckId == TruckId && x.Id == Id);
+        let trailerName = data.Name ? data.Name : "";
+        $('#lblconfirm').text(" Do you want to reset retained fuel details of trailer " + trailerName + "? ");
+        $('#confirm-ResetFuelInfo').modal('show');
+    }
+
+    function resetTrailerFuelRetained() {
+        let truckDetailsModel = { TruckId: $('#TruckId').val() }
+        $("#RetainException").append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+        $.post("@Url.Action("ResetRetainFuelDetails", "Freight", new { area = "Carrier" })", { truckDetailViewModel: truckDetailsModel},
+            function (response) {
+                $('#confirm-ResetFuelInfo').modal('hide');
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.StatusMessage);
+                    let table = $('#tbl-dqv-RetainException').DataTable();
+                    table.ajax.reload(null, false);
+                }
+                else {
+                    msgerror(result.StatusMessage);
+                }
+            }).always(function () {
+                $("#RetainException").find('.loading-wrapper').hide();
+               });
+    }
+
+    function EditFuelRetainDetails(Id, TruckId) {     
+        $('#TruckId').val(TruckId);
+        let data = odata.truckDetailViewModels.find(x => x.TruckId == TruckId && x.Id == Id);
+        IDs = [];
+        data.TrailerFuelRetains.forEach(function (obj) { IDs.push(obj.Id) });
+        IDs.join(', ');
+        $('#tbdFuelRetain').html("");
+
+        data.TrailerFuelRetains.forEach(function (value) {
+            var html = '<tr>';
+            var compartment = value.CompartmentId ? value.CompartmentId : "--";
+            var UOM = value.UOM == 1 ? "G" : "L";
+            html += '<td>' + compartment + '</td> ';
+            html += '<td>' + value.ProductType + '</td>';
+            html += '<td><input type="text" class="form-control" id=' + value.Id + ' value=' + value.Quantity + ' /></td>';
+            html += '<td><b>' + UOM + '<b></td>';
+            html += '<td><a onclick="ResetRow(\'' + value.Id + '\'\)" class="btn btn-danger">Reset</a></td>';
+            html += '</tr>'
+            $('#tbdFuelRetain').append(html);
+        });
+        $('#confirm-EdittrailerInfo').modal('show');
+    }
+
+    function UpdateFuelRetain() {
+        let TruckDetailViewModel = {
+            TrailerFuelRetains :[]
+        }
+        let trailerFuelRetainViewModel = [];
+
+        $("#RetainException").append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+        IDs.forEach(function (obj) {
+            let Input = {
+                Id: "",
+                Quantity: ""
+            }
+            Input.Id = obj;
+            Input.Quantity = $('#' + obj).val();
+            trailerFuelRetainViewModel.push(Input);
+        });
+        TruckDetailViewModel.TrailerFuelRetains = trailerFuelRetainViewModel;
+
+        $.post("@Url.Action("UpdateRetainFuelDetails", "Freight", new { area = "Carrier" })", { truckDetailViewModel: TruckDetailViewModel},
+            function (response) {
+                $('#confirm-EdittrailerInfo').modal('hide');
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.StatusMessage);
+                    let table = $('#tbl-dqv-RetainException').DataTable();
+                    table.ajax.reload(null, false);
+                }
+                else {
+                    msgerror(result.StatusMessage);
+                }
+            }).always(function () {
+                $("#RetainException").find('.loading-wrapper').hide();
+               });
+    }
+
+    function ResetRow(id) {
+        $('#' + id).val(0);
+        $('#' + id).addClass('disabled', 'disabled');
+    }
+
+    function openConfirmExceptionDialogBox(Id, TruckId) {
+        $('#exId').val(Id);
+        $('#exTruckId').val(TruckId);
+        let data = odata.truckDetailViewModels.find(x => x.TruckId == TruckId && x.Id == Id);        
+        $('#lblconfirmException').text("Do you want to confirm the retain quantity entered by the driver?");
+        $('#confirm-FuelInfoException').modal('show');
+    }
+
+    function ConfirmTrailerFuelRetainException() {
+        let TruckId = $('#exTruckId').val();
+        let Id = $('#exId').val();
+        let data = odata.truckDetailViewModels.find(x => x.TruckId == TruckId && x.Id == Id);
+        IDs = [];
+        let trailerFuelRetainViewModel = [];
+        let TruckDetailViewModel = {
+            TrailerFuelRetains: []
+        }
+
+        data.TrailerFuelRetains.forEach(function (obj) { IDs.push(obj.Id) });
+        $("#RetainException").append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+        IDs.forEach(function (obj) {
+            let Input = {
+                Id: "",
+                Quantity: ""
+            }
+            Input.Id = obj;
+            Input.Quantity = $('#' + obj).val();
+            trailerFuelRetainViewModel.push(Input);
+        });
+        TruckDetailViewModel.TrailerFuelRetains = trailerFuelRetainViewModel;
+        $.post("@Url.Action("ConfirmRetainFuelException", "Freight", new { area = "Carrier" })", { truckDetailViewModel: TruckDetailViewModel},
+            function (response) {
+                $('#confirm-FuelInfoException').modal('hide');
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.StatusMessage);
+                    let table = $('#tbl-dqv-RetainException').DataTable();
+                    table.ajax.reload(null, false);
+                }
+                else {
+                    msgerror(result.StatusMessage);
+                }
+            }).always(function () {
+                $("#RetainException").find('.loading-wrapper').hide();
+               });
+    }
+
+</script>

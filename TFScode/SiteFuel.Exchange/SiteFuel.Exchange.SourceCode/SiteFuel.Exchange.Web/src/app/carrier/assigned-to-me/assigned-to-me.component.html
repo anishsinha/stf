@@ -1,0 +1,377 @@
+<a (click)="setPanelHeader('Brokered DR Requests')" onclick="slidePanel('#AssignedToMe','80%')" class="fs13 ml-3">
+    <i class="fa fa-arrow-alt-circle-right mt3 pull-left mr-0"></i><span class="fs13">Assigned To Me</span>
+</a>
+<div id="AssignedToMe" class="side-panel pl5 pr5">
+    <div class="side-panel-wrapper p-3 pr">
+        <div class="mb-2">
+            <a class="close-panel float-left" (click)="clearPanelControls()" onclick="closeSlidePanel();">
+                <i class="fa fa-close fs18"></i>
+            </a>
+            <h3 class="dib mt0 mb0 ml15">{{HeaderText}}</h3>
+        </div>
+        <div class="card shadow p-3">
+            <div class="row">
+                <div class="col-sm-3">
+                    <ng-multiselect-dropdown [formControl]="FilterForm.controls['Suppliers']"
+                                             [placeholder]="'Select Supplier'" [settings]="PriorityDdlSettings" [data]="SupplierCompanies" >
+                    </ng-multiselect-dropdown>
+                </div>
+                <div class="col-sm-3">
+                    <ng-multiselect-dropdown [formControl]="FilterForm.controls['Locations']"
+                                             [placeholder]="'Select Location'" [settings]="PriorityDdlSettings" [data]="CustomerLocation" >
+                    </ng-multiselect-dropdown>
+                </div>
+                <div class="col-sm-2">
+                    <ng-multiselect-dropdown [formControl]="FilterForm.controls['Priority']"
+                                             [placeholder]="'Select Priority'" [settings]="PriorityDdlSettings" [data]="priorityList" >
+                    </ng-multiselect-dropdown>
+                </div>
+            </div>
+            <hr />
+            <div class="row">
+                <div class="col-sm-2">
+                    <input type="text" class="form-control datepicker" [formControl]="FilterForm.controls['FromDate']"
+                           myDatePicker [format]="'MM/DD/YYYY'" placeholder="From" [maxDate]="MaxInputDate" (onDateChange)="FilterForm.get('FromDate').setValue($event);getNextRenewalDate($event);" />
+                </div>
+                <div class="col-sm-2">
+                    <input type="text" class="form-control datepicker" [formControl]="FilterForm.controls['ToDate']" myDatePicker
+                           [format]="'MM/DD/YYYY'" placeholder="To" [maxDate]="MaxInputDate" 
+                           (onDateChange)="FilterForm.get('ToDate').setValue($event);getNextRenewalDate($event);" />
+                </div>
+                <div class="col-sm-2">
+                    <input type="button" class="btn btn-primary" (click)="FilterData()" value="Filter By Date" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 text-right">
+                    <input type="button" class="btn btn-link  m-0 p-0" (click)="ShowAllDrs()" value="Clear Selection" />
+                </div>
+            </div>
+        </div>
+
+        <div class="brokered-dr-grids mt-2">
+            <div class="row">
+                <div class="col-md-12" id="AssignedToMeApi">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div *ngIf="isPriorityVisible(1)">
+                                <h4 class="mustgo mb5" style="color: #fd7668 !important;">Must Go</h4>
+                                <div class="well bg-white shadow-sm border pr pb0">
+                                    <div class="ibox mb0">
+                                        <div class="ibox-content no-padding no-border">
+                                            <table id="table-mustgo" data-gridname="19"
+                                                   class="table table-bordered table-hover">
+                                                <!-- datatable [dtOptions]="dtMustGoOptions" [dtTrigger]="dtMustGoTrigger" -->
+                                                <thead>
+                                                    <tr>
+                                                        <!-- <th>Id</th> -->
+                                                        <th data-key="CustomerCompany">Supplier Name</th>
+                                                        <th data-key="JobAddress">Address</th>
+                                                        <th data-key="ProductType">Product</th>
+                                                        <th data-key="DR_ID">DR ID</th>
+                                                        <th data-key="RequiredQuantity">Required Qty</th>
+                                                        <th data-key="RetainDate">Delivery Window</th>
+                                                        <th data-key="CurrentInventory">Inventory</th>
+                                                        <th data-key="Ullage">Ullage </th>
+                                                        <th data-key="DateOfRequest">Date of request</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody *ngIf="MustGoDrRequestedToMeAPI?.length > 0">
+                                                    <tr *ngFor="let row of MustGoDrRequestedToMeAPI">
+                                                        <!-- <td>{{BrokeredDR.controls['Id'].value}}</td> -->
+                                                        <td>{{row.CustomerCompany}}</td>
+                                                        <td>{{row.JobName +', '+ row.JobAddress}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">
+                                                            {{row.ProductType}}
+                                                        </td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">
+                                                            {{row.BlendedProductName }}, {{row.AdditiveProductName}}
+                                                        </td>
+                                                        <td>{{row.UniqueOrderNo}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">{{row.RequiredQuantity > 0 ? row.RequiredQuantity : row.ScheduleQuantityTypeText}} {{row.RequiredQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">{{row.TotalBlendedQuantity > 0 ? row.TotalBlendedQuantity : row.ScheduleQuantityTypeText}} {{row.TotalBlendedQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td>{{row.DeliveryWindow?row.DeliveryWindow :'--'}}</td>
+                                                        <td>{{row.CurrentInventory}}{{row.CurrentInventory != '--' ?  (row.UoM == 1 ? ' G' : ' L') : ''}} </td>
+                                                        <td>{{row.Ullage}}{{row.UoM == 1 ? ' G' : ' L'}}</td>
+                                                        <td>{{row.StringAssignedOn}}</td>
+                                                        <th class="no-wrap">
+                                                            <a class="color-green" placement="bottom" container="body"
+                                                               ngbTooltip="Accept Delivery Request"
+                                                               (click)="confirmChangeBrokeredDrStatus(2, row)">
+                                                                <i class="fas fa-check-circle fs21"></i>
+                                                            </a>
+                                                            <a class="color-red ml-2" placement="bottom" container="body"
+                                                               ngbTooltip="Reject Delivery Request"
+                                                               (click)="confirmChangeBrokeredDrStatus(3, row)">
+                                                                <i class="fas fa-times-circle fs21"></i>
+                                                            </a>
+
+                                                        </th>
+                                                    </tr>
+                                                </tbody>
+                                                <tbody *ngIf="MustGoDrRequestedToMeAPI?.length == 0">
+                                                    <tr>
+                                                        <td colspan="12" class="no-data-available text-center">No data available</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div *ngIf="isPriorityVisible(2)">
+                                <h4 class="shouldgo mb5" style="color: #f3c316 !important;">Should Go</h4>
+                                <div class="well bg-white shadow-sm border pr pb0">
+                                    <div class="ibox mb0">
+                                        <div class="ibox-content no-padding no-border">
+                                            <table id="table-shouldgo" data-gridname="19"
+                                                   class="table table-bordered table-hover">
+                                                <!-- datatable [dtOptions]="dtMustGoOptions" [dtTrigger]="dtMustGoTrigger" -->
+                                                <thead>
+                                                    <tr>
+                                                        <!-- <th>Id</th> -->
+                                                        <th data-key="CustomerCompany">Supplier Name</th>
+                                                        <th data-key="JobAddress">Address</th>
+                                                        <th data-key="ProductType">Product</th>
+                                                        <th data-key="DR_ID">DR ID</th>
+                                                        <th data-key="RequiredQuantity">Required Qty</th>
+                                                        <th data-key="RetainDate">Delivery Window</th>
+                                                        <th data-key="CurrentInventory">Inventory</th>
+                                                        <th data-key="Ullage">Ullage</th>
+                                                        <th data-key="DateOfRequest">Date of request</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody *ngIf="ShouldGoDrRequestedToMeAPI?.length > 0">
+                                                    <tr *ngFor="let row of ShouldGoDrRequestedToMeAPI">
+                                                        <!-- <td>{{BrokeredDR.controls['Id'].value}}</td> -->
+                                                        <td>{{row.CustomerCompany}}</td>
+                                                        <td>{{row.JobName +', '+ row.JobAddress}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">
+                                                            {{row.ProductType}}
+                                                        </td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">
+                                                            {{row.BlendedProductName }}, {{row.AdditiveProductName}}
+                                                        </td>
+                                                        <td>{{row.UniqueOrderNo}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">{{row.RequiredQuantity > 0 ? row.RequiredQuantity : row.ScheduleQuantityTypeText}} {{row.RequiredQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">{{row.TotalBlendedQuantity > 0 ? row.TotalBlendedQuantity : row.ScheduleQuantityTypeText}} {{row.TotalBlendedQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td>{{row.DeliveryWindow?row.DeliveryWindow :'--'}}</td>
+                                                        <td>{{row.CurrentInventory}}{{row.CurrentInventory != '--' ?  (row.UoM == 1 ? ' G' : ' L') : ''}} </td>
+                                                        <td>{{row.Ullage}}{{row.UoM == 1 ? ' G' : ' L'}}</td>
+                                                        <td>{{row.StringAssignedOn}}</td>
+                                                        <th class="no-wrap">
+                                                            <a class="color-green" placement="bottom" container="body"
+                                                               ngbTooltip="Accept Delivery Request"
+                                                               (click)="confirmChangeBrokeredDrStatus(2, row)">
+                                                                <i class="fas fa-check-circle fs21"></i>
+                                                            </a>
+                                                            <a class="color-red ml-2" placement="bottom" container="body"
+                                                               ngbTooltip="Reject Delivery Request"
+                                                               (click)="confirmChangeBrokeredDrStatus(3, row)">
+                                                                <i class="fas fa-times-circle fs21"></i>
+                                                            </a>
+                                                        </th>
+                                                    </tr>
+                                                </tbody>
+                                                <tbody *ngIf="ShouldGoDrRequestedToMeAPI?.length == 0">
+                                                    <tr>
+                                                        <td colspan="12" class="no-data-available text-center">No data available</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div *ngIf="isPriorityVisible(3)">
+                                <h4 class="couldgo mb5" style="color:#a7a2a2 !important;">Could Go</h4>
+                                <div class="well bg-white shadow-sm border pr pb0">
+                                    <div class="ibox mb0">
+                                        <div class="ibox-content no-padding no-border">
+                                            <table id="table-mustgo" data-gridname="19"
+                                                   class="table table-bordered table-hover">
+                                                <!-- datatable [dtOptions]="dtMustGoOptions" [dtTrigger]="dtMustGoTrigger" -->
+                                                <thead>
+                                                    <tr>
+                                                        <!-- <th>Id</th> -->
+                                                        <th data-key="CustomerCompany">Supplier Name</th>
+                                                        <th data-key="JobAddress">Address</th>
+                                                        <th data-key="ProductType">Product</th>
+                                                        <th data-key="DR_ID">DR ID</th>
+                                                        <th data-key="RequiredQuantity">Required Qty</th>
+                                                        <th data-key="RetainDate">Delivery Window</th>
+                                                        <th data-key="CurrentInventory">Inventory</th>
+                                                        <th data-key="Ullage">Ullage</th>
+                                                        <th data-key="DateOfRequest">Date of request</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody *ngIf="CouldGoDrRequestedToMeAPI?.length > 0">
+                                                    <tr *ngFor="let row of CouldGoDrRequestedToMeAPI">
+                                                        <td>{{row.CustomerCompany}}</td>
+                                                        <td>{{row.JobName +', '+ row.JobAddress}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">
+                                                            {{row.ProductType}}
+                                                        </td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">
+                                                            {{row.BlendedProductName }}, {{row.AdditiveProductName}}
+                                                        </td>
+                                                        <td>{{row.UniqueOrderNo}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">{{row.RequiredQuantity > 0 ? row.RequiredQuantity : row.ScheduleQuantityTypeText}} {{row.RequiredQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">{{row.TotalBlendedQuantity > 0 ? row.TotalBlendedQuantity : row.ScheduleQuantityTypeText}} {{row.TotalBlendedQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td>{{row.DeliveryWindow?row.DeliveryWindow :'--'}}</td>
+                                                        <td>{{row.CurrentInventory}}{{row.CurrentInventory != '--' ?  (row.UoM == 1 ? ' G' : ' L') : ''}} </td>
+                                                        <td>{{row.Ullage}}{{row.UoM == 1 ? ' G' : ' L'}}</td>
+                                                        <td>{{row.StringAssignedOn}}</td>
+                                                        <th>
+                                                            <a class="color-green" placement="bottom" container="body"
+                                                               ngbTooltip="Accept Delivery Request"
+                                                               (click)="confirmChangeBrokeredDrStatus(2, row)">
+                                                                <i class="fas fa-check-circle fs21"></i>
+                                                            </a>
+                                                            <a class="color-red ml-2" placement="bottom" container="body"
+                                                               ngbTooltip="Reject Delivery Request"
+                                                               (click)="confirmChangeBrokeredDrStatus(3, row)">
+                                                                <i class="fas fa-times-circle fs21"></i>
+                                                            </a>
+
+                                                        </th>
+                                                    </tr>
+                                                </tbody>
+                                                <tbody *ngIf="CouldGoDrRequestedToMeAPI?.length == 0">
+                                                    <tr>
+                                                        <td colspan="12" class="no-data-available text-center">No data available</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- proceed brokered dr start -->
+        <button id="openConfirmProceedBrokeredDrModal" hidden="hidden" class="btn btn-lg btn-outline-primary"
+                (click)="open(content)"></button>
+        <div class="modal" style="backdrop-filter: unset;" id="proceedConfirmBrokeredDrModal" tabindex="-1"
+             role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="dialog">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="isLoading">
+                            <span class='spinner-dashboard pa'></span>
+                        </div>
+                        <form #proceedBrokeredDrForm="ngForm" novalidate>
+                            <h2 *ngIf="this.BrokeredDrStatus==2" class="fs18 f-bold mt0">
+                                Accept Brokered Delivery
+                                Request?
+                            </h2>
+                            <h2 *ngIf="this.BrokeredDrStatus==3" class="fs18 f-bold mt0">
+                                Reject Brokered Delivery
+                                Request?
+                            </h2>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="mt10 fs14 f-normal" *ngIf="requestToUpdate.IsBlendedDrParent==false">
+                                        {{requestToUpdate?.ProductType}}
+                                    </div>
+                                    <div class="mt10 fs14 f-normal" *ngIf="requestToUpdate.IsBlendedDrParent==true">
+                                        {{requestToUpdate.BlendedProductName}}, {{requestToUpdate.AdditiveProductName}}
+                                    </div>
+                                    <small class="mb10">
+                                        {{requestToUpdate?.JobName}} - {{requestToUpdate?.JobAddress}}
+                                    </small>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="mt8 fs14 f-normal dib mr5">Required Quantity </div>
+                                    <div *ngIf="requestToUpdate.ScheduleQuantityType>1; else quantity">
+                                        <div class="mt5 fs10">{{requestToUpdate?.ScheduleQuantityTypeText}}</div>
+                                    </div>
+                                    <ng-template #quantity>
+                                        <span *ngIf="requestToUpdate?.UoM==1; else litres">(G)</span>
+                                        <ng-template #litres>(L)</ng-template>
+                                        <div *ngIf="requestToUpdate.IsBlendedDrParent==false">{{requestToUpdate?.RequiredQuantity}}</div>
+                                        <div *ngIf="requestToUpdate.IsBlendedDrParent==true">{{requestToUpdate?.TotalBlendedQuantity}}</div>
+                                    </ng-template>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                                <button *ngIf="this.BrokeredDrStatus==2" type="button"
+                                        (click)="changeBrokeredDrStatus(requestToUpdate.Id,requestToUpdate.BlendedGroupId, 2)"
+                                        class="btn btn-primary btn-lg">
+                                    Accept
+                                </button>
+                                <button *ngIf="this.BrokeredDrStatus==3" type="button"
+                                        (click)="changeBrokeredDrStatus(requestToUpdate.Id,requestToUpdate.BlendedGroupId, 3)"
+                                        class="btn btn-primary btn-lg">
+                                    Reject
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="isLoading" style="position:fixed !important">
+            <span class='spinner-dashboard pa'></span>
+        </div>
+
+        <ng-template #content let-modal>
+            <div class="modal-body">
+                <div class="pa bg-white z-index5 loading-wrapper" *ngIf="isLoading">
+                    <span class='spinner-dashboard pa'></span>
+                </div>
+                <form #proceedBrokeredDrForm="ngForm" novalidate>
+                    <h2 *ngIf="this.BrokeredDrStatus==2" class="fs18 f-bold mt0 dib">Accept Brokered Delivery Request?</h2>
+                    <h2 *ngIf="this.BrokeredDrStatus==3" class="fs18 f-bold mt0 dib">Reject Brokered Delivery Request?</h2>
+                    <button type="button" class="close m-0 p-0 mt-n1" aria-label="Close" (click)="modal.dismiss('Cross click')">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mt10 fs14 f-normal" *ngIf="requestToUpdate.IsBlendedDrParent==false">
+                                {{requestToUpdate?.ProductType}}
+                            </div>
+                            <div class="mt10 fs14 f-normal" *ngIf="requestToUpdate.IsBlendedDrParent==true">
+                                {{requestToUpdate.BlendedProductName+', '+requestToUpdate.AdditiveProductName}}
+                            </div>
+                            <small class="mb10">{{requestToUpdate?.JobName}} - {{requestToUpdate?.JobAddress}} </small>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="mt8 fs14 f-normal dib mr5">Required Quantity </div>
+                            <div *ngIf="requestToUpdate.ScheduleQuantityType>1; else quantity">
+                                <div class="mt5 fs10">{{requestToUpdate?.ScheduleQuantityTypeText}}</div>
+                            </div>
+                            <ng-template #quantity>
+                                <span *ngIf="requestToUpdate?.UoM==1; else litres">(G)</span>
+                                <ng-template #litres>(L)</ng-template>
+                                <div *ngIf="requestToUpdate.IsBlendedDrParent==false">{{requestToUpdate?.RequiredQuantity}}</div>
+                                <div *ngIf="requestToUpdate.IsBlendedDrParent==true">{{requestToUpdate?.TotalBlendedQuantity}}</div>
+                            </ng-template>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-lg" (click)="modal.close('Cancel click')">Cancel</button>
+                <button *ngIf="this.BrokeredDrStatus==2" type="button"
+                        (click)="changeBrokeredDrStatus(requestToUpdate.Id,requestToUpdate.BlendedGroupId, 2); modal.close('Accept Click');"
+                        class="btn btn-primary btn-lg">
+                    Accept
+                </button>
+                <button *ngIf="this.BrokeredDrStatus==3" type="button"
+                        (click)="changeBrokeredDrStatus(requestToUpdate.Id,requestToUpdate.BlendedGroupId, 3); modal.close('Rejectclick');"
+                        class="btn btn-danger btn-lg">
+                    Reject
+                </button>
+            </div>
+        </ng-template>
+    </div>
+</div>

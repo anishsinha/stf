@@ -1,0 +1,134 @@
+﻿@model CompanySubGroupViewModel
+
+@{
+    ViewBag.Title = "Account Group Details";
+}
+@using (Html.BeginForm("CompanySubGroup", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form", id = "company-group-form" }))
+{
+    @Html.HiddenFor(m => m.OwnerCompanyId)
+    @Html.HiddenFor(m => m.CompanyGroup.OwnerCompanyId)
+    @Html.HiddenFor(m => m.CompanyGroup.CompanyName)
+    @Html.Hidden("hdnParentCompanyTypeId", (int)Model.CompanyGroup.OwnerCompanyType)
+
+    if (Model.CompanyGroup.OwnerCompanyId <= 0)
+    {
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="alert alert-info font-bold">@Resource.lblNoGroupAvailable</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="col-sm-12">
+            <div class="row well mb15">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th class="text-left">@Resource.gridParentCompany</th>
+                                <th class="text-left">@Resource.gridChildCompanies</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>@Model.CompanyGroup.CompanyName</td>
+                                <td>@Model.CompanyGroup.SeletedChildCompanies</td>
+                            </tr>
+                        </tbody>
+                    </table>
+            </div>
+        </div>
+        <div class="row" id="sub-group-details">
+            @Html.Partial("_PartialCompanySubGroupGrid")
+        </div>
+        <div class="col-sm-12">
+            <div class="row well mb15" id="create-sub-group">
+                <div class="col-sm-12">
+                    <h4>@Resource.lblCreateAccountGroup</h4>
+                    <div class="row">
+                        @Html.HiddenFor(m => m.Id)
+                        <div class="float-left col-sm-3">
+                            <label>@Resource.lblGroupName</label><span class="required pl4" aria-required="true">*</span>
+                            @Html.TextBoxFor(m => m.SubGroupName, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.SubGroupName)
+                        </div>
+                        <div class="float-left col-sm-3 ml20">
+                            <label>@Resource.lblAccountType</label><span class="required pl4" aria-required="true">*</span>
+                            @Html.DropDownListFor(m => m.CompanyType, new SelectList(CommonHelperMethods.GetCompanyTypesForGroup(), "Id", "Name", Model.CompanyType), string.Format(Resource.valMessageSelect, Resource.lblAccountType), new { @class = "form-control", @onchange = "getSubGroupCompaniesByCompanyType(this);" })
+                            @Html.ValidationMessageFor(m => m.CompanyType)
+                        </div>
+                        <div class="col-sm-4">
+                            <label>@Resource.lblAccounts</label><span class="required pl4" aria-required="true">*</span>
+                            @Html.ListBoxFor(m => m.SubGroupCompanyIds, new SelectList(CommonHelperMethods.GetChildCompaniesByCompany(CurrentUser.CompanyId).Companies, "Id", "Name", 0), new { @class = "form-control multi-select" })
+                            @Html.ValidationMessageFor(m => m.SubGroupCompanyIds)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 text-right pb20 btn-wrapper">
+                <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="window.location.reload();" />
+                <input type="submit" class="btn btn-lg btn-primary" id="btnSave" value="@Resource.btnLabelSave" />
+            </div>
+        </div>
+    }
+}
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var childCompanies = @Html.Raw(Json.Encode(Model.Companies));
+
+        function getSubGroupCompaniesByCompanyType(ctrl) {
+            var companyTypeId = isNaN(parseInt($('#CompanyType').val())) ? 0 : parseInt($('#CompanyType').val());
+            var companyId = '@Model.OwnerCompanyId';
+            $("#@Html.IdFor(m => m.SubGroupCompanyIds)").empty();
+
+            var childs = childCompanies.filter(function (cmp, index) {
+                return parseInt(cmp.ChildCompanyType) == companyTypeId || parseInt(cmp.ChildCompanyType) == @((int)CompanyGroupType.BuyerAndSupplier);
+            });
+
+            if (childs != undefined && childs != null && childs.length > 0) {
+                $.each(childs, function (index, cmp) {
+                    $("#@Html.IdFor(m => m.SubGroupCompanyIds)").append($('<option></option>').val(cmp.Id).html(cmp.Name));
+                });
+
+                var cmpId = $("#@Html.IdFor(m => m.CompanyGroup.OwnerCompanyId)").val();
+                var cmpName = $("#@Html.IdFor(m => m.CompanyGroup.CompanyName)").val();
+                var type = isNaN(parseInt($("#hdnParentCompanyTypeId").val())) ? 0 : parseInt($("#hdnParentCompanyTypeId").val());
+                if (cmpId > 0 && (companyTypeId == type || type == @((int)CompanyGroupType.BuyerAndSupplier))) {
+                    $("#@Html.IdFor(m => m.SubGroupCompanyIds)").append($('<option></option>').val(cmpId).html(cmpName));
+                }
+            }
+        }
+
+        function getSubGroupDetail(id) {
+            var url = '/Settings/Profile/GetSubGroupById/' + id;
+            $('#@Html.IdFor(m => m.Id)').val(id);
+            $.get(url).done(function (response) {
+                if (response != null && response.SubGroupName != null && response.OwnerCompanyId > 0) {
+                    $('#@Html.IdFor(m => m.SubGroupName)').val(response.SubGroupName);
+                    $('#@Html.IdFor(m => m.CompanyType)').val(response.CompanyType).trigger('change');
+
+                    if (response.Companies != undefined && response.Companies != null && response.Companies.length > 0) {
+                        $.each(response.Companies, function (index, cmp) {
+                            $('#@Html.IdFor(m => m.SubGroupCompanyIds) option[value=' + cmp.Id + ']').attr('selected', 'selected');
+                        });
+                    }
+                }
+                else {
+                    msgerror('@Resource.errMessageCompanySubGroupNotExists');
+                }
+            });
+        }
+    </script>
+}
+
+
+
+
+
+
+
+
+

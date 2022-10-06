@@ -1,0 +1,150 @@
+<form [formGroup]="DriverForm" (ngSubmit)="onSubmit()">
+    <div class="sidePanel_overflow">
+        <div class="col-sm-12" id="driver-Form">
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <input type="hidden" formControlName="DriverId" /> <!--User table Id-->
+                        <input type="hidden" formControlName="InvitedBy" />
+                        <input type="hidden" formControlName="UserId" /> <!--Invited User table Id-->
+
+                        <label>First Name<span class="color-maroon">*</span></label>
+                        <input type="text" class="form-control" formControlName="FirstName" />
+                        <div *ngIf="DriverForm.get('FirstName').invalid && DriverForm.get('FirstName').touched" class="color-maroon">
+                            <div *ngIf="DriverForm.get('FirstName').errors.required">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Last Name<span class="color-maroon">*</span></label>
+                        <input type="text" class="form-control" formControlName="LastName" />
+                        <div *ngIf="DriverForm.get('LastName').invalid && DriverForm.get('LastName').touched" class="color-maroon">
+                            <div *ngIf="DriverForm.get('LastName').errors.required">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Company Name</label>
+                        <input type="text" class="form-control" formControlName="CompanyName" />
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>E-mail<span class="color-maroon">*</span></label>
+                        <input type="text" class="form-control" [ngClass]="{'pntr-none subSectionOpacity' : IsOnboarded}" formControlName="Email" />
+                        <div *ngIf="DriverForm.get('Email').invalid && DriverForm.get('Email').touched" class="color-maroon">
+                            <div *ngIf="DriverForm.get('Email').errors.required">
+                                Required.
+                            </div>
+                            <div *ngIf="DriverForm.get('Email').errors.pattern">
+                                Invalid email.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Contact Number</label>
+                        <input type="text" class="form-control" formControlName="ContactNumber" (change)="formatContactNumber($event.target.value)" />
+                        <div *ngIf="DriverForm.get('ContactNumber').invalid && DriverForm.get('ContactNumber').touched" class="color-maroon">
+                            <div *ngIf="!DriverForm.get('ContactNumber').valid || DriverForm.get('ContactNumber').errors?.pattern">
+                                {{ContactNumberValidationMessage}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Licence Expiry Date<span class="color-maroon">*</span></label>
+                        <input type="text" class="form-control datepicker" formControlName="ExpiryDate" myDatePicker [format]="'MM/DD/YYYY'" [minDate]="MinDate" [maxDate]="MaxDate" (onDateChange)="setSelectedDate($event);" />
+                        <div *ngIf="DriverForm.get('ExpiryDate').invalid && DriverForm.get('ExpiryDate').touched" class="color-maroon">
+                            <div *ngIf="DriverForm.get('ExpiryDate').errors.required">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Licence Number<span class="color-maroon">*</span></label>
+                        <input type="text" class="form-control" formControlName="LicenseNumber" />
+                        <div *ngIf="DriverForm.get('LicenseNumber').invalid && DriverForm.get('LicenseNumber').touched" class="color-maroon">
+                            <div *ngIf="DriverForm.get('LicenseNumber').errors.required">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Licence Type<span class="color-maroon">*</span></label>
+                        <select class="form-control" formControlName="SelectedLicenseTypes">
+                            <option [value]="null">Select</option>
+                            <option *ngFor="let key of LicenceTypes" [value]="key.Id">{{key.Name}}</option>
+                        </select>
+                        <div *ngIf="DriverForm.get('SelectedLicenseTypes').invalid && DriverForm.get('SelectedLicenseTypes').touched" class="color-maroon">
+                            <div *ngIf="DriverForm.get('SelectedLicenseTypes').errors.required">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Trailer Type</label>
+                        <ng-multiselect-dropdown [placeholder]="'Select Type'"
+                                                 [settings]="trailerDdlSettings"
+                                                 formControlName="SelectedTrailerTypes" [data]="TrailerTypeList">
+                        </ng-multiselect-dropdown>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Region</label>
+                        <ng-multiselect-dropdown [placeholder]="'Select Region'"
+                                                 [settings]="regionDdlSettings" [data]="RegionList"
+                                                 formControlName="SelectedRegions">
+                        </ng-multiselect-dropdown>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="IsFilldAuthorized" formControlName="IsFilldAuthorized">
+                            <label class="form-check-label" for="IsFilldAuthorized">TrueFill Inc. Compatible</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="col-sm-12 text-right form-buttons">
+            <input type="button" value="Cancel" class="btn" onclick="closeSlidePanel()" (click)="clearForm()">
+            <button id="submit-driver-form" type="submit" class="btn btn-lg btn-primary valid" aria-invalid="false">Submit</button>
+        </div>
+    </div>
+</form>
+<div class="loader" *ngIf="IsLoading">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Loading...</div>
+    </div>
+</div>

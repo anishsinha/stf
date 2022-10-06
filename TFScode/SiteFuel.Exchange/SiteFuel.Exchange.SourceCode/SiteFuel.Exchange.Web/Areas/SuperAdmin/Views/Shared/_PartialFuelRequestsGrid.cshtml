@@ -1,0 +1,144 @@
+﻿@model DashboardFuelRequestViewModel
+<div class="ibox mb0">
+    <div class="ibox-content no-border no-padding">
+        <div id="fuelrequest-div" class="table-responsive">
+            <table id="sa-fuelrequest-datatable" class="table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>@Resource.lblRequestNumber</th>
+                        <th>@Resource.gridColumnZipcode</th>
+                        <th>@Resource.gridColumnQuantity</th>
+                        <th>@Resource.gridColumnFuelType</th>
+                        <th>@Resource.gridColumnCreatedDate</th>
+                        <th>@Resource.gridColumnDateAccepted</th>
+                        <th>@Resource.lblCompanyName</th>
+                        <th>@Resource.lblAccountType</th>
+                        <th>@Resource.lblFRType</th>
+                        <th>@Resource.lblRackPPG</th>
+                        <th>@Resource.gridColumnType <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDeliveryType"></i></th>
+                        <th>@Resource.gridColumnStatus</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var saFuelRequestGrid, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] };
+
+        $(document).ready(function () {
+            var url = "@Url.Action("FuelRequestsGrid", "SuperAdmin", new { area = "SuperAdmin" })"; 
+            if ('@Model.IsDashboardSummaryRequest' == 'True')
+                url = "@Url.Action("GetAllFuelRequests", "SuperAdmin", new { area = "SuperAdmin" })"; 
+
+            saFuelRequestGrid = $('#sa-fuelrequest-datatable').DataTable({
+                "ajax": {
+                    "url": url,
+                    "type": "POST",
+                    "data": function (d) {
+                        d.FromDate = $('#txtFromDate').val();
+                        d.ToDate = $('#txtToDate').val();
+                        d.Filter = '@((int)Model.FuelRequestStatus)';
+                        d.FuelRequestTypeFilter = '@((int)Model.FuelRequestType)';
+                        $('#fuelrequest-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                    },
+                    "datatype": "json",
+                    "dataSrc": function (json) {
+                        $("#fuelrequest-div").find('.loading-wrapper').remove();
+                        return json.data;
+                    }
+                },
+                "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("FuelRequestDetails", "SuperAdmin", new { area = "SuperAdmin" })?id=' + data.FuelRequestId + '">' + data.RequestNumber + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "ZipCode", "autoWidth": true },
+                    { "data": "GallonsOrdered", "autoWidth": true },
+                    { "data": "FuelType", "autoWidth": true },
+                    { "data": "DateCreated", "autoWidth": true, "sType": "date" },
+                    { "data": "DateAccepted", "autoWidth": true, "sType": "date" },
+                    { "data": "CompanyName", "autoWidth": true },
+                    { "data": "AccountType", "autoWidth": true },
+                    { "data": "FuelRequestType", "autoWidth": true },
+                    { "data": "PricePerGallon", "autoWidth": true },
+                    { "data": "DeliveryType", "autoWidth": true },
+                    { "data": "Status", "autoWidth": true }
+                ],
+                "columnDefs": [
+                    { "name": "FuelRequestId", "targets": 0, "regex": false },
+                    { "name": "ZipCode", "targets": 1 },
+                    { "name": "GallonsOrdered", "targets": 2 },
+                    { "name": "FuelType", "targets": 3 },
+                    { "name": "DateCreated", "targets": 4 },
+                    { "name": "DateAccepted", "targets": 5 },
+                    { "name": "CompanyName", "targets": 6 },
+                    { "name": "AccountType", "targets": 7 },
+                    { "name": "FuelRequestType", "targets": 8 },
+                    { "name": "PricePerGallon", "targets": 9 },
+                    { "name": "DeliveryType", "targets": 10 },
+                    { "name": "Status", "targets": 11 },
+                ],
+                'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+                aaSorting: [[]],
+                "serverSide": true,
+                "searchDelay": 500,
+                processing: true,
+                "searching": { "regex": true },
+                "bProcessing": true,
+                lengthChange: true,
+                pageLength: 10,
+                responsive: true,
+                "order": [0, 'desc'],
+                "initComplete": function (settings, json) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]',
+                        html: true
+                    });
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingFuelRequestSummary' },
+                    { extend: 'excel', title: '@Resource.headingFuelRequestSummary' },
+                    { extend: 'pdf', title: '@Resource.headingFuelRequestSummary', orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>",
+                    search: "<button class='btn btn-primary' id='btnsearch19'> <i class='fa fa-search'></i></button>"
+                },
+                initComplete: function (settings, json) {
+                    var api = this.api();
+                    var textBox = $('#sa-fuelrequest-datatable_filter .input-sm');
+                    textBox.unbind();
+                    textBox.bind('keyup input', function (e) {
+                        if (e.keyCode == 8 && !textBox.val() || e.keyCode == 46 && !textBox.val()) {
+                        } else if (e.keyCode == 13 || !textBox.val()) {
+                            api.search(this.value).draw();
+                        }
+                    });
+
+                    $("#btnsearch19").click(function () {
+                        api.search(textBox[0].value).draw();
+                    });
+                }
+            });
+        });
+
+    </script>
+}

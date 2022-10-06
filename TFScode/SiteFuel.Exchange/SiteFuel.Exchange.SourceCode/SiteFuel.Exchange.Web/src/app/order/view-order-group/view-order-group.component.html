@@ -1,0 +1,219 @@
+﻿<div>
+    <button type="button" class="btn btn-default mr25" (click)="ButtonPressed('3')" onclick="slidePanel('#create-group','90%')" data-target="create-group"><i class="fas fa-plus mr5"></i>Create Blend Group</button>
+    <button type="button" class="btn btn-default mr25" (click)="ButtonPressed('1')" onclick="slidePanel('#create-group','90%')" data-target="create-group"><i class="fas fa-plus mr5"></i>Create Same Destination Group</button>
+    <button type="button" class="btn btn-default" (click)="ButtonPressed('2')" onclick="slidePanel('#create-group','90%')" data-target="create-group"><i class="fas fa-plus mr5"></i>Term Pricing Contract</button>
+</div>
+<div id="create-group" class="side-panel pl5 pr5">
+    <div class="side-panel-wrapper">
+        <div class="pt15 pb0">
+            <a class="ml15 close-panel" onclick="closeSlidePanel();"><i class="fa fa-close fs18"></i></a>
+            <h2 class="dib mt0 mb0 fs21 ml15">{{ModalText}}</h2>
+        </div>
+        <div class="modal-body">
+            <div *ngIf="SelectedButton=='Blend'">
+                <app-create-blend-group (onSubmitGroupData)="onOrderGroupFilterSubmit();"></app-create-blend-group>
+            </div>
+            <div *ngIf="SelectedButton=='MultiProducts'">
+                <app-create-same-dest-group (onSubmitGroupData)="onOrderGroupFilterSubmit();"></app-create-same-dest-group>
+            </div>
+            <div *ngIf="SelectedButton=='Tier'">
+                <app-term-pricing-contract></app-term-pricing-contract>
+            </div>
+        </div>
+    </div>
+    </div>
+    <div>
+        <form #viewOrderGroupForm>
+            <div class="container-fluid mt15">
+                <!--(onGroupTypeSelect)="onGroupSelected($event)"-->
+                <!--[GroupList]="model?.GroupTypes || []"-->
+                <!--<app-filter-group (onViewOrderGroupResponse)="onViewOrderGroupChildResponse($event)"></app-filter-group>-->
+                <div class="row well">
+                    <div class="col-sm-9">
+                        <div class="row">
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    <label>Grouping Purpose</label>
+                                    <select class="form-control" (change)="OnGroupTypeSelect($event)">
+                                        <option value="0">All</option>
+                                        <option *ngFor="let grpType of GroupTypeList || []" [ngValue]="SelectedGroupType" [value]="grpType.Id">{{grpType.Name}}</option>
+                                    </select>
+                                    <!--<ng-multiselect-dropdown [data]="GroupTypeList" [settings]="GroupTypeDdlSettings" (onSelect)="OnGroupTypeSelect($event)"
+                                                (onDeSelect)="OnGroupTypeDeSelect($event)">
+                                    </ng-multiselect-dropdown>-->
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label *ngIf="IsSupplierCompany">Customer</label>
+                                    <label *ngIf="!IsSupplierCompany">Supplier</label>
+                                    <ng-multiselect-dropdown [(ngModel)]="SelectedCompany" [data]="CompanyList" name="SelectedCompany" [settings]="CompanyDdlSettings" (onSelect)="OnCompanySelect($event)"
+                                                             (onDeSelect)="OnCompanyDeSelect($event)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                            <div class="col-sm-3" *ngIf="IsMultiProduct || IsTier">
+                                <div class="form-group">
+                                    <label>Location/Site Name</label>
+                                    <ng-multiselect-dropdown [(ngModel)]="SelectedJob" name="SelectedJob" [settings]="JobDdlSettings" [data]="JobList" (onSelect)="OnJobSelect($event)"
+                                                             (onDeSelect)="OnJobDeSelect($event)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                            <div class="col-sm-2" *ngIf="IsTier">
+                                <div class="form-group">
+                                    <label>Fuel Group</label>
+                                    <ng-multiselect-dropdown [(ngModel)]="SelectedFuelGroup" name="SelectedFuelGroup" [settings]="FuelGroupDdlSettings" [data]="FuelGroupList" (onSelect)="OnFuelGroupSelect($event)"
+                                                             (onDeSelect)="OnFuelGroupDeSelect($event)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                            <div class="col-sm-2" *ngIf="!IsSupplierCompany && IsTier">
+                                <div class="form-group">
+                                    <label>State</label>
+                                    <ng-multiselect-dropdown [(ngModel)]="SelectedState" name="SelectedState" [settings]="StateDdlSettings" [data]="StateList" (onSelect)="OnStateSelect($event)"
+                                                             (onDeSelect)="OnStateDeSelect($event)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <input class="btn btn-primary btn-submit btn-lg no-disable btn-lg mt-4" type="submit" value="Search" (click)="onOrderGroupFilterSubmit()" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="row mt-4">
+                            <div class="col-sm-2">
+                                <button class="btn btn-primary" (click)="onSearch(searchTxt.value)" ><i class="fas fa-search"></i></button>
+                            </div>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control input-lg" placeholder="Search Group" #searchTxt>
+                            </div>
+                        </div> 
+                    </div>
+                </div>
+            </div>
+            <div class="pb15 f-bold">
+                Showing {{ShowCount}} of {{TotalGroupCount}}
+            </div>
+            <div class="row">
+                <div class="col-sm-3" *ngFor="let grp of groups; let i = index;">
+                    <div class="well animated fadeInUp">
+                        <div class="row mb10">
+                            <div class="col-sm-12">
+                                <div class="pa10 mb0 jumbotron group-cust radius-5">
+                                    <div class="row">
+                                        <div class="col-sm-8">
+                                            <div class="fs12 f-bold">Customer PO#</div>
+                                            <h2 class="pt0 mt0 f-normal fs16">{{grp.CustomerPoNumber}}</h2>
+                                        </div>
+                                        <div class="col-sm-4 text-right">
+                                            <a *ngIf="grp.IsEditOrDeleteAllowed && grp.CanCurrentUserEditOrDeleteGroup" (click)="OpenEditSlider(grp.OrderGroupId, grp.GroupType);" onclick="slidePanel('#create-group','90%')" data-target="create-group" class="mr5 fs16"><i class="fa fa-edit"></i></a>
+                                            <a *ngIf="grp.IsEditOrDeleteAllowed && grp.CanCurrentUserEditOrDeleteGroup" (click)="SetOrderGroupIdToDelete(grp.OrderGroupId);" data-toggle="modal" data-target="#myModal"><i class="fa fa-trash-alt color-maroon"></i></a>
+                                        </div>
+                                    </div>
+                                    <div class="row" *ngIf="grp.GroupType == 1">
+                                        <!-- 1=Multi Products || 2=Tier || 3=Blend -->
+                                        <div class="col-sm-12" *ngIf="grp.JobAddress != null">
+                                            <span class="fs12">{{grp.JobName}}</span><br>
+                                            <span class="fs11">{{grp.JobAddress}}</span><br>
+                                        </div>
+                                    </div>
+                                    <div *ngIf="grp.GroupType == 2">
+                                        <!-- 2=Tier -->
+                                        <span class="fs14">{{grp.DisplayProductType}}</span><br>
+                                        <span class="fs14" *ngIf="grp.RenewalFrequency != '' || grp.RenewalFrequency != null">Renewal - {{grp.RenewalFrequency}}</span><br>
+                                    </div>
+                                    <!-- 3=Blend -->
+                                    <div *ngIf="grp.GroupType == 3">
+                                        <!--<span class="fs14">Group Weighted Avg PPG - {{grp.BlendedGroupWeightedPPG}}</span><br>-->
+                                        <span class="fs13">{{grp.DisplayBlendedGroupWeightedPPG}}</span><br>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="order-list pa10">
+                            <div *ngFor="let drop of grp.OrderDrops; let j = index;">
+                                <div class="row">
+                                    <div class="row col-sm-12" *ngIf="grp.GroupType == 1">
+                                        <div class="col-sm-9">
+                                            <!-- 1=MultiProducts -->
+                                            <span class="fs14">{{drop.FuelType}}</span><br>
+                                            <!--QuantityType 1=SpecificAmount || 2=Range || 3=NotSpecified -->
+                                            <div *ngIf="drop.QuantityType == 1"><span class="fs12 color-lightgrey">{{drop.DroppedGallons}} {{drop.UoM}}</span><br></div>
+                                            <div *ngIf="drop.QuantityType == 2">
+                                                <span class="fs12 color-lightgrey">Tier {{j+1}} - {{drop.MinVolume}} to {{drop.MaxVolume}} {{drop.UoM}}</span><br>
+                                            </div>
+                                            <div *ngIf="drop.QuantityType == 3"><span class="fs12 color-lightgrey">Not Specified</span><br></div>
+                                            <!--<span class="fs11 color-lightgrey"><a href="">{{drop.TfxPoNumber}}</a></span>-->
+                                            <span class="fs11 color-lightgrey">{{drop.TfxPoNumber}}</span>
+                                        </div>
+                                        <div class="col-sm-3 text-right">
+                                            <span class="badge" *ngIf="drop.QuantityType != 3 && drop.DropPercentage != '--'">{{drop.DropPercentage}}%</span>
+                                        </div>
+                                    </div>
+                                    <div class="row col-sm-12" *ngIf="grp.GroupType == 2">
+                                        <div class="col-sm-9">
+                                            <!-- 2=Tier -->
+                                            <!--QuantityType 1=SpecificAmount || 2=Range || 3=NotSpecified -->
+                                            <div *ngIf="drop.QuantityType == 1">
+                                                <span class="fs12 color-lightgrey">{{drop.TfxPoNumber}} - {{drop.DroppedGallons}} {{drop.UoM}}</span><br>
+                                            </div>
+                                            <div *ngIf="drop.QuantityType == 3">
+                                                <span class="fs12 color-lightgrey">{{drop.TfxPoNumber}} - Not Specified</span><br>
+                                            </div>
+                                            <span class="fs12 color-lightgrey">Tier {{j+1}} - {{drop.MinVolume}} to {{drop.MaxVolume}} {{drop.UoM}}</span><br>
+                                            <span class="fs12 color-lightgrey">{{drop.DisplayPPG}}</span><br>
+                                        </div>
+                                        <div class="col-sm-3 text-right">
+                                            <span class="badge" *ngIf="drop.QuantityType != 3 && drop.DropPercentage != '--'">{{drop.DropPercentage}}%</span>
+                                        </div>
+                                    </div>
+                                    <div class="row col-sm-12" *ngIf="grp.GroupType == 3">
+                                        <div class="col-sm-9">
+                                            <span class="fs14">{{drop.FuelType}}</span><br>
+                                            <div *ngIf="drop.QuantityType == 1">
+                                                <span class="fs12 color-lightgrey">{{drop.DroppedGallons}} {{drop.UoM}}</span><br>
+                                            </div>
+                                            <div *ngIf="drop.QuantityType == 3">
+                                                <span class="fs12 color-lightgrey">Not Specified</span><br>
+                                            </div>
+                                            <span class="fs11 color-lightgrey">{{drop.TfxPoNumber}}</span><br />
+                                            <span class="fs11 color-lightgrey">Blended Ratio - {{drop.BlendRatioPercentage}}%</span>
+                                        </div>
+                                        <div class="col-sm-3 text-right">
+                                            <span class="badge" *ngIf="drop.QuantityType != 3 && drop.DropPercentage != '--'">{{drop.DropPercentage}}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-b clearboth mt10 mb10"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="loader" *ngIf="IsLoading">
+        <div class="loading-content text-center">
+            <div class="spinner"></div>
+            <div class="font-bold">Loading...</div>
+        </div>
+    </div>
+    <!--modal-->
+    <div class="modal fade" id="myModal" role="dialog" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog" style="width:200px">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-body">
+                    Are you sure to delete?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" data-dismiss="modal" class="btn btn-danger" (click)="deleteOrderGroup();">Yes</button>
+                    <button type="button" data-dismiss="modal" class="btn btn-success" (click)="SetOrderGroupIdToDelete(0);">No</button>
+                </div>
+            </div>
+
+        </div>
+    </div>

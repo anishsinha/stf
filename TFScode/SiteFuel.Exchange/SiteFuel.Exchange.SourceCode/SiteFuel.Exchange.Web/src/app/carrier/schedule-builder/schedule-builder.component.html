@@ -1,0 +1,1307 @@
+<div>
+    <form [formGroup]="SbForm">
+        <!-- header -->
+        <div class="header_panel">
+            <div class="row border-b pb10 mb10" *ngIf="_toggle_header">
+                <div class="col-sm-2">
+                    <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingRegions">
+                        <span class='spinner-dashboard pa'></span>
+                    </div>
+                    <select formControlName="RegionId" class="form-control mt5">
+                        <option *ngFor="let region of Regions" [value]="region.Id"
+                                [selected]="region.Id==SbForm.controls['RegionId'].value">
+                            {{region.Name}}
+                        </option>
+                    </select>
+                </div>
+                <div class="col-sm-10 pl10 text-left">
+                    <div class="dib rounded icon-toggle" *ngIf="disableControl==false">
+                        <div class="btn-group btn-filter">
+                            <input type="radio" class="hide-element" [name]="'singleMode1'" id="singleMode" [value]="1" [checked]="SbForm.controls['WindowMode'].value==1">
+                            <label class="btn ml0 first-icon" (click)="onWindowFilterChange(1)" placement="bottom" ngbTooltip="Single Window"><i class="far fa-window-maximize fs14 mt3"></i></label>
+                            <input type="radio" class="hide-element" [name]="'multiwindowmode1'" id="multiwindowmode" [value]="2" [checked]="SbForm.controls['WindowMode'].value==2">
+                            <label class="btn last-icon" (click)="onWindowFilterChange(2)" placement="bottom" ngbTooltip="Multi Window"><i class="far fa-window-restore fs14 mt3"></i></label>
+                        </div>
+                    </div>
+                    <div class="dib border pa5 radius-capsule ml20" id="daySelector">
+                        <div class="btn-group btn-filter">
+                            <input type="radio" class="hide-element" [name]="'DateFilter1'" id="filterYesterDay" [value]="4" [checked]="SbForm.controls['DateFilter'].value==4">
+                            <label class="btn mr5 ml0" (click)="onDateFilterChange(4)">Yesterday</label>
+                            <input type="radio" class="hide-element" [name]="'DateFilter1'" id="filterToday" [value]="1" [checked]="SbForm.controls['DateFilter'].value==1">
+                            <label class="btn mr5 ml0" (click)="onDateFilterChange(1)">Today</label>
+                            <input type="radio" class="hide-element" [name]="'DateFilter1'" id="filterTomorrow" [value]="2" [checked]="SbForm.controls['DateFilter'].value==2">
+                            <label class="btn" (click)="onDateFilterChange(2)">Tomorrow</label>
+                            <input type="radio" class="hide-element" [name]="'DateFilter1'" id="filterDate" [value]="3" [checked]="SbForm.controls['DateFilter'].value==3">
+                            <div class="dib pl10" id="dateInputLabel">
+                                <input type="text" class="form-control datepicker" formControlName="Date" id="dateInput" myDatePicker [format]="'MM/DD/YYYY'" [maxDate]="MaxInputDate"
+                                       (onDateChange)="setSelectedDate($event);" autocomplete="off" placeholder="__/__/____" for="filterDate" (click)="onDateFilterChange(3)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dib pa5 ml20 shift-wrapper search-fix" *ngIf="SbForm.controls['DSBFilter'].value==2">
+                        <ng-multiselect-dropdown [placeholder]="'Select Shift'"
+                                                 [settings]="shiftFilterSettings" [data]="Shifts"
+                                                 formControlName="SelectedShifts"
+                                                 (onSelect)="onShiftsSelect($event)" (onDeSelect)="onShiftsDeSelect($event)"
+                                                 (onSelectAll)="onShiftsSelectAll()"
+                                                 (onDeSelectAll)="onShiftsDeSelectAll()">
+                        </ng-multiselect-dropdown>
+                    </div>
+
+                    <div class="side-panel" id="schedulechange">
+                        <div class="side-panel-wrapper">
+                            <app-otto-notification *ngIf="IsOttoNotificationOpened"></app-otto-notification>
+                        </div>
+                    </div>
+                    <a href="javascript:void(0);" *ngIf="disableControl==false" class="btn border border-secondary pull-right mt5 pr" (click)="openOttoNotification()" onclick="slidePanel('#schedulechange','30%')" placement="left" ngbTooltip="Delivery Window Change">
+                        <i class="fas fa-bell fs16"></i>
+                        <span class="dsb-notification-count fs10 bg-danger pa dib" *ngIf="OttoNotificationCount>0">{{OttoNotificationCount}}</span>
+                    </a>
+                    <button class="btn border border-secondary mt5 pull-right" id="showLoadSummery" *ngIf="disableControl==true" (click)="onRedirectWallyBoardPage()" placement="bottom" ngbTooltip="Load Summary">
+                        <i class="fas fa fa-user-clock fs14"></i>
+                    </button>
+                    <a class="btn border border-secondary mt5 pull-right" *ngIf="disableControl==false" (click)="openDRReportGrid()" placement="bottom" ngbTooltip="Scratch Report"><i class="fas fa-file-alt fs16"></i></a>
+                    <div *ngIf="isSupplierCompany && isSupplierOrDispatcher && disableControl==false" class="dib mt5 shift-wrapper float-right">
+                        <app-add-location [RegionId]="SbForm.get('RegionId').value" [MapsApiKey]="_mapsApiKey" (OnTheFlyLocationCreate)="refreshDeliveryRequests(0)"></app-add-location>
+                    </div>
+                    <div class="d-inline-block pull-right position-relative">
+                        <a class="btn border border-secondary mt5 pull-right" (click)="openCalendarView()" placement="bottom" ngbTooltip="Calendar View"><i class="fa fa-calendar-alt fs18" aria-hidden="true"></i></a>
+                        <div class="dib pa5 ml20 shift-wrapper position-absolute blinker-calendar" *ngIf="isDrScheduledforToday">
+                            <i class="fas fa-circle animated flash infinite text-info" title="You have some loads to be scheduled today. Please click on the calendar here."></i>
+                        </div>
+                    </div>
+                    <button class="btn border border-secondary mt5 pull-right" *ngIf="isDisplayOttoButton && disableControl==false" (click)="openOttoBuilder()" onclick="slidePanel('#otto','97%')" placement="bottom" ngbTooltip="Otto"><i class="far fa-clock fs16"></i></button>
+                    <div class="side-panel" id="otto">
+                        <div class="side-panel-wrapper">
+                            <app-otto-builder *ngIf="IsOttoBuilderOpened" [SelectedDate]="SbForm.controls['Date'].value" [DSBFilter]="SbForm.controls['DSBFilter'].value"></app-otto-builder>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel_icon" [ngClass]="{'panel_icon_b5': !_toggle_header, 'z-index101': !_toggle_header}">
+                <div class="icon_drop" (click)="hideHeader();">
+                    <i class="fas fa-lg" [ngClass]="_toggle_header ? 'fa-angle-up' : 'fa-angle-down' " data-toggle="tooltip" data-placement="top" title="{{ _toggle_header ? 'Hide' : 'Show'}} Date Header"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedules end -->
+        <div class="row">
+            <!-- Delivery Requests -->
+            <div class="toggle-dr-panel" [ngClass]="{'d-none':_toggle_dr_panel===true}" id="toggle_dr_panel_id">
+                <div>
+                    <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingRegions">
+                        <span class='spinner-dashboard pa'></span>
+                    </div>
+                    <div class="pa5 mtm5 radius-capsule mb5 mrm10" *ngIf="_pubWindowmode==1 && disableControl==false">
+                        <div class="btn-group btn-filter dr_panel_filter">
+                            <input type="radio" class="hide-element" [name]="'toggleRequestDR1'" id="toggleRequestDR" [value]="1" [checked]="SbForm.controls['ToggleRequestMode'].value==1">
+                            <label class="btn ml0" (click)="onQueueFilterChange(1);">DRs</label>
+                            <input type="radio" class="hide-element" [name]="'toggleRequestQD1'" id="toggleRequestQD" [value]="2" [checked]="SbForm.controls['ToggleRequestMode'].value==2">
+                            <label class="btn" (click)="onQueueFilterChange(2);"><span class="pr">Clipboard</span> <sup *ngIf="_refreshQueue===true"><i class="fas fs8 fa-circle color-green animated flash infinite ml2 pa top5 left2"></i></sup> </label>
+                        </div>
+                        <div id="toggle_dr_panel_btn" class="pull-right pr pa0 text-right mt3">
+                            <span>
+                                <i class="fas fa-search fs18 cursor_pointer mr5 color-lighticon" [ngClass]="{'text-active': _toggle_search}" (click)="toggleSearch();"></i>
+                            </span>
+                            <span ngbTooltip="{{ drFilterForm.get('IsFilterApplied').value ? 'Filter is applied.' : 'Filter is not applied.'}}">
+                                <i id="toogle_panel_icon" class="fas fa-filter fs18 cursor_pointer color-lighticon mr5"
+                                   (click)="openDrFilterForm()" [class.filterApplied]="drFilterForm.get('IsFilterApplied').value"></i>
+                            </span>
+                            <span ngbTooltip="Collapse DR panel" placement="right">
+                                <i id="toogle_panel_icon" class="far fs18 cursor_pointer color-lighticon fa-arrow-alt-circle-left" (click)="toggleDrPanel()"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="pa5 mtm5 radius-capsule mb5 mrm10" *ngIf="_pubWindowmode==2 && disableControl==false">
+                        <div class="btn-group btn-filter dr_panel_filter">
+                            <a class="btn mr5 ml0 color-orange f-bold" (click)="onRedirectMultiWindowScreen(1)">DRs <i class="far fa-window-restore fs11 mtm2 pull-right ml5"></i></a>
+
+                            <input type="radio" class="hide-element" [name]="'toggleRequestQD2'" id="toggleRequestQD1" [value]="2" [checked]="SbForm.controls['ToggleRequestMode'].value==2">
+                            <label class="btn" (click)="onQueueFilterChange(2);"><span class="pr">Clipboard</span><sup *ngIf="_refreshQueue===true"><i class="fas fs8 fa-circle color-green animated flash infinite ml2 pa top5 left2"></i></sup></label>
+                        </div>
+                        <div id="toggle_dr_panel_btn" class="pull-right pr pa0 text-right mt3">
+                            <span>
+                                <i class="fas fa-search fs18 cursor_pointer mr5 color-lighticon" [ngClass]="{'text-active': _toggle_search}" (click)="toggleSearch();"></i>
+                            </span>
+                            <span ngbTooltip="{{ drFilterForm.get('IsFilterApplied').value ? 'Filter is applied.' : 'Filter is not applied.'}}">
+                                <i id="toogle_panel_icon" class="fas fa-filter fs18 cursor_pointer color-lighticon mr5"
+                                   (click)="openDrFilterForm()" [class.filterApplied]="drFilterForm.get('IsFilterApplied').value"></i>
+                            </span>
+                            <span ngbTooltip="Collapse DR panel">
+                                <i id="toogle_panel_icon" class="far fs18 cursor_pointer color-lighticon fa-arrow-alt-circle-left" (click)="toggleDrPanel()"></i>
+                            </span>
+                        </div>
+                    </div>
+
+
+                </div>
+                <div class="row mb5" *ngIf="_toggle_search">
+                    <div class="col-sm-12 pr10">
+                        <div class="inner-addon right-addon">
+                            <i class="glyphicon glyphicon-remove text-danger" (click)="toggleSearch();"></i>
+                            <input type="text" name="txtSearch" formControlName="searchDRS" id="txtSearch" class="form-control" placeholder="Search" (keydown.enter)="$event.preventDefault()" />
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="_toggle_search == false && (loadUniqueProducts.length > 0)">
+                    <select formControlName="selectedProduct" class="form-control mb5 btn-rounded" (change)="filterDrByProductType($event.target.value)" *ngIf="disableControl==false">
+                        <option value="-1" selected>All Products</option>
+                        <option *ngFor="let productName of loadUniqueProducts" [value]="productName">
+                            {{productName}}
+                        </option>
+                    </select>
+                </div>
+
+                <div class="dr_accordian_panel" [ngClass]="{'dr_accordian_panel_h_150': !_toggle_header}" *ngIf="disableControl==false">
+                    <div *ngIf="_loadingDrRequests" class="pa bg-white z-index5 loading-wrapper">
+                        <span class='spinner-dashboard pa'></span>
+                    </div>
+                    <div class="panel-group dr-accordian" id="accordion">
+                        <div class="panel panel-default" *ngIf="drFilterForm.get('IsFilterApplied').value != true || (drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('Missed').value)">
+                            <app-delivery-request [Title]="'Missed'" [isToggleDrPanel]="_toggle_dr_panel" [CollapaseId]="'collapse4'"
+                                                  [CollapaseInClass]="'show'"
+                                                  [TitleClass]="'missed'"
+                                                  (onDeliveryRequestEdit)="getDeliveryReq($event)"
+                                                  [Locations]="missedRequests"
+                                                  [PriorityTabCount]="drFilterForm.get('IsFilterApplied').value? drFilterModel.Priority.length: 0">
+                            </app-delivery-request>
+                        </div>
+                        <div class="panel panel-default" *ngIf="drFilterForm.get('IsFilterApplied').value != true || (drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('MustGo').value)">
+                            <app-delivery-request [Title]="'Must Go'" [isToggleDrPanel]="_toggle_dr_panel"
+                                                  [CollapaseInClass]="(drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('MustGo').value && drFilterForm.controls.Priority.get('Missed').value != true)? 'show': ''"
+                                                  [CollapaseId]="'collapse1'"
+                                                  [TitleClass]="'mustgo'"
+                                                  (onDeliveryRequestEdit)="getDeliveryReq($event)"
+                                                  [Locations]="mustGoRequests"
+                                                  [PriorityTabCount]="drFilterForm.get('IsFilterApplied').value? drFilterModel.Priority.length: 0">
+                            </app-delivery-request>
+                        </div>
+                        <div class="panel panel-default" *ngIf="drFilterForm.get('IsFilterApplied').value != true || (drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('ShouldGo').value)">
+                            <app-delivery-request [Title]="'Should Go'"
+                                                  [CollapaseInClass]="(drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('ShouldGo').value && drFilterForm.controls.Priority.get('Missed').value != true && drFilterForm.controls.Priority.get('MustGo').value != true)? 'show': ''"
+                                                  [isToggleDrPanel]="_toggle_dr_panel"
+                                                  [CollapaseId]="'collapse2'"
+                                                  [TitleClass]="'shouldgo'"
+                                                  (onDeliveryRequestEdit)="getDeliveryReq($event)"
+                                                  [Locations]="shouldGoRequests"
+                                                  [PriorityTabCount]="drFilterForm.get('IsFilterApplied').value? drFilterModel.Priority.length: 0">
+                            </app-delivery-request>
+                        </div>
+                        <div class="panel panel-default" *ngIf="drFilterForm.get('IsFilterApplied').value != true || (drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('CouldGo').value)">
+                            <app-delivery-request [Title]="'Could Go'"
+                                                  [CollapaseInClass]="(drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('CouldGo').value && drFilterForm.controls.Priority.get('Missed').value != true && drFilterForm.controls.Priority.get('MustGo').value != true && drFilterForm.controls.Priority.get('ShouldGo').value != true)? 'show': ''"
+                                                  [isToggleDrPanel]="_toggle_dr_panel"
+                                                  [CollapaseId]="'collapse3'"
+                                                  [TitleClass]="'couldgo'"
+                                                  (onDeliveryRequestEdit)="getDeliveryReq($event)"
+                                                  [Locations]="couldGoRequests"
+                                                  [PriorityTabCount]="drFilterForm.get('IsFilterApplied').value? drFilterModel.Priority.length: 0">
+                            </app-delivery-request>
+                        </div>
+                        <div class="panel panel-default py-1" *ngIf="drFilterForm.get('IsFilterApplied').value != true || (drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('AssignedByMe').value)">
+                            <app-assigned-by-me (onDeliveryRequestEdit)="getDeliveryReq($event)"
+                                                [regionId]="SbForm.controls['RegionId'].value"
+                                                [SelectedDate]="SbForm.controls['Date'].value">
+                            </app-assigned-by-me>
+                        </div>
+                        <div class="panel panel-default border-top py-2" *ngIf="drFilterForm.get('IsFilterApplied').value != true || (drFilterForm.get('IsFilterApplied').value && drFilterForm.controls.Priority.get('AssignedToMe').value)">
+
+                            <app-assigned-to-me #AssignedToMe [regionId]="SbForm.controls['RegionId'].value"
+                                                [SelectedDate]="SbForm.controls['Date'].value" (OnAcceptRejectDR)="changeCarrierBrokeredDrStatus($event)">
+                            </app-assigned-to-me>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedules -->
+            <!--'col-sm-10 schedule-panel': disableControl===false,-->
+            <div class="schedule-panel mt-n1" [ngClass]="_toggle_dr_panel ? (disableControl===true ? 'toggled' : 'toggled') : (disableControl===true ? 'toggled' : 'non-toggle') " id="schedule-panel_id" style="min-height:80px;">
+                <span class="float-btn" *ngIf="_toggle_dr_panel" ngbTooltip="Expand DR panel">
+                    <i id="toogle_panel_icon" class="far fs18 cursor_pointer color-lighticon fa-arrow-alt-circle-right pluse-icon" (click)="toggleDrPanel()"></i>
+                    <!-- [ngClass]="_toggle_dr_panel ? 'fa-arrow-alt-circle-left' : ' fa-arrow-alt-circle-right'" -->
+                </span>
+                <div class="row">
+                    <div [ngClass]="(disableControl || _toggle_dr_panel) ? 'col-sm-8' : 'col-sm-8'">
+                        <div class="row">
+                            <div class="col-sm-3" *ngIf="SbForm.controls['DSBFilter'].value==2 && disableControl==false">
+                                <app-dsb-load-queue [isDisableControl]="disableControl" [SbForm]='SbForm' [IsTrailerExists]="_isTrailerExists" [RegionDetail]="RegionDetail"></app-dsb-load-queue>
+                            </div>
+                            <div class="col-sm-9">
+                                <div class="row">
+                                    <div class="col-sm-7">
+                                        <app-schedule-builder-filter #SBFilter [isDisableControl]="disableControl" [SbFilterData]="SbFilter" (OnSbFilterApply)="onApplyFilter($event)" *ngIf="UpdateSbFilter && SbForm.controls['ObjectFilter'].value==1 && SbForm.controls['DSBFilter'].value==1" [IsTrailerExists]="_isTrailerExists">
+                                        </app-schedule-builder-filter>
+                                        <app-schedule-builder-grid-filter [isDisableControl]="disableControl" #SbGridViewFilter [SbGridFilterData]="SbGridViewFilter" (OnSbGridFilterApply)="onApplyGridViewFilter($event)" *ngIf="SbForm.controls['ObjectFilter'].value==1 && SbForm.controls['DSBFilter'].value==2">
+                                        </app-schedule-builder-grid-filter>
+                                    </div>
+                                    <div class="col-sm-5" style="margin-left: -25px;">
+                                        <button *ngIf="SbForm.controls['IsAssignDrEnabled'].value != true && disableControl==false" type="button" class="btn btn-primary btn-sm mt3"
+                                                (click)="assignDrsToCarrier()">
+                                            Assign DR(s)
+                                        </button>
+
+
+                                        <button *ngIf="SbForm.controls['IsAssignDrEnabled'].value == true && disableControl==false" type="button" class="btn btn-primary btn-sm mt3"
+                                                (click)="assignCarriersToDrs()">
+                                            Select Carrier
+                                        </button>
+                                        <button *ngIf="SbForm.controls['IsAssignDrEnabled'].value == true && disableControl==false" type="button" class="btn btn-link ml-2 btn-sm mt3"
+                                                (click)="cancelAssignDrsToCarrier()">
+                                            Cancel
+                                        </button>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div [ngClass]="(disableControl || _toggle_dr_panel) ? 'col-sm-4' : 'col-sm-4'">
+                        <button *ngIf="disableControl==false" type="button" class="btn btn-link pull-right mr5 pa0" data-target="#route-info"
+                                (click)="setRegionForRoute()" onclick="slidePanel('#route-info','40%')">
+                            <i class="fas fa-route fs14 mr5"></i> Routes
+                        </button>
+                        <app-dip-test [isDisableControl]="disableControl" (onRaiseDR)="refreshDeliveryRequests(0);" [SelectedRegionId]="SelectedRegionId" [IsThisFromDrDisplay]="false"></app-dip-test>
+                    </div>
+                </div>
+                <app-driver-column-view *ngIf="SbForm.controls['ObjectFilter'].value==1 && SbForm.controls['DSBFilter'].value==2" [SbForm]="SbForm" [HeaderToggle]="_toggle_header" [Shifts]="DriverViewShifts" [RegionDetail]="RegionDetail" [SelectedRegionId]="SelectedRegionId" [IsTrailerExists]="_isTrailerExists" [IsNoDriverShiftFound]="IsNoDriverShiftFound">
+                    <div class="pa bg-white z-index5 loading-wrapper">
+                        <span class='spinner-dashboard pa'></span>
+                    </div>
+                </app-driver-column-view>
+            </div>
+            <!-- Delivery Group -->
+            <app-delivery-group [SelectedRegionId]="SelectedRegionId"
+                                [SelectedDate]="SbForm.controls['Date'].value"
+                                [ScheduleBuilderId]="SbForm.controls['Id'].value"
+                                [isSupplierCompany]="isSupplierCompany" #deliveryGroup (onRaiseSubDR)="refreshDeliveryRequests(0);"></app-delivery-group>
+            <!--<app-create-load [SelectedRegionId]="SelectedRegionId" [selectedProduct]="SbForm.controls['selectedProduct'].value"></app-create-load>-->
+        </div>
+
+    </form>
+    <ng-sidebar-container style="z-index: 99999;" *ngIf="_isInitiated">
+        <ng-sidebar [(opened)]="_opened"
+                    [animate]="_animate"
+                    [position]="_POSITIONS[_positionNum]"
+                    [showBackdrop]="_showBackdrop"
+                    style="height: 100vh">
+            <div class="DR-filter-panel">
+                <div class="row border-bottom ">
+                    <div class="col-12">
+                        <h3 class="dib">Delivery Request Filter</h3>
+                        <a class="ml20 close-panel" (click)="_toggleClosed();setLastDrFilterForm();"><i class="fa fa-close fs18 pull-right mt4"></i></a>
+                    </div>
+                </div>
+                <form [formGroup]="drFilterForm" novalidate>
+                    <div class="row border-bottom mt10">
+                        <div class="col-12">
+                            <h6 class="heading-title"> Pickup </h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div id="terminal">
+                                        <label>Terminals:</label>
+                                        <div class="form-group">
+                                            <ng-multiselect-dropdown #multiSelect1
+                                                                     [formControl]="drFilterForm.controls['Terminals']"
+                                                                     [settings]="settings" [data]="terminalsForFilter">
+                                            </ng-multiselect-dropdown>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div id="bulkPlant">
+                                        <label>Bulk Plants:</label>
+                                        <div class="form-group">
+                                            <ng-multiselect-dropdown #multiSelect2
+                                                                     [formControl]="drFilterForm.controls['BulkPlants']"
+                                                                     [settings]="settings" [data]="bulkPlantsForFilter">
+                                            </ng-multiselect-dropdown>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row border-bottom mb15 mt10 pb10">
+                        <div class="col-12">
+                            <h6 class="heading-title"> Priority </h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div formGroupName="Priority">
+                                        <div class="form-check form-check-inline ">
+                                            <input class="form-check-input" type="checkbox" id="priority_0"
+                                                   name="priority" value="4" formControlName="Missed">
+                                            <label class="form-check-label" for="priority_0">Missed</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="priority_1"
+                                                   name="priority" value="1" formControlName="MustGo">
+                                            <label class="form-check-label" for="priority_1">Must Go</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="priority_2"
+                                                   name="priority" value="2" formControlName="ShouldGo">
+                                            <label class="form-check-label" for="priority_2">Should Go</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="priority_3"
+                                                   name="priority" value="3" formControlName="CouldGo">
+                                            <label class="form-check-label" for="priority_3">Could Go</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="priority_4"
+                                                   name="priority" value="5" formControlName="AssignedToMe">
+                                            <label class="form-check-label" for="priority_4">Assigned to me</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="priority_5"
+                                                   name="priority" value="6" formControlName="AssignedByMe">
+                                            <label class="form-check-label" for="priority_5">Assigned by me</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row border-bottom mb15 pb10">
+                        <div class="col-12">
+                            <h6 class="heading-title"> Trailer Type </h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div formGroupName="TrailerType">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="TrailerType_0"
+                                                   name="TrailerType" value="1" formControlName="Lead">
+                                            <label class="form-check-label" for="TrailerType_0">Lead</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="TrailerType_1"
+                                                   name="TrailerType" value="2" formControlName="Pup">
+                                            <label class="form-check-label" for="TrailerType_1">Pup</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="TrailerType_2"
+                                                   name="TrailerType" value="3" formControlName="Quad">
+                                            <label class="form-check-label" for="TrailerType_2">Quad</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="TrailerType_3"
+                                                   name="TrailerType" value="4" formControlName="Tandem">
+                                            <label class="form-check-label" for="TrailerType_3">Tandem</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="TrailerType_4"
+                                                   name="TrailerType" value="5" formControlName="Tridem">
+                                            <label class="form-check-label" for="TrailerType_4">Tridem</label>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row border-bottom mb15 pb10">
+                        <div class="col-12">
+                            <h6 class="heading-title"> Delivery Shift </h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div formGroupName="DeliveryShift">
+
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="drshift_0"
+                                                   name="drshift" value="1" formControlName="Morning">
+                                            <label class="form-check-label" for="drshift_0">Morning</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="drshift_1"
+                                                   name="drshift" value="2" formControlName="Evening">
+                                            <label class="form-check-label" for="drshift_1">Evening</label>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row border-bottom mb15 pb10" *ngIf="this.IsCarrierCompanyStatus">
+                        <div class="col-12">
+                            <h6 class="heading-title">Brokered DRs</h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div formGroupName="DeliveryBrokeredDR">
+
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="dr_brokeredDrs"
+                                                   name="brokeredDrs" value="1" formControlName="brokeredDrs">
+                                            <label class="form-check-label" for="dr_brokeredDrs">Show only Brokered DRs</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row border-bottom mb15 pb10">
+                        <div class="col-12">
+                            <h6 class="heading-title">Show only TBD DRs</h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="dr_tbdDrs"
+                                               name="IsTBDRequest" value="1" formControlName="IsTBDRequest">
+                                        <label class="form-check-label" for="dr_tbdDrs">Show only TBD DRs</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row border-bottom mb15 mt10 pb10">
+                        <div class="col-12">
+                            <h6 class="heading-title">Order Type</h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div formGroupName="OrderType">
+                                        <div class="form-check form-check-inline ">
+                                            <input class="form-check-input" type="checkbox" id="orderType_LTL"
+                                                   name="priority" value="4" formControlName="OrderTypeLTL">
+                                            <label class="form-check-label" for="orderType_LTL">LTL</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="orderType_FTL"
+                                                   name="priority" value="1" formControlName="OrderTypeFTL">
+                                            <label class="form-check-label" for="orderType_FTL">FTL</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row border-bottom mt10">
+                        <div class="col-12">
+                            <h6 class="heading-title"> Customer </h6>
+                            <div class="form-group">
+                                <ng-multiselect-dropdown [formControl]="drFilterForm.controls['Customers']"
+                                                         [placeholder]="'Select Customer(s)'"
+                                                         [settings]="CustomerFilterSettings"
+                                                         [data]="bulkCustomersForFilter">
+                                </ng-multiselect-dropdown>
+                            </div>
+                        </div>
+                    </div>
+                    <br /> <br /> <br />
+                </form>
+                <div class="row">
+                    <div class="col-12 text-right">
+                        <button type="button" class="btn btn1-default mr10" (click)="clearDrFilterForm(true);">Clear Filter</button>
+                        <button type="button" class="btn btn-primary btn-lg" (click)="applyDrFilterInitiated()">Apply</button>
+                    </div>
+                </div>
+            </div>
+        </ng-sidebar>
+    </ng-sidebar-container>
+
+
+</div>
+
+<div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingBuilder" style="position:fixed !important">
+    <span class='spinner-dashboard pa'></span>
+</div>
+<div id="openUpdateDrModal" hidden="hidden" data-toggle="modal" data-target="#updateDeliveryRequestModal"></div>
+<div id="updateDeliveryRequestModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body">
+                <form #form="ngForm" novalidate>
+                    <div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">Update Delivery Request</h4>
+                        <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fa fa-close fs21"></i></button>
+                    </div>
+                    <!-- #blended Dr to update -->
+                    <div *ngIf="requestToUpdate.IsBlendedRequest; else regularDRToUpdate">
+                        <div class="row mt5">
+                            <div class="col-sm-12">
+                                <div class="fs14 f-normal">{{blendedProducts}} Tank, Location ID: {{blendRequestsToUpdate[0]?.SiteId}}</div>
+                                <small class="mb10 fs12 opacity8"><b>{{blendRequestsToUpdate[0]?.JobName}},</b> {{blendRequestsToUpdate[0]?.JobAddress}} </small>
+                            </div>
+                        </div>
+                        <div class="row mt5">
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label for="name" class="mr5">
+                                        <span>Total Quantity</span>
+                                        <span *ngIf="requestToUpdate?.UoM==1; else litres"> (G)</span>
+                                        <ng-template #litres> (L)</ng-template>
+                                    </label>
+                                    <input type="text" class="form-control" name="blendTotalQuantity" [(ngModel)]="blendTotalQuantity" (input)="toggleBlendTotalQuantity()" required>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label for="name" class="mr5">
+                                        <span>Delivery Level PO#</span>
+                                    </label>
+                                    <input type="text" class="form-control"  name="DeliveryLevelPO" [(ngModel)]="requestToUpdate.DeliveryLevelPO" #DeliveryLevelPO="ngModel">
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngFor="let blendUpdateRequest of blendRequestsToUpdate; index as j" [ngModelGroup]="j">
+                            <div class="row mt5">
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <div>{{blendUpdateRequest.ProductType}} - {{blendUpdateRequest.FuelType}}</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <input type="text" numberWithDecimal class="form-control" (input)="toggleBlendQuantity(blendUpdateRequest,false)" name="RequiredQuantity" [(ngModel)]="blendUpdateRequest.RequiredQuantity" #RequiredQuantity="ngModel" required>
+                                            <div class="input-group-addon">
+                                                <span *ngIf="blendUpdateRequest?.UoM==1; else litres">G</span>
+                                                <ng-template #litres>L</ng-template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group mb0">
+                                        <div class="input-group">
+                                            <input type="number" name="QuantityInPercent" [(ngModel)]="blendUpdateRequest.QuantityInPercent" #QuantityInPercent="ngModel"
+                                                   numberWithDecimal class="form-control"
+                                                   placeholder="Quantity In Percent" (input)="toggleBlendQuantity(blendUpdateRequest,true)" />
+                                            <div class="input-group-addon">%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- additive fuel -->
+                        <div *ngIf="blendAddRequestToUpdate">
+                            <div *ngFor="let additiveReq of blendAddRequestToUpdate; index as k" [ngModelGroup]="k">
+                                <div class="row mt5">
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            <div>{{additiveReq.ProductType}} - {{additiveReq.FuelType}}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" name="AdRequiredQuantity" numberWithDecimal [(ngModel)]="additiveReq.RequiredQuantity" #AdRequiredQuantity="ngModel" required>
+                                                <div class="input-group-addon">
+                                                    <span *ngIf="additiveReq?.UoM==1; else litres">G</span>
+                                                    <ng-template #litres>L</ng-template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- #blended Dr to update end-->
+                    <!-- #Regular Dr to update -->
+                    <ng-template #regularDRToUpdate>
+                        <div class="row mt5">
+                            <div class="col-sm-12">
+                                <div class="fs14 f-normal">{{requestToUpdate?.ProductType}} Tank, Location ID: {{requestToUpdate?.SiteId}}</div>
+                                <small class="mb10 fs12 opacity8"><b>{{requestToUpdate?.JobName}},</b> {{requestToUpdate?.JobAddress}} </small>
+                            </div>
+                        </div>
+                        <div class="row mt5">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="ScheduleQuantityType" class="mr5">
+                                        <span>Quantity Type</span>
+                                    </label>
+                                    <select class="form-control" [(ngModel)]="requestToUpdate.ScheduleQuantityType" name="ScheduleQuantityType" #ScheduleQuantityType="ngModel">
+                                        <option *ngFor="let sqType of ScheduleQuantityTypes" [value]="sqType.Id">
+                                            {{sqType.Name}}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6" *ngIf="requestToUpdate.ScheduleQuantityType==1 || requestToUpdate.ScheduleQuantityType==0">
+                                <div class="form-group">
+                                    <label for="name" class="mr5">
+                                        <span>Required Quantity</span>
+                                        <span *ngIf="requestToUpdate?.UoM==1; else litres"> (G)</span>
+                                        <ng-template #litres> (L)</ng-template>
+                                    </label>
+                                    <input type="text" class="form-control" name="RequiredQuantity" [(ngModel)]="requestToUpdate.RequiredQuantity" #RequiredQuantity="ngModel" required>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="name" class="mr5">
+                                        <span>Delivery Level PO#</span>
+                                    </label>
+                                    <input type="text" class="form-control"  name="DeliveryLevelPO" [(ngModel)]="requestToUpdate.DeliveryLevelPO" #DeliveryLevelPO="ngModel">
+                                </div>
+                            </div>
+
+                        </div>
+                    </ng-template>
+                    <!-- #Regular Dr to update end-->
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label for="name" class="form-check-label">
+                                    <span>Schedule Date</span>
+                                </label>
+                                <input type="text" placeholder="Select Date" class="form-control datepicker" name="SelectedDate" myDatePicker [format]="'MM/DD/YYYY'" [minDate]="MinDate" [maxDate]="MaxDate" [(ngModel)]="requestToUpdate.SelectedDate" #SelectedDate="ngModel" (onDateChange)="requestToUpdate.SelectedDate = ($event)" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group mb0">
+                                <label class="form-check-label">Start Time</label>
+                                <input type="text" placeholder="Start Time" name="ScheduleStartTime" class="form-control" [disableControl]="requestToUpdate.SelectedDate == null" myTimePicker [format]="'hh:mm A'" [(ngModel)]="requestToUpdate.ScheduleStartTime" #ScheduleStartTime="ngModel" (onTimeChange)="requestToUpdate.ScheduleStartTime = ($event)" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group mb0">
+                                <label class="form-check-label">End Time</label>
+                                <input type="text" placeholder="End Time" name="ScheduleEndTime" class="form-control" [disableControl]="requestToUpdate.SelectedDate == null" myTimePicker [format]="'hh:mm A'" [(ngModel)]="requestToUpdate.ScheduleEndTime" #ScheduleStartTime="ngModel" (onTimeChange)="requestToUpdate.ScheduleEndTime = ($event)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div [ngClass]="requestToUpdate.GroupParentDRId =='' ? 'col-sm-12' : 'col-sm-12 subSectionOpacity pntr-none'">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" [(ngModel)]="requestToUpdate.Priority" [value]="1" name="Priority" id="mustgo">
+                                <label class="form-check-label" for="mustgo"> Must Go</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" [(ngModel)]="requestToUpdate.Priority" [value]="2" name="Priority" id="shouldgo">
+                                <label class="form-check-label" for="shouldgo">Should Go</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" [(ngModel)]="requestToUpdate.Priority" [value]="3" name="Priority" id="couldgo">
+                                <label class="form-check-label" for="couldgo">Could Go</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="form-group mt10">
+                                <textarea name="Notes" [(ngModel)]="requestToUpdate.Notes" class="form-control add-note-tarea" placeholder="Note (optional)" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <!--Spilt DR Logic-->
+                    <ng-container *ngIf="requestToUpdate.GroupParentDRId!=''">
+                        <div *ngFor="let spiltDR of requestToUpdate.SpiltDRs;let i = index;">
+                            <div class="row mt5">
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <label for="ScheduleQuantityType" class="mr5">
+                                            <span>Quantity Type</span>
+                                        </label>
+                                        <select class="form-control" [(ngModel)]="spiltDR.ScheduleQuantityType" name="ScheduleQuantityType_{{i}}" #ScheduleQuantityType="ngModel">
+                                            <option *ngFor="let sqType of SpiltScheduleQuantityTypes" [value]="sqType.Id">
+                                                {{sqType.Name}}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6" *ngIf="spiltDR.ScheduleQuantityType==1 || spiltDR.ScheduleQuantityType==0">
+                                    <div class="form-group">
+                                        <label for="name" class="mr5">
+                                            <span>Required Quantity</span>
+                                            <span *ngIf="requestToUpdate?.UoM==1; else litres"> (G)</span>
+                                            <ng-template #litres> (L)</ng-template>
+                                        </label>
+                                        <input type="text" class="form-control" name="SpiltRequiredQuantity_{{i}}" [(ngModel)]="spiltDR.RequiredQuantity" #RequiredQuantity="ngModel" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </ng-container>
+                    <div class="row mt10" *ngIf="requestToUpdate.GroupParentDRId!=''">
+                        <div class="col-sm-12">
+                            <a class="fs18 pull-left" (click)="addSpiltDR()">
+                                <i class="fa fa-plus-circle fs18 mt4 mr5 float-left"></i><span class="fs14 mt1 pull-left">Add Sub DR</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="text-right ">
+                        <div *ngIf="requestToUpdate.IsBlendedRequest; else regularUpdate">
+                            <div *ngIf="blendTotalQuantity > 0 && !IsValidBlendQuantity()" class="color-maroon mb15">Sum of entered quantity should match with {{blendTotalQuantity}}.</div>
+                            <button type="button" class="btn btn-lg" data-dismiss="modal" id="closeEditDrPanel">Cancel</button>
+                            <button [disabled]="!IsValidBlendQuantity()" type="submit" (click)="onDeliveryReqUpdate(1)" class="btn btn-primary btn-lg">Update</button>
+                        </div>
+                        <ng-template #regularUpdate>
+                            <button type="button" class="btn btn-lg" data-dismiss="modal" id="closeEditDrPanel">Cancel</button>
+                            <button type="submit" (click)="onDeliveryReqUpdate(1)" class="btn btn-primary btn-lg">Update</button>
+                        </ng-template>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="openDeleteDeliveryRequestModal" hidden="hidden" data-toggle="modal" data-target="#deleteDeliveryRequestModal" data-backdrop="static"></div>
+<div class="modal fade" id="deleteDeliveryRequestModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <form #deleteDRform="ngForm" novalidate>
+                    <h2 class="fs18 f-bold mt0">Delete Delivery Request?</h2>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mt10 fs14 f-normal">{{requestToUpdate?.ProductType}}</div>
+                            <small class="mb10">{{requestToUpdate?.JobName}} - {{requestToUpdate?.JobAddress}} </small>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <div class="mt8 fs14 f-normal dib mr5">Required Quantity </div>
+                                <div *ngIf="requestToUpdate.ScheduleQuantityType>1; else quantity">
+                                    <div class="mt5 fs10">{{requestToUpdate?.ScheduleQuantityTypeText}}</div>
+                                </div>
+                                <ng-template #quantity>
+                                    <span *ngIf="requestToUpdate?.UoM==1; else litres">(G)</span>
+                                    <ng-template #litres>(L)</ng-template>
+                                    <div>{{requestToUpdate?.IsBlendedRequest ? requestToUpdate?.TotalBlendedQuantity: requestToUpdate?.RequiredQuantity}}</div>
+                                </ng-template>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                        <button type="submit" (click)="onDeliveryReqUpdate(2)" class="btn btn-primary btn-lg" data-dismiss="modal">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation -->
+<button type="button" id="btnconfirm-unsavedchanges" class="hide-element" data-toggle="modal" data-target="#confirm-unsavedchanges" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-unsavedchanges" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Filter Confirmation</h2>
+                <p class="pb10">You are having unsaved changes. Do you want to save pending changes?</p>
+                <div class="text-right">
+                    <button type="button" class="btn btn-success btn-lg" data-dismiss="modal" (click)="filterChangeConfirmation(true)">Yes</button>
+                    <button type="button" class="btn btn-danger btn-lg" data-dismiss="modal" (click)="filterChangeConfirmation(false)">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<button type="button" id="btnno_trucks" class="hide-element" data-toggle="modal" data-target="#no_trucks" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="no_trucks" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-xs" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <img src="src/assets/tractor.png" width="75" class="mb10" alt="Trailer Image" />
+                <p class="pb5 text-center">No Trailer Available!! <br /> Do you want to add?</p>
+                <div class="text-center">
+                    <button type="button" data-dismiss="modal" (click)="RedirectToCreateTrailer()" class="btn btn-primary btn-rnd btn-block mb5">Yes, Lets's Add</button>
+                    <a data-dismiss="modal" href="#">Later</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--style="display:block !important;"-->
+<button type="button" id="btnno_regions" class="hide-element" data-toggle="modal" data-target="#no_regions" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="no_regions" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-xs" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <img src="src/assets/ico-region.png" width="75" class="mb10" alt="Region Image" />
+                <p class="pb5 text-center">No Region Available!!! <br /> Do you want to add?</p>
+                <div class="text-center">
+                    <button type="button" data-dismiss="modal" (click)="RedirectToCreateRegion()" class="btn btn-primary btn-rnd btn-block mb5">Yes, Lets's Add</button>
+                    <a data-dismiss="modal" href="#">Later</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!----region change dialog confirmation"-->
+<button type="button" id="btnconfirm-regionunsavedchanges" class="hide-element" data-toggle="modal" data-target="#confirm-regionunsavedchanges" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-regionunsavedchanges" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Region change confirmation : {{this.regionName}}</h2>
+                <p class="pb10">Your session data lost if you change the region. Do you want to still continue?</p>
+                <div class="text-right">
+                    <button type="button" class="btn btn-success btn-lg" data-dismiss="modal" (click)="filterChangeRegionConfirmation(true)">Yes</button>
+                    <button type="button" class="btn btn-danger btn-lg" data-dismiss="modal" (click)="filterChangeRegionConfirmation(false)">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!----window change dialog confirmation"-->
+<button type="button" id="btnconfirm-windowunsavedchanges" class="hide-element" data-toggle="modal" data-target="#confirm-windowunsavedchanges" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-windowunsavedchanges" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Window mode change confirmation</h2>
+                <p class="pb10">Your session data lost if you change the window mode. Do you want to still continue?</p>
+                <div class="text-right">
+                    <button type="button" class="btn btn-success btn-lg" data-dismiss="modal" (click)="filterChangeWindowConfirmation(true)">Yes</button>
+                    <button type="button" class="btn btn-danger btn-lg" data-dismiss="modal" (click)="filterChangeWindowConfirmation(false)">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button type="button" id="btndriverTrailerAssignemtMsg" class="hide-element" data-toggle="modal" data-target="#driverTrailerAssignemtMsg" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="driverTrailerAssignemtMsg" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <form #deleteDRform="ngForm" novalidate>
+                    <h2 class="fs18 f-bold mt0">Driver / Trailer Assignment</h2>
+                    <div *ngIf="SbForm.controls['ObjectFilter'].value==1">
+                        Please assign trailers to all non empty loads to switch to trailer view.
+                    </div>
+                    <div *ngIf="SbForm.controls['ObjectFilter'].value==2">
+                        Please assign drivers to all non empty loads to switch to driver view.
+                    </div>
+                    <div class="text-right">
+                        <button type="button" class="btn btn-lg btn-default" data-dismiss="modal">Ok</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div><!----region change dialog confirmation"-->
+<button type="button" id="btnno_shifts" class="hide-element" data-toggle="modal" data-target="#no_shifts" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="no_shifts" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-xs" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <img src="src/assets/ico-region.png" width="75" class="mb10" alt="Shift Image" />
+                <p class="pb5 text-center">No shifts in region !!! <br /> Do you want to add?</p>
+                <div class="text-center">
+                    <button type="button" data-dismiss="modal" (click)="RedirectToCreateRegion()" class="btn btn-primary btn-rnd btn-block mb5">Yes, Lets's Add</button>
+                    <a data-dismiss="modal" href="#">Later</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<button type="button" id="btnconfirm-memberInfo" class="hide-element" data-toggle="modal" data-target="#confirm-memberInfo" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-memberInfo" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Group Member Information</h2>
+                <table id="member-datatable" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Last Seen At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let member of memberInfo">
+                            <td>{{member.nickname}}</td>
+                            <td>{{member.userId}}</td>
+                            <td>{{member.connectionStatus}}</td>
+                            <td [ngClass]="{'text-center' : member.lastSeenAt==='-'}">{{member.lastSeenAt}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-right">
+                    <button type="button" class="btn btn-success btn-lg" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<button type="button" id="btnconfirm-routeListInfo" class="hide-element" data-toggle="modal" data-target="#confirm-routeListInfo" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-routeListInfo" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h4 class="pt0 dib"><small class="fs11">Route Name</small><br />{{RouteName}}</h4>
+                <h4 class="pt0 dib ml20" *ngIf="ShiftInfo!=''"><small class="fs11">Shift Info</small><br /> {{ShiftInfo}}</h4>
+                <table id="member-datatable" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th width="15%">Sequence No</th>
+                            <th>Location Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let routeLoc of RouteLocationList">
+                            <td>{{routeLoc.SequenceNo}}</td>
+                            <td>{{routeLoc.Name}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-right">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="openAssignCarrierRequestModal" hidden="hidden" data-toggle="modal" data-target="#assignCarrierRequestModal" data-backdrop="static"></div>
+<div class="modal fade" id="assignCarrierRequestModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" [class.modal-lg]="SbForm.get('IsAssignDrEnabled').value" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div [formGroup]="AssignDrForm">
+                    <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingCarriers">
+                        <span class='spinner-dashboard pa'></span>
+                    </div>
+                    <div class="overflow-h">
+                        <h4 class="pull-left mt2 mb15 pt0 pb0">Assign Supplier/Carrier Details</h4>
+                        <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close" id="brokerDrClose">
+                            <i class="fa fa-close fs21"></i>
+                        </button>
+                    </div>
+
+                    <div *ngIf="this.SbForm.get('IsAssignDrEnabled').value" formArrayName="DeliveryRequestWithOrder" class="row">
+
+                        <label class="ml15">Delivery Request(s)<span class="required pl4" aria-required="true">*</span></label>
+
+                        <div class="col-12">
+                            <div class="overflow-auto carrierlist">
+                                <table *ngIf="AssignDrForm.get('DeliveryRequestWithOrder')['controls']?.length>0;" class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Location</th>
+                                            <th>Product</th>
+                                            <th>Order</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr *ngFor="let drWithOrder of this.AssignDrForm.get('DeliveryRequestWithOrder')['controls']; let m = index;" [formGroupName]="m">
+                                            <th>{{(m+1)}}</th>
+                                            <td>{{drWithOrder.get('DeliveryRequest')?.value?.JobAddress}}</td>
+                                            <td>{{drWithOrder.get('DeliveryRequest')?.value?.ProductType}}</td>
+                                            <td>
+                                                <select class="form-control mb5" formControlName="OrderId">
+                                                    <option *ngFor="let order of drWithOrder.get('Orders').value" [value]="order.Id" [selected]="order.Id == drWithOrder.get('OrderId').value">{{order.Name}}</option>
+                                                </select>
+
+                                                <label class="fs12" style="color:red" *ngIf="drWithOrder.get('OrderId')?.errors?.required">
+                                                    Required
+                                                </label>
+
+                                            </td>
+                                            <td>
+                                                <a class="float-right">
+                                                    <i class="fa fa-trash text-danger" data-toggle="tooltip" data-placement="right" title="Remove" (click)="removeDrSelection(m, drWithOrder.get('DeliveryRequest').value?.Id)"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="this.SbForm.get('IsAssignDrEnabled').value" class="row">
+                        <div class="col-6">
+                            <div>
+                                <label>Select Carriers</label>
+                                <div class="form-group">
+                                    <ng-multiselect-dropdown #multiSelect3
+                                                             [settings]="carrierDdlSetting" [data]="CarrierRegions"
+                                                             [formControl]="AssignDrForm.controls['SelectedCarrier']"
+                                                             (onSelect)="onCarrierSelect($event, true)"
+                                                             (onDeSelect)="onCarrierSelect($event, false)"
+                                                             (onSelectAll)="onCarrierSelectAll($event, true)"
+                                                             (onDeSelectAll)="onCarrierSelectAll($event, false)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="this.SbForm.get('IsAssignDrEnabled').value != true" class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="name">Order</label>
+                                <select formControlName="BrokerOrderId" class="form-control">
+                                    <option *ngFor="let orderDetails of OrderList" [value]="orderDetails.Id">
+                                        {{orderDetails.Name}}
+                                    </option>
+                                </select>
+                                <label class="fs12" style="color:red" *ngIf="AssignDrForm.get('BrokerOrderId')?.errors?.required">
+                                    Required
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div>
+                                <label>Select Carriers/Supplier</label>
+                                <div class="form-group">
+                                    <ng-multiselect-dropdown #multiSelect3
+                                                             [settings]="carrierDdlSetting" [data]="RegionCarriers"
+                                                             [formControl]="AssignDrForm.controls['SelectedCarrier']"
+                                                             (onSelect)="onCarrierSelect($event, true)"
+                                                             (onDeSelect)="onCarrierSelect($event, false)"
+                                                             (onSelectAll)="onCarrierSelectAll($event, true)"
+                                                             (onDeSelectAll)="onCarrierSelectAll($event, false)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+
+                        <div formArrayName="Carriers" class="col-sm-12">
+                            <label>Carriers<span class="required pl4" aria-required="true">*</span></label>
+                            <div class="dragable-pane col-12 overflow-auto carrierlist" id="sortableDrCarriers">
+                                <div class="row" *ngFor="let carr of AssignDrForm.get('Carriers')['controls']; let j = index;" [formGroupName]="j" id="{{carr.get('Id').value}}">
+                                    <div class="col-6 list-drag carr-seq-sortable-cursor">
+                                        <span class="float-left">{{carr.get('Name').value}}</span>
+                                        <a class="float-right">
+                                            <i class="fa fa-trash-alt text-danger" data-toggle="tooltip" data-placement="right" title="Remove" (click)="removeCarrier(carr.get('Id').value)"></i>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <select class="custom-select" formControlName="RegionId">
+                                            <option disabled [ngValue]="" [selected]="!carr.get('RegionId').value">Select Region</option>
+                                            <option *ngFor="let rgn of getRegionsByCarrierId(carr.get('Id').value)" [ngValue]="rgn.Id" [selected]="rgn.Id == carr.get('RegionId').value">
+                                                {{rgn.Name}}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-6"></div>
+                                    <div class="col-sm-6">
+                                        <label class="fs12" style="color:red" *ngIf="carr.get('RegionId')?.touched && carr.get('RegionId')?.errors?.required">
+                                            Region is required
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt10">
+                        <div class="col-sm-12">
+                            <div class="form-group">
+                                <label for="name">Dispatcher Note</label>
+                                <textarea formControlName="DispatcherNote" class="form-control"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+
+                        <button *ngIf="SbForm.get('IsAssignDrEnabled').value!=true" type="button"
+                                (click)="SaveAssignCarrierDetails()"
+                                [disabled]="AssignDrForm.invalid || AssignDrForm.get('Carriers')['controls']?.length==0"
+                                class="btn btn-primary btn-lg">
+                            Submit
+                        </button>
+
+                        <button *ngIf="SbForm.get('IsAssignDrEnabled').value" type="button"
+                                (click)="saveMultipleDrCarrierSequence()"
+                                [disabled]="AssignDrForm.invalid || AssignDrForm.get('DeliveryRequestWithOrder')['controls']?.length==0 || AssignDrForm.get('Carriers')['controls']?.length==0"
+                                class="btn btn-primary btn-lg">
+                            Submit
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- proceed brokered dr start -->
+<div id="openProceedBrokeredDrModal" hidden="hidden" data-toggle="modal" data-target="#proceedBrokeredDrModal" data-backdrop="static"></div>
+<div class="modal fade" id="proceedBrokeredDrModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingCarriers">
+                    <span class='spinner-dashboard pa'></span>
+                </div>
+                <form #proceedBrokeredDrForm="ngForm" novalidate>
+                    <h2 *ngIf="this.BrokeredDrStatus==2" class="fs18 f-bold mt0">Accept Brokered Delivery Request?</h2>
+                    <h2 *ngIf="this.BrokeredDrStatus==3" class="fs18 f-bold mt0">Reject Brokered Delivery Request?</h2>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mt10 fs14 f-normal">{{requestToUpdate?.ProductType}}</div>
+                            <small class="mb10">{{requestToUpdate?.JobName}} - {{requestToUpdate?.JobAddress}} </small>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="mt8 fs14 f-normal dib mr5">Required Quantity </div>
+                            <div *ngIf="requestToUpdate.ScheduleQuantityType>1; else quantity">
+                                <div class="mt5 fs10">{{requestToUpdate?.ScheduleQuantityTypeText}}</div>
+                            </div>
+                            <ng-template #quantity>
+                                <span *ngIf="requestToUpdate?.UoM==1; else litres">(G)</span>
+                                <ng-template #litres>(L)</ng-template>
+                                <div>{{requestToUpdate?.RequiredQuantity}}</div>
+                            </ng-template>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                        <button *ngIf="this.BrokeredDrStatus==2" type="button" (click)="changeBrokeredDrStatus(requestToUpdate.Id,requestToUpdate.BlendedGroupId, 2)" class="btn btn-primary btn-lg">Accept</button>
+                        <button *ngIf="this.BrokeredDrStatus==3" type="button" (click)="changeBrokeredDrStatus(requestToUpdate.Id,requestToUpdate.BlendedGroupId, 3)" class="btn btn-primary btn-lg">Reject</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- proceed brokered dr end -->
+<div class="chat-wrapper">
+    <app-sendbird></app-sendbird>
+</div>
+<div id="route-info" class="side-panel pl5 pr5">
+    <app-route-info></app-route-info>
+</div>
+<div>
+    <app-split-delivery-request (onRaiseDR)="refreshDeliveryRequests(0);"></app-split-delivery-request>
+</div>
+
+<a class=" hidden pull-left" id="open-CreateDelivery" data-toggle="modal" data-target="#TBD-Drop-location-popUp"></a>
+
+<div class="modal fade" id="TBD-Drop-location-popUp" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="float-right">
+                    <a (click)="clearDropLocationControls()" id="TBD-Drop-location-Close-popUp" data-dismiss="modal"><i class="fa fa-close"></i></a>
+                </div>
+                <div *ngIf="AddDropLocationLoader" class="pa top0 bg-white left0 z-index5 loading-wrapper"><span class="spinner-dashboard pa"></span></div>
+                <div class="row col-md-12">
+                    <div class="col-md-6">
+                        <ng-multiselect-dropdown class="single-select"
+                                                 [(ngModel)]="selectedCustomer"
+                                                 [placeholder]="'Select Customer (Optional)'"
+                                                 [settings]="CustomerSettings"
+                                                 [data]="companyList"
+                                                 (onSelect)="onCustomerSelect($event)"
+                                                 (onDeSelect)="onCustomerDeSelect($event)">
+                        </ng-multiselect-dropdown>
+                    </div>
+                    <div class="col-md-6">
+                        <ng-multiselect-dropdown class="single-select"
+                                                 [(ngModel)]="selectedSite"
+                                                 [placeholder]="'Select location'"
+                                                 [settings]="SiteddlSettings"
+                                                 [data]="SiteList"
+                                                 (onSelect)="onSiteSelect($event)"
+                                                 (onDeSelect)="onSiteDeSelect($event)">
+                        </ng-multiselect-dropdown>
+                    </div>
+                </div>
+                <div class="row col-md-12 mt10">
+                    <div class="col-md-6">
+                        <ng-multiselect-dropdown class="single-select"
+                                                 [(ngModel)]="selectedOrder"
+                                                 [placeholder]="'Select order'"
+                                                 [settings]="multiDropdownSettings" [data]="Orders">
+                        </ng-multiselect-dropdown>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <button type="button" (click)="AddDropLocation()" class="btn btn-primary">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="load-Sequence-container">
+    <ng-sidebar-container *ngIf="_isSequencePanelInitiated">
+        <ng-sidebar [(opened)]="_locSequenceOpened" [animate]="true" [position]="'right'" style="height: 100vh">
+
+            <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loader">
+                <span class='spinner-dashboard pa'></span>
+            </div>
+
+            <div class="heading">
+                <a (click)="_locSequenceOpened=false"><i class="fa fa-close fs18 float-left mr10 mt3"></i></a>
+                <h3 class="dib title">Location Sequencing</h3>
+            </div>
+           <div class="row mb10 h-75" *ngIf="_locSequenceOpened">
+                <div class="col-sm-4 scrollable">
+                    <div class="row">
+                        <div class="col-sm-12" id="sortableLocations">
+                            <div *ngFor="let location of TripLocations;let i = index;" class="mt15" id="{{location.JobId}}">
+                                <div *ngIf="location.Latitude && location.Longitude && !location.IsTBD">
+
+                                    <div class="list-drag carr-seq-sortable-cursor sortable-loc" style="background-color:beige;"
+                                         placement="bottom-left" container="body"
+                                         ngbTooltip="{{location.JobName}}-{{location.JobAddress}}, {{location.JobCity}}">
+
+                                        {{(location.JobName.length > 12) ? (location.JobName | slice:0:12)+'..':(location.JobName)}}-&nbsp;
+                                        {{(location.JobAddress.length > 12) ? (location.JobAddress |slice:0:12)+'..':(location.JobAddress) }},&nbsp;
+                                        {{(location.JobCity.length > 12) ? (location.JobCity | slice:0:12)+'..':(location.JobCity) }}
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            
+                </div>
+            
+                <div class="col-sm-8">
+                    <agm-map [zoom]="3" [maxZoom]="16" [minZoom]="2" [mapTypeControl]="true" [fullscreenControl]="true"
+                        [fullscreenControlOptions]="{position:3}" [fitBounds]="true" class="h-100">
+            
+                        <ng-container *ngFor="let tripLocation of TripLocations">
+            
+                            <ng-container *ngIf="tripLocation.Latitude && tripLocation.Longitude && !tripLocation.IsTBD">
+            
+                                <agm-marker *ngFor="let m of TripLocations; let i = index" [latitude]="m.Latitude"
+                                    [longitude]="m.Longitude" [label]="m.Sequence" [agmFitBounds]="true">
+            
+                                    <agm-info-window [disableAutoPan]="true">
+                                        {{m.JobName}},&nbsp;{{m.JobAddress}},&nbsp;{{m.JobCity}}
+                                    </agm-info-window>
+            
+                                </agm-marker>
+            
+                            </ng-container>
+            
+                        </ng-container>
+                    </agm-map>
+                </div>
+            
+            </div>
+            <div class="mt10 float-right">
+                <button type="button" class="btn btn-secondary" (click)="_locSequenceOpened=false">Cancel</button>
+                <button type="button" class="btn btn-primary" (click)="saveLocationSequence()">Save</button>
+            </div>
+
+        </ng-sidebar>
+    </ng-sidebar-container>
+</div>
+<div class="container-fluid fs12 text-center color-lightgrey">
+    <div class="footer-wrapper py-4 mt-3">
+        <span class="pull-left mtm10" id="dynamic-footer-text">&copy; 2022 TrueFill, Inc.</span>
+        <span class="pull-right dib"><img src="/Content/images/comodo-secure-logo.png" border="0"></span>
+    </div>
+</div>
+

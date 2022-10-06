@@ -1,0 +1,620 @@
+﻿@model ConsolidatedInvoicePdfViewModel
+@using System.Threading
+@using System.Text;
+@{
+    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(Model.Culture);
+}
+<style type="text/css">
+    .invoice-template * {
+        font-family: Tahoma,Arial,Verdana;
+    }
+
+    .invoice-template h1 {
+        font-size: 23px;
+        margin: 0px;
+        padding: 0px;
+    }
+    .invoice-template .border-b {
+        border-bottom: 1px solid #e1e1e1;
+        padding: 5px 0;
+    }
+
+    .bold {
+        font-weight: bold;
+    }
+
+    .text-right {
+        text-align: right
+    }
+
+    .invoice-template .txt-highlight,
+    .invoice-template .txt-highlight label {
+        color: #dc3c0c !important;
+    }
+
+    .invoice-template .bg-void,
+    .invoice-template .bg-exception {
+        border: 10px solid rgba(255, 0, 0, .4);
+        font-size: 150px;
+        color: rgba(255, 0, 0, .4);
+        padding: 15px 20px;
+        position: absolute;
+        -ms-transform: rotate(-20deg);
+        -webkit-transform: rotate(-20deg);
+        transform: rotate(-20deg);
+    }
+
+    .invoice-template .bg-void {
+        width: 400px;
+        top: 20%;
+        left: 50%;
+        margin-left: -200px;
+    }
+
+    .invoice-template .bg-exception {
+        min-width: 400px;
+        top: 35%;
+        left: 45%;
+        margin-left: -200px;
+        font-size: 100px;
+    }
+
+    .invoice-template .break-word {
+        word-break: break-word
+    }
+
+    .invoice-template .mr20 {
+        margin-right: 20px;
+    }
+
+    .invoice-template .mr0 {
+        margin-right: 0;
+    }
+
+    .invoice-template .well {
+        box-shadow: none;
+        min-height: 120px;
+    }
+
+    .invoice-template h2 {
+        box-shadow: none;
+        padding: 0;
+        margin: 0 0 5px 0;
+        font-size: 16px;
+        font-weight: normal;
+        color: #000;
+    }
+
+    .invoice-template .color-blue {
+        color: #0c52b1;
+    }
+
+    .invoice-template .fs18 {
+        font-size: 18px;
+    }
+
+    .invoice-template .pr10 {
+        padding-right: 10px;
+    }
+
+    .invoice-template .pr20 {
+        padding-right: 20px;
+    }
+    .invoice-template .pr30 {
+        padding-right: 30px;
+    }
+    .invoice-template .color-green {
+        color: green;
+    }
+</style>
+
+@{
+    var currency = Model.InvoicePdfHeaderDetail.Currency;
+    var uom = Model.InvoicePdfHeaderDetail.UoM;
+
+    bool IsTaxModified = false;
+    var header = Model.InvoicePdfHeaderDetail;
+    var consolidatedInvoice = Model.Invoices.OrderByDescending(t => t.Id).Select(t => new { t.DisplayInvoiceNumber,t.ReferenceId, t.InvoiceTypeId, t.StatusId, t.WaitingForAction, t.FuelDisplayGroupId, t.AdditionalDetail.Notes, t.StatementNumber, t.IsTrueFillTax, t.CreationMethod, t.IsExceptionDdt, IsDigitalDropTicket = t.IsDigitalDropTicket(), t.InvoiceVersionStatusId, t.OriginalInvoiceNumber, t.WBSNumber, t.QbInvoiceNumber }).FirstOrDefault();
+
+    decimal invoiceTotalAmount = 0;
+    var basicAmount = Model.Invoices.Sum(t => t.BasicAmount);
+    var totalFees = Model.Invoices.Sum(t => t.TotalFees);
+    var federalTax = Model.Invoices.Sum(t => t.FederalTax);
+    var stateTax = Model.Invoices.Sum(t => t.StateTax);
+    var salesTax = Model.Invoices.Sum(t => t.SalesTax);
+    var totalTaxAmount = Model.Invoices.Sum(t => t.TotalTaxAmount);
+    var totalDiscountAmount = Model.Invoices.Sum(t => t.TotalDiscountAmount);
+    var allowanceTotal = Model.Invoices.Sum(t => t.AdditionalDetail.TotalAllowance) ?? 0;
+    var isHidePricing = Model.Invoices.Any(t => t.ShouldHidePricing());
+    var processingFeeValue = Model.FuelFees.FuelRequestFees.Where(t => t.FeeTypeId == ((int)FeeType.ProcessingFee).ToString() && t.Fee.HasValue).Select(t => t.TotalFee).FirstOrDefault();
+}
+@if (consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.DryRun)
+{
+    invoiceTotalAmount = basicAmount;
+}
+else
+{
+    invoiceTotalAmount = basicAmount + totalFees + salesTax + federalTax + stateTax - totalDiscountAmount;
+}
+<div class="well invoice-template">
+    <table width="100%" cellspacing='0' cellpadding='0'
+           style="color: #5a5a5a;font-size:13px;">
+        <tr>
+            <td>
+                <table width="100%" cellspacing='0' cellpadding='0'>
+                    <tr>
+                        <td colspan="2" align="center">
+                            <h1>@Resource.lblInvoiceNumber: @consolidatedInvoice.DisplayInvoiceNumber</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="50%" align="left" valign="top">
+                            <table cellspacing='0' cellpadding='0' align="left">
+                                <tr>
+                                    @if (string.IsNullOrWhiteSpace(header.CompanyLogo.FilePath))
+                                    {
+                                        <td valign='top' colspan="2">
+                                            <h2>@header.SupplierCompanyName</h2>
+                                            ID: @header.CustomerId<br />
+                                            @header.SupplierLocation.Address<br />@header.SupplierLocation.City, @header.SupplierLocation.StateCode @header.SupplierLocation.ZipCode<br>
+                                            @header.SupplierPhoneNumber
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td valign='top' class="pr10">
+                                            <img id="image-company-logo" class="po-logo" alt="@header.SupplierCompanyName" width="100" src="@header.CompanyLogo.GetAzureFilePath(BlobContainerType.CompanyProfile)" />
+                                        </td>
+                                        <td valign='top'>
+                                            <h2 style="font-size:18px;padding:0;margin:0;font-weight: normal;">@header.SupplierCompanyName</h2>
+                                            <small style="font-size: 12px;">ID: @header.CustomerId</small><br />
+                                            @header.SupplierLocation.Address<br>@header.SupplierLocation.City, @header.SupplierLocation.StateCode @header.SupplierLocation.ZipCode<br>
+                                            @header.SupplierPhoneNumber
+                                        </td>
+                                    }
+                                </tr>
+                            </table>
+                        </td>
+                        <td width="50%" align="right" valign="top">
+                            <div>@Resource.lblLabelPONumber: @(new HtmlString(string.Join("<br/>", Model.PoNumbers)))</div>
+                            @if (!string.IsNullOrWhiteSpace(consolidatedInvoice.ReferenceId))
+                            {
+                                @Resource.lblReferenceId<span>:</span> @consolidatedInvoice.ReferenceId<br />
+                            }
+                            @if (consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.DryRun)
+                            {
+                                @Resource.lblInvoiceDate<span>:</span> @header.InvoiceDate.ToString(Resource.constFormatDate)<br />
+                            }
+                            else
+                            {
+                                @((consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.CreditInvoice || consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.PartialCredit) ? Resource.lblCreditMemoDate : Resource.lblInvoiceDate)<span>:</span> @header.InvoiceDate.ToString(Resource.constFormatDate)<br />
+                            }
+                            @if (consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.CreditInvoice || consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.PartialCredit)
+                            {
+                                @Resource.lblOriginalInvoiceNumber <span>:</span> @consolidatedInvoice.OriginalInvoiceNumber <br />
+                            }
+                            @if (consolidatedInvoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && consolidatedInvoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && consolidatedInvoice.InvoiceTypeId != (int)InvoiceType.PartialCredit && consolidatedInvoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp && string.IsNullOrEmpty(consolidatedInvoice.StatementNumber))
+                            {
+                                @Resource.lblPaymentDueDate<span>:</span> @header.PaymentDueDate.ToString(Resource.constFormatDate)<br />
+                            }
+                            @if (!string.IsNullOrWhiteSpace(header.AccountingCompanyId))
+                            {
+                                <div>@Resource.lblAccountingCompanyId: @header.AccountingCompanyId </div>
+                            }
+                            @if (consolidatedInvoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && consolidatedInvoice.InvoiceTypeId != (int)InvoiceType.PartialCredit)
+                            {
+                                @Resource.headingPaymentTerms<span>:</span> @header.PaymentTerm
+                                if (header.PaymentTermId == (int)PaymentTerms.NetDays)
+                                {
+                                    <span>@header.NetDays</span><br />
+                                }
+                                else
+                                {
+                                    <br />
+                                }
+                            }
+                            @if (!string.IsNullOrWhiteSpace(consolidatedInvoice.QbInvoiceNumber))
+                            {
+                                @Resource.lblQbInvoiceNumber<span>:</span> @consolidatedInvoice.QbInvoiceNumber<br />
+                            }
+                            @if (!string.IsNullOrWhiteSpace(consolidatedInvoice.StatementNumber))
+                            {
+                                @Resource.gridColumnStatementNumber<span>:</span> @consolidatedInvoice.StatementNumber<br />
+                            }
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td class="border-b" style="padding-top:10px;"></td>
+        </tr>
+        <tr>
+            <td style="padding:20px 0 10px 0;">
+                <table width="100%">
+                    <tr>
+                        <td align="left" valign="top">
+                            <table cellspacing='0' cellpadding='0' align="left">
+                                <tr>
+                                    @if (header.JobSpecificBillTo.IsJobSpecificBillToEnabled)
+                                    {
+                                        StringBuilder jobSpecificAddress = new StringBuilder();
+                                        var jobSpecificFullAddress = "";
+                                        if (!string.IsNullOrWhiteSpace(header.JobSpecificBillTo.BillToCity))
+                                        {
+                                            jobSpecificAddress.Append(", " + header.JobSpecificBillTo.BillToCity);
+                                        }
+                                        if (!string.IsNullOrWhiteSpace(header.JobSpecificBillTo.BillToStateName))
+                                        {
+                                            jobSpecificAddress.Append(", " + header.JobSpecificBillTo.BillToStateName);
+                                        }
+                                        if (!string.IsNullOrWhiteSpace(header.JobSpecificBillTo.BillToZipCode))
+                                        {
+                                            jobSpecificAddress.Append(", " + header.JobSpecificBillTo.BillToZipCode);
+                                        }
+                                        if (!string.IsNullOrWhiteSpace(header.JobSpecificBillTo.BillToCounty))
+                                        {
+                                            jobSpecificAddress.Append(", " + header.JobSpecificBillTo.BillToCounty);
+                                        }
+               
+                                        if (!string.IsNullOrWhiteSpace(header.JobSpecificBillTo.BillToCountryName))
+                                        {
+                                            jobSpecificAddress.Append(", " + header.JobSpecificBillTo.BillToCountryName);
+                                        }
+                                        if (jobSpecificAddress.ToString() != "")
+                                        {
+                                            jobSpecificFullAddress = jobSpecificAddress.ToString().TrimStart(',', ' ');
+                                        }
+
+                                        <td valign="top" class="pr30 break-word">
+                                            <h2 style="text-decoration:underline;font-weight:bold;">@Resource.headingBillingAddress</h2>
+                                            @header.JobSpecificBillTo.BillToName<br>
+                                            @header.JobSpecificBillTo.BillToAddress<br>
+                                            @jobSpecificFullAddress
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        StringBuilder address = new StringBuilder();
+                                        var fullAddress = "";
+                                        if (!string.IsNullOrWhiteSpace(header.BuyerLocation.City))
+                                        {
+                                            address.Append(", " + header.BuyerLocation.City);
+                                        }
+                                        if (!string.IsNullOrWhiteSpace(header.BuyerLocation.StateName))
+                                        {
+                                            address.Append(", " + header.BuyerLocation.StateName);
+                                        }
+                                        if (!string.IsNullOrWhiteSpace(header.BuyerLocation.ZipCode))
+                                        {
+                                            address.Append(", " + header.BuyerLocation.ZipCode);
+                                        }
+                                        if (!string.IsNullOrWhiteSpace(header.BuyerLocation.CountyName))
+                                        {
+                                            address.Append(", " + header.BuyerLocation.CountyName);
+                                        }                                     
+                                        if (!string.IsNullOrWhiteSpace(header.BuyerLocation.CountryName))
+                                        {
+                                            address.Append(", " + header.BuyerLocation.CountryName);
+                                        }
+                                        if (address.ToString() != "")
+                                        {
+                                            fullAddress = address.ToString().TrimStart(',', ' ');
+                                        }
+
+                                        <td valign="top" class="pr30 break-word">
+                                            <h2 style="text-decoration:underline;font-weight:bold;">@Resource.headingBillingAddress</h2>
+                                            @header.BuyerCompanyName<br>
+                                            @header.BuyerLocation.Address<br>
+                                            @fullAddress
+                                        </td>
+                                    }
+                                    <td valign="top" class="pr30 break-word">
+                                        <h2 style="text-decoration:underline;font-weight:bold;">@Resource.headingContactPerson</h2>
+                                        @header.PoContact.Name<br>
+                                        @header.PoContact.PhoneNumber<br>
+                                        @header.PoContact.Email
+                                    </td>
+                                    <td valign="top" class="break-word">
+                                        <h2 style="text-decoration:underline;font-weight:bold;">@Resource.lblShipTo</h2>
+                                        @header.JobName<br>
+                                        @if (!string.IsNullOrWhiteSpace(header.ShippingLocation.Address))
+                                        {
+                                            @header.ShippingLocation.Address<br>
+                                        }
+                                        @(!string.IsNullOrWhiteSpace(header.ShippingLocation.City) ? header.ShippingLocation.City + ", " : "") @header.ShippingLocation.StateCode @header.ShippingLocation.ZipCode
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td width="40%" align='right' style="font-size:21px;">
+                            @*@if (!isHidePricing)
+                            {
+                                <span style="font-size:13px;">@Resource.lblInvoiceTotal:</span><br />
+                                <span style="color:green">
+                                    @((invoiceTotalAmount).GetInvoiceAmountValue(2, Resource.constSymbolCurrency))
+                                </span>
+                            }
+                            else
+                            {
+                                <span></span>
+                            }*@
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td class="border-b"></td>
+        </tr>
+        <tr>
+            <td style="padding:10px 0;">
+                <table width='100%'>
+                    <tr>
+                        <td>
+                            <table width='100%' cellspacing='0' cellpadding='0' border='0'>
+                                <tr class="bold color-blue">
+                                    <td class="border-b" width='30%'>@Resource.gridColumnPoNumber</td>
+                                    <td class="border-b" style="padding-right:10px">@Resource.gridColumnDeliveryDateAndTime</td>
+                                    <td class="border-b text-right" style="padding-right:10px">@Resource.lblQty</td>
+                                    <td class="border-b text-right" width='10%' style="padding-right:10px">@(string.Format(Resource.lblRackPP, currency == Currency.USD ? "PPU" : "PPU")) (@currency)</td>
+                                    <td class="border-b text-right" width='10%'>@Resource.lblAmount (@currency)</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    @foreach (var invoice in Model.Invoices)
+                    {
+                        <tr>
+                            <td class="border-b">
+                                <table id="table-DropDetail" width='100%' cellspacing='0' cellpadding='0' border='0'>
+                                    <tr>
+                                        <td colspan="5" valign="top" style="font-size:14px;"><strong>@invoice.PoNumber</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td width='30%'>
+                                            @Resource.lblDryRunFee<br />@invoice.TerminalName
+                                        </td>
+                                        <td style="padding-right:10px">@invoice.DropStartDate.ToString(Resource.constFormatDate) @(invoice.DropStartDate.DateTime.ToShortTimeString()) - @invoice.DropEndDate.ToString(Resource.constFormatDate) @(invoice.DropEndDate.DateTime.ToShortTimeString())</td>
+                                        <td class="text-right" width='10%' style="padding-right:10px">
+                                            @Resource.lblHyphen
+                                        </td>
+                                        <td width='10%' class="text-right" style="padding-right:10px">
+                                            @Resource.lblHyphen
+                                        </td>
+                                        <td width='10%' class="text-right">
+                                            @Resource.constSymbolCurrency@basicAmount.ToString("N2")
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.FuelFees.FuelRequestFees.Any())
+                    {
+                        <tr>
+                            <td style="padding:20px 0;">
+                                <table width='100%'>
+                                    <tr>
+                                        <td>
+                                            <table width='100%' cellspacing='0' cellpadding='0'>
+                                                <tr class="bold color-blue">
+                                                    <td class="border-b" width='25%'>@Resource.lblFee</td>
+                                                    <td class="border-b" width='15%'>@Resource.lblType</td>
+                                                    <td class="border-b text-right" width='10%'>&nbsp;</td>
+                                                    <td class="border-b text-right" width='10%'>&nbsp;</td>
+                                                    <td class="border-b text-right" width='10%'>&nbsp;</td>
+                                                    <td class="border-b text-right" width='10%'>&nbsp;</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    @foreach (var fee in Model.FuelFees.FuelRequestFees.Where(t => t.FeeSubTypeId != (int)FeeSubType.NoFee))
+                                    {
+                                        <tr>
+                                            <td class="border-b">
+                                                <table width='100%' cellspacing='0' cellpadding='0'>
+                                                    <tr>
+                                                        <td width='25%'>@fee.DisplayFeeType</td>
+                                                        <td width='15%'>@fee.DisplayFeeName</td>
+                                                        <td width="10%">--</td>
+                                                        <td width='10%' class="text-right">@fee.DisplayDroppedGallons</td>
+                                                        <td width='10%' class="text-right">@fee.DisplayFee</td>
+                                                        <td width='10%' class="text-right">@fee.DisplayTotalFee</td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    }
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                    <tr>
+                        <td>
+                            <table width='100%' cellspacing='0' cellpadding='0'>
+                                <tr>
+                                    <td class="bold" align='right' valign="top" style="padding-bottom:10px;">@Resource.lblSubTotal: </td>
+                                    <td id="auto-DryRunSubTotal" width='12.5%' class="text-right bold" valign="top" style="padding-bottom:10px;">
+                                        @if (consolidatedInvoice.StatusId == (int)InvoiceStatus.Draft || consolidatedInvoice.StatusId == (int)InvoiceStatus.Canceled || consolidatedInvoice.WaitingForAction != (int)WaitingAction.Nothing)
+                                        {
+                                            @Resource.lblHyphen
+                                        }
+                                        else
+                                        {
+                                            @((invoiceTotalAmount).GetInvoiceAmountValue(2, Resource.constSymbolCurrency))
+                                        }
+                                    </td>
+                                </tr>
+                                @if (Model.FuelFees.DiscountLineItems.Any())
+                                {
+
+                                    foreach (var discountLineItems in Model.FuelFees.DiscountLineItems)
+                                    {
+                                        <tr>
+                                            <td align="right">
+                                                <span>@Resource.lblDiscountOn @discountLineItems.FeeTypeName: </span>
+                                                @if (@discountLineItems.FeeSubTypeId == (int)FeeSubType.Percent)
+                                                {
+                                                    @(consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.CreditInvoice || consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.PartialCredit ? (discountLineItems.Amount).GetInvoiceAmountValue(2, "") : (discountLineItems.Amount).GetInvoiceAmountReverseValue(2, ""))@Resource.constSymbolPercent
+                                                }
+                                                else
+                                                {
+                                                    @discountLineItems.FeeSubTypeName
+                                                    //@(consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.CreditInvoice || consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.PartialCredit ? (discountLineItems.Amount).GetInvoiceAmountValue(2, Resource.constSymbolCurrency) : (discountLineItems.Amount).GetInvoiceAmountReverseValue(2, Resource.constSymbolCurrency))
+                                                }
+                                            </td>
+                                            <td width='12.5%' align="right">@((discountLineItems.TotalFee).GetInvoiceAmountReverseValue(2, Resource.constSymbolCurrency))</td>
+                                        </tr>
+                                    }
+                                    if (allowanceTotal > 0)
+                                    {
+                                        <tr>
+                                            <td align="right">
+                                                @Resource.headingSupplierAllowance :
+                                            </td>
+                                            <td id="auto-supplierAllowance" width='10%' align="right">@(allowanceTotal.GetInvoiceAmountReverseValue(2, Resource.constSymbolCurrency))</td>
+                                        </tr>
+                                    }
+                                }
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                    </tr>
+                    @if (Model.TaxDetail != null && Model.TaxDetail.AvaTaxDetails.Any())
+                    {
+                        <tr>
+                            <td>
+                                <table width='100%' cellspacing='0' cellpadding='0'>
+                                    <tr>
+                                        <td align='right' class='bold' style="padding-bottom: 5px;">@Resource.headingTaxes</td>
+                                        <td width='21%'></td>
+                                    </tr>
+                                    @{
+                                        var processingFee = Model.FuelFees.FuelRequestFees.FirstOrDefault(t => t.FeeTypeId == ((int)FeeType.ProcessingFee).ToString());
+                                        if (processingFee != null)
+                                        {
+                                            var isPercentFee = processingFee.FeeSubTypeId == (int)FeeSubType.Percent;
+                                            <tr>
+                                                <td align='right' style="padding-bottom: 5px;">
+                                                    @Resource.lblProcessingFee:
+                                                    @if (isPercentFee)
+                                                    {
+                                                        <i>(@processingFee.Fee.Value@Resource.constSymbolPercent)</i>
+                                                    }
+                                                </td>
+                                                <td align='right' style="padding-bottom: 5px;">@((processingFee.TotalFee).GetInvoiceAmountValue(2, @Resource.constSymbolCurrency))</td>
+                                            </tr>
+                                        }
+                                    }
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                    <tr>
+                        <td>
+                            <table cellspacing='0' cellpadding='0' width="100%">
+                                <tr>
+                                    <td align='right' class="bold color-blue fs14" style="padding-top:10px;">
+                                        @Resource.lblInvoiceTotal<span>: </span>
+
+                                    </td>
+                                    <td id="auto-DryRunInvoiceTotal" align='right' width="21%" class="bold color-blue fs14" style="padding-top:10px;">
+                                        @if (consolidatedInvoice.StatusId == (int)InvoiceStatus.Draft || consolidatedInvoice.StatusId == (int)InvoiceStatus.Canceled || consolidatedInvoice.WaitingForAction != (int)WaitingAction.Nothing)
+                                        {
+                                            @Resource.lblHyphen
+                                        }
+                                        else
+                                        {
+                                            if (consolidatedInvoice.InvoiceTypeId == (int)InvoiceType.DryRun)
+                                            {
+                                                @((invoiceTotalAmount).GetInvoiceAmountValue(2, Resource.constSymbolCurrency))
+                                            }
+                                            else
+                                            {
+                                                @Resource.lblHyphen
+                                            }
+                                        }
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px 0;">
+                            <table width="100%">
+                                @if (!string.IsNullOrEmpty(consolidatedInvoice.Notes))
+                                {
+                                    <tr>
+                                        <td class="fs12">
+                                            <strong>@Resource.lblComment:</strong> @consolidatedInvoice.Notes
+                                        </td>
+                                    </tr>
+                                }
+                                @if (!string.IsNullOrEmpty(consolidatedInvoice.StatementNumber))
+                                {
+                                    <tr>
+                                        <td class="fs12">
+                                            <strong>@Resource.lblNote:</strong> @Resource.warningMessageInvoiceStatement @consolidatedInvoice.StatementNumber
+                                        </td>
+                                    </tr>
+
+                                }
+
+                                @if (IsTaxModified)
+                                {
+                                    <tr>
+                                        <td class="fs12 txt-highlight">
+                                            <strong>@Resource.lblInvoiceValuesChanged</strong>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (consolidatedInvoice.IsTrueFillTax)
+                                {
+                                    <tr>
+                                        <td class="fs12 txt-highlight">
+                                            <strong>@Resource.msgTrueFillTaxInvoice</strong>
+                                        </td>
+                                    </tr>
+                                }
+
+                                @if (consolidatedInvoice.CreationMethod == CreationMethod.BulkUploaded)
+                                {
+                                    <tr>
+                                        <td class="fs12 txt-highlight" id="auto-CreationMethodBulkUpload">
+                                            <strong>@Resource.lblInvoiceCreationMethodIsBulkUpload</strong>
+                                        </td>
+                                    </tr>
+                                }
+                            </table>
+                        </td>
+                    </tr>
+                    @if (Model.InvoiceFooter != null)
+                    {
+                        <tr>
+                            <td style="padding:5px 0;">
+                                <table border="0" cellspacing='0' cellpadding='5'>
+                                    <tr>
+                                        <td colspan="2">
+                                            @Html.Raw(Model.InvoiceFooter.Description)
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td valign="top">
+                                            @Html.Raw(Model.InvoiceFooter.BankingInstructions)
+                                        </td>
+                                        <td valign="top">
+                                            @Html.Raw(Model.InvoiceFooter.AdditionalDetails)
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                </table>
+            </td>
+        </tr>
+    </table>
+</div>

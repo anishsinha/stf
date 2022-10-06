@@ -1,0 +1,140 @@
+﻿<script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+@model dynamic
+
+@{ var mapId = "map_" + DateTime.Now.ToString("yyyyMMddHHmmss"); }
+<div class="col-md-8">
+    <div class="map_canvas" id="@mapId"></div>
+</div>
+<div class="col-md-4">
+    <div class="row">
+        <div class="col-sm-2 col-md-12 col-xs-4">
+            <div class="job-name">
+                <h5 class="f-bold mb5">@Resource.headinPoNumber</h5>
+                <p class="title"></p>
+            </div>
+        </div>
+        <div class="col-sm-2 col-md-12 col-xs-8">
+            <div class="job-location">
+                <h5 class="f-bold mb5">@Resource.headingLocation</h5>
+                <p class="address1 mb0"></p>
+                <p class="address2 mt0"></p>
+            </div>
+        </div>
+        <div class="col-sm-2 col-md-12 col-xs-6">
+            <div class="job-contact">
+                <h5 class="f-bold mb5">@Resource.headingContact</h5>
+                <p class="contactname mb0"></p>
+                <p class="email mb0"></p>
+                <p class="phone"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    var centerlat = "", centerlon = "";
+    google.maps.visualRefresh = true;
+
+    var data = @Html.Raw(Json.Encode(@Model));
+    var zoomarea = 4;
+
+    if (data.length > 0) {
+        displayDriverLocation(data);
+    }
+    else {
+        centerlat = 41.850033;
+        centerlon = -87.6500523;
+    }
+
+    function displayDriverLocation(data) {
+        zoomarea = getZoomArea(data);
+        centerlat = 0;
+        centerlon = 0;
+        var latLongCount = 0;
+        $.each(data, function (i, item) {
+            if (item.Latitude != "" && item.Longitude != "") {
+                centerlat = centerlat + item.Latitude;
+                centerlon = centerlon + item.Longitude;
+                latLongCount++;
+            }
+        });
+
+        centerlat = centerlat / latLongCount;
+        centerlon = centerlon / latLongCount;
+
+        var centerpoint = new google.maps.LatLng(centerlat, centerlon);
+
+        // These are options that set initial zoom level, where the map is centered globally to start, and the type of map to show
+        var mapOptions = {
+            zoom: zoomarea,
+            center: centerpoint,
+            mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+        };
+
+        // This makes the div with id "map_canvas" a google map
+        var map = new google.maps.Map(document.getElementById("@mapId"), mapOptions);
+
+        $.each(data, function (i, item) {
+            var marker = new google.maps.Marker({
+                'position': new google.maps.LatLng(item.Latitude, item.Longitude),
+                'map': map,
+                'title': "PO# Number" + " " + item.PoNumber
+            });
+
+            // Make the marker-pin blue!
+            marker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png')
+
+            // finally hook up an "OnClick" listener to the map so it pops up out info-window when the marker-pin is clicked!
+            google.maps.event.addListener(marker, 'click', function () {
+                var appPath = document.location.origin + '@Url.Action("Details", "Order", new { area = "Driver" })';
+                window.location.href = appPath + "/" + item.OrderId;
+            });
+
+            google.maps.event.addListener(marker, 'mouseover', function () {
+                $(".job-name .title").html(item.PoNumber);
+                $(".job-name .desc").html("");
+                $(".job-location .address").html(item.Address);
+                $(".job-location .state").html(item.City + ", " + item.State + " " + item.ZipCode);
+
+                var _onSiteContact = "";
+                var _onSiteEmail = "";
+                var _onSitePhone = "";
+                if (item.ContactPersons.length > 0) {
+                    _onSiteContact = item.ContactPersons[0].Name;
+                    _onSiteEmail = item.ContactPersons[0].Email;
+                    _onSitePhone = item.ContactPersons[0].PhoneNumber;
+                }
+
+                if (_onSiteContact == _onSiteEmail && _onSiteEmail == _onSitePhone)
+                    _onSiteEmail = '-';
+
+                $(".job-contact .contactname").html(_onSiteContact);
+                $(".job-contact .email").html(_onSiteEmail);
+                $(".job-contact .phone").html(_onSitePhone);
+            });
+        })
+    }
+
+    if (data.length > 0) {
+        $(".job-name .title").html(data[0].PoNumber);
+        $(".job-location .address1").html(data[0].Address);
+        $(".job-location .address2").html(data[0].City + ", " + data[0].State + " " + data[0].ZipCode);
+
+        var _onSiteContact = "";
+        var _onSiteEmail = "";
+        var _onSitePhone = "";
+        if (data[0].ContactPersons.length > 0) {
+            _onSiteContact = data[0].ContactPersons[0].Name;
+            _onSiteEmail = data[0].ContactPersons[0].Email;
+            _onSitePhone = data[0].ContactPersons[0].PhoneNumber;
+        }
+
+        if (_onSiteContact == _onSiteEmail && _onSiteEmail == _onSitePhone)
+            _onSiteEmail = '-';
+
+        $(".job-contact .contactname").html(_onSiteContact);
+        $(".job-contact .email").html(_onSiteEmail);
+        $(".job-contact .phone").html(_onSitePhone);
+    }
+</script>

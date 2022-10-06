@@ -1,0 +1,336 @@
+﻿@model SiteFuel.Exchange.ViewModels.Offer.OfferViewModel
+
+@{
+    if (Model.Id == 0)
+    {
+        ViewBag.Title = "Create New Offer";
+    }
+    else
+    {
+        ViewBag.Title = "Offer Edit";
+    }
+}
+<div class="row">
+    <div class="col-sm-12 text-right">
+        @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+    </div>
+</div>
+
+
+@using (Html.BeginForm("Create", "Offer", new { area = "Supplier" }, FormMethod.Post, new { enctype = "multipart/form-data", id = "createofferform" }))
+{
+
+    @Html.HiddenFor(m => m.CompanyId)
+    @Html.HiddenFor(m => m.UserId)
+    @Html.HiddenFor(m => m.Guid)
+    @Html.HiddenFor(m => m.CreatedDate)
+    @Html.HiddenFor(m => m.CountryId)
+    @Html.HiddenFor(m => m.CurrencyId)
+    @Html.HiddenFor(m => m.Id)
+    @*<div class="@(@Model.Id > 0 ? "disable-controls" : "")">*@
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.gridColumnOfferType</h4>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="form-group mb0">
+                            <div class="radio dib mr20">
+                                <label>
+                                    @Html.RadioButtonFor(m => m.OfferTypeId, (int)OfferType.Exclusive,
+                                    new { onclick = "showHideControls(this,'exclusiveOffer-control','nothing');", @class = "offer-typeId" })
+                                    @Resource.lblExclusiveOffer
+                                    <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title=""
+                                       data-original-title="For Exclusive offer, either Tier or Customer selection is required"></i>
+                                </label>
+                            </div>
+                            <div class="radio dib mr20">
+                                <label>
+                                    @Html.RadioButtonFor(m => m.OfferTypeId, (int)OfferType.Market,
+                                    new { onclick = "showHideControls(this,'nothing','exclusiveOffer-control');", @class = "offer-typeId" })
+                                    @Resource.lblMarketOffer
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4 col-md-2 exclusiveOffer-control">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Tiers)
+                            @Html.ListBoxFor(m => m.Tiers, new SelectList(CommonHelperMethods.GetTiers(), "Id", "Name"), new { @class = "form-control multi-select tiers", onchange = "checkStatus('tier-check', 'tiers')" })
+                            @Html.ValidationMessageFor(m => m.Tiers)
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-2 exclusiveOffer-control">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Customers)
+                            @Html.ListBoxFor(m => m.Customers, new SelectList(CommonHelperMethods.GetSupplierCustomers(Model.CompanyId, Model.CountryId), "Id", "Name"), new { @class = "form-control multi-select offerCustomers" })
+                            @Html.ValidationMessageFor(m => m.Customers)
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-2">
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.FuelTypes)
+                                @Html.ListBoxFor(m => m.FuelTypes, new SelectList(CommonHelperMethods.GetAllSupplierProducts(Model.CompanyId), "Id", "Name"), new { @class = "form-control multi-select" })
+                                @Html.ValidationMessageFor(m => m.FuelTypes)
+                            </div>
+                        </div>
+                    <div class="col-sm-4 col-md-2">
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Name)
+                            @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control" } })
+                            @Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-2">
+                        @Html.LabelFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypeId)
+                        @Html.EnumDropDownListFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes, null,
+                           new
+                           {
+                               @class = "form-control truckLoadTypes enum-ddl"
+                           })
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.lblLocation</h4>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="form-group mb0">
+                            <div class="radio dib mr20">
+                                <label>
+                                    @Html.RadioButtonFor(m => m.OfferLocationTypeId, (int)OfferLocationType.State,
+                                    new { onclick = "showHideControls(this,'state-control','city-control');" })
+                                    @Resource.gridColumnState
+                                </label>
+                            </div>
+                            <div class="radio dib mr20">
+                                <label>
+                                    @Html.RadioButtonFor(m => m.OfferLocationTypeId, (int)OfferLocationType.City,
+                                    new { onclick = "showHideControls(this,'city-control','state-control');" })
+                                    @Resource.lblCity
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group state-control col-sm-4 col-md-2">
+                        @Html.LabelFor(m => m.States)
+                        @Html.ListBoxFor(m => m.States, new SelectList(CommonHelperMethods.GetStates(Model.CountryId, true), "Id", "Name"), new { @class = "form-control multi-select" })
+                        @Html.ValidationMessageFor(m => m.States)
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div id="OfferStateCity-section" class="partial-section city-control">
+                            <div class="partial-block-collection-section">
+                                @if (Model.LocationViewModel != null && Model.LocationViewModel.Count() > 0)
+                                {
+                                    foreach (var locations in Model.LocationViewModel)
+                                    {
+                                        Html.RenderPartial("~/Areas/Supplier/Views/Shared/_PartialOfferLocationType.cshtml", locations);
+                                    }
+                                }
+                            </div>
+                            <div class="form-group">
+                                <a href="javascript:void(0)" onclick="AjaxStart(this)" class="add-partial-block" data-url="@Url.Action("OfferLocationTypes", "Offer")"><span class="fa fa-plus-circle"></span> @Resource.btnLabelAddAnotherLocation</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    if (Model.Id > 0 && Model.OfferStats.Count > 0)
+    {
+        <div class="col-sm-12">
+            <div class="row well mb15">
+                <div class="col-sm-12">
+                    <h4>Stats</h4>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            @Html.PartialFor("_PartialSupplierOfferStats", m => m)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingPricing</h4>
+                <div class="row">
+                    <div class="col-sm-12">
+                        @Html.PartialFor("_PartialFuelRequestPricingOffer", m => m)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingFees</h4>
+                <div class="row">
+                    <div class="col-sm-12">
+                        @Html.PartialFor("_PartialFees", m => m.FuelDeliveryDetails.FuelFees)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="col-sm-12 text-right form-buttons">
+            <input type="button" value="Cancel" class="btn" onclick="GoToPreviousURL()" />
+            @if (Model.IsQuickUpdated)
+            {
+                <input id="@Resource.btnLabelSave" type="button" value="@Resource.btnLabelSubmit" class="btn btn-lg  btn-primary btnSubmit"
+                       data-toggle="confirmation" data-content="@Resource.warningMessageOfferEdit" data-popout="true"
+                       data-singleton="true" data-confirmation-event="submitOfferForm" />
+            }
+            else
+            {
+                <input id="@Resource.btnLabelSave" type="button" value="@Resource.btnLabelSubmit" class="btn btn-lg btn-primary btnSubmit" onclick="submitOfferForm()" />
+            }
+        </div>
+    </div>
+}
+
+<style>
+    .confirmation-content {
+        text-align: justify
+    }
+</style>
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Offer")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/quantityrange-validate")
+
+    <script src="~/Content/js/offer-create.js"></script>
+    <script type="text/javascript">
+        var suppliercostPricingType = 4;
+        var $form = $("#createofferform");
+        var valMsgTierRequired = '@Resource.errMessageEitherTierOrCustomersRequired';
+        var valMsgCityRequired = '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblCity })';
+        var getCustomersListUrl = '@Url.Action("GetCustomersList", "Offer")';
+        var getCityListUrl = '@Url.Action("GetCitesOfState", "Offer")';
+        var getZipListUrl = '@Url.Action("GetZipCodeOfCity", "Offer")';
+        var pricingTypePPG = "@((int)PricingType.PricePerGallon)";
+        var offerId = @Model.Id;
+
+        function isExclusiveOffer() { return $('input[name="@Html.NameFor(m => m.OfferTypeId)"]:checked').val() == '@((int)OfferType.Exclusive)'; }
+        function isCityLocation() { return $('input[name="@Html.NameFor(m => m.OfferLocationTypeId)"]:checked').val() == '@((int)OfferLocationType.City)';}
+
+        function submitOfferForm() {
+            enableDisabledElem();
+            var isFormValid = $form.valid();
+            var isWeekendAndSpecialPriceValid = true;
+            var isValidOfferTypeData = true;
+            var specialDateVal = '@((int)FeeConstraintType.SpecialDate)';
+            var specialDateErrorMsg = '@Resource.valMessageSpecialFeesDuplicate';
+            isWeekendAndSpecialPriceValid = validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+
+            isValidOfferTypeData = validateOfferTypeData();
+
+            isFormValid = isFormValid && isWeekendAndSpecialPriceValid && isValidOfferTypeData
+            if (isFormValid == true) {
+                $form.submit();
+            }
+            else {
+                disableElem();
+                showInvalidTab();
+            }
+            $.fn.focusWithoutScrolling = function () {
+                var x = window.scrollX, y = window.scrollY;
+                this.focus();
+                window.scrollTo(x, y);
+            };
+            if (!isFormValid) {
+                $(".field-validation-error:visible:first").closest(".form-group").find(".form-control").focus();
+                if ('@Model.IsQuickUpdated' == 'True') {
+                    $(".form-buttons .confirmation").remove();
+                }
+            }
+            fixedButtons($(".btnSubmit"), isFormValid);
+            $('[data-toggle=confirmation]').confirmation({
+                rootSelector: '[data-toggle=confirmation]',
+                html: true
+            });
+        }
+        function enableDisabledElem() {
+            $("#@Html.IdFor(m => m.FuelTypes)").removeAttr("disabled");
+            $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes)").removeAttr("disabled");
+            $(".offer-typeId").removeAttr("disabled");
+        }
+        function disableElem() {
+            if (offerId > 0) {
+                $("#@Html.IdFor(m => m.FuelTypes)").attr("disabled", true);
+                $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes)").attr("disabled", true);
+                $(".offer-typeId").attr("disabled", true);
+            }
+        }
+
+        function ReloadDataTable() {
+            getSupplierOfferUrl();
+        }
+
+         $(document).off('submitOfferForm'); 
+         $(document).on('submitOfferForm', function (e) {
+             submitOfferForm();
+        });
+
+
+        @*function ShowHideFTLPricingControls() {
+            if ($('#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes)').val() == '@((int)TruckLoadTypes.FullTruckLoad)') {
+                $('.ftl-pricing-controls').show();
+            }
+            else {
+                $('.ftl-pricing-controls').hide();
+            }
+        }*@
+
+        @*$('.ddl-pricing-source').on('change', function () {
+            if ($('.ddl-pricing-source').val() == '@((int)PricingSource.Axxis)') {
+                EnableRackHighLow();
+            }
+            else if ($('.ddl-pricing-source').val() == '@((int)PricingSource.OPIS)') {
+                EnableRackHighLow();
+                PrependFeedType();
+            }
+            else { // platts case
+                DisableRackHighLow();
+                RemoveFeedType();
+            }
+        });*@
+
+        //function PrependFeedType() {
+        //    var morningFeedVal = 1;
+        //    if (!$(".feed-types").find("option:contains('" + morningFeedVal + "')").length) {
+        //        $(".feed-types").prepend($('<option></option>').val(morningFeedVal).html('Contract (10am EST)'));
+        //    }
+        //}
+
+        //function RemoveFeedType() {
+        //    var morningFeedVal = 1;
+        //    $(".feed-types").find('[value="' + morningFeedVal + '"]').remove();
+        //}
+    </script>
+    <script type="text/javascript">
+        var truckLoadDropDown = $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes)");
+        var quantityIndicatorDropDown = 0;
+        var defaultQuantityIndicator = @((int)QuantityIndicatorTypes.Net);
+    </script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Ftl")
+}
+
+

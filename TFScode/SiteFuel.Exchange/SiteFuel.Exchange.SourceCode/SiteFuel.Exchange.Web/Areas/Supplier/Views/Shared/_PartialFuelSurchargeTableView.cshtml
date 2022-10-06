@@ -1,0 +1,119 @@
+﻿@model ViewFuelSurchargeInputViewModel
+
+@using (Ajax.BeginForm("GetFuelSurchargeSummary", "FuelSurcharge", null, new AjaxOptions
+{
+	HttpMethod = "POST",
+	OnSuccess = "GetSurchargeDataTable",
+	OnFailure = "GetSurchargeDataTable"
+}, new { @id = "viewFuelSurchargeForm" }))
+{
+	<div class="col-sm-12">
+		<div class="row well mb15">
+			<div class="col-sm-12">
+				<h4>@Resource.lblSurchargeDetails</h4>
+				<div class="row">
+					<div class="col-sm-2">
+						<label>@Resource.lblTableType</label>
+						@Html.ListBoxFor(m => m.TableTypes, new SelectList(CommonHelperMethods.GetSurchargeTableTypes(), "Id", "Name", 0), new { @class = "form-control mt25 enable-list multi-select" })
+					</div>
+					<div class="col-sm-3" id="product-type">
+						<label>@Resource.lblProductType</label>
+						@Html.ListBoxFor(m => m.ProductTypes, new SelectList(CommonHelperMethods.GetSurchargeProductTypes(), "Id", "Name", 0), new { @class = "form-control mt25 enable-list multi-select" })
+						@Html.ValidationMessageFor(m => m.ProductTypes)
+					</div>
+					<div class="col-sm-4">
+						<label>@Resource.lblValidBetnDateRange</label>
+						<div class="row">
+							<div class="col-sm-6">
+								@Html.TextBoxFor(m => m.StartDate, new { @class = "form-control datepicker" })
+								@Html.ValidationMessageFor(m => m.StartDate)
+							</div>
+							<div class="col-sm-6">
+								@Html.TextBoxFor(m => m.EndDate, new { @class = "form-control datepicker" })
+								@Html.ValidationMessageFor(m => m.EndDate)
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-sm-5">
+						<h2 class="fs14 f-bold">@Resource.lblPriceRange</h2>
+						<div class="row">
+							<div class="col-sm-4">
+								<label>@Resource.lblStartValue</label>
+								@Html.TextBoxFor(m => m.PriceRangeStartValue, new { @class = "form-control datatype-decimal always" })
+								@Html.ValidationMessageFor(m => m.PriceRangeStartValue)
+							</div>
+							<div class="col-sm-4">
+								<label>@Resource.lblEndValue</label>
+								@Html.TextBoxFor(m => m.PriceRangeEndValue, new { @class = "form-control datatype-decimal always" })
+								@Html.ValidationMessageFor(m => m.PriceRangeEndValue)
+							</div>
+							<div class="col-sm-4">
+								<label>@Resource.lblInterval</label>
+								@Html.TextBoxFor(m => m.PriceRangeInterval, new { @class = "form-control datatype-decimal always" })
+								@Html.ValidationMessageFor(m => m.PriceRangeInterval)
+							</div>
+						</div>
+					</div>
+					<div class="col-sm-5">
+						<h2 class="fs14 f-bold">@Resource.lblSurcharge</h2>
+						<div class="row">
+							<div class="col-sm-4">
+								<label>@Resource.lblStart %</label>
+								<div class="input-group">
+									@Html.TextBoxFor(m => m.FuelSurchargeStartPercentage, new { @class = "form-control datatype-decimal always" })
+									<span class="input-group-addon">%</span>
+								</div>
+								@Html.ValidationMessageFor(m => m.FuelSurchargeStartPercentage)
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-sm-3 text-center col-sm-offset-5">
+						<input type="submit" id="btnViewSurchargeTable" class="btn btn-default mt20 float-left" value="@Resource.lblViewTable" />
+						<i class="surcharge-loader hide-element"><span class="spinner-small  mt25 ml15 float-left"></span></i>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row mb15 hide-element" id="fuel-surcharge-grid">
+			@Html.PartialFor("_PartialSurchargeTableSummary", m => m)
+		</div>
+	</div>
+}
+
+@using (Ajax.BeginForm("EditSurchargeTable", "FuelSurcharge", new { area = "Supplier" }, new AjaxOptions
+{
+	HttpMethod = "POST",
+	OnSuccess = "postEditSurchargeEvent",
+	OnFailure = "postEditSurchargeEvent"
+}, new { @id = "edit-surchargetable-form" }))
+{
+	@Html.AntiForgeryToken()
+	<div class="modal fade surcharge-table" id="surcharge-table" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-body pt0 pb0" id="edit-surchargetable">
+					<div class="row mb15" id="fuel-surcharge-table">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal" id="btn-close-editsurchargemodal">@Resource.btnLabelClose</button>
+					<button type="submit" class="btn btn-primary" id="btn-edit-surcharge">@Resource.btnLabelSave</button>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+<script type="text/javascript">
+	 viewSurchargeTableSummaryUrl = '@Url.Action("GetFuelSurchargeSummary", "FuelSurcharge", new { area="Supplier" })';
+	 surchargeEffectiveDate = '@Model.StartDate';
+	 viewSurchargeTableUrl = '@Url.Action("GetSurchargeTable", "FuelSurcharge", new { area="Supplier" })';
+	 var masterType = '@TableTypes.Master.GetDisplayName()';
+	 var customerSpecificType = '@TableTypes.CustomerSpecific.GetDisplayName()';
+	 documentReady();
+</script>
+
+

@@ -1,0 +1,215 @@
+﻿@{
+	ViewBag.Title = "Assign Assets";
+}
+<div class="row">
+    <div class="col-12">
+        <h3 class="mt0 f-light fs21 float-left">@Resource.headingAssignAssets</h3>
+        @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsCarrierAdmin || CurrentUser.IsCarrier)
+        {
+            <a onclick='LoadAsset();' class="fs18 float-left ml20">
+                <i class="fa fa-plus-circle fs18 mt5 float-left mb10"></i><span class="fs14 mt5 float-left">@Resource.btnLabelCreateNew</span>
+            </a>
+        }
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="assignassets-datatable" class="table table-striped table-bordered table-hover small-grid">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnAssign<br /><input type="checkbox" id="select-assignall" /></th>
+                                    <th>@Resource.gridColumnId</th>
+                                    <th>@Resource.gridColumnName</th>
+                                    <th>@Resource.gridColumnType</th>
+                                    <th>@Resource.gridColumnCurrentJob</th>
+                                    <th>@Resource.gridColumnLastJob</th>
+                                    <th>@Resource.gridColumnDateAdded</th>
+                                    <th>@Resource.gridColumnImage</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xs-12 text-right mt10 mb25 btn-wrapper">
+        <div class="form-group">
+            <input type="button" class="btn btn-default" value="@Resource.btnLabelBack" onclick="location.href='@Url.Action("Details", "Job", new { area = "Buyer", id= Convert.ToInt32(ViewContext.RouteData.Values["id"]) })'" />
+            @*<input type="button" class="btn btn-default" value="@Resource.btnLabelBack" onclick="location.href='@Url.Action("Details", "Job", new { area = "Buyer", id = Convert.ToInt32(ViewContext.RouteData.Values["id"]) })'" />*@
+            @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+            {
+                <input type="button" class="btn btn-primary" value="@Resource.btnLabelSave" id="btnSave" />
+            }
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+
+		var assignAssetDataTable, jobId = '@Convert.ToInt32(ViewContext.RouteData.Values["id"])';
+		var exportAssetColumns = { columns: [1, 2, 3, 4, 5, 6] };
+
+		$(document).ready(function () {
+
+			assignAssetDataTable = $('#assignassets-datatable').dataTable({
+                "ajax": {
+                    "url": "@Url.Action("AssignAssetsToJob", "Job", new { area ="Buyer"})",
+                    "type": "GET",
+                    "datatype": "json",
+                    "data": function () {
+                        var assetFilter = {
+                            JobId: '@Convert.ToInt32(ViewContext.RouteData.Values["id"])',
+                            Filter: '@AssetFilterType.All',
+                            Type: '@((int)@AssetType.Asset)',
+                        };
+                        return assetFilter;
+                    },
+                    "dataSrc": "",
+                },
+                "columns": [
+                            {
+                                "data": function (data, type, row, meta) {
+                                    var checked = data.CurrentJobId == 0 ? "" : data.CurrentJobId == jobId ? "checked=\"checked\"" : "";
+                                    return '<input type="checkbox" class = "chk-assignasset" id="' + data.Id + '"  value = "' + data.Active + '" ' + checked + '/>';
+                                }, "autoWidth": true,"bSortable":false
+                            },
+                            { "data": "Id", "autoWidth": true },
+                            {
+                                "data": "Name", "autoWidth": true
+                            },
+                            { "data": "Class", "autoWidth": true },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    return data.CurrentJobName == null ? '@Resource.lblHyphen' : data.CurrentJobName;
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    return data.LastJobName == null ? '@Resource.lblHyphen' : data.LastJobName;
+                                }, "autoWidth": true
+                            },
+                            { "data": "DateAdded", "autoWidth": true },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    if (data.ImageId > 0) {
+                                        return "<img id='image-" + data.ImageId + "' class='img-max50' data-image-url='@Url.Action("GetImage")?imageId=" + data.ImageId + "'/>";
+                                    }
+                                    else {
+                                        return '@Resource.lblHyphen';
+                                    }
+                                }, "autoWidth": true
+                            }
+                ],
+                pageLength: 10,
+                responsive: true,
+                fixedHeader: true,
+                "order": [],
+				"initComplete": function (settings, json) {
+					allPages = assignAssetDataTable.fnGetNodes();
+                    updateAssignAllCheckboxStatus(json);
+                    wrapperHeight();
+				},
+				"fnDrawCallback": function (settings) {
+					updateAssignAllOnPageChange();
+				},
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+					{ extend: 'csv', title: '@Resource.headingAssignAssets', exportOptions: exportAssetColumns },
+					{ extend: 'excel', title: '@Resource.headingAssignAssets', exportOptions: exportAssetColumns },
+					{ extend: 'pdf', title: '@Resource.headingAssignAssets', exportOptions: exportAssetColumns },
+                    {
+						extend: 'print', exportOptions: exportAssetColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+
+			assignAssetDataTable.on("init.dt", function () { showAjaxImages(); });
+
+            $("#btnSave").click(function () {
+                var data = [], url = '@Url.Action("AssignAssets", "Job", new { area="Buyer"})';
+				var jobId = '@Convert.ToInt32(ViewContext.RouteData.Values["id"])';
+				$("input:checkbox", assignAssetDataTable.fnGetNodes()).each(function () {
+                    if ($(this).is(':checked')) {
+                        data.push($(this).attr('id'));
+                    }
+                })
+
+                var model = {
+					assets: data,
+					jobId: jobId
+                };
+
+                $.post(url, model, function (response) {
+					if (response == 0) {
+						if ('@Request.QueryString["isThisFromFuelRequest"]' == 'True') {
+							window.location.href = '@Url.Action("Create", "FuelRequest", new { area = "Buyer", jobId = Convert.ToInt32(ViewContext.RouteData.Values["id"]) })';
+						}
+						else {
+							window.location.href = '@Url.Action("Details", "Job", new { area = "Buyer", id= Convert.ToInt32(ViewContext.RouteData.Values["id"]) })';
+						}
+                    }
+                }, 'json');
+			})
+		});
+
+		function updateAssignAllOnPageChange() {
+			var allChecked = true;
+
+			$('#assignassets-datatable tbody tr').each(function () {
+				$(this).find('.chk-assignasset').each(function () {
+					if (!$(this).is(':checked')) {
+						allChecked = false;
+					}
+				});
+			});
+			$('#select-assignall').prop('checked', allChecked);
+		}
+
+    function updateAssignAllCheckboxStatus(json) {
+
+        $('#select-assignall').click(function () {
+            var status = $(this).prop('checked');
+            $(".chk-assignasset").each(function () {
+                $(this).prop("checked", status);
+            });
+        });
+
+        $(".chk-assignasset", allPages).change(function () {
+            updateAssignAllOnPageChange();
+        });
+    }
+
+    function LoadAsset() {
+        var url = '@Url.Action("CreateAsset", "Job", new { area = "Buyer", jobId = Convert.ToInt32(ViewContext.RouteData.Values["id"]), isThisFromFuelRequest = Convert.ToBoolean(Request.QueryString["isThisFromFuelRequest"]) })';
+        $.get(url, function (response) {
+            if (response != null || response != "") {
+                $("#slider-heading").text('Create New Asset');
+                $("#slider-content").html(response);
+                parseForm();
+                slidePanel("#sliderpanel");
+                $(".lblforcastingNote").text('');
+                $(".lblforcastingNote").hide();
+            }
+        }).always(
+            function () {
+                $("#slider-loader").hide();
+            }
+        );
+    }
+</script>

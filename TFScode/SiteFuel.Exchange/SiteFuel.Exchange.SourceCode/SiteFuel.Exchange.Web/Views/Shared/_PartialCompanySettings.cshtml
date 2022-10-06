@@ -1,0 +1,191 @@
+﻿@using SiteFuel.Exchange.Web.Common
+@model CompanyViewModel
+
+<div class="col-sm-9">
+    <div class="row">
+        @Html.HiddenFor(m => m.Id)
+        @Html.HiddenFor(m => m.SupplierCode)
+        <div class="col-lg-4 col-md-6 col-sm-6">
+            <div class="form-group">
+                @Html.LabelFor(m => m.Name)
+                @Html.TextBoxFor(m => m.Name, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.Name)
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(CurrentUser.SupplierURL))
+        {
+            <div class="col-lg-4 col-md-6 col-sm-6">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.CompanyTypeId)
+                    @Html.DropDownListFor(m => m.CompanyTypeId, new SelectList(CommonHelperMethods.GetCompanyTypes().Where(top => top.Name.ToLower().Contains(CompanyType.Buyer.ToString().ToLower())).ToList(), "Id", "Name", 0), new { @class = "form-control onchange-select-showhide" })
+                    @Html.ValidationMessageFor(m => m.CompanyTypeId)
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="col-lg-4 col-md-6 col-sm-6">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.CompanyTypeId)
+                    @Html.DropDownListFor(m => m.CompanyTypeId, new SelectList(CommonHelperMethods.GetCompanyTypes(), "Id", "Name", 0), new { @class = "form-control onchange-select-showhide" })
+                    @Html.ValidationMessageFor(m => m.CompanyTypeId)
+                </div>
+            </div>
+        }
+
+        @if (!Model.IsOnboarding && (CurrentUser.CompanyTypeId == CompanyType.BuyerAndSupplier || CurrentUser.CompanyTypeId == CompanyType.Buyer || CurrentUser.CompanyTypeId == CompanyType.BuyerSupplierAndCarrier))
+        {
+            <div class="col-lg-4 col-md-6 col-sm-6">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.BudgetAlertPercentage)
+                    @Html.TextBoxFor(m => m.BudgetAlertPercentage, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(m => m.BudgetAlertPercentage)
+                </div>
+            </div>
+        }
+        @if (!Model.IsOnboarding && (CurrentUser.CompanyTypeId == CompanyType.BuyerAndSupplier || CurrentUser.CompanyTypeId == CompanyType.Supplier || CurrentUser.CompanyTypeId == CompanyType.BuyerSupplierAndCarrier))
+        {
+            <div class="col-lg-4 col-md-6 col-sm-6">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.SupplierCode)
+                    @Html.TextBoxFor(m => m.SupplierCode, new { @class = "form-control", @disabled = "disabled" })
+                </div>
+            </div>
+        }
+        
+        @if (CurrentUser.IsBuyerAdmin)
+        {
+            <div class="col-sm-12">
+                <div class="form-group mb0">
+                    <label class="checkbox checkbox-inline">
+                        @Html.CheckBoxFor(m => m.IsAssetTrackingEnabled) @Resource.lblEnableAssetTrackingForJob
+                    </label>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="checkbox checkbox-inline">
+                        @Html.CheckBoxFor(m => m.IsResaleEnabled) @Resource.lblResaleForJob
+                    </label>
+                </div>
+            </div>
+        }
+
+    </div>
+    
+</div>
+
+@if (Model.CompanyTypeId != (int)CompanyType.Buyer)
+{
+    <div class="col-sm-12" id="fleet-info-details">
+        <h4>Fleet Information</h4>
+        <div class="row">
+            <div class="col-sm-9">
+                <div class="border rounded-lg p-3 mb-3 shadow-sm">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h4 class="float-left f-normal pt-0">Fuel Assets</h4>
+                            <a href="#" class="btn btn-link fs14 float-left mb-2 ml-2 pt-0" data-toggle="modal" data-target="#fleetModal"><i class="fa fa-plus-circle"></i> Add New</a>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="ibox mb0">
+                                <div class="ibox-content no-padding no-border">
+                                    <div id="fleet-details-grid" class="table-responsive">
+                                        <table id="fleet-datatable" data-gridname="fuel Assets" class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th data-key="TrailerType">Trailer Type</th>
+                                                    <th data-key="Capacity">Capacity per asset(G)</th>
+                                                    <th data-key="Pump">Does Trailer have Pump?</th>
+                                                    <th data-key="Metered">Is Trailer Metered?</th>
+                                                    <th data-key="Count">Count</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (Model.FleetInfo.FuelAssets != null)
+                                                {
+                                                    foreach (var item in Model.FleetInfo.FuelAssets)
+                                                    {
+                                                        <tr>
+                                                            <td>@item.FuelTrailerServiceTypeFTL</td>
+                                                            <td>@item.Capacity</td>
+                                                            <td>@(item.TrailerHasPump ? "Yes" : "No")</td>
+                                                            <td>@(item.IsTrailerMetered ? "Yes" : "No")</td>
+                                                            <td>@item.Count</td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-9">
+                <div class="border rounded-lg p-3 mb-3 shadow-sm">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h4 class="float-left f-normal pt-0 ">DEF Assets</h4>
+                            <a href="#" class="btn btn-link fs14 float-left mb-2 ml-2 pt-0" data-toggle="modal" data-target="#defModal"><i class="fa fa-plus-circle"></i> Add New</a>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="ibox mb0">
+                                <div class="ibox-content no-padding no-border">
+                                    <div id="fleet-details-grid" class="table-responsive">
+                                        <table id="def-datatable" data-gridname="ef Assets" class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th data-key="TrailerType">Trailer Type</th>
+                                                    <th data-key="Capacity">Capacity per asset(G)</th>
+                                                    <th data-key="Capacity">Packaged Goods</th>
+                                                    <th data-key="Pump">Does Trailer have Pump?</th>
+                                                    <th data-key="Metered">Is Trailer Metered?</th>
+                                                    <th data-key="Count">Count</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (Model.FleetInfo.DefAssets != null)
+                                                {
+                                                    foreach (var item in Model.FleetInfo.DefAssets)
+                                                    {
+                                                        <tr>
+                                                            <td>@item.DEFTrailerServiceType</td>
+                                                            <td>@item.Capacity</td>
+                                                            <td>@(item.PackagedGoods ? "Yes" : "No")</td>
+                                                            <td>@(item.TrailerHasPump ? "Yes" : "No")</td>
+                                                            <td>@(item.IsTrailerMetered ? "Yes" : "No")</td>
+                                                            <td>@item.Count</td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                @Html.Partial("_PartialFuelAsset", Model)
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                @Html.Partial("_PartialDefAsset", Model)
+            </div>
+        </div>
+    </div>
+}

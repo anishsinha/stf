@@ -1,0 +1,137 @@
+﻿<div class="modal fade" id="acceptFRModalPopup" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content modal-sm">
+            <div class="modal-body">
+                <h4 class="pt-0">Are you sure?</h4>
+                @string.Format(Resource.lblAutoAgreeTerms, Resource.lblYes)
+                <a href="@Url.Action("TermsAndConditions", "FuelRequest", new { area = "Supplier" })" target="_blank">@Resource.headerTermsAndConditions</a>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">@Resource.lblNo</button>
+                <button type="button" class="btn btn-primary" onclick="return showSourceRegionPopup();">@Resource.btnLabelYes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="sourceRegionModalPopup" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h4 class="pt-0">@Resource.headingSourceRegionsAndTerminals</h4>
+                @Html.Hidden("hdnFuelRequestId")
+                <div class='pa text-center bg-white source-region-popup-loader loading-wrapper hide-element'><span class='spinner-small pa col-1'></span></div>
+                <div id="sourceRegionBodyContainer">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="pull-left" style="max-width: 305px;">
+                    <span id="spnErrorMessage" class="field-validation-error hide-element">
+                    </span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                    <button type="button" class="btn btn-primary" id="btnAcceptFRPopup" onclick="return acceptFR();">@Resource.btnLabelAccept</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        function showSourceRegionPopup() {
+            $('#acceptFRModalPopup').modal('hide');
+            $('#sourceRegionModalPopup').modal('show');
+            $(".source-region-popup-loader").show();
+
+            var model = { fuelRequestId: $('#hdnFuelRequestId').val() }
+            var url = '@Url.Action("LoadSourceRegionView", "FuelRequest", new { area = "Supplier" })';
+            $.get(url, model, function (response) {
+                if (response != null || response != "") {
+                    $("#sourceRegionBodyContainer").html(response);
+                    parseForm();
+                    $('#spnErrorMessage').addClass('hide-element');
+                    $('#btnAcceptFRPopup').removeClass('pntr-none subSectionOpacity');
+                    var totalSourceRegionCount = parseInt($('#SelectedSourceRegions option').toArray().length);
+                    if (isNaN(totalSourceRegionCount) || totalSourceRegionCount <= 0) {
+                        // show message - source region not available
+                        $('#spnErrorMessage').text('@Resource.errorMessageSourceRegionAvailableToAcceptFR');
+                        $('#spnErrorMessage').removeClass('hide-element');
+                        $('#btnAcceptFRPopup').addClass('pntr-none subSectionOpacity');
+                    }
+                }
+            }).always(
+                function () {
+                    $(".source-region-popup-loader").hide();
+                }
+            );
+        }
+
+        function acceptFR() {
+            var isValid = true;
+            var freightPricingMethod = $('input[name="FreightPricingMethod"]:checked').val();
+            if (freightPricingMethod == '@(FreightPricingMethod.Auto)') {
+                var regionIds = $('#SelectedSourceRegions option:selected').toArray().map(item => parseInt(item.value));
+                var terminalIds = $('#SelectedTerminals option:selected').toArray().map(item => parseInt(item.value));
+                var bulkPlantIds = $('#SelectedBulkPlants option:selected').toArray().map(item => parseInt(item.value));
+                var approvedTerminalId = parseInt($("#ApprovedTerminalId").val());
+                var approvedBulkPlantId = parseInt($("#ApprovedBulkPlantId").val());
+
+                if (regionIds.length == 0) {
+                    validationMessageFor($('#SelectedSourceRegions').attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblSourceRegion })');
+                    isValid = false;
+                }
+
+                if (terminalIds.length == 0 && bulkPlantIds.length == 0) {
+                    validationMessageFor($('#SelectedTerminals').attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.errMessageTerminalOrBulkPlantRequired })');
+                    isValid = false;
+                }
+            }
+
+            if (isValid) {
+                $('.source-region-popup-loader').removeClass("hide-element");
+                var acceptFRUrl = "@Url.Action("Accept", "FuelRequest", new { area = "Supplier" })";
+                var inputModel = {
+                    SelectedSourceRegions: regionIds,
+                    SelectedTerminals: terminalIds,
+                    SelectedBulkPlants: bulkPlantIds,
+                    ApprovedTerminalId: approvedTerminalId,
+                    ApprovedTerminal: $("#ApprovedTerminal").val(),
+                    ApprovedBulkPlantId: approvedBulkPlantId,
+                    FreightPricingMethod: freightPricingMethod
+                };
+
+                $.ajax({
+                    type: 'POST',
+                    url: acceptFRUrl,
+                    dataType: "json",
+                    contentType: 'application/json; charset=utf-8',
+                    data: '{fuelRequestId:' + JSON.stringify($('#hdnFuelRequestId').val()) + ',sourceRegionModel: ' + JSON.stringify(inputModel) + '}',
+                    success: function (response) {
+                        if (response != null && response != undefined && (response.StatusCode == '@((int)Status.Success)' || response.StatusCode == '@((int)Status.Warning)')) {
+                            msgsuccess(response.StatusMessage);
+                            $('#sourceRegionModalPopup').modal('hide');
+                            var redirectURL = '@Url.Action("Details", "Order", new { area= "Supplier" })?id=' + response.OrderId;
+                            window.location.href = redirectURL;
+                        }
+                        else {
+                            msgerror(response.StatusMessage);
+                            $('#sourceRegionModalPopup').modal('hide');
+                            var redirectURL = '@Url.Action("View", "FuelRequest", new { area= "Supplier" })';
+                            window.location.href = redirectURL;
+                        }
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.log(jqXHR, textStatus, errorThrown);
+                    }
+                }).always(function () {
+                    $('.source-region-popup-loader').addClass("hide-element");
+                });
+            }
+            else {
+                return false;
+            }
+        }
+
+    </script>
+}

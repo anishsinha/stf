@@ -1,0 +1,255 @@
+﻿@model SiteFuel.Exchange.ViewModels.BillingStatement.BillingScheduleViewModel
+@{
+    ViewBag.Title = Model.Id == 0 ? "Create New Billing Schedule" : "Edit Billing Schedule";
+}
+
+@using (Html.BeginForm("Create", "BillingSchedule", new { area = "Supplier" }, FormMethod.Post, new { id = "createbillingform" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+    @Html.HiddenFor(m => m.CreatedBy)
+    @Html.HiddenFor(m => m.CreatedByCompanyId)
+    @Html.HiddenFor(m => m.ScheduleChainId)
+    @Html.HiddenFor(m => m.VersionNumber)
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="row well mb15">
+                    <div class="col-sm-12">
+                        <h4 class="pb10">@Resource.lblHeaderDetails</h4>
+                        <div class="row">
+                            @if (Model.IsCountryDropdownRequired)
+                            {
+                                if (Model.Id > 0)
+                                {
+                                    @Html.HiddenFor(m => m.CountryId)
+                                    <div class="col-sm-2">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.CountryId)
+                                            @Html.DropDownListFor(m => m.CountryId, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.CountryId), new { @class = "form-control billing-country", @disabled = "disabled" })
+                                            @Html.ValidationMessageFor(m => m.CountryId)
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="col-sm-2">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.CountryId)
+                                            @Html.DropDownListFor(m => m.CountryId, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.CountryId), new { @class = "form-control billing-country" })
+                                            @Html.ValidationMessageFor(m => m.CountryId)
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.CustomerId)
+                                    @if (Model.Id > 0)
+                                    {
+                                        @Html.HiddenFor(m => m.CustomerId)
+                                        @Html.DropDownListFor(m => m.CustomerId, new SelectList(CommonHelperMethods.GetSupplierCustomersForBilling(CurrentUser.CompanyId, Model.CountryId, Model.CustomerId), "Id", "Name", Model.CustomerId), string.Format(Resource.valMessageSelect, Resource.lblCompany), new { @class = "form-control billing-buyer-company", @disabled = "disabled" })
+                                    }
+                                    else
+                                    {
+                                        @Html.DropDownListFor(m => m.CustomerId, new SelectList(CommonHelperMethods.GetSupplierCustomersForBilling(CurrentUser.CompanyId, Model.CountryId), "Id", "Name", Model.CustomerId), string.Format(Resource.valMessageSelect, Resource.lblCompany), new { @class = "form-control billing-buyer-company" })
+                                    }
+                                    @Html.ValidationMessageFor(m => m.CustomerId)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.Orders)
+                                    @if (Model.Id > 0)
+                                    {
+                                        @Html.ListBoxFor(m => m.Orders, new SelectList(CommonHelperMethods.GetSupplierOrdersForBuyer(Model.CustomerId, Model.CreatedByCompanyId, Model.CountryId, Model.Id), "Id", "Name", Model.Orders), new { @class = "form-control multi-select billing-buyer-orders" })
+                                    }
+                                    else
+                                    {
+                                        @Html.ListBoxFor(m => m.Orders, new SelectList(CommonHelperMethods.GetSupplierOrdersForBuyer(Model.CustomerId, Model.CreatedByCompanyId, Model.CountryId), "Id", "Name", Model.Orders), new { @class = "form-control multi-select billing-buyer-orders" })
+                                    }
+                                    @Html.ValidationMessageFor(m => m.Orders)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="row well mb15">
+                    <div class="col-sm-12">
+                        <h4 class="pb10">@Resource.tabHeadingStatement</h4>
+                        <div class="row">
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.BillingStatementId)
+                                    @Html.TextBoxFor(m => m.BillingStatementId, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.BillingStatementId)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.FrequencyTypeId)
+                                    @Html.DropDownListFor(m => m.FrequencyTypeId, new SelectList(CommonHelperMethods.GetStatementFrequency(), "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblFrequency), new { @class = "form-control billing-frequencytype", @onchange = "hideWeekDayDropDown(this);" })
+                                    @Html.ValidationMessageFor(m => m.FrequencyTypeId)
+                                </div>
+                            </div>
+                            @*<div class="col-sm-2 billing-weekday-div">
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.WeekDayId)
+                                @Html.DropDownListFor(m => m.WeekDayId, new SelectList(CommonHelperMethods.GetWeekDays(), "Id", "Name", Model.WeekDayId), new { @class = "form-control billing-weekday" })
+                                @Html.ValidationMessageFor(m => m.WeekDayId)
+                            </div>
+                        </div>*@
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.StartDate)
+                                    @Html.TextBoxFor(m => m.StartDate, new { @class = "form-control datepicker billing-startdate" })
+                                    @Html.ValidationMessageFor(m => m.StartDate)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.TimeZone)
+                                    @Html.DropDownListFor(m => m.TimeZone, new SelectList(CommonHelperMethods.GetStatementTimeZone(Model.CreatedByCompanyId, Model.CountryId), "Code", "Name", Model.TimeZone), new { @class = "form-control billing-timezone" })
+                                    @Html.ValidationMessageFor(m => m.TimeZone)
+                                </div>
+                            </div>
+                            <div class="col-sm-3 pb10">
+                                <div class="form-check form-check-inline radio">
+                                    @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.NetDays, new {@class= "form-check-input", @id= "radio-termnet", onclick = "radioChange(this,'netdays',null);", onchange = "focusOnFirst(this, 'netdays');" })
+                                    <label class="form-check-label" for="radio-termnet">
+                                        @Resource.lblNet
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline radio">
+                                    @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.DueOnReceipt, new { @class = "form-check-input", @id = "radio-termduereceipt", onclick = "radioChange(this,null,'netdays')" })
+                                    <label class="form-check-label" for="radio-termduereceipt">
+                                        @Resource.lblDueOnReceipt
+                                    </label>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-6 netdays defaultDisabled mt10">
+                                        @Html.TextBoxFor(m => m.PaymentNetDays, new { @class = "form-control" })
+                                        @Html.ValidationMessageFor(m => m.PaymentNetDays)
+                                    </div>
+                                    <div class="col-xs-6 pl0 pr0 fs12 pt5 mt10">
+                                        @Resource.lblDaysAfterStatement
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt10">
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.UpdateFrequencyValue)
+                                    @Html.TextBoxFor(m => m.UpdateFrequencyValue, new { @class = "form-control billing-updatefrequencyvalue" })
+                                    @Html.ValidationMessageFor(m => m.UpdateFrequencyValue)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.UpdateFrequencyTypeId)
+                                    @Html.DropDownListFor(m => m.UpdateFrequencyTypeId, new SelectList(CommonHelperMethods.UpdateFrequencyTypes(), "Id", "Name", Model.UpdateFrequencyTypeId), new { @class = "form-control billing-updatefrequencytype" })
+                                    @Html.ValidationMessageFor(m => m.UpdateFrequencyTypeId)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 text-right form-buttons">
+                    <input type="button" value="Cancel" class="btn" onclick="GoToPreviousURL()" />
+                    <input id="@Resource.btnLabelSubmit" type="button" value="@Resource.btnLabelSubmit" class="btn btn-lg btn-primary btnSubmit" onclick="submitCreateBillingScheduleForm()" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal animated" id="modal-billingSchedule-edit" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" keyboard="false">
+        <div class="modal-dialog modal-billing-schedule-edit" role="document">
+            <div class="modal-content pa10">
+                <div class="modal-body pb0" id="modal-billing-schedule-edit-preference">
+                    <div id="body-pricing-table-pref-settings">
+                        <div>
+                            <div class="alert alert-warning mt5">@Resource.StatementsExists</div>
+                        </div>
+                        <div class="radio mt0 mb5">
+                            <label class="mb7">
+                                @Html.RadioButtonFor(m => m.IsIncludePreviousStatement, true)
+                                @Resource.IncludeExistingStatements
+                            </label>
+                            <label>
+                                @Html.RadioButtonFor(m => m.IsIncludePreviousStatement, false)
+                                @Resource.DoNotIncludeExistingStatements
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer no-border">
+                    <a href="#." data-dismiss="modal" class="btn actions">@Resource.btnLabelCancel</a>
+                    <input id="ConfirmBillingStatmentPreference" onclick="submitFromModal();" type="button" value="@Resource.btnConfirm" class="btn btn-lg btn-primary btnSubmit" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/billingstatement")
+
+    <script type="text/javascript">
+        var $form = $("#createbillingform");
+        var getBuyerOrdersListUrl = '@Url.Action("GetOrdersOfBuyer", "BillingSchedule")';
+        var getTimeZoneListUrl = '@Url.Action("GetTimeZoneList", "BillingSchedule")';
+        var getBuyersListUrl = '@Url.Action("GetBuyerCompanies", "BillingSchedule")';
+        var dailyFrequencyTypeId = '@((int)FrequencyTypes.Daily)';
+        var monthlyFrequencyTypeId = '@((int)FrequencyTypes.Monthly)';
+        var existingFrequencyTypeId = '@Model.FrequencyTypeId';
+
+        var hourUpdateFrequencyTypeId = '@((int)UpdateFrequencyTypes.Hour)';
+        var dayUpdateFrequencyTypeId = '@((int)UpdateFrequencyTypes.Day)';
+        var valMsgHourUpdateFreqValueIncorrect = '@Resource.errMessageValueShouldBeLessThan24';
+        var valMsgDayUpdateFreqValueIncorrect = '@Resource.errMessageValueShouldBeLessThan30';
+        var valUpdateFreqValueisRequired = 'The Update Frequency Value field is required.';
+        var statementExists = '@Model.IsStatmentExists';
+        var defaultCountryId = '@((int)Country.USA)';
+
+        function submitFromModal() {
+            $form.submit();
+        }
+
+        function submitCreateBillingScheduleForm() {
+            var isFormValid = $form.valid();
+            var isValidUpdateFrequencyData = true;
+
+            isValidUpdateFrequencyData = validateUpdateFrequencyData();
+
+            isFormValid = isFormValid && isValidUpdateFrequencyData
+            if (isFormValid == true) {
+                if (statementExists == 'True') {
+                    $("#modal-billingSchedule-edit").modal("show");
+                }
+                else {
+                    $form.submit();
+                }
+            }
+            else {
+                showInvalidTab();
+            }
+            $.fn.focusWithoutScrolling = function () {
+                var x = window.scrollX, y = window.scrollY;
+                this.focus();
+                window.scrollTo(x, y);
+            };
+            fixedButtons($(".btnSubmit"), isFormValid);
+            $('[data-toggle=confirmation]').confirmation({
+                rootSelector: '[data-toggle=confirmation]',
+                html: true
+            });
+        }
+    </script>
+
+}

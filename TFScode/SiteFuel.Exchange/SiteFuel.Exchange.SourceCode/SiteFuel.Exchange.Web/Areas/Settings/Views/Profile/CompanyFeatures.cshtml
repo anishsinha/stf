@@ -1,0 +1,108 @@
+﻿@{
+    ViewBag.Title = "Company Features";
+}
+<div class="row">
+    <div class="col-sm-12">
+        <h4>@Resource.lblCompanyFeatures</h4>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="features-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.lblName</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+
+        var featuresDatatable, exportColumns = { columns: [0,1] };
+
+        $(document).ready(function () {
+
+            featuresDatatable = $('#features-datatable').dataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetFeatures","Profile", new { area ="Settings" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    { "data": "Name", "autoWidth": true, "orderable": false  },
+                    {
+                        "data": function (data) {
+                            var url = '@Url.Action("UpdateFeatureSetting", "Profile", new { area = "Settings" })/' + data.Id + '';
+                            var isChecked = data.IsEnabled ? "checked=\"checked\"" : "";
+                            var columnCtrl = '<span class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class="spinner-dashboard pa mtm10 mlm10"></span></span><input type = "checkbox" data-url = "' + url + '" onchange = updateFeatureSetting(this) ' + isChecked + '>';
+                            return columnCtrl;
+                        }, "orderable": false , "width": "50px", "bSortable": false, className: "text-center pr td-featureSetting"
+                    }
+                ],
+                "columnDefs": [],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function () {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.lblCompanyFeatures', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.lblCompanyFeatures', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.lblCompanyFeatures', exportOptions: exportColumns },
+
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+        });
+
+        function updateFeatureSetting(element) {
+            var url = $(element).data('url') + '?isFeatureEnable=' + $(element).is(':checked') + '';
+            $(element).closest(".td-featureSetting").find(".loading-wrapper").show();
+            $.post(url, function (response) {
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.StatusMessage);
+                }
+                else {
+                    msgerror(response.StatusMessage);
+                }
+            }).always(function () {
+                $(element).closest(".td-featureSetting").find(".loading-wrapper").hide();
+                setTimeout(function () {
+                    window.location.reload(true);
+                }, 3000);
+            });
+        }
+
+
+    </script>
+}

@@ -1,0 +1,175 @@
+﻿@model UserViewModel
+
+@{
+    ViewBag.Title = "User Profile";
+}
+
+
+@using (Html.BeginForm("UserInformation", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form", @id = "userInformation" }))
+{
+    @Html.AntiForgeryToken()
+
+<div class="col-sm-12">
+    <div class="row well">
+        <div class="col-sm-12">
+            <h4>@Resource.headingUserProfile</h4>
+            @Html.HiddenFor(m => m.Id)
+            @Html.HiddenFor(m => m.IsPhoneNumberConfirmed)
+            @Html.Hidden("IntialEmail", Model.Email)
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.Title)
+                        @Html.TextBoxFor(m => m.Title, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.Title)
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.FirstName)
+                        @Html.TextBoxFor(m => m.FirstName, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.FirstName)
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.LastName)
+                        @Html.TextBoxFor(m => m.LastName, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.LastName)
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        @{
+                            Model.PhoneNumber = Model.PhoneNumber.ToFormattedPhoneNumber();
+                        }
+                        @Html.LabelFor(m => m.PhoneNumber)
+                        @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control input-phoneformat phone", onchange = "IsPhoneNumberValid(this.value)" })
+                        @Html.ValidationMessageFor(m => m.PhoneNumber)
+                        <div class="color-orange fs12 pt5" id="mobile-validation-msg"></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.Email)
+                        @if ((CurrentUser.IsSuperAdmin || CurrentUser.IsAccountSpecialist) && CurrentUser.Id != Model.Id)
+                        {
+                            @Html.TextBoxFor(m => m.Email, new { @class = "form-control", onchange = "IsEmailExists(this.value)" })
+                        }
+                        else
+                        {
+                            @Html.TextBoxFor(m => m.Email, new { @class = "form-control", @readonly = "readonly" })
+                        }
+                        @Html.ValidationMessageFor(m => m.Email)
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-check mb5">
+                        @Html.CheckBoxFor(m => m.IsTwoFactorEnabled, new { @name = "TwoFactor", @class = "form-check-input",@id="checkbox-twofactor" })
+                        <label class="form-check-label" for="checkbox-twofactor">
+                            @Resource.lbl2FAuthentication
+                        </label>
+                    </div>
+                    <div class="form-check mb5">
+                        @Html.CheckBoxFor(m => m.IsLockoutEnabled, new { @name = "Lockout", @class = "form-check-input", @id = "checkbox-accountlockout" })
+                        <label class="form-check-label" for="checkbox-accountlockout">
+                            @Resource.lblAccountLockout
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <div class="row mb25 btn-wrapper">
+        <div class="col-sm-12">
+            @if ((CurrentUser.IsSuperAdmin || CurrentUser.IsAccountSpecialist) && (!Model.IsEmailConfirmed) || (!Model.IsOnboardingComplete))
+            {
+                <div class="text-left float-left">
+                    <div class="form-group">
+                        <input type="button" class="btn btn-default btn-md" value="@Resource.lblResendInvitationLink" onclick="resendInvitationLink();" />
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                    </div>
+                </div>
+            }
+            <div class="text-right">
+                <div class="form-group">
+                    <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Index", "Home", new { area = "" })'" />
+                    <input type="button" class="btn btn-lg btn-primary" value="@Resource.btnLabelSave" onclick="SubmitForm()" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        if ('@Model.IsPhoneNumberConfirmed' == 'False') {
+            $("#mobile-validation-msg").html('@Resource.valMessagePhoneNotValid');
+        }
+    });
+
+    function IsPhoneNumberValid(phoneNumber) {
+        var new_phoneNumber = phoneNumber.replace(/-|\s/g, "");
+        if (new_phoneNumber != "" && new_phoneNumber.length == 10) {
+            var isPhoneNumberValid = '@Url.Action("IsPhoneNumberValid", "Validation", new { area = "" })' + '?phoneNumber=' + phoneNumber;
+            $.get(isPhoneNumberValid, function (result) {
+                if (!result) {
+                    validationMessageFor("@Html.NameFor(m => m.PhoneNumber)", '');
+                    $("#mobile-validation-msg").html('@Resource.valMessagePhoneNotValid');
+                    $('#@Html.IdFor(m=>m.IsPhoneNumberConfirmed)').val(false);
+                } else {
+                    $("#mobile-validation-msg").html('');
+                    validationMessageFor("@Html.NameFor(m => m.PhoneNumber)", '');
+                    $('#@Html.IdFor(m=>m.IsPhoneNumberConfirmed)').val(true);
+                }
+            });
+        }
+        else {
+            $("#mobile-validation-msg").html('');
+        }
+    }
+
+    var isEmailExists = false;
+    function SubmitForm() {
+        if (!isEmailExists) {
+            $("#userInformation").submit();
+        } else {
+             return false;
+        }
+    }
+
+    function IsEmailExists(email) {
+        var initialEmail = $("#IntialEmail").val();
+        if (email.trim().toLowerCase() != initialEmail.trim().toLowerCase()) {
+            var checkEmailURL = '@Url.Action("IsEmailExist", "Validation", new { area = "" })' + '?email=' + email;
+            $.get(checkEmailURL, function (result) {
+                if (!result) {
+                    isEmailExists = true;
+                    validationMessageFor("@Html.NameFor(m => m.Email)", '@Resource.valMessageEmailAlreadyExists');
+                } else {
+                    isEmailExists = false;
+                }
+            });
+        }
+        else {
+            isEmailExists = false;
+        }
+    }
+
+    function resendInvitationLink() {
+        var url = '@Url.Action("ResendActivationLink", "Profile", new { area = "Settings" })';
+        var data = { userId: '@Model.Id' };
+        $(".loading-wrapper").show();
+        $.post(url, data).done(function (response) {
+            if (response) {
+                $(".loading-wrapper").hide();
+                msgsuccess('@Resource.successMessageActivationEmailSent');
+            }
+        });
+    }
+</script>
+
+

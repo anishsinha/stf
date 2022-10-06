@@ -1,0 +1,228 @@
+﻿<style>
+	#map {
+		height: 400px;
+	}
+</style>
+<div id="driver-details">
+	<div id="map"></div>
+	<div class="row mt10">
+		<div class="col-sm-12 mb10" id="dvDistance"></div>
+	</div>
+</div>
+
+@using (Html.BeginScripts())
+{
+	<script>
+		var directionsDisplay;
+		if (isDriversSelected == false)
+		{
+			$('#SelectedDrivers').val(@Html.Raw(Json.Encode(Model.SelectedDrivers)));
+		}
+
+		@*$('#SelectedDrivers').change(function () {
+			var drivers = $('#SelectedDrivers').val();
+			$('#compose-message').attr('href', encodeURI('@Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Draft })&queryType=@AppMessageQueryType.Dispatch&recipients=' + drivers.join(",")));
+		});*@
+
+        function initDriverMap() {
+            google.maps.visualRefresh = true;
+            var directionsService = new google.maps.DirectionsService;
+            directionsDisplay = new google.maps.DirectionsRenderer;
+            driverMap = new google.maps.Map(document.getElementById('map'), {
+                zoom: 4,
+                center: { lat: 41.850033, lng: -87.6500523 },
+                mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+            });
+			directionsDisplay.setMap(driverMap);
+
+            var selected = $("#SelectedDrivers").val();
+            if (selected.length == 0) {
+                selected = drivers.map(function (a) { return a.Id });
+            }
+
+           // GetDriverLocations(directionsDisplay);
+
+			$('#SelectedDrivers').change(function () {
+              //  GetDriverLocations(directionsDisplay);
+            });
+        }
+
+		function ReloadWhereisMyDriver(driverparam)
+		{
+			if (typeof (driverparam) == 'undefined' || driverparam.length == 0) {
+				var selected = $("#SelectedDrivers").val();
+				if (selected.length == 0) {
+					selected = drivers.map(function (a) { return a.Id });
+				}
+			}
+			else
+			{
+				selected = driverparam;
+			}
+			GetDriverLocations(directionsDisplay);
+			ReloadDropData(selected);
+		}
+
+		function GetDriverLocations(directionsDisplay) {
+            if ($('#tab-whereisDriver').hasClass('active') || isFromDashboard==true)
+			{
+				clearDriverMarkers();
+				$("#error-msg").html("")
+				dvDistance.innerHTML = "";
+				var selected = $("#SelectedDrivers").val();
+				if (selected.length == 0)
+				{
+				    selected = drivers.map(function (a) { return a.Id });
+				}
+				if (selected.length > 1) {
+				    directionsDisplay.setDirections({ routes: [] });
+				    $.post({
+				        url: "@Url.Action("GetDriverLocation", "Dispatch",new { area = "Supplier" })",
+				        data: { driverId: selected },
+				        traditional: true,
+				        success: function (response) {
+				            displayDriverLocation(response);
+				        }
+				    });
+				}
+				else if (selected.length == 1) {
+				    var url = "@Url.Action("GetDriverDistance", "Dispatch", new { area = "Supplier" })?driverId=" + selected;
+                    $.get(url, function (response) {
+                        if (response.JobLatitude != 0 && response.JobLongitude != 0) {
+                            calculateAndDisplayRoute(response);
+                        }
+                        else {
+                            directionsDisplay.setDirections({ routes: [] });
+                            $.post({
+                                url: "@Url.Action("GetDriverLocation", "Dispatch",new { area = "Supplier" })",
+                                data: { driverId: selected },
+                                success: function (response) {
+                                    displayDriverLocation(response);
+                                }
+                            });
+                        }
+                    });
+				}
+			}
+        }
+
+        function calculateAndDisplayRoute(data) {
+            google.maps.visualRefresh = true;
+            var directionsService = new google.maps.DirectionsService;
+            var directionsDisplay = new google.maps.DirectionsRenderer;
+			driverMap = new google.maps.Map(document.getElementById('map'), {
+                zoom: 4,
+                center: { lat: 41.850033, lng: -87.6500523 },
+                mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+            });
+			directionsDisplay.setMap(driverMap);
+
+            directionsService.route({
+                origin: { lat: data.DriverLatitude, lng: data.DriverLongitude },
+                destination: { lat: data.JobLatitude, lng: data.JobLongitude },
+                travelMode: google.maps.TravelMode.DRIVING,
+            }, function (response, status) {
+                if (status === 'OK') {
+                    directionsDisplay.setDirections(response);
+                    var distance = response.routes[0].legs[0].distance.text;
+                    var duration = response.routes[0].legs[0].duration.text;
+                    var dvDistance = document.getElementById("dvDistance");
+                    dvDistance.innerHTML = "";
+                    dvDistance.innerHTML += "<i class='fa fa-road'></i>" + "<span class='pl5 pr10'>Distance: <b>" + distance + "</b></span>";
+                    dvDistance.innerHTML += "<i class='far fa-clock ml15'></i>" + "<span class='pl5'>Time: <b>" + duration + "</b></span>";
+                    $("#error-msg").html("")
+                } else {
+                    $("#error-msg").html('@Resource.valMessageDirectionRequestFailed ' + status)
+                }
+            });
+
+            var selected = $("#SelectedDrivers").val();
+            var url = "@Url.Action("GetNextDriverDropDetailsForMap", "Dispatch", new { area = "Supplier" })";
+            $.post(url, { driverId: selected }, function (response) {
+                if (response.JobLatitude != 0 && response.JobLongitude != 0) {
+					displayNextJobLocation(response, driverMap);
+                }
+            });
+        }
+
+        var driverMarkers = [];
+        function clearDriverMarkers() {
+            for (var i = 0; i < driverMarkers.length; i++) {
+                driverMarkers[i].setMap(null);
+            }
+        }
+
+        function displayDriverLocation(data) {
+
+            var zoomarea = 4;
+            var centerlat = 38;
+            var centerlon = -98;
+
+            zoomarea = getZoomArea(data);
+
+            if (data.length == 1) {
+                $.each(data, function (i, item) {
+                    if (item.Latitude != "" && item.Longitude != "") {
+                        centerlat = item.Latitude;
+                        centerlon = item.Longitude;
+                    }
+                });
+            }
+
+            var centerpoint = new google.maps.LatLng(centerlat, centerlon);
+
+            // These are options that set initial zoom level, where the map is centered globally to start, and the type of map to show
+            var mapOptions = {
+                zoom: zoomarea,
+                center: centerpoint,
+                mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+            };
+
+			driverMap = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+            $.each(data, function (i, item) {
+               var marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(item.Latitude, item.Longitude),
+					map: driverMap,
+                    title: item.DriverName
+                });
+
+                // Make the marker-pin blue!
+               marker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png')
+               driverMarkers.push(marker);
+
+               if (isFromDashboard == true) {
+                   google.maps.event.addListener(marker, 'mouseover', function () {
+                       ReloadDropDataOnMouseOver(item.DriverId);
+                   });
+                   google.maps.event.addListener(marker, 'mouseout', function () {
+                        $("#currentDriverDrop").html("@Resource.lblHyphen");
+                        $("#nextDriverDrop").html("@Resource.lblHyphen");
+                   });
+               }
+            });
+        }
+
+		function displayNextJobLocation(data, driverMap) {
+            $.each(data, function (i, item) {
+                var marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(item.JobLatitude, item.JobLongitude),
+					map: driverMap,
+                    title: item.Customer
+                });
+
+                // Make the marker-pin blue!
+                marker.setIcon('https://maps.google.com/mapfiles/ms/icons/green-dot.png')
+                driverMarkers.push(marker);
+            });
+        }
+
+        $(document).ready(function () {
+            setInterval(function () {
+                if (IsUserActive()) {
+                    initDriverMap();
+                }
+            }, 120000 );
+        });
+    </script>
+}

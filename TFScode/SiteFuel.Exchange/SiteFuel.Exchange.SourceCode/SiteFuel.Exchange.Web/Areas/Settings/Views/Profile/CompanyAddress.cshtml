@@ -1,0 +1,305 @@
+﻿@model CompanyAddressViewModel
+
+@{
+    ViewBag.Title = Model.Id > 0 ? "Company Address Details" : "Add Company Address";
+}
+@if ((CurrentUser.IsSuperAdmin || CurrentUser.IsAccountSpecialist) && (Model.CompanyTypeId == CompanyType.Supplier || Model.CompanyTypeId == CompanyType.BuyerAndSupplier) && !(Model.Id > 0))
+{
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <div class="row">
+                    <div class="col-xs-7"><h4 class="dib">@Resource.headingCompanyAddress</h4></div>
+                    <div class="col-xs-5 text-right ">
+                        <div class="grey-btn-group">
+                            <div class="btn-group mb0">
+                                @using (Html.BeginForm("LocationsBulkUpload", "Profile", new { area = "Settings", companyId = Model.CompanyId }, FormMethod.Post, new { @id = "locationBulkUploadForm", enctype = "multipart/form-data" }))
+                                {
+                                    @Html.AntiForgeryToken()
+                                    @Html.Partial("_PartialLocationsBulkUpload")
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@using (Html.BeginForm("CompanyAddress", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form", id = "companyaddress-form" }))
+{
+    @Html.AntiForgeryToken()
+    <div class="@((CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsSuperAdmin || CurrentUser.IsCarrierAdmin || CurrentUser.IsAccountSpecialist) && Model.IsActive ? "" :"disable-controls")">
+        <div class="col-sm-12 companyprofile">
+            @Html.HiddenFor(m => m.IsOnboarding)
+            <div class="row well mb15">
+                <div class="col-sm-12">
+                    <h4>@Resource.headingAddresses</h4>
+                    <div class="row">
+                        <div class="col-md-6 companyaddress">
+                            @Html.PartialFor("_PartialCompanyAddressSettings", m => m)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (CurrentUser.CompanyTypeId != CompanyType.Buyer)
+            {
+                <div class="row well mb15">
+                    <div class="col-sm-12">
+                        <h4>Service Offerings</h4>
+                        <div class="services-offerings mt-1">
+                            @foreach (var service in Model.ServiceOffering)
+                            {
+                                @Html.PartialFor("_PartialServiceArea", m => service)
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            @if (CurrentUser.IsSupplierCompany || CurrentUser.IsCarrierCompany)
+            {
+                <div class="row well mb15">
+                    <div class="col-sm-12">
+                        <h4>@Resource.lblProducts</h4>
+                        <div class="row">
+                            @*<div class="col-sm-6">
+                            <div class="row">
+                                @Html.PartialFor("_PartialSupplierProfileSettings", m => m.SupplierProfile)
+                            </div>
+                        </div>*@
+                            <div class="col-sm-6">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    @Html.LabelFor(m => m.SupplierProductTypes)
+                                                </div>
+                                            </div>
+                                            @Html.ListBoxFor(m => m.SupplierProductTypes, new SelectList(CommonHelperMethods.GetProductTypes(), "Id", "Name", 0), new { @class = "form-control multi-select productlist", onchange = "checkStatus('product-check', 'productlist')" })
+                                            <div class="checkbox mt5">
+                                                <label>
+                                                    <input type="checkbox" class="select-all product-check" onclick="selectall('product-check', 'productlist')" /> @Resource.lblSelectAll
+                                                </label>
+                                            </div>
+                                            <div class="row">
+                                                @Html.ValidationMessageFor(m => m.SupplierProductTypes)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="row text-right pb20 btn-wrapper">
+        <div class="col-sm-12 text-right">
+            @if (CurrentUser.IsSuperAdmin || CurrentUser.IsAccountSpecialist)
+            {
+                <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="window.history.go(-1);" />
+            }
+            else
+            {
+                <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("CompanyAddresses", "Profile" , new { area="Settings" })'" />
+            }
+
+            @if ((CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsSuperAdmin || CurrentUser.IsCarrierAdmin || CurrentUser.IsAccountSpecialist) && Model.IsActive)
+            {
+                <input type="submit" class="btn btn-lg btn-primary" id="btnSave" data-url="@Url.Action("IsValidFullAddress", "Validation" , new { area="" })" value="@Resource.btnLabelSave" />
+            }
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/ServingStateAutofill")
+    <script type="text/javascript">
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = @Model.State.Id; // for state autofill
+        var servingStates = @Html.Raw(Json.Encode(Model.SupplierProfile.ServingStates));
+
+        $(document).ready(function () {
+            checkStatus('product-check', 'productlist');
+            @*var stateCount = parseInt('@Model.SupplierProfile.ServingStates.Count');
+            //On ready set state
+            if (stateCount == 0) {
+                setDefaultState($('#@Html.IdFor(m => m.State.Id)'));
+            }
+
+            $('#@Html.IdFor(m => m.State.Id)').on("change", function () {
+                setDefaultState(this);
+            });*@
+            toggleAddressValidationElements();
+
+            $('#btnSave').click(function (e) {
+                var isValidAddress = validateLocationAddress();
+                if (!isValidAddress) {
+                    e.preventDefault();
+                }
+            });
+
+            $('#btnSave').submit(function () {
+                var isValidAddress = validateLocationAddress();
+                if (!isValidAddress) {
+                    return;
+                }
+                if (!$('#companyaddress-form').valid()) {
+                    return;
+                }
+                var countryId = parseInt($('#@Html.IdFor(m=>m.Country.Id)').val());
+                if (countryId != @((int)Country.CAR)) {
+                    var url = $(this).data("url");
+                    var model = {
+                        address: {
+                            Address: $('#@Html.IdFor(m => m.Address)').val().toLowerCase(),
+                            City: $('#@Html.IdFor(m => m.City)').val().toLowerCase(),
+                            StateCode: $('#@Html.IdFor(m => m.State.Id)').find("option:selected").text(),
+                            CountryCode: $('#@Html.IdFor(m => m.Country.Id)').find("option:selected").text(),
+                            ZipCode: $('#@Html.IdFor(m => m.ZipCode)').val().toLowerCase()
+                        }
+                    };
+
+
+                    $.post(url, model, function (response) {
+                        if (response == true) {
+                            submitAddressForm();
+                        }
+                        else {
+                            validationMessageFor("@Html.NameFor(m => m.Address)",
+                                '@ResourceMessages.GetMessage(Resource.valMessageFullAddressInvalid
+                                                                        , new object[] {
+                                                                                    Resource.lblAddress,
+                                                                                    Resource.lblCity,
+                                                                                    Resource.lblState,
+                                                                                    Resource.lblCountry,
+                                                                                    Resource.lblZipcode })');
+                        }
+                    });
+                }
+                else {
+                    if (isValidAddress) {
+                        submitAddressForm();
+                    }
+                }
+            });
+        });
+
+        @*function setDefaultState(element) {
+            var selectedState = $(element).find("option:selected").val();
+            if (selectedState) {
+                if ($("#@Html.IdFor(m => m.SupplierProfile.ServingStates)").find("option[value=" + selectedState + "]").length > 0) {
+                    $("#@Html.IdFor(m => m.SupplierProfile.ServingStates)").val(selectedState).trigger("change");
+                }
+            }
+        };*@
+
+        function getDefaultState() {
+            var defaultstate = $("#@Html.IdFor(m => m.State.Id) option:selected").val();
+            $(".states").val(defaultstate).trigger("change");
+        }
+
+        function showInvalidAddressMessage(elementName) {
+            validationMessageFor(elementName, '@ResourceMessages.GetMessage(Resource.valMessageFullAddressInvalid
+            , new object[] { Resource.lblAddress, Resource.lblCity, Resource.lblState, Resource.lblCountry, Resource.lblZipcode })');
+        }
+
+        function submitAddressForm() {
+            $form = $('#companyaddress-form');
+            if ($form.valid()) {
+                $form.submit();
+            }
+            else {
+                $('#btnSave').removeAttr('disabled');
+            }
+        }
+        function validateLocationAddress() {
+                var isValid = true;
+                var countryId = parseInt($('#@Html.IdFor(m => m.Country.Id)').val());
+                var stateId = parseInt($("#@Html.IdFor(m => m.State.Id)").val());
+                $('.address-validation-error').addClass('hide-element');
+                validationMessageFor('@Html.NameFor(m => m.State.Id)', '');
+                
+                if (countryId == '@((int)Country.CAR)') {
+                    if (isNaN(stateId) || stateId <= 0) {
+                        validationMessageFor('@Html.NameFor(m => m.State.Id)', '@(string.Format(Resource.valMessageRequired, "State"))');
+                        isValid = false;
+                    }
+                    else {
+                      $("#@Html.IdFor(m => m.State.Name)").val($("#@Html.IdFor(m => m.State.Id) option:selected").text());
+                    }
+                }
+                else {
+                    var city = $.trim($("#@Html.IdFor(m => m.City)").val());
+                    var zipCode = $.trim($("#@Html.IdFor(m => m.ZipCode)").val());
+                    @*var countyName = $.trim($("#@Html.IdFor(m => m.Job.CountyName)").val());*@
+                    var address = $.trim($("#@Html.IdFor(m => m.Address)").val());
+
+                    if (address == '') {
+                        $('#spnErrorAddress').html('@(string.Format(Resource.valMessageRequired, "Address"))');
+                        $('#spnErrorAddress').removeClass('hide-element');
+                        isValid = false;
+                    }
+                    if (city == '') {
+                            $('#spnErrorCity').html('@(string.Format(Resource.valMessageRequired, "City"))');
+                            $('#spnErrorCity').removeClass('hide-element');
+                        isValid = false;
+                    }
+                    if (isNaN(stateId) || stateId <= 0) {
+                        validationMessageFor('@Html.NameFor(m => m.State.Id)', '@(string.Format(Resource.valMessageRequired, "State"))');
+                        isValid = false;
+                    }
+                    if (zipCode == '') {
+                        $('#spnErrorZipCode').html('@(string.Format(Resource.valMessageRequired, "Zip"))');
+                        $('#spnErrorZipCode').removeClass('hide-element');
+                        isValid = false;
+                    }                    
+                }
+
+            if (isValid) {
+                $('.address-validation-error').addClass('hide-element');
+            }           
+                return isValid;
+        }
+
+        $(document).on('change', '.country', function () {
+            toggleAddressValidationElements();
+        });
+        function toggleAddressValidationElements() {
+            var countryId = parseInt($("#@Html.IdFor(m=>m.Country.Id)").val());
+            var htmlElement = $("#@Html.IdFor(m=>m.Country.Id)");
+            var container = $(htmlElement).closest('.address-container');
+                if (container != undefined && container.length > 0) {
+                    if (!isNaN(countryId) && countryId == '@((int)Country.CAR)') {
+                        container.find('.mandatory-symbol').addClass('hide-element');
+                    }
+                    else {
+                        container.find('.mandatory-symbol').removeClass('hide-element');
+                    }
+                }
+            }
+    </script>
+}
+
+@section Styles {
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/gridmvc")
+}
+
+@section Scripts {
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/gridmvc")
+}
+
+
+
+
+
+
+
+
+
+

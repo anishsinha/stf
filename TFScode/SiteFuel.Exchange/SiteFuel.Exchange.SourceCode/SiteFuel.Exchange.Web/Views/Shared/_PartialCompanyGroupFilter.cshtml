@@ -1,0 +1,46 @@
+﻿@model CompanySubGroupViewModel
+<div id="company-group-filter" class="pull-right">
+    @Html.HiddenFor(m => m.GroupIds)
+    <div class="form-group pull-left mr10">
+        @Html.ListBoxFor(m => m.GroupIds, new SelectList(CommonHelperMethods.GetCompanyGroupList(CurrentUser.CompanyId, CurrentUser.CompanySubTypeId), "Id", "Name"), new { @class = "form-control multi-select companygroup" })
+    </div>
+    <div class="pull-right">
+        <input type="button" class="btn btn-primary" value="@Resource.lblFilter" onclick="LoadDashboardData();" />
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        function LoadDashboardData() {
+            var selectedGroupIds = $('select.companygroup').val();
+            var selectedGroups = $('select.companygroup option:selected');
+            var groupName = '';
+            selectedGroups.each(function (idx, ele) {
+                groupName += ', ' + $(this).text();
+            });
+
+            selectedGroupNames = groupName.substring(2, groupName.length);
+
+            var url = '@Url.Action("Index", "Dashboard")';
+            if (selectedGroupIds != null && selectedGroupIds.length > 0) {
+                $.get("@Url.Action("GetEncryptedData")?inputUrl=" + selectedGroupIds,
+                    function (response) {
+                        if (response != "") {
+                            url += '?groupIds=' + response;
+                            setCompanyGroup(response, selectedGroupNames);
+                        }
+                        else {
+                            url += '?groupIds=' + selectedGroupIds;
+                            setCompanyGroup(selectedGroupIds, selectedGroupNames);
+                        }
+                        window.location.href = url;
+                    });
+            }
+            else {
+                //url += '?groupIds=' + selectedGroupIds;
+                setCompanyGroup(selectedGroupIds, selectedGroupNames);
+                window.location.href = url;
+            }
+        }
+    </script>
+}

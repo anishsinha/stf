@@ -1,0 +1,229 @@
+﻿@model InvoiceFilterViewModel
+
+@{
+    ViewBag.Title = "Invoice & DDT Summary";
+}
+
+@Html.HiddenFor(m => m.GroupIds)
+<div class="row">
+    <div class="col-sm-6 col-md-6 mb10 tab-headers dib">
+        @if (Model.CarrierCompanyId > 0)
+        {
+            <a id="tab-invoice-container" onclick="resetsection('invoice-container'), activelink(this)" class="active mr20"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoice-grid-container"
+               data-ajax-url="@Url.Action("GetInvoiceTab", "Invoice", new { area = "Supplier", filter = Model.Filter, groupIds = Model.GroupIds,CarrierCompanyId=Model.CarrierCompanyId,ReportDate=Model.ReportDate })">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text pull-left"><span id="spnGroupName"></span>@Resource.headingInvoices</span>
+                </div>
+            </a>
+            <a id="tab-ddt-container" onclick="resetsection('ddt-container'), activelink(this)" class="mr20"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#ddt-grid-container"
+               data-ajax-url="@Url.Action("GetDropTicketTab", "Invoice", new { area = "Supplier", filter = Model.Filter, groupIds = Model.GroupIds,CarrierCompanyId=Model.CarrierCompanyId,ReportDate=Model.ReportDate })">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text pull-left"><span id="spnGroupName"></span>@Resource.tabheadingDigitalDropTicket</span>
+                </div>
+            </a>
+        }
+        else
+        {
+            <a id="tab-invoice-container" onclick="resetsection('invoice-container'), activelink(this)" class="active mr20"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoice-grid-container"
+               data-ajax-url="@Url.Action("GetInvoiceTab", "Invoice", new { area = "Supplier", filter = Model.Filter, groupIds = Model.GroupIds })">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text pull-left"><span id="spnGroupName"></span>@Resource.headingInvoices</span>
+                </div>
+            </a>
+            <a id="tab-ddt-container" onclick="resetsection('ddt-container'), activelink(this)" class="mr20"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#ddt-grid-container"
+               data-ajax-url="@Url.Action("GetDropTicketTab", "Invoice", new { area = "Supplier", filter = Model.Filter, groupIds = Model.GroupIds })">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text pull-left"><span id="spnGroupName"></span>@Resource.tabheadingDigitalDropTicket</span>
+                </div>
+            </a>
+        }
+    </div>
+    <div class="col-sm-6 col-md-6">
+        <div class="pull-right">
+            @if (Model.AllowedInvoiceType != (int)InvoiceType.DigitalDropTicketManual)
+            {
+                if (CurrentUser.IsAccountingPerson || CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierCompany)
+                {
+                    <div class="btn-group ml10" id="auto-upload-invoice">
+                        <button data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelUpload <span class="caret"></span></button>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <li class="dropdown-item"><a href="javascript:void(0)" data-toggle="modal" data-target="#upload-invoice-images">Invoice @Resource.headingImages <i class="fa fas fa-images pull-left mt5 mr5"></i></a></li>
+                            @* <li class="dropdown-divider"></li>*@
+                            <li class="dropdown-item"><a href="javascript:void(0)" data-toggle="modal" data-target="#upload-invoice-csv">Invoice CSV <i class="fa fas fa-file-csv pull-left mt5 mr5"></i></a></li>
+                            @*<li class="dropdown-divider"></li>*@
+                            <li class="dropdown-item"><a href="javascript:void(0)" data-toggle="modal" data-target="#upload-ponumber">Po Number <i class="fa fas fa-file-invoice-dollar pull-left mt5 mr5"></i></a></li>
+                        </ul>
+                    </div>
+                }
+            }
+        </div>
+        <div class="pull-right">
+            @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+        </div>
+    </div>
+</div>
+<br />
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="modal fade" id="invoicefilterassignment-modal" role="dialog" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            @Html.Partial("_PartialSupplierOrderFilter", Model.InputFilterDataViewModel)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="tab-container">
+            <div id="invoice-container" class="hide-element">
+                <div class="row mb10" id="invoice-grid-container">
+                </div>
+            </div>
+            <div id="ddt-container" class=" hide-element">
+                <div class="row mb10" id="ddt-grid-container">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*<div class="row">*@
+<!-- Modal -->
+<div class="modal fade" id="upload-invoice-images" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">Invoice Images</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">×</span></button>
+                </div>
+                <div class="alert alert-info mt15">
+                    <span class="mt0 mb5 dib pt0 fs15 f-bold">Upload images in any one of these naming conventions:</span>
+                    <p>
+                        1. drop_DDT#_image.png<br />
+                        2. bol_DDT#_image.png<br />
+                        3. signature_DDT#_image.png
+                    </p>
+                </div>
+                @using (Html.BeginForm("ImageBulkUpload", "Invoice", new { area = "Supplier" }, FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <input type="file" name="postedFiles" multiple="multiple" class="mt15">
+                    //id="gallery-photo-add"
+                    //<div class="gallery"></div>
+
+                    <div class="modal-footer pb0 pr0 no-border">
+                        <input type="submit" value="@Resource.btnLabelUpload" class="btn btn-primary" />
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="upload-invoice-csv" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog " role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">Invoice CSV</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">×</span></button>
+                </div>
+                @using (Html.BeginForm("InvoiceBulkUpload", "Invoice", new { area = "Supplier" }, FormMethod.Post, new { @id = "invoiceBulkUploadForm", enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.Partial("_PartialInvoiceBulkUpload")
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="upload-ponumber" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">Po Number</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">×</span></button>
+                </div>
+                @using (Html.BeginForm("PoNumberBulkUpload", "Invoice", new { area = "Supplier" }, FormMethod.Post, new { @id = "poNumberBulkUploadForm", enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.Partial("_PartialPoNumberBulkUpload")
+                }
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+
+    var filterType = 'invoices-filterType';
+    var customersFilter = 'invoices-customers';
+    var locationsFilter = 'invoices-locations';
+    var assetsFilter = 'invoices-assets';
+    var tanksFilter = 'invoices-tanks';
+    var vesselsFilter = 'invoices-vessels';
+
+        $(document).ready(function () {
+            var companyGroup = getCompanyGroup();
+            if (companyGroup.groupIds != "") {
+                $('#spnGroupName').text(companyGroup.groupName + ' ');
+            }
+            else {
+                $('#spnGroupName').text();
+            }
+
+            $('#csvFile').bind('change', function () {
+                ValidateAssetUploadFileSize(this, parseInt('100000'), "uploadInvoiceButton", "divOrderFileSizeError");
+            });
+
+            $('#tab-invoice-container').trigger('click').addClass('active');
+        });
+
+        function ClearFilter() {
+            if ($('#tab-ddt-container').hasClass('active')) {
+                clearDdtFilter();
+            }
+            else {
+                clearInvoiceFilter();
+            }
+        }
+
+        function ReloadDataTable() {
+            if ($('#tab-ddt-container').hasClass('active')) {
+                reloadDdtDataTable();
+            }
+            else {
+                reloadInvoiceDataTable();
+            }
+        }
+
+    function retryAllSendingDeliveryDetailsToPdi(IsDdt) {
+        $('.disabled-bulkRetry').attr("disabled", "disabled");
+        $('.disabled-bulkRetry').attr("value", "Bulk Retry...");
+            var url = '@Url.Action("RetryAllPDI", "Invoice", new { area = "Supplier" })';
+                $(".ddt-retry-pdi-loader").show();
+        var model = {
+            IsDdt: IsDdt
+        };
+        $.post(url, model, function (response) {
+            $(".ddt-retry-pdi-loader").hide();
+            showSuccessErrorMsg(response);
+            window.location.reload();
+        });
+        
+    }
+</script>
+}

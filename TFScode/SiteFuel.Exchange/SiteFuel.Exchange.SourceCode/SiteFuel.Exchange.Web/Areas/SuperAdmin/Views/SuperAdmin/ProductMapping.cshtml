@@ -1,0 +1,324 @@
+﻿@model ProductViewModel
+@{
+    ViewBag.Title = "Product Mapping";
+}
+
+<div class="row mb10">
+    <div class="col-sm-12">
+        <h3 class="mt0 mb0 f-light fs21 pt5 float-left">@Resource.headingProductMapping</h3>
+        <a href="javascript:CreateProductDetails();" class="fs18 float-left ml-4 mt-2" id="linkCreateNewProduct">
+            <i class="fa fa-plus-circle fs18 mt-1 float-left mr-2"></i><span class="fs14 mt2 float-left">@Resource.btnLabelCreateNew</span>
+        </a>
+    </div>
+    
+</div>
+@Html.Partial("_PartialProductMappingGrid")
+<div class="modal fade product-mapping" id="product-mapping" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            @using (Ajax.BeginForm("CreateProductMapping", "SuperAdmin", null, new AjaxOptions
+            {
+                HttpMethod = "POST",
+                OnSuccess = "createMappingSuccess",
+                OnFailure = "createMappingFailed"
+            }, new { id = "create-mapping-form" }))
+            {
+                <div class="modal-body ">
+                    <div class="overflow-h mb15">
+                        <h4 class="float-left mb5 pt0 pb0">Create Mapping</h4>
+                        <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">&times;</span></button>
+                    </div>
+                    <div id="div-mapping-body">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    @Html.HiddenFor(m => m.Id)
+                                    @Html.LabelFor(m => m.DisplayName)
+                                    @Html.TextBoxFor(m => m.DisplayName, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.DisplayName)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.AxxisProductId)
+                                    <div>
+                                        <label class="radio-inline mr10">
+                                            @Html.RadioButtonFor(m => m.IsNewAxxisProduct, true, new { @onclick = "setAxxisText(false)", @id = "RadiobuttonforAxxisnew" })
+                                            New
+                                        </label>
+                                        <label class="radio-inline mr10">
+                                            @Html.RadioButtonFor(m => m.IsNewAxxisProduct, false, new { @onclick = "setAxxisText(true)", @id = "RadiobuttonforAxxisexisiting" })
+                                            Existing
+                                        </label>
+                                    </div>
+                                    <div id="TextforAxxis">
+                                        @Html.TextBoxFor(m => m.AxxisProductName, new { @class = "form-control", @id = "TextboxforAxxis" })
+                                    </div>
+                                    <div id="DropdownforAxxis">
+                                        @Html.DropDownListFor(m => m.AxxisProductId, new SelectList(CommonHelperMethods.GetMstProducts((int)PricingSource.Axxis), " Id", "Name", Model.AxxisProductId), Resource.lblSelectProduct, new { @class = "form-control" })
+                                    </div>
+                                    @Html.ValidationMessageFor(m => m.AxxisProductId)
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.OpisProductId)
+                                    <div>
+                                        <label class="radio-inline mr10">
+                                            @Html.RadioButtonFor(m => m.IsNewOpisProduct, true, new { @onclick = "setOpisText(false)", @id = "RadiobuttonforOpisnew" })
+                                            New
+                                        </label>
+                                        <label class="radio-inline mr10">
+                                            @Html.RadioButtonFor(m => m.IsNewOpisProduct, false, new { @onclick = "setOpisText(true)", @id = "RadiobuttonforOpisexisiting" })
+                                            Existing
+                                        </label>
+                                    </div>
+                                    <div id="TextforOpis">
+                                        @Html.TextBoxFor(m => m.OpisProductName, new { @class = "form-control", @id = "TextboxforOpis" })
+                                    </div>
+                                    <div id="DropdownforOpis">
+                                        @Html.DropDownListFor(m => m.OpisProductId, new SelectList(CommonHelperMethods.GetMstProducts((int)PricingSource.OPIS), "Id", "Name", Model.OpisProductId), Resource.lblSelectProduct, new { @class = "form-control" })
+                                    </div>
+                                        @Html.ValidationMessageFor(m => m.OpisProductId)
+                                    </div>
+                                </div>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+
+                                    @Html.LabelFor(m => m.PlattsProductId)
+                                    <div>
+                                        <label class="radio-inline mr10">
+                                            @Html.RadioButtonFor(m => m.IsNewPlattsProduct, true, new { @onclick = "setPlattsText(false)", @id = "RadiobuttonforPlattsnew" })
+                                            New
+                                        </label>
+                                        <label class="radio-inline mr10">
+                                            @Html.RadioButtonFor(m => m.IsNewPlattsProduct, false, new { @onclick = "setPlattsText(true)", @id = "RadiobuttonforPlattsexisiting" })
+                                            Existing
+                                        </label>
+                                    </div>
+                                    <div id="TextforPlatts">
+                                        @Html.TextBoxFor(m => m.PlattsProductName, new { @class = "form-control", @id = "TextboxforPlatts" })
+                                    </div>
+                                    <div id="DropdownforPlatts">
+                                        @Html.DropDownListFor(m => m.PlattsProductId, new SelectList(CommonHelperMethods.GetMstProducts((int)PricingSource.PLATTS), "Id", "Name", Model.PlattsProductId), Resource.lblSelectProduct, new { @class = "form-control" })
+                                     </div>
+                                        @Html.ValidationMessageFor(m => m.PlattsProductId)
+                                    </div>
+                                </div>
+                            @*<div class="col-sm-3">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.OpisProductId)
+                                        @Html.DropDownListFor(m => m.OpisProductId, new SelectList(CommonHelperMethods.GetMstOPISProducts((int)PricingSource.OPIS), "Id", "Name", Model.OpisProductId), Resource.lblSelectProduct, new { @class = "form-control" })
+                                        @Html.ValidationMessageFor(m => m.OpisProductId)
+                                    </div>
+                                </div>*@
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.ProductCode)
+                                    @Html.TextBoxFor(m => m.ProductCode, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.ProductCode)
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.ProductTypeId)
+                                    @Html.DropDownListFor(m => m.ProductTypeId, new SelectList(CommonHelperMethods.GetProductTypesForMapping(), "Id", "Name", Model.ProductTypeId), new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.ProductTypeId)
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.ProductDisplayGroupId)
+                                    @Html.DropDownListFor(m => m.ProductDisplayGroupId, new SelectList(CommonHelperMethods.GetProductDisplayGroupsForMapping(), "Id", "Name", Model.ProductDisplayGroupId), new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.ProductDisplayGroupId)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-8">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.ProductDescription)
+                                    @Html.TextAreaFor(m => m.ProductDescription, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.ProductDescription)
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="text-right">
+                        <button type="button" class="btn" data-dismiss="modal" onclick="clearProductMappingPopup();">@Resource.btnLabelCancel</button>
+                        <button type="button" id="btnSaveMapping" class="btn btn-lg btn-primary" onclick="saveMapping();">@Resource.btnLabelCreate</button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+        $(document).ready(function () {
+            $("#DropdownforAxxis").hide();
+            $("#DropdownforOpis").hide();
+            $("#DropdownforPlatts").hide();
+
+        });
+        function setAxxisText(isAlways) {
+            if (isAlways) {
+                $("#DropdownforAxxis").show();
+                $("#TextforAxxis").hide();
+                $("#TextboxforAxxis").val("");
+
+            }
+            else {
+                $("#TextforAxxis").show();
+                $("#DropdownforAxxis").hide();
+                $('#@Html.IdFor(m=> m.AxxisProductId)').val(null);
+            }
+        }
+
+        function setOpisText(isAlways) {
+            if (isAlways) {
+                $("#DropdownforOpis").show();
+                $("#TextforOpis").hide();
+                $("#TextboxforOpis").val("");
+            }
+            else {
+                $("#TextforOpis").show();
+                $("#DropdownforOpis").hide();
+                $('#@Html.IdFor(m=> m.OpisProductId)').val(null);
+            }
+        }
+
+        function setPlattsText(isAlways) {
+            if (isAlways) {
+                $("#DropdownforPlatts").show();
+                $("#TextforPlatts").hide();
+                $("#TextboxforPlatts").val("");
+            }
+            else {
+                $("#TextforPlatts").show();
+                $("#DropdownforPlatts").hide();
+                $('#@Html.IdFor(m=> m.PlattsProductId)').val(null);
+            }
+    }
+
+    function saveMapping() {
+        $('#create-mapping-form').submit();
+    }
+
+
+    function saveMapping() {
+        $('#btnSaveMapping').prop('disabled', true);
+        $('#create-mapping-form').submit();
+        $('#btnSaveMapping').prop('disabled', false);
+
+        }
+
+        function createMappingSuccess(result) {
+            $(".loading-wrapper").hide();
+            if (result.StatusCode == '@((int)Status.Failed)') {
+                msgerror(result.StatusMessage);
+                return false;
+            }
+            else {
+                msgsuccess(result.StatusMessage);
+                $('#product-mapping').modal("hide");
+                clearProductMappingPopup();
+                ReloadDataTable();
+                location.reload();
+            }
+        }
+
+        function createMappingFailed(result) {
+            msgerror(result.StatusMessage);
+            $(".loading-wrapper").hide();
+            return false;
+        }
+
+        function clearProductMappingPopup() {
+            $("#@Html.IdFor(m => m.Id)").val(0);
+            $("#@Html.IdFor(m => m.DisplayName)").val('');
+            $("#TextboxforAxxis").val("");
+            $("#TextboxforOpis").val("");
+            $("#TextboxforPlatts").val("");
+            /*$("#Textboxfor").val("");*/
+            $("#@Html.IdFor(m => m.ProductCode)").val('');
+            $("#@Html.IdFor(m => m.ProductDescription)").val('');
+            $("#@Html.IdFor(m => m.ProductTypeId)").prop('selectedIndex', 0);
+            $("#@Html.IdFor(m => m.AxxisProductId)").prop('selectedIndex', 0);
+            $("#@Html.IdFor(m => m.OpisProductId)").prop('selectedIndex', 0);
+            $("#@Html.IdFor(m => m.PlattsProductId)").prop('selectedIndex', 0);
+            @*$("#@Html.IdFor(m => m.ParklandProductId)").prop('selectedIndex', 0);*@
+            $("#@Html.IdFor(m => m.ProductDisplayGroupId)").prop('selectedIndex', 0);
+            $("#btnSaveMapping").text('@Resource.btnLabelCreate');
+            $('#RadiobuttonforAxxisnew').prop('checked', 'checked');
+            $('#RadiobuttonforOpisnew').prop('checked', 'checked');
+            $('#RadiobuttonforPlattsnew').prop('checked', 'checked');
+            $("#DropdownforAxxis").hide();
+            $("#DropdownforOpis").hide();
+            $("#DropdownforPlatts").hide();
+            $("#TextforAxxis").show();
+            $("#TextforOpis").show();
+            $("#TextforPlatts").show();
+        }
+
+    function CreateProductDetails() {
+        $('#DisplayName-error').hide()
+        $('#ProductCode-error').hide()
+            clearProductMappingPopup();
+            $("#btnSaveMapping").text('@Resource.btnLabelSave');
+            $('#product-mapping').modal("show");
+        }
+
+        function showProductDetails(ele, prdId, prdTypeId, prdDisplayGrpId) {
+            var parentId = parseInt($(ele).attr('parentId'));
+            var prdCode = $(ele).attr('prdCode');
+            $('#DisplayName-error').hide();
+            $('#ProductCode-error').hide();
+            if (prdCode == null || prdCode == '' || prdCode == '--') {
+                prdCode = '';
+            }
+
+            if (isNaN(parentId) || parentId == null || parentId == '' || parentId == '--') {
+                parentId = 0;
+            }
+
+            $("#@Html.IdFor(m => m.Id)").val(prdId);
+            $("#TextforAxxis").hide();
+            $("#DropdownforAxxis").show();
+            $("#TextforOpis").hide();
+            $("#DropdownforOpis").show();
+            $("#TextforPlatts").hide();
+            $("#DropdownforPlatts").show();
+            $('#RadiobuttonforAxxisexisiting').prop('checked', 'checked');
+            $('#RadiobuttonforOpisexisiting').prop('checked', 'checked');
+            $('#RadiobuttonforPlattsexisiting').prop('checked', 'checked');
+
+            $("#@Html.IdFor(m => m.ProductCode)").val(prdCode);
+            $("#@Html.IdFor(m => m.ProductTypeId)").val(prdTypeId);
+            $("#@Html.IdFor(m => m.ProductDisplayGroupId)").val(prdDisplayGrpId);
+
+            $.get("@Url.Action("GetProductDetails", "SuperAdmin", new { area = "SuperAdmin" })", { productId: prdId },
+                function (response) {
+                    $("#@Html.IdFor(m => m.AxxisProductId)").val(response.AxxisProductId);
+                    $("#@Html.IdFor(m => m.OpisProductId)").val(response.OpisProductId);
+                    $("#@Html.IdFor(m => m.PlattsProductId)").val(response.PlattsProductId);
+                    @*$("#@Html.IdFor(m => m.ParklandProductId)").val(response.ParklandProductId);*@
+                    $("#@Html.IdFor(m => m.DisplayName)").val(response.DisplayName);
+                    $("#@Html.IdFor(m => m.ProductDescription)").val(response.ProductDescription);
+                });
+
+            $("#btnSaveMapping").text('@Resource.btnLabelUpdate');
+            $('#product-mapping').modal("show");
+        }
+</script>
+}
+
+

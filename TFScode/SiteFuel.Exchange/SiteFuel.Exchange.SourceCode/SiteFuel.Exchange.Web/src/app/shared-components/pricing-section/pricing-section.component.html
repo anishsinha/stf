@@ -1,0 +1,912 @@
+<div class="row" [formGroup]="locationForm">
+    <div class="col-12">
+        <div class="well">
+            <ng-container>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <h4>Pricing</h4>
+                        <!-- tier -->
+                        <div class="col-sm-12 form-check form-check-inline checkbox" >
+                            <input class="form-check-input" id="IsSupressOrderPricing"
+                                   formControlName="IsSupressOrderPricing" [disableControl]="f.IsRegularBuyer.value" (click)="toggleSuppressPricing($event.target.checked)" type="checkbox">
+                            <label class="form-check-label" for="IsSupressOrderPricing"> Suppress Pricing</label>
+                        </div>
+                        <div formGroupName="FuelPricingDetails" *ngIf="!f.IsSupressOrderPricing.value">
+                            <div class="col-sm-12 form-check form-check-inline checkbox">
+                                <input [disableControl]="f.AddressDetails.get('IsMarineLocation').value" class="form-check-input" id="IsTierPricingRequired"
+                                       formControlName="IsTierPricingRequired"
+                                       (click)="tierPricingEnabled($event.target.checked);" type="checkbox">
+                                <label class="form-check-label" for="IsTierPricingRequired"> Create Tier Pricing</label>
+                            </div>
+                            <div id="tier-pricing-qty-section" *ngIf="fuelPricingForm.IsTierPricingRequired.value"
+                                 formGroupName="TierPricing">
+                                <div class="row mt5">
+                                    <div class="col-sm-12" [class]="f.FuelDeliveryDetails.get('DeliveryTypeId').value==1? 'pntr-none subSectionOpacity' : ''">
+                                        <div class="form-check form-check-inline radio volume-based-tier">
+                                            <input class="form-check-input" id="FuelDetails_TierPricing_TierPricingType"
+                                                   [disableControl]="f.FuelDeliveryDetails.get('DeliveryTypeId').value==1"
+                                                   formControlName="TierPricingType" name="TierPricingType" type="radio"
+                                                   [value]="1">
+                                            <label class="form-check-label" for="radio-volumeBased">Volume Based</label>
+                                        </div>
+                                        <div class="form-check form-check-inline radio delivery-quantity-based-tier">
+                                            <input class="form-check-input" id="FuelDetails_TierPricing_TierPricingType"
+                                                   formControlName="TierPricingType" name="TierPricingType" type="radio"
+                                                   [value]="2">
+                                            <label class="form-check-label" for="radio-deliveredquantityrange">
+                                                Delivery
+                                                Quantity Based
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tier-pricing-fuel-quantity">
+                                    <div class="row mt5">
+                                        <div class="col-sm-3">
+                                            <div *ngIf="tierPricingForm.TierPricingType.value==1"
+                                                 class="cumulative-delivered-quantity">
+                                                For Cumulative Delivered
+                                                Quantity
+                                            </div>
+                                            <div *ngIf="tierPricingForm.TierPricingType.value==2"
+                                                 class="delivery-quantity-ranging">
+                                                Delivery Quantity
+                                                Ranging
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-12">
+                                            <div id="tier-fuel-qty-section" class="partial-section quantity-range">
+                                                <div class="partial-block-collection-section mt5" formArrayName="Pricings">
+                                                    <ng-container *ngFor="let priceControl of tierPricingForm.Pricings['controls']; let i = index; let isLast = last;">
+                                                        <div [formGroupName]="i">
+                                                            <!-- ALL EXCEPT LAST -->
+                                                            <div class="partial-block">
+                                                                <div class="row">
+                                                                    <div class="col-sm-12">
+                                                                        <div class="pricing-row row">
+                                                                            <div class="tier-fuel-quantity-row col-sm-12 idx-1">
+                                                                                <div class="row">
+                                                                                    <div class="col-sm-2 subSectionOpacity pntr-none">
+                                                                                        <div class="form-group">
+                                                                                            <input *ngIf="!isLast"
+                                                                                                   class="form-control"
+                                                                                                   formControlName="FromQuantity"
+                                                                                                   placeholder="From"
+                                                                                                   [disableControl]="true"
+                                                                                                   type="text">
+                                                                                            <input *ngIf="isLast"
+                                                                                                   class="form-control"
+                                                                                                   formControlName="Quantity"
+                                                                                                   placeholder="Above"
+                                                                                                   [disableControl]="true"
+                                                                                                   type="text">
+                                                                                            <span class="text-danger"></span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="col-sm-1">
+                                                                                        <label *ngIf="!isLast"
+                                                                                               class="mt7">To</label>
+                                                                                        <label *ngIf="isLast"
+                                                                                               class="mt7">Above</label>
+                                                                                    </div>
+                                                                                    <div class="col-sm-2">
+                                                                                        <div class="form-group">
+                                                                                            <input *ngIf="!isLast"
+                                                                                                   class="form-control to-quantity valid"
+                                                                                                   formControlName="ToQuantity"
+                                                                                                   placeholder="Up to"
+                                                                                                   type="number"
+                                                                                                   (change)="toQuantityChanged($event.target.value, i)">
+                                                                                            <span *ngIf="formSubmited && priceControl.get('ToQuantity').errors"
+                                                                                                  class="text-danger">
+                                                                                                To Quantity is required.
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="col-sm-2">
+                                                                                        <div class="form-group mt7">
+                                                                                            <label *ngIf="priceControl.get('DisplayPrice').value==null;"
+                                                                                                   class="lblDisplayPrice">--</label>
+                                                                                            <label *ngIf="priceControl.get('DisplayPrice').value!=null;"
+                                                                                                   class="lblDisplayPrice">{{priceControl.get('DisplayPrice').value}}</label>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="col-sm-2">
+                                                                                        <div class="form-group">
+                                                                                            <a type="button"
+                                                                                               class="btn btn-primary btn-sm"
+                                                                                               data-target="#set-tier-price"
+                                                                                               data-backdrop="static"
+                                                                                               data-keyboard="false"
+                                                                                               (click)="setPricingSourceClicked_tpt(i, SetTierPriceType);">
+                                                                                                Set
+                                                                                                Pricing
+                                                                                            </a>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="qty-add-btns fs18 pl0 col-sm-1">
+                                                                                        <ng-container *ngIf="i==(tierPricingForm.Pricings.controls.length-2)">
+                                                                                            <a type="button"
+                                                                                               class="fa fa-plus-circle mt4 mr5 mr10"
+                                                                                               title="Add"
+                                                                                               (click)="addRemoveTierFee(true)">
+                                                                                            </a>
+                                                                                            <a type="button"
+                                                                                               class="fa fa-trash-alt mt7 color-maroon remove-partial-block tier"
+                                                                                               title="Remove"
+                                                                                               (click)="addRemoveTierFee(false)">
+                                                                                            </a>
+                                                                                        </ng-container>
+                                                                                    </div>
+                                                                                    <div class="ml10 pricing-error-section col">
+                                                                                        <label *ngIf="formSubmited && priceControl.get('DisplayPrice').errors"
+                                                                                               class="text-danger">
+                                                                                            Pricing is required.
+                                                                                        </label>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <!-- LAST -->
+                                                        </div>
+                                                    </ng-container>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div *ngIf="tierPricingForm.TierPricingType.value==1" class="row reset-cumulation">
+                                    <div class="col-sm-12">
+                                        <div class="form-check form-check-inline checkbox">
+                                            <input class="form-check-input" id="FuelDetails_TierPricing_IsResetCumulation"
+                                                   formControlName="IsResetCumulation" type="checkbox" value="true" (change)="cumulationTypeChanged($event.target.checked, tierPricingForm.ResetCumulationSetting.get('CumulationType').value)">
+                                            <label class="form-check-label" for="IsResetCumulation"> Reset Frequency</label>
+                                        </div>
+                                        <div id="reset-cumulation-section" *ngIf="tierPricingForm.IsResetCumulation.value"
+                                             formGroupName="ResetCumulationSetting">
+                                            <div class="row">
+                                                <div class="col-sm-3">
+                                                    <select class="form-control"
+                                                            id="FuelDetails_TierPricing_ResetCumulationSetting_CumulationType"
+                                                            formControlName="CumulationType"
+                                                            (change)="cumulationTypeChanged(true, $event.target.value)">
+                                                        <option value="null" disabled>Select</option>
+                                                        <option value="1">Weekly</option>
+                                                        <option value="2">BiWeekly</option>
+                                                        <option value="3">Monthly</option>
+                                                        <option value="4">Specific Dates</option>
+                                                    </select>
+                                                    <span class="text-danger"
+                                                          data-valmsg-for="FuelDetails.TierPricing.ResetCumulationSetting.CumulationType"></span>
+                                                </div>
+                                                <div *ngIf="tierPricingForm.ResetCumulationSetting.get('CumulationType').value==3 || tierPricingForm.ResetCumulationSetting.get('CumulationType').value==4"
+                                                     class="col-sm-3 reset-cumulation-date">
+                                                    <div class="form-group">
+                                                        <input type="text" class="form-control datepicker"
+                                                               [maxDate]="MaxInputDate" [format]="'MM/DD/YYYY'"
+                                                               formControlName="Date" myDatePicker
+                                                               (onDateChange)="tierPricingForm.ResetCumulationSetting.get('Date').setValue($event);" />
+                                                        <span *ngIf="formSubmited && tierPricingForm.ResetCumulationSetting.get('Date').errors"
+                                                              class="text-danger">
+                                                            Date is required field.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div *ngIf="tierPricingForm.ResetCumulationSetting.get('CumulationType').value==1 || tierPricingForm.ResetCumulationSetting.get('CumulationType').value==2"
+                                                     class="col-sm-3 reset-cumulation-day">
+                                                    <div class="form-group">
+                                                        <select class="form-control reset-cumulation-day"
+                                                                formControlName="Day">
+                                                            <option value="null" disabled>Select Day</option>
+                                                            <option value="1">Mon</option>
+                                                            <option value="2">Tue</option>
+                                                            <option value="3">Wed</option>
+                                                            <option value="4">Thu</option>
+                                                            <option value="5">Fri</option>
+                                                            <option value="6">Sat</option>
+                                                            <option value="7">Sun</option>
+                                                        </select>
+                                                        <span *ngIf="formSubmited && tierPricingForm.ResetCumulationSetting.get('Day').errors"
+                                                              class="text-danger">
+                                                            Day is required field.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div *ngIf="!fuelPricingForm.IsTierPricingRequired.value" class="section-pricing">
+                                <div class="row mt10">
+                                    <div id="divPricingSection" class="col-sm-12">
+                                        <div class="row">
+                                            <div class="col-sm-12">
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <div class="single-delivery-sub-types">
+                                                            <label>Type</label>
+                                                            <select class="form-control" formControlName="PricingTypeId"
+                                                                    (change)="pricingTypeChanged($event.target.value)"
+                                                                    [disableControl]="f.FuelDetails['controls']['FuelDisplayGroupId'].value==3">
+                                                                <option [value]="1">Market Based</option>
+                                                                <option [value]="4">Fuel Cost</option>
+                                                                <option [value]="2">Fixed</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6"
+                                                         *ngIf="f.FuelPricingDetails.get('PricingTypeId').value == 1">
+                                                        <div class="row">
+                                                            <div class="col-sm-12 pricing-codes">
+                                                                <label for="FuelPricingDetails_FuelPricingDetails_PricingCode_Pricing_Code">
+                                                                    Pricing
+                                                                    Code
+                                                                </label><span class="required pl4"
+                                                                              aria-required="true">*</span>
+                                                            </div>
+                                                            <div class="col-sm-6">
+                                                                <div class="form-group">
+                                                                    <div *ngIf="_loadingPricingCodes"
+                                                                         class="pa bg-white top0 left0 z-index5 loading-wrapper cityrack-loader">
+                                                                        <span class="spinner-dashboard pa"></span>
+                                                                    </div>
+                                                                    <div class="ng-autocomplete">
+                                                                        <ng-autocomplete [data]="pricingCodes"
+                                                                                         formControlName="TempPricingCodeDetails"
+                                                                                         [searchKeyword]="'Code'"
+                                                                                         placeholder="Pricing code"
+                                                                                         [itemTemplate]="itemTemplate"
+                                                                                         [notFoundTemplate]="notFoundTemplate"
+                                                                                         (selected)='onPricingCodeSelected($event)'
+                                                                                         (click)="getPricingCodes()">
+                                                                        </ng-autocomplete>
+                                                                        <ng-template #itemTemplate let-item>
+                                                                            <a [innerHTML]="item.Code"></a>
+                                                                        </ng-template>
+                                                                        <ng-template #notFoundTemplate let-notFound>
+                                                                            <div [innerHTML]="notFound">
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </div>
+                                                                    <div *ngIf="formSubmited && f.FuelPricingDetails.get('Code').errors">
+                                                                        <span class="text-danger"
+                                                                              *ngIf="f.FuelPricingDetails.get('Code').errors.required">
+                                                                            Select
+                                                                            Pricing
+                                                                            Code.
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-6 div-selectpricingcode">
+                                                                <button [disabled]="_loadingPricingCodes" type="button"
+                                                                        class="btn btn-primary btn-sm"
+                                                                        (click)="openPriceCodeModal(pricingcodeModal)">
+                                                                    Select
+                                                                    Pricing
+                                                                    Code
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row">
+                                                            <div class="col-sm-12"
+                                                                 *ngIf="f.FuelPricingDetails.get('TempPricingCodeDetails').value">
+                                                            {{f.FuelPricingDetails.get('CodeDescription').value}}
+                                                            <!-- {{f.FuelPricingDetails.get('TempPricingCodeDetails').value?.Code}} -->
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-3"
+                                                         *ngIf="f.FuelPricingDetails.get('PricingTypeId').value == 2">
+                                                        <div class="form-group">
+                                                            <label>Price</label>
+                                                            <div class="input-group mtm1">
+                                                                <span class="input-group-addon currency-symbol">
+                                                                    {{
+ f.AddressDetails.get('CountryId').value == 1 ?
+                                                                'USD' : 'CAD'
+                                                                    }}
+                                                                </span>
+                                                                <input class="form-control datatype-decimal always"
+                                                                       id="FuelPricingDetails_PricePerGallon"
+                                                                       formControlName="PricePerGallon" type="number">
+                                                            </div>
+                                                            <div *ngIf="formSubmited && f.FuelPricingDetails.get('PricePerGallon').errors">
+                                                                <span class="text-danger"
+                                                                      *ngIf="f.FuelPricingDetails.get('PricePerGallon').errors.required">
+                                                                    Price
+                                                                    is required.
+                                                                </span>
+                                                                <span class="text-danger"
+                                                                      *ngIf="f.FuelPricingDetails.get('PricePerGallon').errors.pattern || f.FuelPricingDetails.get('PricePerGallon').errors?.min">
+                                                                    Invalid
+                                                                    Pricing.
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-12">
+                                                <div class="pa bg-white subSectionOpacity mt10 top0 left0 z-index5 loading-wrapper calculate-wrapper hide-element">
+                                                    <span class="spinner-dashboard pa"></span>
+                                                </div>
+                                                <div class="market-control"
+                                                     *ngIf="f.FuelPricingDetails.get('PricingTypeId').value == 1">
+                                                    <div class="row">
+                                                        <div class="col-sm-3 terminal-price market-control">
+                                                            <div class="form-group">
+                                                                <select class="form-control"
+                                                                        id="FuelPricingDetails_RackAvgTypeId"
+                                                                        formControlName="RackAvgTypeId">
+                                                                    <option *ngFor="let rackAvgType of RackAvgTypes"
+                                                                            [value]="rackAvgType.Id">
+                                                                        {{rackAvgType.Name}}
+                                                                    </option>
+                                                                    <!-- <option value="1">+$</option>
+                                            <option value="2">-$</option>
+                                            <option value="3">+%</option>
+                                            <option value="4">-%</option> -->
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-3 terminal-price market-control">
+                                                            <div class="form-group">
+                                                                <div class="mtm1">
+                                                                    <input class="form-control datatype-decimal always"
+                                                                           id="FuelPricingDetails_RackPrice"
+                                                                           formControlName="RackPrice" placeholder="Rack Price"
+                                                                           type="number">
+                                                                </div>
+                                                                <div *ngIf="formSubmited && f.FuelPricingDetails.get('RackPrice').errors">
+                                                                    <span class="text-danger"
+                                                                          *ngIf="f.FuelPricingDetails.get('RackPrice').errors.required">
+                                                                        Rack Price field
+                                                                        is required.
+                                                                    </span>
+                                                                    <span class="text-danger"
+                                                                          *ngIf="f.FuelPricingDetails.get('RackPrice').errors.pattern || f.FuelPricingDetails.get('RackPrice').errors.min">
+                                                                        Invalid Rack
+                                                                        Price.
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2" *ngIf="f.FuelPricingDetails.get('PricingTypeId').value == 4">
+                                            <div class="col-sm-3 supplier-cost cost-control">
+                                                <select class="form-control valid"
+                                                        id="FuelPricingDetails_SupplierCostMarkupTypeId"
+                                                        formControlName="SupplierCostMarkupTypeId">
+                                                    <option *ngFor="let rackAvgType of RackAvgTypes"
+                                                            [value]="rackAvgType.Id">
+                                                        {{rackAvgType.Name}}
+                                                    </option>
+                                                    <!-- <option value="1">+$</option>
+                            <option value="2">-$</option>
+                            <option value="3">+%</option>
+                            <option value="4">-%</option> -->
+                                                </select>
+                                            </div>
+                                            <div class="col-sm-3 supplier-cost defaultDisabled cost-control">
+                                                <div class="form-group">
+                                                    <div class="mtm1 defaultDisabled">
+                                                        <input class="form-control datatype-decimal always"
+                                                               id="FuelPricingDetails_SupplierCostMarkupValue"
+                                                               formControlName="SupplierCostMarkupValue" type="number"
+                                                               autocomplete="off">
+                                                        <div *ngIf="formSubmited && f.FuelPricingDetails.get('SupplierCostMarkupValue').errors">
+                                                            <span class="text-danger"
+                                                                  *ngIf="f.FuelPricingDetails.get('SupplierCostMarkupValue').errors.required">
+                                                                The Fuel Cost field is
+                                                                required.
+                                                            </span>
+                                                            <span class="text-danger"
+                                                                  *ngIf="f.FuelPricingDetails.get('SupplierCostMarkupValue').errors.pattern || f.FuelPricingDetails.get('SupplierCostMarkupValue').errors.min">
+                                                                Invalid
+                                                                mark up value.
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row cityrack-wrapper"
+                                     *ngIf="f.FuelPricingDetails.get('PricingTypeId').value == 1">
+                                    <div class="col-sm-12">
+                                        <div class="row">
+                                            <div class="col-sm-3 terminal-price-check">
+                                                <div class="form-group mb5">
+                                                    <div class="">
+                                                        <div class="">
+                                                            <div class="form-check form-check-inline mb10" [class]="(f.FuelPricingDetails.get('FuelPricingDetails').get('PricingSourceId').value==2)? 'pntr-none subSectionOpacity' : ''">
+                                                                <input type="checkbox"
+                                                                       [disableControl]="f.FuelPricingDetails.get('FuelPricingDetails').get('PricingSourceId').value==2"
+                                                                       formControlName="EnableCityRack"
+                                                                       class="enablecityrack form-check-input"
+                                                                       id="chk-enable-cityrack"
+                                                                       (change)="setRackTerminalValidation();this.getCityGroupTerminals()">
+                                                                <label class="form-check-label" for="chk-enable-cityrack">
+                                                                    City
+                                                                    Rack/Terminal
+                                                                </label>
+                                                            </div>
+                                                            <div class="pr" id="cityrack-div"
+                                                                 *ngIf="f.FuelPricingDetails.get('EnableCityRack').value == true">
+                                                                <div class="pa bg-white top0 left0 z-index5 loading-wrapper cityrack-loader hide-element">
+                                                                    <span class="spinner-dashboard pa"></span>
+                                                                </div>
+                                                                <select id="FuelPricingDetails_CityGroupTerminalId"
+                                                                        formControlName="CityGroupTerminalId"
+                                                                        class="form-control enum-ddl qty-ind"
+                                                                        (change)="cityRackTerminalChanged()">
+                                                                    <option disabled value="null">
+                                                                        Select
+                                                                    </option>
+                                                                    <option selected="" disabled="" class="hidden"
+                                                                            value="noneselected">
+                                                                        City
+                                                                        Rack/Terminal
+                                                                    </option>
+                                                                    <optgroup label="Within State">
+                                                                        <ng-container *ngFor="let item of CityGroupTerminalsList">
+                                                                            <option *ngIf="item.IsWithinState"
+                                                                                    [value]="item.Id">
+                                                                                {{item.Name}}
+                                                                            </option>
+                                                                        </ng-container>
+                                                                    </optgroup>
+                                                                    <optgroup label="Other States">
+                                                                        <ng-container *ngFor="let item of CityGroupTerminalsList">
+                                                                            <option *ngIf="!item.IsWithinState"
+                                                                                    [value]="item.Id">
+                                                                                {{item.Name}}
+                                                                            </option>
+                                                                        </ng-container>
+                                                                    </optgroup>
+                                                                </select>
+                                                                <div *ngIf="formSubmited && f.FuelPricingDetails.get('CityGroupTerminalId').errors">
+                                                                    <span class="text-danger"
+                                                                          *ngIf="f.FuelPricingDetails.get('CityGroupTerminalId').errors.required">
+                                                                        Terminal is
+                                                                        required.
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-4 mb25" id="terminalContainer1">
+                                                <div class="form-group">
+                                                    <div class="ng-autocomplete">
+                                                        <ng-autocomplete [data]="approvedTerminalList"
+                                                                         [searchKeyword]="'Name'" (click)="getApprovedTerminal()"
+                                                                         placeholder="Approved Terminals"
+                                                                         [itemTemplate]="TerminalItemTemplate"
+                                                                         [notFoundTemplate]="TerminalnotFoundTemplate"
+                                                                         (selected)='onApprovedTerminalSelected($event)'>
+                                                        </ng-autocomplete>
+                                                        <!-- formControlName="TerminalName" -->
+                                                        <ng-template #TerminalItemTemplate let-item>
+                                                            <a [innerHTML]="item.Name"></a>
+                                                        </ng-template>
+                                                        <ng-template #TerminalnotFoundTemplate let-notFound>
+                                                            <div [innerHTML]="notFound">
+                                                            </div>
+                                                        </ng-template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+            </ng-container>
+        </div>
+    </div>
+</div>
+<ng-template #pricingcodeModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">Pricing Code</h4>
+        <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')"
+                id="pricingcodeModal">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-12">
+                <div class="dib border pa5 radius-capsule shadow-b float-left mb10">
+                    <div class="btn-group btn-filter">
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfeedTypeId" [value]="0" name="pricing-feedfilter" id="filter_all"
+                               [checked]="1">
+                        <label class="btn ml0" for="filter_all">All</label>
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfeedTypeId" [value]="1" name="pricing-feedfilter" id="filter_10am"
+                               [checked]="false">
+                        <label class="btn" for="filter_10am">Contract (10AM EST)</label>
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfeedTypeId" [value]="3" name="pricing-feedfilter" id="filter_5pm"
+                               [checked]="false">
+                        <label class="btn" for="filter_5pm">End of Day (5PM EST)</label>
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfeedTypeId" [value]="5" name="pricing-feedfilter" id="filter_10am_pre"
+                               [checked]="false">
+                        <label class="btn" for="filter_10am_pre">Previous Day (10AM EST)</label>
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfeedTypeId" [value]="4" name="pricing-feedfilter" id="filter_5pm_pre"
+                               [checked]="false">
+                        <label class="btn" for="filter_5pm_pre">Previous Day (5PM EST)</label>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="dib border pa5 radius-capsule shadow-b float-left mb10">
+                    <div class="btn-group btn-filter">
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfuelClassTypeId" [value]="0" name="pricing-fuelClassfilter"
+                               id="filter_brand_all" [checked]="1">
+                        <label class="btn ml0" for="filter_brand_all">All</label>
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfuelClassTypeId" [value]="1" name="pricing-fuelClassfilter"
+                               id="filter_branded" [checked]="false">
+                        <label class="btn" for="filter_branded">Branded</label>
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfuelClassTypeId" [value]="2" name="pricing-fuelClassfilter"
+                               id="filter_unbranded" [checked]="false">
+                        <label class="btn" for="filter_unbranded">Unbranded</label>
+                        <input class="hide-element" type="radio" (change)="getPricingCodes()"
+                               [(ngModel)]="pricingfuelClassTypeId" [value]="3" name="pricing-fuelClassfilter"
+                               id="filter_both" [checked]="false">
+                        <label class="btn" for="filter_both">Both</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div *ngFor="let item of pricingCodes" class="col-sm-4">
+                <div class="well click-card" (click)="getSelectedPricingCode(item);">
+                    <label class="text-center" id="{{item.Id}}"> {{item.Code}}</label>
+                    <div *ngIf="item.PricingTypeId == 1">
+                        <div> {{item.PricingSource}}</div>
+                        <div>{{item.RackAvgPricingType}}</div>
+                        <ng-container *ngIf="item.PricingSourceId == 2 || item.PricingSourceId == 3">
+                            <div>{{item.FeedType}}</div>
+                            <div>{{item.WeekendPricingDay}}</div>
+                        </ng-container>
+                        <ng-container *ngIf="item.PricingSourceId == 2">
+                            <div>{{item.FuelClassType}}</div>
+                            <div>{{item.QuantityIndicator}}</div>
+                        </ng-container>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</ng-template>
+<ng-template #SetTierPriceType let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">Set Tier Price</h4>
+        <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body">
+        <form [formGroup]="TierPricingTypeForm">
+                <div *ngIf="_loaderTierPricingType"
+                     class="pa bg-white top0 left0 z-index5 loading-wrapper cityrack-loader">
+                    <span class="spinner-dashboard pa"></span>
+                </div>
+                <div class="row mt10">
+                    <div id="divPricingSection" class="col-sm-12">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <div class="single-delivery-sub-types">
+                                            <label>Type</label>
+                                            <select class="form-control" formControlName="PricingTypeId"
+                                                    (change)="pricingTypeChanged_tpt($event.target.value)">
+                                                <option [value]="1">Market Based</option>
+                                                <option [value]="4">Fuel Cost</option>
+                                                <option [value]="2">Fixed</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6" *ngIf="TierPricingTypeForm.get('PricingTypeId').value == 1">
+                                        <div class="row">
+                                            <div class="col-sm-12 pricing-codes">
+                                                <label for="FuelPricingDetails_FuelPricingDetails_PricingCode_Pricing_Code">
+                                                    Pricing
+                                                    Code
+                                                </label><span class="required pl4" aria-required="true">*</span>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <div class="form-group">
+                                                    <div *ngIf="_loadingPricingCodes"
+                                                         class="pa bg-white top0 left0 z-index5 loading-wrapper cityrack-loader">
+                                                        <span class="spinner-dashboard pa"></span>
+                                                    </div>
+                                                    <div class="ng-autocomplete">
+                                                        <ng-autocomplete [data]="pricingCodes"
+                                                                         formControlName="TempPricingCodeDetails"
+                                                                         [searchKeyword]="'Code'" placeholder="Pricing code"
+                                                                         [itemTemplate]="itemTemplate"
+                                                                         [notFoundTemplate]="notFoundTemplate"
+                                                                         (selected)='onPricingCodeSelected_tpt($event)'
+                                                                         (click)="getPricingCodes()">
+                                                        </ng-autocomplete>
+                                                        <ng-template #itemTemplate let-item>
+                                                            <a [innerHTML]="item.Code"></a>
+                                                        </ng-template>
+                                                        <ng-template #notFoundTemplate let-notFound>
+                                                            <div [innerHTML]="notFound">
+                                                            </div>
+                                                        </ng-template>
+                                                    </div>
+                                                    <div *ngIf="TierPricingTypeForm.get('TempPricingCodeDetails').touched && TierPricingTypeForm.get('Code').errors">
+                                                        <span class="text-danger"
+                                                              *ngIf="TierPricingTypeForm.get('Code').errors.required">
+                                                            Select
+                                                            Pricing
+                                                            Code.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-6 div-selectpricingcode">
+                                                <button [disabled]="_loadingPricingCodes" type="button"
+                                                        class="btn btn-primary btn-sm mt-2"
+                                                        (click)="openPriceCodeModal_tpt(pricingcodeModal)">
+                                                    Select
+                                                    Pricing
+                                                    Code
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-12"
+                                                 *ngIf="TierPricingTypeForm.get('TempPricingCodeDetails').value">
+                                                {{TierPricingTypeForm.get('CodeDescription').value}}
+                                                <!-- {{TierPricingTypeForm.get('TempPricingCodeDetails').value?.Code}} -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3" *ngIf="TierPricingTypeForm.get('PricingTypeId').value == 2">
+                                        <div class="form-group">
+                                            <label>Price</label>
+                                            <div class="input-group mtm1">
+                                                <span class="input-group-addon currency-symbol">
+                                                    {{ f.AddressDetails.get('CountryId').value == 1 ? 'USD' : 'CAD'}}
+                                                </span>
+                                                <input class="form-control datatype-decimal always"
+                                                       id="FuelPricingDetails_PricePerGallon"
+                                                       formControlName="PricePerGallon" type="number">
+                                            </div>
+                                            <div *ngIf="TierPricingTypeForm.get('PricePerGallon').touched && TierPricingTypeForm.get('PricePerGallon').errors">
+                                                <span class="text-danger"
+                                                      *ngIf="TierPricingTypeForm.get('PricePerGallon').errors.required">
+                                                    Price
+                                                    is required.
+                                                </span>
+                                                <span class="text-danger"
+                                                      *ngIf="TierPricingTypeForm.get('PricePerGallon').errors.pattern || TierPricingTypeForm.get('PricePerGallon').errors?.min">
+                                                    Invalid
+                                                    Pricing.
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="pa bg-white subSectionOpacity mt10 top0 left0 z-index5 loading-wrapper calculate-wrapper hide-element">
+                                    <span class="spinner-dashboard pa"></span>
+                                </div>
+                                <div class="market-control" *ngIf="TierPricingTypeForm.get('PricingTypeId').value == 1">
+                                    <div class="row">
+                                        <div class="col-sm-3 terminal-price market-control">
+                                            <div class="form-group">
+                                                <select class="form-control" id="FuelPricingDetails_RackAvgTypeId"
+                                                        formControlName="RackAvgTypeId">
+                                                    <option *ngFor="let rackAvgType of RackAvgTypes"
+                                                            [value]="rackAvgType.Id">
+                                                        {{rackAvgType.Name}}
+                                                    </option>
+                                                    <!-- <option value="1">+$</option>
+                                                    <option value="2">-$</option>
+                                                    <option value="3">+%</option>
+                                                    <option value="4">-%</option> -->
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3 terminal-price market-control">
+                                            <div class="form-group">
+                                                <div class="mtm1">
+                                                    <input class="form-control datatype-decimal always"
+                                                           id="FuelPricingDetails_RackPrice" formControlName="RackPrice"
+                                                           placeholder="Rack Price" type="number">
+                                                </div>
+                                                <div *ngIf="TierPricingTypeForm.get('RackPrice').touched && TierPricingTypeForm.get('RackPrice').errors">
+                                                    <span class="text-danger"
+                                                          *ngIf="TierPricingTypeForm.get('RackPrice').errors.required">
+                                                        Rack Price field
+                                                        is required.
+                                                    </span>
+                                                    <span class="text-danger"
+                                                          *ngIf="TierPricingTypeForm.get('RackPrice').errors.pattern || TierPricingTypeForm.get('RackPrice').errors.min">
+                                                        Invalid Rack
+                                                        Price.
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-2" *ngIf="TierPricingTypeForm.get('PricingTypeId').value == 4">
+                            <div class="col-sm-3 supplier-cost cost-control">
+                                <select class="form-control valid" id="FuelPricingDetails_SupplierCostMarkupTypeId"
+                                        formControlName="SupplierCostMarkupTypeId">
+                                    <option *ngFor="let rackAvgType of RackAvgTypes" [value]="rackAvgType.Id">
+                                        {{rackAvgType.Name}}
+                                    </option>
+                                    <!-- <option value="1">+$</option>
+                                    <option value="2">-$</option>
+                                    <option value="3">+%</option>
+                                    <option value="4">-%</option> -->
+                                </select>
+                            </div>
+                            <div class="col-sm-3 supplier-cost defaultDisabled cost-control">
+                                <div class="form-group">
+                                    <div class="mtm1 defaultDisabled">
+                                        <input class="form-control datatype-decimal always"
+                                               id="FuelPricingDetails_SupplierCostMarkupValue"
+                                               formControlName="SupplierCostMarkupValue" type="number" autocomplete="off">
+                                        <div *ngIf="TierPricingTypeForm.get('SupplierCostMarkupValue').touched && TierPricingTypeForm.get('SupplierCostMarkupValue').errors">
+                                            <span class="text-danger"
+                                                  *ngIf="TierPricingTypeForm.get('SupplierCostMarkupValue').errors.required">
+                                                The Fuel Cost field is
+                                                required.
+                                            </span>
+                                            <span class="text-danger"
+                                                  *ngIf="TierPricingTypeForm.get('SupplierCostMarkupValue').errors.pattern || TierPricingTypeForm.get('SupplierCostMarkupValue').errors.min">
+                                                Invalid
+                                                mark up value.
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row cityrack-wrapper" *ngIf="TierPricingTypeForm.get('PricingTypeId').value == 1">
+                    <div class="col-sm-12">
+                        <div class="row">
+                            <div class="col-sm-3 terminal-price-check">
+                                <div class="form-group mb5">
+                                    <div class="">
+                                        <div class="">
+                                            <div class="form-check form-check-inline mb10" [class]="(TierPricingTypeForm.get('FuelPricingDetails').get('PricingSourceId').value==2)? 'pntr-none subSectionOpacity' : ''">
+                                                <input type="checkbox"
+                                                       [disableControl]="TierPricingTypeForm.get('FuelPricingDetails').get('PricingSourceId').value==2"
+                                                       formControlName="EnableCityRack"
+                                                       class="enablecityrack form-check-input" id="chk-enable-cityrack"
+                                                       (change)="setRackTerminalValidation_tpt();this.getCityGroupTerminals_tpt()">
+                                                <label class="form-check-label" for="chk-enable-cityrack">
+                                                    City
+                                                    Rack/Terminal
+                                                </label>
+                                            </div>
+                                            <div class="pr" id="cityrack-div"
+                                                 *ngIf="TierPricingTypeForm.get('EnableCityRack').value == true">
+                                                <div class="pa bg-white top0 left0 z-index5 loading-wrapper cityrack-loader hide-element">
+                                                    <span class="spinner-dashboard pa"></span>
+                                                </div>
+                                                <select id="FuelPricingDetails_CityGroupTerminalId"
+                                                        formControlName="CityGroupTerminalId"
+                                                        class="form-control enum-ddl qty-ind"
+                                                        (change)="cityRackTerminalChanged_tpt()">
+                                                    <option disabled value="null">
+                                                        Select
+                                                    </option>
+                                                    <option selected="" disabled="" class="hidden" value="noneselected">
+                                                        City
+                                                        Rack/Terminal
+                                                    </option>
+                                                    <optgroup label="Within State">
+                                                        <ng-container *ngFor="let item of tierCityGroupTerminalsList">
+                                                            <option *ngIf="item.IsWithinState" [value]="item.Id">
+                                                                {{item.Name}}
+                                                            </option>
+                                                        </ng-container>
+                                                    </optgroup>
+                                                    <optgroup label="Other States">
+                                                        <ng-container *ngFor="let item of tierCityGroupTerminalsList">
+                                                            <option *ngIf="!item.IsWithinState" [value]="item.Id">
+                                                                {{item.Name}}
+                                                            </option>
+                                                        </ng-container>
+                                                    </optgroup>
+                                                </select>
+                                                <div *ngIf="TierPricingTypeForm.get('CityGroupTerminalId').touched && TierPricingTypeForm.get('CityGroupTerminalId').errors">
+                                                    <span class="text-danger"
+                                                          *ngIf="TierPricingTypeForm.get('CityGroupTerminalId').errors.required">
+                                                        Terminal is
+                                                        required.
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4 mb25" id="terminalContainer2">
+                            
+
+                                <div class="form-group">
+                                    <div class="ng-autocomplete">
+                                        <ng-autocomplete [data]="tierApprovedTerminalList" [searchKeyword]="'Name'"
+                                                         (click)="getApprovedTerminal_tpt()" placeholder="Approved Terminals"
+                                                         [itemTemplate]="TerminalItemTemplate"
+                                                         [notFoundTemplate]="TerminalnotFoundTemplate"
+                                                         formControlName="TempTerminalName"
+                                                         (selected)='onApprovedTerminalSelected_tpt($event)'>
+                                        </ng-autocomplete>
+                                        <!-- formControlName="TerminalName" -->
+                                        <ng-template #TerminalItemTemplate let-item>
+                                            <a [innerHTML]="item.Name"></a>
+                                        </ng-template>
+                                        <ng-template #TerminalnotFoundTemplate let-notFound>
+                                            <div [innerHTML]="notFound">
+                                            </div>
+                                        </ng-template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <!-- <div class="row tier-terminal-price defaultDisabled">
+                            <div class="show-in-fr">
+                                <div class="col-sm-2 pr0">
+                                    <input type="button" class="btn btn-info btn-sm" id="btnCalculateTierPPG"
+                                        value="Calculate PPG" data-url="/Supplier/FuelRequest/CalculateTerminalPrice">
+                                </div>
+                                <div class="col-sm-8">
+                                    <label id="EstimatedTierPPG" class="mt5 ml10"></label>
+                                </div>
+                            </div>
+                        </div> -->
+                        <div class="row">
+                            <div class="col-sm-12 text-right">
+                                <input type="button" value="Cancel" class="btn" (click)="modal.dismiss('Cross click')">
+                                <input type="button" id="SelectPricing" value="Select" class="btn btn-lg btn-primary"
+                                       [disabled]="TierPricingTypeForm.invalid" (click)="setPricing();">
+                                <!-- [disabled]="TierPricingTypeForm.invalid"  -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </form>
+    </div>
+</ng-template>

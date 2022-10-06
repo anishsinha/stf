@@ -1,0 +1,65 @@
+﻿<div id="driver-details">
+    <div class="row mt20">
+        <div class="col-sm-12" id="currentDriverDrop"></div>
+    </div>
+    <div class="row mt20">
+        <div class="col-sm-12" id="nextDriverDrop"></div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">        
+        $(document).ready(function () {
+            var selected = $("#SelectedDrivers").val();
+            if (selected.length == 0) {
+                selected = drivers.map(function (a) { return a.Id });
+            }
+            ReloadDropData(selected);
+
+            $('#SelectedDrivers').change(function () {
+                var selected = $("#SelectedDrivers").val();
+                ReloadDropData(selected);
+            });
+        });
+
+        function ReloadDropData(selectedDrivers) {
+            if ($('#tab-whereisDriver').hasClass('active')) {
+
+                setPageCountryAndCurrency();
+
+				if (selectedDrivers.length > 0) {
+					$.post({
+						url: "@Url.Action("GetCurrentDriverDropDetails", "Dispatch",new { area = "Supplier" })",
+						data: {
+                            driverId: selectedDrivers,
+                            currency: PageCurrencyId,
+                            countryId: PageCountryId
+						},
+						traditional: true,
+						success: function (response) {
+							$("#currentDriverDrop").html(response)
+						}
+					});
+
+                    $.post({
+                        url: "@Url.Action("GetNextDriverDropDetails", "Dispatch",new { area = "Supplier" })",
+                        data: {
+                            driverId: selectedDrivers,
+                            currency: PageCurrencyId,
+                            countryId: PageCountryId
+                        },
+                        traditional: true,
+                        success: function (response) {
+                            $("#nextDriverDrop").html(response)
+                        }
+                    });
+				}
+				else {
+					$("#currentDriverDrop").html("");
+					$("#nextDriverDrop").html("");
+				}
+			}
+        };
+    </script>
+}

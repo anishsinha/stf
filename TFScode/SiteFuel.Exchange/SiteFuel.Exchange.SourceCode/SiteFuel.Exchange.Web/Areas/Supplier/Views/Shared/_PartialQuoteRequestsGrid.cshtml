@@ -1,0 +1,123 @@
+﻿@model QuoteRequestFilterViewModel
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div id="requestsForQuote" class="table-responsive">
+                        <table id="requests-for-quotes-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnFuelType</th>
+                                    <th>@Resource.gridColumnQuoteDueDate</th>
+                                    @*<th class="quantity-requested">@Resource.lblGallonsRequested</th>*@
+                                    <th class="uom-by-country"><span class="uom-lbl"></span> &nbsp; @Resource.lblRequested</th>
+                                    <th>@Resource.gridColumnStateAndZip</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var requestForQuotesDataTable;
+    $(document).ready(function () {
+        $('#txtQuoteReqFromDate').val(GetLocalStorage('txtQuoteReqFromDate'));
+        $('#txtQuoteReqToDate').val(GetLocalStorage('txtQuoteReqToDate'));
+        SetUoMCurrencyAndRacklables();
+        ClearFilter = function () {
+            $('#txtQuoteReqFromDate').val('');
+            $('#txtQuoteReqToDate').val('');
+            $('#txtQuoteReqToDate').data("DateTimePicker").minDate($("#txtQuoteReqFromDate").datetimepicker("minDate"));
+            ReloadDataTable();
+        }
+
+        if ($('#txtQuoteReqFromDate').length > 0 && $('#txtQuoteReqToDate').length > 0) {
+            $("#txtQuoteReqFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtQuoteReqToDate').data("DateTimePicker").minDate($("#txtQuoteReqFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtQuoteReqToDate').data("DateTimePicker").minDate(moment($('#txtQuoteReqFromDate').val()));
+            });
+        }
+
+        requestForQuotesDataTable = $('#requests-for-quotes-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("QuoteRequestGrid", "Quote", new { area ="Supplier" })",
+                "type": "GET",
+                "datatype": "json",
+                "data": function (data) {
+                    data.Filter = '@Model.filter';
+                    data.StartDate = $('#txtQuoteReqFromDate').val();
+                    data.EndDate = $('#txtQuoteReqToDate').val();
+                    data.Currency = getSelectedCountryAndCurrency().currencyType;
+                    data.CountryId = getSelectedCountryAndCurrency().countryId;
+                    $('#requestsForQuote').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#requestsForQuote").find('.loading-wrapper').remove();
+                    return json;
+                }
+            },
+            "columns":
+                [
+                    {
+                        "data": function (data, type, row, meta) {
+                            var viewQuoteRequestUrl = '@Url.Action("BuyerQuoteDetails", "Quote", new { area = "Supplier" })';
+                            return '<a href=' + viewQuoteRequestUrl + '/' + data.Id + '>' + data.FuelType + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "QuoteDueDate", "autoWidth": true },
+                    { "data": "GallonsRequested", "autoWidth": true },
+                    {
+                        "data": function (data) { return data.State + ', ' + data.ZipCode; }, "autoWidth": true
+                    },
+                ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'copy' },
+                { extend: 'csv', title: '@Resource.headingAppSettings' },
+                { extend: 'excel', title: '@Resource.headingAppSettings' },
+                { extend: 'pdf', title: '@Resource.headingAppSettings' },
+
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+
+    function ReloadDataTable() {
+        SetLocalStorage('txtQuoteReqFromDate', $('#txtQuoteReqFromDate').val());
+        SetLocalStorage('txtQuoteReqToDate', $('#txtQuoteReqToDate').val());
+        requestForQuotesDataTable.ajax.reload();
+
+        ReloadQuotationsDataTable();
+    }
+
+    function ReloadQuotationsDataTable() {
+        SetLocalStorage('txtQuoteReqFromDate', $('#txtQuoteReqFromDate').val());
+        SetLocalStorage('txtQuoteReqToDate', $('#txtQuoteReqToDate').val());
+        quotationsDataTable.ajax.reload();
+    }
+</script>

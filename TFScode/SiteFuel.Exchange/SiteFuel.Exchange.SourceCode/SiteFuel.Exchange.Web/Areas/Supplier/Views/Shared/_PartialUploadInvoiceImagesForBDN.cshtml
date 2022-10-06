@@ -1,0 +1,59 @@
+﻿@model UpdateImagesModel
+
+<div class="col-sm-12">
+    <div class="row upload-images-main-container border-b py-2">
+        @{
+            var imageTypeList = (from InvoiceImageType imageType
+                                 in Enum.GetValues(typeof(InvoiceImageType)).Cast<InvoiceImageType>().ToList()
+                                        .Where(t => (int)t != (int)InvoiceImageType.None)
+                                 select new DropdownDisplayExtendedItem() { Name = imageType.GetDisplayName(), Id = (int)imageType, }).ToList();
+
+            if (!Model.IsMarineLocation)
+            {
+                imageTypeList = imageTypeList.Where(t => t.Id % 2 == 1).ToList();
+            }
+
+            if (Model.countryId.HasValue && (Model.countryId.Value == (int)Country.CAR))
+            {
+                imageTypeList = imageTypeList.Where(t => ((t.Id % 2 == 1) || (t.Id == 8))).ToList();
+            }
+
+
+        }
+        <div class="col-sm-6 pl0">
+            <div class="form-group">
+                <label>@Resource.gridColumnImage @Resource.gridColumnName</label>
+                @Html.DropDownListFor(m => m.ImageType, new SelectList(imageTypeList, "Id", "Name", Model.ImageType),
+                                                                       string.Format(Resource.valMessageSelect, Resource.lblType), new { @class = "form-control imageTypeDDL", onchange="setImageSubType(this);" })
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-group image-sub-type hide-element">
+                <label>@Resource.gridColumnBolLiftNumber</label>
+                @Html.DropDownListFor(m => m.InvoiceFtlDetailsId, new SelectList(CommonHelperMethods.GetBOlListForInvoiceHeader(Model.InvoiceHeaderId), "Id", "Name", Model.InvoiceFtlDetailsId),
+                                                                       string.Format(Resource.valMessageSelect, Resource.lblBOL), new { @class = "form-control imageUploadBolId" })
+            </div>
+        </div>
+            <div class="choose-file-conainer col-8 pl0">
+                <input type="file" class="upload-images" name="ImageFile">
+            </div>
+            <div class="fs18 col-1">
+                <a href="javascript:void(0)" name="remove-partial-fee" class="fa fa-trash-alt mt-1 color-maroon remove-fee" title="@Resource.btnLabelRemove" onclick="removePartial(this);"></a>
+            </div>
+        <hr />        
+    </div>
+</div>
+<script type="text/javascript">
+    function setImageSubType(ctrl) {
+        var imageTypeId = parseInt($(ctrl).val());
+        var imageSubTypeContainer = $(ctrl).closest('.upload-images-main-container').find('.image-sub-type');
+
+        if (imageTypeId == '@((int)InvoiceImageType.Bol)') {
+            imageSubTypeContainer.removeClass('hide-element');
+        }
+        else {
+            imageSubTypeContainer.addClass('hide-element');
+        }
+    }
+</script>
+

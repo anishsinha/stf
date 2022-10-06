@@ -1,0 +1,128 @@
+﻿
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="payment-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnName</th>
+                                    <th>@Resource.gridColumnCardNumber</th>
+                                    <th>@Resource.gridColumnPrimary</th>
+                                    <th>@Resource.gridColumnAddedBy</th>
+                                    @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+                                    {
+                                        <th></th>
+                                    }
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script type="text/javascript">
+        var paymentDatatable, element, exportColumns = { columns: [0, 1, 2, 3] };
+        $(document).ready(function () {
+            paymentDatatable = $('#payment-datatable').dataTable({
+                "processing": true,
+                "ajax": {
+                    "url": "@Url.Action("CompanyPaymentsGrid", "Profile", new { area ="Settings"})",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                            {
+                                "data": function (data, type, row, meta) {
+                                    return '<a href="@Url.Action("CompanyPaymentInformation", "Profile", new { area = "Settings" })?id=' + data.Id + '">' + data.Card.NameOnCard + '</a>';
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": "Card.CardNumber", "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+
+                                    return data.Card.IsPrimary ? "@Resource.lblYes" : "@Resource.lblNo";
+
+                                }, "autoWidth": true
+                            },
+                            { "data": "AddedBy", "autoWidth": true },
+                            {
+                                "data": function (data, type, row, meta) {
+
+                                    if (('@CurrentUser.IsBuyerAdmin' == 'True' || '@CurrentUser.IsSupplierAdmin' == 'True') && !data.Card.IsPrimary) {
+                                        var url = '@Url.Action("DeleteCompanyPaymentInformation", "Profile", new { area = "Settings"})/' + data.Id + '';
+                                        return '<a href= "' + url +'" class="fa fa-trash-alt color-maroon fs18" data-toggle = "confirmation" data-popout = "true" data-singleton = "true" data-confirmation-event="deletePayment" data-url = ""></a>'
+                                    }
+                                    else {
+                                        return "";
+                                    }
+                                }, "autoWidth": true, className : "text-center"
+                            }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]'
+                    });
+                    wrapperHeight();
+                },
+                "fnDrawCallback": function (settings) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]',
+                        html: true
+                    });
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingPaymentInformation', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingPaymentInformation', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingPaymentInformation', exportOptions: exportColumns },
+
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        });
+        function deletePayment() {
+            var url = $(this).data('url');
+            element = $(this);
+            $.get(url, function (response) {
+                if (response.StatusCode != 0) {
+                    showSuccessErrorMsg(response);
+                }
+                else {
+                    var currentRow = element.parents('tr');
+                    var ipos = paymentDatatable.fnGetPosition(currentRow[0]);
+                    paymentDatatable.fnDeleteRow(ipos);
+                }
+            });
+        }
+        $(document).off('deletePayment');
+        $(document).on('deletePayment', function (e) {
+         deletePayment();
+        });
+    </script>
+
+

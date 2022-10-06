@@ -1,0 +1,110 @@
+﻿@model DashboardWaitingApprovalViewModel
+<h2 class="fs16 f-normal mb15">
+    <span class="far fa-clock"></span> @Resource.lblWaitingForApproval - <span id="totalCount">0</span>
+</h2>
+<canvas id="approvalPieChart" height="80"></canvas>
+@*<div class="row mt15">
+    <div class="col-xs-4 col-sm-3 mt10">
+        <a href="@Url.Action("View", "Invoice", new { area = "Supplier", orderId = 0, filter = InvoiceFilterType.WaitingForApproval })" class="text-white">
+            <h1 class="no-margins"><span id="invoiceCount">0</span></h1>
+            @Resource.lblInvoices
+        </a>
+    </div>
+    <div class="col-xs-4 col-sm-3 mt10">
+        <a href="@Url.Action("DropTicketsView", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.WaitingForApproval })" class="text-white">
+            <h1 class="no-margins"><span id="ddtCount">0</span></h1>
+            @Resource.lblDropTickets
+        </a>
+    </div>
+	<div class="col-xs-4 col-sm-3 mt10">
+		<a href="@Url.Action("View", "Invoice", new { area = "Supplier", orderId = 0, filter = InvoiceFilterType.InvoiceWaitingForApprovalRejected })" class="text-white">
+			<h1 class="no-margins"><span id="invoiceRejectedCount">0</span></h1>
+			@Resource.lblRejectedInvoices
+		</a>
+	</div>
+	<div class="col-xs-4 col-sm-3 mt10">
+		<a href="@Url.Action("DropTicketsView", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.DropTicketWaitingForApprovalRejected })" class="text-white">
+			<h1 class="no-margins"><span id="ddtRejectedCount">0</span></h1>
+			@Resource.lblRejectedDropTickets
+		</a>
+	</div>
+</div>*@
+
+@using (Html.BeginScripts())
+{
+    <script>
+        $(document).ready(function () {
+            var data = getDashboardFilter();
+            var url = '@Url.Action("GetWaitingForApprovalCount", "Dashboard",new { area= "Supplier" })';
+            $.get(url, { 'countryId': data.countryId, 'currency': data.currencyType }, function (response) {
+				$("#totalCount").text(response.TotalCount);
+				$("#invoiceCount").text(response.InvoiceCount);
+				$("#ddtCount").text(response.DropTicketCount);
+				$("#invoiceRejectedCount").text(response.RejectedInvoiceCount);
+                $("#ddtRejectedCount").text(response.RejectedDropTicketCount);
+
+                var aChart = document.getElementById('approvalPieChart').getContext('2d');
+                var approvalChart = new Chart(aChart, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Invoices: ' + response.InvoiceCount, 'Drop Tickets: ' + response.DropTicketCount, 'Invoices Rejected: ' + response.RejectedInvoiceCount, 'DDT Rejected: ' + response.RejectedDropTicketCount],
+                        datasets: [{
+                            position: 'bottom',
+                            label: '# of Votes',
+                            data: [response.InvoiceCount, response.DropTicketCount, response.RejectedInvoiceCount, response.RejectedDropTicketCount],
+                            backgroundColor: [
+                                '#aadb8d',
+                                '#91b6e8',
+                                '#eb826a',
+                                '#c7705b'
+                            ],
+                            borderColor: [
+                                'rgba(255, 255, 255, 1)',
+                                'rgba(255, 255, 255, 1)',
+                                'rgba(255, 255, 255, 1)',
+                                'rgba(255, 255, 255, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 10,
+                                fontSize: 11
+                            }
+                        },
+                    }
+                });
+
+                document.getElementById("approvalPieChart").onclick = function (evt) {
+                        var activePoints = approvalChart.getElementsAtEvent(evt);
+                        var firstPoint = activePoints[0];
+                        var label = approvalChart.data.labels[firstPoint._index];
+
+                        var spaceChar = label.indexOf(" ");
+                        var labelStr = label.substring(0, spaceChar);
+
+                    switch (labelStr) {
+                            case 'Invoices:':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Supplier", orderId = 0, filter = InvoiceFilterType.WaitingForApproval }))', "_self");
+                            break;
+                            case 'Drop':
+                            window.open('@Html.Raw(@Url.Action("DropTicketsView", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.WaitingForApproval }))', "_self");
+                                break;
+                            case 'Invoices':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Supplier", orderId = 0, filter = InvoiceFilterType.InvoiceWaitingForApprovalRejected }))', "_self");
+                                break;
+                            case 'DDT':
+                            window.open('@Html.Raw(@Url.Action("DropTicketsView", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.DropTicketWaitingForApprovalRejected }))', "_self");
+                            break;
+                        }
+                    }
+
+                $("#totalCount").closest(".chart-approval").find('.loading-wrapper').remove();
+            });
+        });
+    </script>
+}

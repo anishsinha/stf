@@ -1,0 +1,193 @@
+﻿@model CustomerDetailsViewModel
+
+@{
+    ViewBag.Title = "Buyer Details";
+}
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="mb5 tab-headers dib">
+            <a id="tab-supplier-details" href="javascript:void(0)" onclick="showsection('supplier-details'), activelink(this)" class="mr20">
+                <div class="step-inprogress fs16">
+                    <span class="f-light step-text float-left">@Resource.lblHeaderDetails</span>
+                </div>
+            </a>
+            <a id="tab-fuelsurcharge-summary" href="javascript:void(0)" onclick="showsection('fuelsurcharge-summary'), activelink(this)" class="mr15"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#fuelsurcharge-summary"
+               data-ajax-success="parseForm" data-ajax-url="@Url.Action("View", "FuelSurcharge", new { area = "Supplier" })">
+                <div class="step-inprogress fs16">
+                    <span class="f-light step-text float-left">
+                        @Resource.lblFuelSurcharge
+                    </span>
+                </div>
+            </a>
+            <a id="tab-job-summary" href="javascript:void(0)" onclick="showsection('job-summary'), activelink(this)" class="mr15"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#job-summary"
+               data-ajax-success="parseForm" data-ajax-url="@Url.Action("BuyerJobs", "Dashboard", new { area = "Supplier", buyerCompanyId = Request.QueryString["buyerCompanyId"] })">
+                <div class="step-inprogress fs16">
+                    <span class="f-light step-text float-left">
+                        @Resource.lblJobs
+                    </span>
+                </div>
+            </a>
+            @if (Model.IsExceptionEnabled && (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier))
+            {
+                <a id="tab-exceptions" href="javascript:void(0)" onclick="showsection('exceptions-summary'), activelink(this)" class="mr15"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#exceptions-summary"
+                   data-ajax-success="parseForm" data-ajax-url="@Url.Action("CustomerExceptions", "Exception", new { area = "Supplier", customerCompanyId = Request.QueryString["buyerCompanyId"] })">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">
+                            @Resource.lblManageExceptions
+                        </span>
+                    </div>
+                </a>
+            }
+        </div>
+
+        <div class="panel-section hide-element bg-white radius-5 animated slideInLeft pa">
+            <a href="#." class="pa fs25 right0 top0 color-darkgrey mr15 mt5 z-index5" onclick="closePanel()">×</a>
+            <div class="cust-stat">
+                <div class="pt15 pb15 ph20">
+                    <h4>@(Model.IsBuyerAccount ? Resource.headingSupplierStat : Resource.headingCustomerStat)</h4>
+                    <div class="row mt15">
+                        <div class="col-md-6 mb10">
+                            <div class="no-margins fs18" id="gallons-ordered">@Model.GallonsOrdered.GetCommaSeperatedValue()</div>
+                            <span class="fs12">@Resource.lblGallonsOrdered</span>
+                        </div>
+                        <div class="col-md-6 mb10">
+                            <div class="no-margins fs18" id="gallons-remaining">@Model.GallonsRemaining.GetCommaSeperatedValue()</div>
+                            <span class="fs12">@Resource.lblRemaining</span>
+                        </div>
+                        <div class="col-md-6 mb10">
+                            <div class="no-margins fs18" id="gallons-delivered">@Model.GallonsDelivered.GetCommaSeperatedValue()</div>
+                            <span class="fs12">@Resource.lblDelivered</span>
+                        </div>
+                        <div class="col-md-6 mb10">
+                            <div class="no-margins fs18" id="avg-gallons">@Model.AvgGallonsPerDrop.GetCommaSeperatedValue()</div>
+                            <span class="fs12">@Resource.lblAvgGallonsDrop</span>
+                        </div>
+                        <div class="col-md-6 mb10">
+                            <div class="no-margins fs18" id="total-amount">@Resource.constSymbolCurrency@Model.TotalAmount.GetCommaSeperatedValue()</div>
+                            <span class="fs12">@Resource.lblTotalAmount</span>
+                        </div>
+                        <div class="col-md-6 mb10">
+                            <div class="no-margins fs18" id="avg-ppg">@Resource.constSymbolCurrency@Model.AvgPpgPerDrop</div>
+                            <span class="fs12">@Resource.lblAvgPPGDrop</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-b-dash mr20 ml20 clearboth"></div>
+                <div class="pt15 pb25 ph20">
+                    <h4>@Resource.lblNextScheduledDelivery</h4>
+                    <div class="row">
+                        <div class="text-center" id="next-Schedule">@Model.NextScheduledDelievery</div>
+                    </div>
+                </div>
+                <div class="border-b-dash mr20 ml20 clearboth"></div>
+                <div class="pt15 pb25 ph20">
+                    @Html.Partial("_PartialNewsfeeds")
+                </div>
+            </div>
+        </div>
+        <div class="tab-container">
+            <div class="mb10 panel-icon">
+                <a href="javascript:void(0)" class="radius-5 dib text-center" onclick="loadSidePanel();">
+                    @Resource.lblCustomerInfo
+                </a>
+            </div>
+            <div id="supplier-details" data-parent-tab="tab-supplier-details" class="subTabs">
+                @Html.Partial("_PartialCustomerDetails", Model)
+            </div>
+            <div id="fuelsurcharge-summary" class="hide-element">
+                @*@Html.Action("View", "FuelSurcharge", new { area = "Supplier" })*@
+            </div>
+            <div id="job-summary" class="hide-element">
+            </div>
+            <div id="exceptions-summary" class="hide-element">
+
+            </div>
+            <div class="position-abs mt15 text-center hide-element" id="ajax-loading">
+                <span class='spinner-small ml10 mt5'></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/js/news-feed")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Script/Main/fuelSurchargeView")
+}
+
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+        var currentEntityId = '@Request.QueryString["buyerCompanyId"]'; // for newsfeed
+		var newsfeedUrl = "@Url.Action("GetNewsfeed", "Dashboard", new { area = "Supplier" })";
+        var viewSurchargeTableSummaryUrl, surchargeEffectiveDate, viewSurchargeTableUrl;
+
+        function GetPartialViewData(key) {
+        var params = '?supplierCompanyId=' + @Model.SupplierCompanyId;
+        switch (key) {
+            case 'baseball-card': url = '@Url.Action("BaseballCardDetails", "", new { area = "" })' + params; break;
+            }
+            $(".tab-container > div").hide();
+            $(".tab-container #" + key).show();
+            $('#' + key).load(url);
+        }
+
+        function validateDirectTaxDetails() {
+            var isDirectTaxChecked = $('#@Html.IdFor(m => m.IsDirectTax)').prop('checked');
+            var isEdit = $('#@Html.IdFor(m => m.IsEditDirectTax)').val();
+            if (!isDirectTaxChecked && isEdit == 'False') {
+                $('#spn-enable-direct-tax-error').text('@Resource.errMessageSelectDirectTax');
+                return false;
+            }
+            return true;
+        }
+        function customerExceptionSeccess(data) {
+            if (data.StatusCode == 0) {
+                msgsuccess(data.StatusMessage)
+            }
+            else {
+                msgerror(data.StatusMessage)
+            }
+        }
+        function customerExceptionFailure(data) {
+            msgerror(data.StatusMessage)
+        }
+
+        function deleteTpoBuyerCompany() {
+            var buyerCompanyId = parseInt('@Request.QueryString["buyerCompanyId"]');
+            if (isNaN(buyerCompanyId) || buyerCompanyId == 0)
+                return false;
+
+            $('.delete-customer-loader').removeClass("hide-element");
+            var url = '@Url.Action("DeleteTpoBuyerCompany", "Dashboard", new { area="Supplier"})';
+            var request = { buyerCompanyId: buyerCompanyId };
+
+            $.ajax({
+                type: 'POST',
+                url: url,
+                dataType: "json",
+                contentType: 'application/json; charset=utf-8',
+                data: JSON.stringify(request),
+                success: function (response) {
+                    if (response != null && response != undefined && response.StatusCode == '@((int)Status.Success)') {
+                        msgsuccess(response.StatusMessage);
+                        var url = '@Url.Action("YourCustomers", "Dashboard", new { area = "Supplier" })';
+                        window.location.href = url;
+                    }
+                    else {
+                        msgerror(response.StatusMessage);
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(jqXHR, textStatus, errorThrown);
+                }
+            }).always(function () {
+                $('#deleteCustomerModalPopup').modal('hide');
+                $('.delete-customer-loader').addClass("hide-element");
+            });
+        }
+</script>
+}

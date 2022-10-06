@@ -1,0 +1,466 @@
+<div class="driver-panel" [formGroup]="schedule" [ngClass]="{'last-driver': ((i == SbForm.controls['Shifts']['controls'].length-1) && (j== ScheduleLength - 1))}">
+    <div class="driver-header-well">
+        <ng-container *ngIf="schedule.controls['Drivers']['controls'].length==0 && schedule.controls['Trailers']['controls'].length==0">
+            <div class="column-inital-div">
+                <span class="column-inital">C{{schedule.controls['DriverRowIndex'].value+1}}</span>
+            </div>
+            <div class="driver-name-col">
+                <h6 class="driver-name">
+                    <a class="" data-toggle="modal" data-target="#driverTrailerModel"
+                       (click)="editDriverTrailers(i, j)" placement="top"
+                       ngbTooltip="{{IsTrailerExists ? 'Assign Driver/Trailer' :'Assign Driver'}}"
+                       *ngIf="disableControl==false">
+                        <span>
+                            {{IsTrailerExists ? 'Assign Driver/Trailer' :'Assign Driver'}}
+                        </span>
+                        <!--<i class="fas fa-user-plus fas fa-user-plus fs18 mt-2 ml-1" data-statusid="11" *ngIf="!schedule.controls['IsDriverScheduleExists'].value && !IsTrailerExists"></i>-->
+                    </a>
+                </h6>
+            </div>
+            <div class="option-menu" dropdown *ngIf="disableControl==false && schedule.controls['IsDriverScheduleExists'].value">
+                <a class="option-menu-link dropdown-toggle" role="button" id="dropdownMenuLink" data-toggle="dropdown"
+                   aria-haspopup="true" aria-expanded="false" href="javascript:void(0);">
+                    <i class="fas fa-ellipsis-v"></i>
+                </a>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+            <li class="dropdown-item" *ngIf="disableControl==false">
+                <a (click)="addLoad(i,j)" class="db">
+                    <span><i class="fa fa-plus mt4 fs16"></i></span>
+                    Load
+                </a>
+            </li>
+            <li class="dropdown-item" *ngIf="disableControl==false">
+                <a (click)="moveColumnToLoadQueue()" class="db">
+                    <span><i class="far fa-arrow-alt-circle-left mt4 fs16"></i></span>
+                    Move to Load Queue
+                </a>
+            </li>
+            <li class="dropdown-item">
+                <a data-toggle="modal" data-target="#optional-pickup-location" placement="top" (click)="addOptionalPickup(schedule)" class="db">
+                    <span><i class="far fa-arrow-alt-circle-left mt4 fs16"></i></span>
+                    Optional Pickup
+                </a>
+            </li>
+    </div>
+</div>
+        </ng-container>
+<ng-container *ngIf="schedule.controls['Drivers']['controls'].length>0 || schedule.controls['Trailers']['controls'].length>0">
+    <div class="column-inital-div">
+        <span class="column-inital">C{{schedule.controls['DriverRowIndex'].value+1}}</span>
+    </div>
+    <div class="driver-name-col">
+        <ng-container [formArrayName]="'Drivers'" *ngIf="schedule.controls['IsDriverScheduleExists'].value || schedule.controls['IsIncludeAllRegionDriver'].value">
+            <ng-container *ngFor="let driver of schedule.controls['Drivers']['controls']; let x = index; let islast = last; trackBy: trackByDriverId">
+                <ng-container [formGroupName]="x">
+                    <h6 class="driver-name" placement="bottom"
+                        ngbTooltip="{{driver.controls['Name'].value}}">
+                        {{driver.controls['Name'].value}}
+                    </h6>
+                </ng-container>
+            </ng-container>
+        </ng-container>
+
+        <ng-container [formArrayName]="'Trailers'">
+            <ng-container *ngFor="let trailer of schedule.controls['Trailers']['controls']; let y = index; let isfirst = first; trackBy: trackByTrailerId">
+                <ng-container [formGroupName]="y" *ngIf="isfirst">
+                    <div class="trailer-name" placement="bottom"
+                         ngbTooltip="Edit Compartment Assignments">
+                        <a (click)="editCompartmentAssignments()" *ngIf="disableControl==false">{{trailer.controls['TrailerId'].value}}</a>
+                        <a *ngIf="disableControl==true">{{trailer.controls['TrailerId'].value}}</a>
+                    </div>
+                </ng-container>
+            </ng-container>
+        </ng-container>
+    </div>
+    <div class="option-menu" dropdown>
+        <a class="option-menu-link dropdown-toggle" role="button" id="dropdownMenuLink" data-toggle="dropdown"
+           aria-haspopup="true" aria-expanded="false" href="javascript:void(0);">
+            <i class="fas fa-ellipsis-v"></i>
+        </a>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+    <li class="dropdown-item" *ngIf="disableControl==false">
+        <a (click)="editDriverTrailers(i, j)" data-toggle="modal" data-target="#driverTrailerModel" class="db">
+            <span><i class="fa fa-edit mt4 fs16"></i></span>
+            Edit
+        </a>
+    </li>
+    <li class="dropdown-item" *ngIf="disableControl==false">
+        <a (click)="publishEntireRow(i, j)" class="db">
+            <span><i class="fas fa-paper-plane mt4 fs16"></i></span>
+            Publish
+        </a>
+    </li>
+    <ng-container [formArrayName]="'Drivers'">
+        <ng-container *ngFor="let driver of schedule.controls['Drivers']['controls']; let x = index; let islast = last; trackBy: trackByDriverId">
+            <ng-container [formGroupName]="x">
+                <li class="dropdown-item" *ngIf="disableControl==false">
+                    <a (click)="IntializeChat(driver.controls['Id'].value)" class="db">
+                        <span><i class="far fa-comment mt4 fs16"></i></span>
+                        Chat
+                    </a>
+                </li>
+                <li class="dropdown-item" *ngIf="schedule.controls['AllowDriverChange'].value == true && disableControl==false">
+                    <a (click)="UnAssignDriverFromShift(schedule,'driver')" *ngIf="disableControl==false" class="db" title="Unassign driver">
+                        <span><i class="far fa-times-circle mt4 fs16"></i></span>
+                        Driver
+                    </a>
+                </li>
+            </ng-container>
+        </ng-container>
+    </ng-container>
+    <li class="dropdown-item" *ngIf="disableControl==false">
+        <a (click)="addLoad(i,j)" class="db">
+            <span><i class="fa fa-plus mt4 fs16"></i></span>
+            Load
+        </a>
+    </li>
+    <li class="dropdown-item" *ngIf="schedule.controls['Trailers']['controls'].length>0 && IsTrailerExists && schedule.controls['AllowDriverChange'].value == true">
+        <a data-toggle="modal" data-target="#TrailerInformation" (click)="getTrailerInfo(schedule)" class="db">
+            <span><i class="fa fa-info mt4 fs16"></i></span>
+            Trailers
+        </a>
+    </li>
+    <li class="dropdown-item" *ngIf="disableControl==false">
+        <a (click)="moveColumnToLoadQueue()" class="db">
+            <span><i class="far fa-arrow-alt-circle-left mt4 fs16"></i></span>
+            Move to Load Queue
+        </a>
+    </li>
+    <li class="dropdown-item">
+        <a data-toggle="modal" data-target="#optional-pickup-location" placement="top" (click)="addOptionalPickup(schedule)" class="db">
+            <span><i class="far fa-arrow-alt-circle-left mt4 fs16"></i></span>
+            Optional Pickup
+        </a>
+    </li>
+    <li class="dropdown-item" *ngIf="disableControl==false && CheckForCancelDSButton(i,j)">
+        <a class="db" (click)="cancelEntireRow(i, j)" placement="top">
+            <span><i class="far fa-arrow-alt-circle-right mt4 fs16"></i></span>
+            Cancel DS(s)
+        </a>
+    </li>
+    </div>
+    </div>
+</ng-container>
+<span class="pull-right">
+    <input *ngIf="SbForm.get('IsAssignDrEnabled').value && isDrExistInColumn(schedule.controls['Trips'])"
+           type="checkbox"
+           id="column_{{i}}"
+           name="column_{{i}}"
+           [checked]="isAllColumnDrSelected(schedule.controls['Trips'])"
+           (change)="columnSelectedForCarrierAssignment($event, schedule.controls['Trips'])">
+</span>
+    </div>
+<ng-container [formArrayName]="'Trips'">
+    <ng-container *ngFor="let trip of schedule.controls['Trips']['controls']; let k = index; let lastTrip = last; trackBy: trackByTripIndex">
+        <div class="load-panel">
+            <div class="load-header">
+                <div class="row">
+                    <div class="col-5" draggable
+                         [dragData]="{Data: getDraggableDrsFromLoad(trip), TripFrom: trip, ShiftIndex: i, RowIndex:j, ColIndex: k, Schedule: schedule}"
+                         [dragEnabled]="!disableControl && trip.controls['DeliveryRequests']['controls'].length>0"
+                         [class.zoom]="!disableControl && trip.controls['DeliveryRequests']['controls'].length>0"
+                         [ngbTooltip]="(!disableControl && trip.controls['DeliveryRequests']['controls'].length>0) ? 'Drag Load' : ''"
+                         placement="top">
+                        <h6 class="load-name">Load {{k+1}}</h6>
+                    </div>
+                    <div class="col load-time">
+                        <i class="far fa-clock mr-1"></i>
+                        <span [class.mr5]="SbForm.get('IsAssignDrEnabled').value">{{trip.controls['StartTime'].value}}</span>
+
+                        <span class="pull-right">
+                            <input *ngIf="SbForm.get('IsAssignDrEnabled').value && trip.controls['DeliveryRequests'].controls.length>0"
+                                   type="checkbox"
+                                   id="trip_{{k}}"
+                                   name="trip_{{k}}"
+                                   [checked]="isAllTipsDrSelected(trip.controls['DeliveryRequests'])"
+                                   (change)="triptSelectedForCarrierAssignment($event, k)">
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <ng-container [formGroupName]="k">
+                <div id="drop{{k+1}}">
+                    <div class="location-body" droppable
+                         (onDrop)="onItemDrop(schedule.controls['Trips']['controls'][k], $event, i, j, k, schedule);">
+                        <ng-container [formArrayName]="'DeliveryRequests'">
+                            <ng-container *ngFor="let tdr of trip.controls['DeliveryRequests'].controls; let l = index; let lastTdr = last; trackBy: trackByDrId">
+                                <ng-container [formGroupName]="l" *ngIf="!tdr.controls['IsBlendedRequest'].value || tdr.controls['IsBlendedDrParent'].value">
+                                    <div class="location-body-panel" draggable
+                                         [dragData]="{Data: getDraggedDrs(tdr.controls['JobId'].value, trip), TripFrom:trip, DrIndex:l, ShiftIndex: i, RowIndex:j, ColIndex: k, Schedule:schedule}"
+                                         [dragEnabled]="disableControl===false"
+                                         *ngIf="tdr.controls['IsJobFilter'].value"
+                                         [ngClass]="{'diverted-status':((!tdr.controls['IsBlendedRequest'].value && tdr.controls['StatusClassId'].value==5) || tdr.controls['BlendDrScheduleStatus'].value==5),'dr-completed':((!tdr.controls['IsBlendedRequest'].value && tdr.controls['StatusClassId'].value==4)||tdr.controls['BlendDrScheduleStatus'].value==4),'dr-cancelled':((!tdr.controls['IsBlendedRequest'].value && tdr.controls['StatusClassId'].value==3)||tdr.controls['BlendDrScheduleStatus'].value==3),'dr-inprogress':((!tdr.controls['IsBlendedRequest'].value && tdr.controls['StatusClassId'].value==2)||tdr.controls['BlendDrScheduleStatus'].value==2),'dr-new':((!tdr.controls['IsBlendedRequest'].value && tdr.controls['StatusClassId'].value==1)||tdr.controls['BlendDrScheduleStatus'].value==1),'must-go': tdr.controls['Priority'].value==1, 'should-go': tdr.controls['Priority'].value==2,'could-go':tdr.controls['Priority'].value==3,'dr-notCompatible animated infinite flash':tdr.controls['IsBlinkDR'].value == true, 'last-div': fnIsLastDr(trip, tdr) == true }">
+                                        <div class="header">
+                                            <div class="location-name"
+                                                 *ngIf="tdr.controls['JobId'].value > 0 && (l==0 || (tdr.controls['CustomerCompany'].value != trip.controls['DeliveryRequests']['controls'][l-1]['controls'].CustomerCompany.value || tdr.controls['JobName'].value != trip.controls['DeliveryRequests']['controls'][l-1]['controls'].JobName.value))">
+                                                <h6 class="break-word">{{tdr.controls['JobName'].value}}</h6>
+                                                <span class="customer-name">{{tdr.controls['CustomerCompany'].value}} </span>
+                                                <a class="btn-sm pr-0" *ngIf="disableControl===false && CancelButtonVisible(trip,tdr)" title="Cancel DS" (click)="CancelLocationDS(tdr.controls['JobId'].value, trip,0)"><i class="fas fa-remove"></i></a>
+                                                <a class="btn-sm" title="Preload delivery for this location" (click)="preloadDelieryForThisLoc(trip, k, tdr.controls['JobId'].value)"
+                                                   *ngIf="preloadOption['TripIndex']==k && !tdr.controls['PreLoadedFor'] && !tdr.controls['PostLoadedFor'] && !disableControl && DoNotShowPushButtonStatuses.indexOf(tdr.controls['TrackScheduleStatus'].value) == -1">
+                                                    <i class="fas fa-tint"></i>
+                                                </a>
+                                                <a class="btn-sm" title="Transfer DS" *ngIf="disableControl===false && tdr.controls['StatusClassId'].value !=3 && tdr.controls['StatusClassId'].value !=4" data-toggle="modal" data-target="#TransferDSModel" (click)="TransferDS(tdr.controls['JobId'].value, trip,l,i,j,k,schedule)"><i class="fas fa-exchange-alt"></i></a>
+                                            </div>
+                                            <div class="location-name"
+                                                 *ngIf="tdr.controls['JobId'].value == 0 && (l==0 || (tdr.controls['TBDGroupId'].value != trip.controls['DeliveryRequests']['controls'][l-1]['controls'].TBDGroupId.value|| tdr.controls['JobName'].value != trip.controls['DeliveryRequests']['controls'][l-1]['controls'].JobName.value))">
+                                                <h6>TBD</h6>
+                                                <span class="customer-name">{{tdr.controls['PickupLocationType'].value == 2 ?tdr.controls['BulkPlant'].controls['SiteName'].value :tdr.controls['Terminal'].controls['Name'].value}} </span>
+                                                <a class="btn-sm pr-0" *ngIf="disableControl===false && CancelButtonVisible(trip,tdr)" title="Cancel DS" (click)="CancelLocationDS(tdr.controls['TBDGroupId'].value, trip,1,tdr.controls['TBDGroupId'].value)"><i class="fas fa-remove"></i></a>
+                                                <a class="btn-sm" title="Transfer DS" *ngIf="disableControl===false && tdr.controls['StatusClassId'].value !=3 && tdr.controls['StatusClassId'].value !=4" data-toggle="modal" data-target="#TransferDSModel" (click)="TransferDS(tdr.controls['JobId'].value, trip,l,i,j,k,schedule)"><i class="fas fa-exchange-alt"></i></a>
+                                            </div>
+                                            <ng-container *ngIf="l==0 || (tdr.controls['CustomerCompany'].value != trip.controls['DeliveryRequests']['controls'][l-1]['controls'].CustomerCompany.value || tdr.controls['JobName'].value != trip.controls['DeliveryRequests']['controls'][l-1]['controls'].JobName.value)">
+                                                <ng-container *ngIf="trip.controls['IsCommonPickup'].value==true;">
+                                                    <ng-container *ngIf="trip.controls['PickupLocationType'].value==2 && trip.controls['BulkPlant'].controls['SiteName'].value;">
+                                                        <div class="pickup-location"
+                                                             [ngClass]="{'must-go': tdr.controls['Priority'].value==1, 'should-go': tdr.controls['Priority'].value==2,'could-go':tdr.controls['Priority'].value==3}">
+                                                            <span>{{displayBulkPlanName(trip.controls['BulkPlant'].controls['SiteName'].value)}}</span>
+                                                        </div>
+                                                    </ng-container>
+                                                    <ng-container *ngIf="trip.controls['PickupLocationType'].value!=2 && trip.controls['Terminal'].controls['Name'].value;">
+                                                        <div class="pickup-location"
+                                                             [ngClass]="{'must-go': tdr.controls['Priority'].value==1, 'should-go': tdr.controls['Priority'].value==2,'could-go':tdr.controls['Priority'].value==3}">
+                                                            <span>{{displayBulkPlanName(trip.controls['Terminal'].controls['Name'].value)}}</span>
+                                                        </div>
+                                                    </ng-container>
+                                                </ng-container>
+                                                <ng-container *ngIf="trip.controls['IsCommonPickup'].value==false;">
+                                                    <ng-container *ngIf="tdr.controls['PickupLocationType'].value==2 && tdr.controls['BulkPlant'].controls['SiteName'].value;">
+                                                        <div class="pickup-location"
+                                                             [ngClass]="{'must-go': tdr.controls['Priority'].value==1, 'should-go': tdr.controls['Priority'].value==2,'could-go':tdr.controls['Priority'].value==3}">
+                                                            <span>{{displayBulkPlanName(tdr.controls['BulkPlant'].controls['SiteName'].value)}}</span>
+                                                        </div>
+                                                    </ng-container>
+                                                    <ng-container *ngIf="tdr.controls['PickupLocationType'].value!=2 && tdr.controls['Terminal'].controls['Name'].value;">
+                                                        <div class="pickup-location"
+                                                             [ngClass]="{'must-go': tdr.controls['Priority'].value==1, 'should-go': tdr.controls['Priority'].value==2,'could-go':tdr.controls['Priority'].value==3}">
+                                                            <span>{{displayBulkPlanName(tdr.controls['Terminal'].controls['Name'].value)}}</span>
+                                                        </div>
+                                                    </ng-container>
+                                                </ng-container>
+                                            </ng-container>
+                                        </div>
+                                        <div class="body">
+                                            <div class="product-name-row">
+                                                <div class="product-name" placement="top" *ngIf="tdr.controls['IsBlendedRequest'].value==false"
+                                                     ngbTooltip="{{tdr.controls['ProductType'].value}}">
+                                                    {{tdr.controls['ProductType'].value}}
+                                                </div>
+                                                <div class="product-name" placement="top" *ngIf="tdr.controls['IsBlendedRequest'].value==true"
+                                                     ngbTooltip="{{tdr.controls['AdditiveProductName'].value}} {{tdr.controls['BlendedProductName'].value}}">
+                                                    Blend
+                                                </div>
+                                                <div class="product-qty">
+                                                    <ng-container *ngIf="tdr.controls['ScheduleQuantityType'].value==1 || tdr.controls['ScheduleQuantityType'].value==0">
+                                                        <span class="mr-1" *ngIf="tdr.controls['IsBlendedRequest'].value==false">{{tdr.controls['RequiredQuantity'].value | number:'1.0-2'}}</span>
+                                                        <span class="mr-1" *ngIf="tdr.controls['IsBlendedRequest'].value==true">{{tdr.controls['TotalBlendedQuantity'].value | number:'1.0-2'}}</span>
+                                                        <span *ngIf="tdr.controls['UoM'].value==1; else litres">G</span>
+                                                        <ng-template #litres>L</ng-template>
+                                                    </ng-container>
+                                                    <ng-container *ngIf="tdr.controls['ScheduleQuantityType'].value !=1">
+                                                        <span class="mr-1">{{tdr.controls['ScheduleQuantityTypeText'].value}}</span>
+                                                    </ng-container>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div *ngIf="lastTdr || isLastTdr(trip, tdr, lastTdr) || ((trip.controls['DeliveryRequests'].controls.length>l+1) && tdr.controls['CustomerCompany'].value != trip.controls['DeliveryRequests']['controls'][l+1]['controls'].CustomerCompany.value && tdr.controls['JobName'].value != trip.controls['DeliveryRequests']['controls'][l+1]['controls'].JobName.value)">
+                                            <span class="color-white fs10 blinking" *ngIf="tdr.controls['PreLoadedFor']"><i>Pre-Load</i></span>
+                                            <span class="color-white fs10 blinking" *ngIf="tdr.controls['PostLoadedFor']"><i>Post-Load</i></span>
+                                        </div>
+                                        <div *ngIf="fnIsLastDrSeq(trip, tdr) == true">
+                                            <a title="Up Delivery Schedule" (click)="LocationSequenceTrip(1,tdr.controls['JobId'].value,tdr.value,l,trip)" *ngIf="disableControl===false && findFirstJobInfo(trip,tdr, tdr.controls['JobId'].value)"><i class="fas fa-arrow-circle-up"></i></a>
+                                            <a style="padding-left:10px;" title="Down Delivery Schedule" (click)="LocationSequenceTrip(2,tdr.controls['JobId'].value,tdr.value,l,trip)" *ngIf="disableControl===false && findLastInfo(trip,tdr)"><i class="fas fa-arrow-circle-down"></i></a>
+                                        </div>
+                                        <div class="float-popover"
+                                             *ngIf="l==0 || (tdr.controls['CustomerCompany'].value != trip.controls['DeliveryRequests']['controls'][l-1]['controls'].CustomerCompany.value || tdr.controls['JobName'].value != trip.controls['DeliveryRequests']['controls'][l-1]['controls'].JobName.value)">
+                                            <button type="button" class="btn btn-link p-0" placement="{{((i == SbForm.controls['Shifts']['controls'].length-1) && (j== ScheduleLength - 1)) ? 'left' : 'right' }}"
+                                                    [ngbPopover]="popContent" container="body"
+                                                    popoverClass="dsb-popover" (click)="GetDeliveryScheduleInfo(tdr.controls['JobId'].value,trip,k,tdr.value);">
+                                                <i class="fas fa-chevron-circle-right"></i>
+                                            </button>
+                                        </div>
+
+                                    </div>
+                                </ng-container>
+                            </ng-container>
+                        </ng-container>
+                    </div>
+                </div>
+            </ng-container>
+            <div class="load-menu-panel text-center" *ngIf="disableControl==false && trip.controls['IsEditable'].value == true && trip.controls['IsPreloadDisable'].value == false">
+                <a class="circle-icon" data-toggle="modal" data-target="#resetDrByRouteModal" id="btnRoute{{i}}{{j}}{{k}}"
+                   (click)="resetDrByRoutes(i, j, k, trip, schedule)" placement="right" ngbTooltip="Route"
+                   container="body">
+                    <i class="fas fa-route fs14"></i>
+                </a>
+                <a class="circle-icon"
+                   (click)="editExisingGroup(schedule.controls['Trips']['controls'][k],i,j,k,schedule);"
+                   placement="right" ngbTooltip="Edit" container="body">
+                    <i class="fa fa-edit fs13"></i>
+                </a>
+                <a class="circle-icon" id="btnDraftTrip{{i}}{{j}}{{k}}" (click)="draftScheduleBuilder(trip)"
+                   placement="right" ngbTooltip="Save" container="body"
+                   *ngIf="(trip.controls['TripId'] != null||trip.controls['DeliveryRequests'].length>0) && trip.controls['DeliveryGroupPrevStatus'].value!=2 && disableControl==false">
+                    <i class="far fa-save fs13"></i>
+                </a>
+                <a class="circle-icon" id="btnPublishTrip{{i}}{{j}}{{k}}"
+                   (click)="publishScheduleBuilder(i, j, k, schedule, trip);" placement="right"
+                   ngbTooltip="Publish" container="body">
+                    <i class="fas fa-paper-plane fs13"></i>
+                </a>
+                <a class="circle-icon" id="btnMoveDRQueue{{i}}{{j}}{{k}}" data-toggle="modal" data-target="#confirm-reset"
+                   (click)="editGroup(trip,i,j,k,schedule);" placement="right" ngbTooltip="Move to DR Queue" container="body">
+                    <i class="fas fa-undo fs13"></i>
+                </a>
+                <a class="circle-icon" id="btnCancelTrip{{i}}{{j}}{{k}}" *ngIf="LoadLevelCacelButtonHideShow(trip)"
+                   (click)="cancelScheduleBuilder(i, j, k, schedule, trip);" placement="right" ngbTooltip="Cancel" container="body">
+                    <i class="fas fa-remove fs13"></i>
+                </a>
+
+                <a class="circle-icon" id="btnSequence{{i}}{{j}}{{k}}" (click)="setJobSequence(trip)" placement="right"
+                   ngbTooltip="Location Sequence" container="body">
+                    <i class="fas fa-map-marked-alt fs14"></i>
+                </a>
+
+            </div>
+        </div>
+    </ng-container>
+</ng-container>
+</div>
+
+
+<ng-template #popContent>
+    <div class="pop-header" id="drCustomerDetails">
+        <div class="row">
+            <div class="col-12" *ngIf="IsTBDRequest == false">
+                <span class="location-name">{{LocationName}},</span>
+                <span class="customer-name">{{CustomerName}}</span>
+            </div>
+            <div class="col-12" *ngIf="IsTBDRequest == true">
+                <span class="location-name">TBD</span>
+            </div>
+        </div>
+    </div>
+    <div class="popover-details" id="drFuelDetails">
+        <div class="row">
+            <div class="col-12 product-details" *ngFor="let deliveryScheduleInfo of DeliveryScheduleInfo; let i = index"
+                 [ngClass]="getClasses(deliveryScheduleInfo, null)">
+
+                <div *ngFor="let dr of deliveryScheduleInfo.DrInfo" [ngClass]="getClasses(deliveryScheduleInfo, dr)">
+                    <p class="product-name">
+                        {{dr.ProductName}}
+                        <span *ngIf="deliveryScheduleInfo.Status==3" class="status-flag mt-1">
+                            <i class="far fa-clock mr2" *ngIf="deliveryScheduleInfo.StatusClassId==1"></i>
+                            <i class="fas fa-times mr2" *ngIf="deliveryScheduleInfo.StatusClassId==3"></i>
+                            <i class="fas fa-hourglass-half mr2" *ngIf="deliveryScheduleInfo.StatusClassId==2"></i>
+                            <i class="fas fa-check mr2" *ngIf="deliveryScheduleInfo.StatusClassId==4"></i>
+                            <i class="glyphicon glyphicon-share-alt mr2" *ngIf="deliveryScheduleInfo.StatusClassId==5"></i>
+                            {{dr.TrackScheduleStatusName}}
+                        </span>
+                        <span *ngIf="deliveryScheduleInfo.ScheduleQuantityType==1 || deliveryScheduleInfo.ScheduleQuantityType==0">
+                            - {{dr.RequiredQuantity | number:'1.0-2'}}
+                        </span>
+                        <span *ngIf="deliveryScheduleInfo.ScheduleQuantityType==1 || deliveryScheduleInfo.ScheduleQuantityType==0">
+                            <span *ngIf="deliveryScheduleInfo.UoM==1; else litres">G </span>
+                            <ng-template #litres>L </ng-template>
+                        </span>
+                        <span *ngIf="deliveryScheduleInfo.ScheduleQuantityType !=1">
+                            <span>- {{deliveryScheduleInfo.ScheduleQuantityTypeText}}</span>
+                        </span>
+                        <span class="recurring-schedule" *ngIf="deliveryScheduleInfo.isRecurringSchedule==true" placement="bottom"
+                              ngbTooltip="Recurring">
+                            <i class="fas fa-sync color-black"></i>
+                        </span>
+                        <span *ngIf="deliveryScheduleInfo.Status==11" class="diverted-label" placement="bottom"
+                              ngbTooltip="Diverted">
+                            <i class="fas fa-step-forward color-black"></i>
+                        </span>
+                        <span class="auto-generated"
+                              *ngIf="deliveryScheduleInfo.IsAutoCreatedDR==true && deliveryScheduleInfo.DelReqSource!=9" placement="bottom"
+                              ngbTooltip="Auto-Generated">
+                            <i class="fas fa-magic ml10"></i>
+                        </span>
+                        <span class="pull-right mr2 mt2">
+                            <input *ngIf="SbForm.get('IsAssignDrEnabled').value"
+                                   type="checkbox"
+                                   id="{{dr.Id}}"
+                                   name="{{dr.Id}}"
+                                   [checked]="deliveryScheduleInfo.IsSelectedForAssignment"
+                                   (change)="drSelectedForCarrierAssignment($event, dr.Id, deliveryScheduleInfo.TripIndex)">
+                        </span>
+                    </p>
+
+                    <span class="otto-generated" *ngIf="deliveryScheduleInfo.DelReqSource==9">
+                        Otto Generated
+                    </span>
+                    <span *ngIf="deliveryScheduleInfo.IsFilldInvoke" class="filldInvoke">
+                        Filld
+                    </span>
+                    <ng-container *ngIf="deliveryScheduleInfo.IsCommonPickup==true && dr.IsAdditive==false;">
+                        <ng-container *ngIf="deliveryScheduleInfo.CommonPickupLocationType==2;">
+                            <p class="terminal-name">
+                                {{deliveryScheduleInfo.Address}},
+                                {{deliveryScheduleInfo.City}},{{deliveryScheduleInfo.Code}},
+                                {{deliveryScheduleInfo.ZipCode}}
+                            </p>
+                        </ng-container>
+                        <ng-container *ngIf="deliveryScheduleInfo.CommonPickupLocationType!=2;">
+                            <p class="terminal-name">{{deliveryScheduleInfo.PickupLocationName}}</p>
+                        </ng-container>
+                    </ng-container>
+                    <ng-container *ngIf="deliveryScheduleInfo.IsCommonPickup==false && dr.IsAdditive==false;">
+                        <ng-container *ngIf="deliveryScheduleInfo.PickupLocationType==2;">
+                            <p class="terminal-name">
+                                {{dr.Address}},
+                                {{dr.City}},{{dr.Code}},
+                                {{dr.ZipCode}}
+                            </p>
+                        </ng-container>
+                        <ng-container *ngIf="deliveryScheduleInfo.PickupLocationType!=2;">
+                            <p class="terminal-name">{{dr.PickupLocationName}}</p>
+                        </ng-container>
+                    </ng-container>
+                    <p class="badges" *ngIf="deliveryScheduleInfo.IsMarine==true">
+                        {{dr.DeliveryDateStartTime}}
+                    </p>
+                    <!-- <p class="badges" *ngIf="deliveryScheduleInfo.IsMarine==true">
+            {{dr.Vessel}} - {{dr.Berth}}
+        </p> -->
+
+                    <ng-container *ngIf="deliveryScheduleInfo.IsMarine">
+
+                        <p class="badges" *ngIf="dr.Berth" placement="top" container="body" ngbTooltip="{{dr.Vessel}}-{{dr.Berth}}">
+                            {{(dr.Vessel.length > 15) ? (dr.Vessel | slice:0:15)+'..':(dr.Vessel) }}
+                            -
+                            {{(dr.Berth.length > 15) ? (dr.Berth | slice:0:15)+'..':(dr.Berth) }}
+                        </p>
+
+                        <p class="badges" *ngIf="!dr.Berth" placement="top" container="body" ngbTooltip="{{dr.Vessel}}">
+                            {{(dr.Vessel.length > 15) ? (dr.Vessel | slice:0:15)+'..':(dr.Vessel) }}
+                        </p>
+
+                    </ng-container>
+
+                </div>
+                <p class="badges" *ngIf="deliveryScheduleInfo.RouteName!='';">
+                    {{deliveryScheduleInfo.RouteName}}
+                </p>
+                <p class="badges" *ngIf="deliveryScheduleInfo.BadgeNoInfo!='';">{{deliveryScheduleInfo.BadgeNoInfo}}</p>
+                <span class="preload color-white fs10 blinking float-left ml10" *ngIf="deliveryScheduleInfo.isPreload"><i>Pre-Load</i></span>
+                <span class="postload color-white fs10 blinking float-left ml10" *ngIf="deliveryScheduleInfo.isPostload"><i>Post-Load</i></span>
+                <span class="max-fill mt-1 mr-2">
+                    MaxFill - {{deliveryScheduleInfo.TankMaxFill}}
+                    <span *ngIf="deliveryScheduleInfo.ScheduleQuantityType==1 || deliveryScheduleInfo.ScheduleQuantityType==0">
+                        <span *ngIf="deliveryScheduleInfo.UoM==1; else litres">G</span>
+                        <ng-template #litres>L</ng-template>
+                    </span>
+                </span>
+                <span  class="fs12">
+                    <b>  {{deliveryScheduleInfo.ScheduleStartTime}}-{{deliveryScheduleInfo.ScheduleEndTime}} </b>
+                </span>
+            </div>
+        </div>
+    </div>
+</ng-template>
+
+

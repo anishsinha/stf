@@ -1,0 +1,127 @@
+﻿@model CompanyViewModel
+
+<div class="container">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="modal" id="defModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">Create Trailer</h4>
+                            <button class="close mt-0 pt-2" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="fleetForm">
+                                <div class="row">
+                                    <div class="form-group col-md-4">
+                                        <label>Trailer Type</label>
+                                        @Html.DropDownListFor(m => m.DefAssets.DEFTrailerServiceType,
+                                                                from DefTrailerAssetType AssetType in Enum.GetValues(typeof(DefTrailerAssetType)).Cast<DefTrailerAssetType>().ToList()
+                                                                select new SelectListItem() { Text = AssetType.ToString(), Value = ((int)AssetType).ToString() }, new { @class = "form-control"})
+                                        @Html.ValidationMessageFor(m => m.DefAssets.DEFTrailerServiceType)
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Capacity per asset(G)</label>
+                                        @Html.TextBoxFor(m => m.DefAssets.Capacity, new { @class = "form-control" })
+                                        @Html.ValidationMessageFor(m => m.DefAssets.Capacity)
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Count</label>
+                                        @Html.TextBoxFor(m => m.DefAssets.Count, new { @class = "form-control" })
+                                        @Html.ValidationMessageFor(m => m.DefAssets.Count)
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="form-group col-md-4">
+                                        <label class="d-block">Is Your Trailer Metered?</label>
+                                        <div class="form-check form-check-inline">
+                                            @Html.RadioButtonFor(m => m.DefAssets.IsTrailerMetered, true, new { @id = "TRadioYes", @class = "form-check-input" })
+                                            <label class="form-check-label" for="TRadioYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            @Html.RadioButtonFor(m => m.DefAssets.IsTrailerMetered, false, new { @id = "TRadioNo", @class = "form-check-input" })
+                                            <label class="form-check-label" for="TRadioNo">No</label>
+                                        </div>
+                                        @Html.ValidationMessageFor(m => m.DefAssets.IsTrailerMetered)
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label class="d-block">Does Your Trailer have Pump?</label>
+                                        <div class="form-check form-check-inline">
+                                            @Html.RadioButtonFor(m => m.DefAssets.TrailerHasPump, true, new { @id = "PRadioYes", @class = "form-check-input" })
+                                            <label class="form-check-label" for="PRadioYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            @Html.RadioButtonFor(m => m.DefAssets.TrailerHasPump, false, new { @id = "PRadioNo", @class = "form-check-input" })
+                                            <label class="form-check-label" for="PRadioNo">No</label>
+                                        </div>
+                                        @Html.ValidationMessageFor(m => m.DefAssets.TrailerHasPump)
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label class="d-block">Packaged Goods</label>
+                                        <div class="form-check form-check-inline">
+                                            @Html.RadioButtonFor(m => m.DefAssets.PackagedGoods, true, new { @id = "GRadioYes", @class = "form-check-input" })
+                                            <label class="form-check-label" for="GRadioYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            @Html.RadioButtonFor(m => m.DefAssets.PackagedGoods, false, new { @id = "GRadioNo", @class = "form-check-input" })
+                                            <label class="form-check-label" for="GRadioNo">No</label>
+                                        </div>
+                                        @Html.ValidationMessageFor(m => m.DefAssets.PackagedGoods)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="btn-group">
+                                <input class="btn" type="button" value="@Resource.btnLabelCancel" onclick="window.location.reload(true);" />
+                                <input class="btn btn-lg btn-primary" type="button" value="@Resource.btnLabelSubmit" id="btnDefSubmit" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+        $(document).ready(function () {
+
+            $("#btnDefSubmit").click(function () {
+                var DEFTrailerServiceType = $('#@Html.IdFor(m => m.DefAssets.DEFTrailerServiceType)').val();
+                var Capacity = $('#@Html.IdFor(m => m.DefAssets.Capacity)').val();
+                var Count = $('#@Html.IdFor(m => m.DefAssets.Count)').val();
+                var IsTrailerMetered = $('input[name="@Html.NameFor(m => m.DefAssets.IsTrailerMetered)"]:checked').val();
+                var TrailerHasPump = $('input[name="@Html.NameFor(m => m.DefAssets.TrailerHasPump)"]:checked').val();
+                var PackagedGoods = $('input[name="@Html.NameFor(m => m.DefAssets.PackagedGoods)"]:checked').val();
+
+                var model = {
+                    DEFTrailerServiceType: DEFTrailerServiceType,
+                    Capacity: Capacity,
+                    TrailerHasPump: TrailerHasPump,
+                    IsTrailerMetered: IsTrailerMetered,
+                    Count: Count,
+                    PackagedGoods: PackagedGoods
+                }
+                var url = '@Url.Action("AddDefAssetInformation", "Profile", new { area= "Settings" })';
+                var data = model;
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: data,
+                    success: function (response) {
+                        if (response.StatusCode == 0) {
+                            msgsuccess(response.StatusMessage);
+                            window.location.reload(true);
+                        }
+                        else {
+                            msgerror(response.StatusMessage);
+                            window.location.reload(true);
+                        }
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.log(jqXHR, textStatus, errorThrown);
+                    }
+                })
+            })
+        })
+</script>

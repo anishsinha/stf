@@ -1,0 +1,222 @@
+﻿@model QuoteRequestDetailsViewModel
+@using System.Threading
+@{
+    ViewBag.Title = "Quote Request Details";
+    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(Model.Culture);
+}
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+<div class="well col-sm-12">
+    <div class="col-sm-12">
+        <div class="row">
+            <div class="col-sm-12">
+                <h4 class="dib">@Resource.headingQuoteInformation</h4>
+                <div class="dib pull-right pt3">
+                    <div class="btn-group">
+                        @if (Model.Status == QuoteRequestStatuses.Open.ToString() && !Model.IsQuotationCreated &&
+                            !Model.IsQuoteRequestDeclined && Model.QuotesReceived < Model.QuotesNeeded &&
+                            (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier))
+                        {
+                            <button id="auto-btnorderaction" data-toggle="dropdown" class="btn btn-primary btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                            <ul class="dropdown-menu dropdown-menu-right ">
+                                <li class="dropdown-item"><a id="lnkCreateQuote" href="@Url.Action("Create", "Quote", new { area = "Supplier", id = Model.Id })" class="pl15">@Resource.lblQuote</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li class="dropdown-item">
+                                    @Html.ActionLink(Resource.btnLabelDecline, "DeclineQuoteRequest", "Quote",
+                                      new { area = "Supplier", id = Model.Id, @class = "pl15" },
+                                      new
+                                      {
+                                          id="decline-quote",
+                                          data_toggle = "confirmation",
+                                          data_popout = "true",
+                                          data_singleton = "true",
+                                          data_placement = "bottom"
+                                      })
+                                </li>
+                            </ul>
+                        }
+                        else if (Model.IsQuoteRequestDeclined)
+                        {
+                            <div class="dib mt3">
+                                <div><label class="label label-danger" id="status">@Resource.lblDeclined</label></div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblQuoteNumber</label>
+                        <div class="break-word" id="quote-number">@Model.QuoteNumber</div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblQuoteDueDate</label>
+                        <div class="break-word" id="duedate">
+                            @Model.QuoteDueDate
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblFuelType</label>
+                        <div id="fueltype">
+                            @Model.FuelType
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblOrderType</label>
+                        <div id="ordertype">
+                            @Model.OrderType
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt10">
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblLocation</label>
+                        <div id="job-address">@Model.Address</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="border-b-dash mt15 mb15 clearboth"></div>
+        <div class="row mt15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingQuantityDelivery</h4>
+                <div class="row">
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblQuantity</label>
+                        <div id="quantity">@Model.Quantity.GetPreciseValue(2).GetCommaSeperatedValue() @Model.UoM</div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblDeliveryStartDate</label>
+                        <div>
+                            @Model.DeliveryStartDate
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblEndDate</label>
+                        <div>
+                            @Model.EndDate
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblType</label>
+                        <div id="deliverytype">
+                            @Model.DeliveryType
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt10">
+                    <div class="col-md-3 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblEstimatedQuantityPerDelivery</label>
+                        <div id="estimatedgallons">@Model.EstimatedGallonsPerDelivery</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="border-b-dash mt15 mb15 clearboth"></div>
+        <div class="row mt15">
+            <div class="col-sm-12">
+                <h4>@Resource.lblFeesOtherCharges</h4>
+                <div class="row">
+                    <div class="col-md-3 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblFees</label>
+                        <div id="includefees">@(Model.IncludeFees ? Resource.lblFeesIncluded : Resource.lblFeesNotIncluded)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="border-b-dash mt15 mb15 clearboth"></div>
+        <div class="row">
+            <div class="col-sm-12 pb15">
+                <h4 class="pb10">@Resource.lblPaymentTerms</h4>
+                <div class="row">
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <div>
+                            @Model.PaymentTermName
+                            @if (Model.PaymentTermId == (int)PaymentTerms.NetDays)
+                            {
+                                <span>@Model.NetDays</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-b-dash ma15 clearboth"></div>
+        </div>
+        <div class="row mt15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingDBERequired</h4>
+                <div class="row">
+                    <div class="col-md-3 col-xs-6 col-sm-4 mb10">
+                        <div id="qualifications">
+                            @if (Model.SupplierDBE.Count > 0)
+                            {
+                                foreach (var qualifications in Model.SupplierDBE)
+                                {
+                                    @qualifications<br />
+                                }
+                            }
+                            else
+                            {
+                                @Resource.lblHyphen
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="border-b-dash mt15 mb15 clearboth"></div>
+        <div class="row mt15">
+            <div class="col-sm-12">
+                <h4>@Resource.lblNotes</h4>
+                <div class="mb10" id="Notes">
+                    @Model.Notes
+                </div>
+            </div>
+        </div>
+        <div class="border-b-dash mt15 mb15 clearboth"></div>
+        <div class="row mt15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingAttachments</h4>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="row">
+                            <div id="image-block">
+                                @if (Model.Id > 0 && Model.Documents.Count > 0)
+                                {
+                                    <div class="row mb25 mt10">
+                                        @foreach (var item in Model.Documents)
+                                        {
+                                            var imgType = (item.FileName.Split('.')).LastOrDefault().ToLower() == "pdf" ? "/Content/images/ico-pdf.png" : "/Content/images/ico-image.png";
+                                            <div class="col-sm-2 col-xs-4 text-center">
+                                                <div>
+                                                    <a href="@Url.Action("DownloadDocument", "Quote", new { area = "Supplier", fileName = item.ModifiedFileName, container = @BlobContainerType.QuoteRequest.ToString().ToLower() })" title="Click to Download" class="btn-download">
+                                                        <img id="image-ctrl" src="@imgType" />
+                                                    </a>
+                                                </div>
+                                                <div class="fs12 font-italic">@item.FileName</div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <img id="image-ctrl" class="company-logo-dim img-circle" src="~/Content/images/no-image.png" />
+                                }
+                                <input type="file" class="hidden" id="btn-logo" name="imageFile" hidden>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+        }
+
+        @using (Html.BeginScripts())
+        {
+            <script>
+        SetPageCulture('@Model.Culture');
+            </script>
+        }

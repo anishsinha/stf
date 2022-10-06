@@ -1,0 +1,196 @@
+<div id="splitDR" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loading">
+                <span class='spinner-dashboard pa'></span>
+            </div>
+            <div class="modal-body">
+                <form [formGroup]="SplitDRForm" *ngIf="!IsBlendRequest">
+                    <div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">Create Sub DRs</h4>
+                        <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fa fa-close fs21"></i></button>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="fs14 f-normal">{{productType}}, Location ID: {{siteId}}</div>
+                            <small class="mb10 fs12 opacity8">
+                                <b>{{jobName}},</b>  {{jobAddress}}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="row mt10 align-items-center">
+                        <div class="col-sm-8">
+                            <div class="dib border pa5 radius-capsule shadow-b float-left mb10">
+                                <div class="btn-group btn-filter">
+                                    <div class="form-check form-check-inline mr-0">
+                                        <input id="SubDRType1" class="hide-element" type="radio" value="1" formControlName="SubDRType" (change)="clearForm();">
+                                        <label class="btn ml-0" for="SubDRType1"> Load Per Truck</label>
+                                    </div>
+                                    <div class="form-check form-check-inline  mr-0">
+                                        <input class="hide-element" type="radio" formControlName="SubDRType" id="SubDRType2" value="2" (change)="clearForm();">
+                                        <label class="btn" for="SubDRType2">Equal Sub-DRs</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt5">
+                        <div class="col-sm-4">
+                            <div class="card alert-success pl10 pr10 pt5 pb5 fs18">
+                                <span class="fs12">Total</span>
+                                {{totalQuantity | number:'1.0-0'}} {{UoM}}
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="card alert-warning pl10 pr10 pt5 pb5 fs18">
+                                <span class="fs12">Remaining</span>
+                                {{remainingQuantity}} {{UoM}}
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="card alert-warning pl10 pr10 pt5 pb5 fs18">
+                                <span class="fs12" *ngIf="SplitDRForm.controls['SubDRType'].value==2"># equal Sub-DRs</span>
+                                <span class="fs12" *ngIf="SplitDRForm.controls['SubDRType'].value==1"># Load Per Truck</span>
+                                <input type="text" numbersOnly class="form-control" placeholder="(Optional)" formControlName="NoOfSubDRs" (change)="GenerateSubDRs()">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="splitdr-height">
+                        <div class="row mt5" [formArrayName]="'RequiredQtyDetails'" *ngFor="let tfxQty of SplitDRForm.controls['RequiredQtyDetails']['controls'];  let j = index;">
+                            <div class="col-sm-3">
+                                <div class="mt7">
+                                    <label for="ScheduleQuantityType" class="mr5">
+                                        <span>Sub DR <span class="badge">{{j+1}}</span></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <ng-container [formGroupName]="j">
+                                <div class="col-sm-4">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" placeholder="Quantity" formControlName="RequiredQty" (change)="validateQty(tfxQty)">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text fs11">{{UoM}}</span>
+                                        </div>
+                                        <div *ngIf="tfxQty.controls['RequiredQty'].touched && tfxQty.controls['RequiredQty'].invalid">
+                                            <span class="color-maroon" *ngIf="tfxQty.controls['RequiredQty'].errors.required">Quantity is required.</span>
+                                            <span class="color-maroon" *ngIf="tfxQty.controls['RequiredQty'].errors.pattern">Enter only number.</span>
+                                            <span class="color-maroon" *ngIf="tfxQty.controls['RequiredQty'].errors.min">Invalid quantity.</span>
+                                        </div>
+                                        <div *ngIf="validateQtyMessage!=''">
+                                            <span class="color-maroon">{{validateQtyMessage}}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="input-group">
+                                        <input type="text"  formControlName="DeliveryLevelPO" class="form-control" placeholder="Delivery-Level PO#" />
+                                    </div>
+                                </div>
+                            </ng-container>
+                            <div class="col-sm-1"><a class="fa fa-trash-alt fs18 color-maroon mt7" title="Remove" (click)="removeItem(j)"></a></div>
+
+                        </div>
+                    </div>
+                    <div class="row mt10">
+                        <div class="col-sm-12">
+                            <a class="fs18 pull-left" (click)="addDR()">
+                                <i class="fa fa-plus-circle fs18 mt4 mr5 float-left"></i><span class="fs14 mt1 pull-left">Add Sub DR</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="text-right ">
+                        <button type="button" id="btnSplitCancel" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-lg" [disabled]="!SplitDRForm.valid" (click)="submitSplitInfo()">Create</button>
+                        <!-- !validateQtyStatus || -->
+                    </div>
+                </form>
+
+                <form [formGroup]="SplitBlendDRForm" *ngIf="IsBlendRequest">
+                    <div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">Create Sub DRs</h4>
+                        <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fa fa-close fs21"></i></button>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="fs14 f-normal">{{productType}}, Location ID: {{siteId}}</div>
+                            <small class="mb10 fs12 opacity8">
+                                <b>{{jobName}},</b>  {{jobAddress}}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="row mt5 mb-2">
+                        <div class="col-sm-6">
+                            <div class="card alert-success pl10 pr10 pt5 pb5 fs18">
+                                <span class="fs13">Total</span>
+                                {{totalQuantity}} {{UoM}}
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="card alert-warning pl10 pr10 pt5 pb5 fs18">
+                                <span class="fs12">Remaining</span>
+                                {{remainingQuantity}} {{UoM}}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="splitdr-height">
+                        <ng-container class="row mt5" [formArrayName]="'splitDrArray'" *ngFor="let splitDr of SplitBlendDRForm.get('splitDrArray')['controls'];let i = index">
+                            <div class="col-sm-12 pl-0">
+                                <div class="mt7">
+                                    <label for="ScheduleQuantityType" class="mr5">
+                                        <span class="font-weight-bold fs12">Sub DR<span class="badge ml-2">{{i+1}}</span></span>
+                                    </label>
+                                    <span><a class="fa fa-trash-alt fs18 color-maroon mt7" title="Remove" (click)="removeBlendDr(i)"></a></span>
+                                </div>
+                            </div>
+                            <hr class="mt-0 mr-2">
+                            <div [formGroupName]="i">
+                                <ng-container formArrayName="BlendDrArray" *ngFor="let blendDr of splitDr.controls.BlendDrArray.controls;let j = index">
+                                    <div [formGroupName]="j" class="row">
+                                        <div class="col-sm-6">
+                                            <div class="mt7">
+                                                <label for="ScheduleQuantityType" class="mr5">
+                                                    <span>{{blendDr.controls['ProductType'].value}} - {{blendDr.controls['FuelType'].value}} </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-2">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" placeholder="Quantity" formControlName="RequiredQuantity" (change)="validateBlendDrQty(blendDr)">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text fs11">{{UoM}}</span>
+                                                </div>
+                                            </div>
+                                            <div *ngIf="blendDr.controls['RequiredQuantity'].touched && blendDr.controls['RequiredQuantity'].invalid">
+                                                <span class="color-maroon" *ngIf="blendDr.controls['RequiredQuantity'].errors.required">Quantity is required.</span>
+                                                <span class="color-maroon" *ngIf="blendDr.controls['RequiredQuantity'].errors.pattern">Enter only number.</span>
+                                                <span class="color-maroon" *ngIf="blendDr.controls['RequiredQuantity'].errors.min">Invalid quantity.</span>
+                                            </div>
+                                            <div *ngIf="validateQtyMessage!=''">
+                                                <span class="color-maroon">{{validateQtyMessage}}</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-2"><a class="fa fa-trash-alt fs18 color-maroon mt7" title="Remove" (click)="removeBlendDrItem(i,j)"></a></div>
+                                    </div>
+                                </ng-container>
+                            </div>
+                        </ng-container>
+                    </div>
+                    <div class="row mt10">
+                        <div class="col-sm-12">
+                            <a class="fs18 pull-left" (click)="addBlendDR()">
+                                <i class="fa fa-plus-circle fs18 mt4 mr5 float-left"></i><span class="fs14 mt1 pull-left">Add Sub DR</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="text-right ">
+                        <button type="button" id="btnSplitCancel" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-lg" [disabled]="!SplitBlendDRForm.valid" (click)="submitSplitBlendDrInfo()">Create</button>
+                        <!-- !validateQtyStatus || -->
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,342 @@
+﻿@model DashboardViewModel
+@{
+    ViewBag.Title = "Dashboard";
+}
+<div class="row dashboard">
+    <div class="col-sm-12">
+        @if (CurrentUser.IsBuyerAdmin)
+        {
+            <div class="pull-right mll5">
+                @Html.PartialFor("_PartialCompanyGroupFilter", m => m.CompanyGroup)
+            </div>
+        }
+        <div class="pull-right mr15">@Html.PartialFor("_PartialCurrencyFilter", m => m.Country)</div>
+    </div>
+    @if (Model.CompanyGroup.GroupIds.Count > 0)
+    {
+        <div id="dashboard-company-group-section">
+            @Html.Partial("_PartialDashboardCompanyGroupView", Model)
+        </div>
+    }
+    else
+    {
+        <div class="col-md-12 mb15">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="widget mb0 blue-bg p-sm mt0">
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                        @Html.Partial("_PartialDashboardJobs", new DashboardJobsViewModel() { SelectedJobId = Model.SelectedJobId })
+                    </div>
+                </div>
+                <div id="job-map-view" class="@(Model.SelectedJobId > 0 ? "col-md-3" : "col-md-6")">
+
+                </div>
+                @if (Model.SelectedJobId > 0)
+                {
+                    <div class="col-sm-12 col-md-3">
+                        <div class="well bg-white shadow-b mb10 address-wrapper">
+                            <h2 class="fs14 f-bold mt0">@Resource.headingLocation:</h2>
+                            <p class="break-word"><span id="selectedJobLocation">@Resource.lblHyphen</span></p>
+                            <h2 class="fs14 f-bold">@Resource.headingContact:</h2>
+                            <p class="break-word mb0"><span id="selectedJobContactPerson">@Resource.lblHyphen</span></p>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div id="divSelectedJobNextDelivery">
+                @if (Model.NextSchedulesOfJob != null && Model.NextSchedulesOfJob.Any())
+                {
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="well well-sm text-center bg-white shadow-b mb0">
+                                <h2 class="fs14 f-bold mt0">@Resource.lblNextScheduledDelivery:</h2>
+                                <p class="mb0">
+                                    <span id="selectedJobNextDelivery">
+                                        @foreach (var item in Model.NextSchedulesOfJob)
+                                        {
+                                            var linkText = " " + item.ScheduleDate.DayOfWeek.ToString() + ": " + item.ScheduleDate.Date.ToString(Resource.constFormatDate)
+                                            + Constants.Between + item.ScheduleStartTime + Constants.And + item.ScheduleEndTime
+                                            + Constants.For + item.GallonsOrdered.GetCommaSeperatedValue() + " " + item.UoM.ToString();
+                                            @Resource.lblPoNumber @Html.ActionLink(item.PoNumber, "Details", "Order", routeValues: new { id = item.OrderId, isScheduled = true, area = "Buyer" }, htmlAttributes: new { }) @linkText <br />;
+                                        }
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        if (!Model.IsDeliveriesTileClosed)
+        {
+            <div class="col-sm-12 tile-head" id="@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.Deliveries.ToString())">
+                <div class="buyer-deliverystat-tile mb15">
+                    <div class="fr-wrapper">
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                        @Html.Partial("_PartialDashboardDeliveryStatistics", new DashboardDeliveryStatisticsViewModel { SelectedJobId = Model.SelectedJobId, IsCollapsed = Model.IsDeliveriesTileCollapsed })
+                    </div>
+                </div>
+            </div>
+        }
+            <div class="col-sm-6">
+                @if (!CurrentUser.IsOnsitePerson && !Model.IsFRQuoteTileClosed)
+                {
+                    <div class="row buyer-quote-tile mb15 tile-head" id="@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.RequestForQuote.ToString())">
+                        <div class="col-md-12">
+                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                            @Html.Partial("_PartialDashboardQuoteRequest", Model)
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsFRTileClosed)
+                {
+                    <div class="row buyer-fr-tile mb15 tile-head" id="@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.FuelRequests.ToString())">
+                        <div class="col-md-12 fr-wrapper">
+                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                            @Html.Partial("_PartialDashboardFuelRequest", new DashboardFuelRequestViewModel() { SelectedJobId = Model.SelectedJobId, IsCollapsed = Model.IsFRTileCollapsed })
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsJobAvgTileClosed)
+                {
+                    <div class="row buyer-jobavg-tile tile-head" id="@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.JobAverages.ToString())">
+                        <div class="col-md-12">
+                            <div class="widget radius-10 lazur-bg mt0">
+                                <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                @Html.Partial("_PartialDashboardJobAverages", new DashboardJobAveragesViewModel() { SelectedJobId = Model.SelectedJobId, IsCollapsed = Model.IsJobAvgTileCollapsed })
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsDeliveryRequestTileClosed)
+                {
+                    if (CurrentUser.IsBuyer || CurrentUser.IsBuyerCompany || CurrentUser.IsBuyerAdmin)
+                    {
+                        <div class="row buyer-dr-tile mb15 tile-head" id="@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.DeliveryRequests.ToString())">
+                            <div class="col-md-12 dr-wrapper">
+                                @Html.Partial("_PartialDashboardDeliveryRequest", new DashBoardDeliveryRequestViewModel() { SelectedJobId = Model.SelectedJobId, IsCollapsed = Model.IsDeliveryRequestTileCollapsed })
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        <div class="col-sm-6">
+            @if (!Model.IsInvoiceTileClosed)
+            {
+                <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.Invoices.ToString())">
+                    <div class="col-sm-12" id="bd-invoice-ddt-tile">
+                        <div class="well bg-white shadow-b overflow-h mb15">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <span class="fs16 f-normal dib toggle-header  @(Model.IsInvoiceTileCollapsed ? "" : "hide-element")">
+                                        <span class="fas fa-dollar mr5"></span> @Resource.headingInvoicesDropTicket
+                                    </span>
+                                    <div class="pull-right">
+                                        <a href="javascript:void(0);" class="color-grey fs18 ml5 toggle-tiledata" onclick="toggleData(this, '@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.Invoices.ToString())'); ToggleTileHeader('@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.Invoices.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsInvoiceTileCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+                                        <a href="javascript:void(0);" class="color-grey fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.Invoices.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row tile-content @(Model.IsInvoiceTileCollapsed ? "hide-element" : "")">
+                                <div class="col-md-6 border-right" id="bd-invoice-tile">
+                                    <div class="chart-invoice">
+                                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                        @Html.Partial("_PartialDashboardInvoices", new DashboardInvoicesViewModel() { SelectedJobId = Model.SelectedJobId })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6" id="bd-ddt-tile">
+                                    <div class="chart-ddt">
+                                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                        @Html.Partial("_PartialDashboardDropTickets", new DashboardInvoicesViewModel() { SelectedJobId = Model.SelectedJobId })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            @if (!Model.IsOrderTileClosed)
+            {
+                <div class="row buyer-order-tile mb20 tile-head" id="@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.Orders.ToString())">
+                    <div class="col-md-12 order-wrapper">
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                        @Html.Partial("_PartialDashboardOrders", new DashboardOrdersViewModel() { SelectedJobId = Model.SelectedJobId, IsOrderTileCollapsed = Model.IsOrderTileCollapsed })
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<div class="modal fade tile-preferences" id="tile-preferences" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+           <div class="modal-body">
+                <div class="overflow-h mb10">
+                    <h4 class="float-left mb5 pt0 pb0">@Resource.headingMstDashboardTiles</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">&times;</span>@*<span class="fs12 db">Esc</span>*@</button>
+                </div>
+
+                @foreach (var item in Model.TileSetting.TileDetails)
+                {
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" class="add-remove-tile" tileName="@item.TileName" id="chk@(item.TileName)" @(!item.IsClosed ? "checked" : "") />
+                            @item.TileDisplayName
+                        </label>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">@Resource.btnLabelClose</button>
+                <button type="button" class="btn btn-primary" onclick="showHideTiles();">@Resource.btnLabelApply</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section tilePreferences
+{
+    @if (CurrentUser.IsSupplierCompany || CurrentUser.IsBuyerCompany || CurrentUser.IsBuyerAndSupplierCompany)
+    {
+        <div class="right0 z-index5 mb10 btn-db-preferences">
+            <span data-toggle="modal" data-target="#tile-preferences">
+                <a href="javascript:void(0)" class="btn btn-danger btn-circle btn-sm color-white" data-toggle="tooltip" data-placement="bottom" title="@Resource.lblDBPreferences">
+                    <i class="fa fa-th fs16"></i>
+                </a>
+            </span>
+        </div>
+    }
+}
+<style>
+    .main-wrapper, .bg-footer {
+        background: #f2f2f2;
+    }
+</style>
+<script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+@using (Html.BeginScripts())
+{
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/fullcalendar")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/fullcalendar")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Dashboard/Base")
+
+    <script type="text/javascript">
+
+        var selectedJobid = '@Model.SelectedJobId';
+        var tileDetails = @Html.Raw(Json.Encode(Model.TileSetting.TileDetails));
+        var saveTileSettingUrl = '@Url.Action("SaveDBTileSettings", "Dashboard")';
+        var pageId = '@ApplicationConstants.BuyerDashboard';
+
+
+
+        function submitForm() {
+            $('#jobDropDownForm').submit();
+        }
+
+        $(".loader").hide();
+        $(".select2_demo_3").select2({
+            placeholder: '@Resource.lblJob',
+            allowClear: true
+        });
+        @*$('select').on('select2:unselect', function (evt) {
+            window.location.href = '@Url.Action("Index", "Dashboard", new { area = "Buyer"})';
+        });*@
+        $(document).ready(function () {
+            var dashboardFilter = getDashboardFilter();
+            if('@Model.IsTaxExemptDisplayed' == 'False' && '@CurrentUser.IsBuyerAdmin' == 'True' && '@CommonHelperMethods.IsTaxExemptionEnabled()' == 'True')
+            {
+                $("#modal-tax-exemption").modal("show");
+            }
+            $(".data-date-filter").on('dp.change', function (e) {
+                var dataDateFilter = $(".data-date-filter").val();
+                var url = "@Url.Action("SetDataFilterDate", "Dashboard")?filterDate=" + dataDateFilter;
+                $.ajax({
+                    type: "GET",
+                    url: url,
+                    dataType: "json",
+                    success: function (data) {
+                        window.location.reload();
+                    }
+                });
+            });
+         
+
+            var buyerJobMapUrl = '@Url.Action("GetBuyerJobMapForCountry", "Dashboard", new { area = "Buyer" })?selectedJobId=' + @Model.SelectedJobId + '&currency=' + parseInt(dashboardFilter.currencyType, 10) + '&countryId=' + parseInt(dashboardFilter.countryId,10);
+            $("#job-map-view").load(buyerJobMapUrl);
+
+            if (selectedJobid > 0) {
+                showElementById("divSelectedJobNextDelivery");
+            }
+            else {
+                hideElementById("divSelectedJobNextDelivery");
+            }
+
+            setCompanyGroupDefaultSetting();
+        });
+
+        $('#modal-tax-exemption').on('hidden.bs.modal', function () {
+            UpdateIsTaxExemptDisplayed(false);
+        });
+
+        function RedirectToCreateLicense() {
+            UpdateIsTaxExemptDisplayed(true);
+        }
+
+        function UpdateIsTaxExemptDisplayed(isRedirect) {
+            var url = "@Url.Action("UpdateIsTaxExemptDisplayed", "Dashboard")";
+            $.ajax({
+                type: "GET",
+                url: url,
+                dataType: "json",
+                success: function (data) {
+                    if (isRedirect == true) {
+                        window.location.href = '@Url.Action("Create", "TaxExemption", new { area = "Settings"})';
+                    }
+                }
+            });
+        }
+
+        function setCompanyGroupDefaultSetting() {
+            var selectedGroupId = getCompanyGroup().groupIds;
+            groupIds = selectedGroupId;
+            if (selectedGroupId != "" && selectedGroupId != "0" && selectedGroupId != "-1") {
+                $(".group-element").each(function () {
+                    $(this).addClass("hide-element");
+                });
+            }
+            else {
+                $(".group-element").each(function () {
+                    $(this).removeClass("hide-element");
+                });
+            }
+
+            var isCompanyGroupAvailable = '@Html.Raw(Model.IsCompanyGroupAvailable)';
+            if (isCompanyGroupAvailable.toLowerCase() == 'false') {
+                $("#@Html.IdFor(m => m.CompanyGroup.GroupIds)").closest('#company-group-filter').addClass('hide-element');
+            }
+
+            setDefaultGroupUrl();
+        }
+    </script>
+}
+@if (CommonHelperMethods.IsTaxExemptionEnabled())
+{
+    <!-- Modal -->
+    <div class="modal animated bounceIn" id="modal-tax-exemption" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog modal-tax" role="document">
+            <div class="modal-content">
+                <div class="modal-header no-border">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body text-center pt0 pb0">
+                    <div class="text-center"><img src="~/Content/images/tax-exemption.png" height="80" /></div>
+                    <h2 class="fs25">@Resource.headingTaxExemptions</h2>
+                    <p class="fs14">@Html.Raw(@Resource.txtTaxExemptions)</p>
+                </div>
+                <div class="modal-footer no-border">
+                    <a href="#." data-dismiss="modal" class="mr20">@Resource.btnLabelLater</a>
+                    <button type="button" class="btn btn-primary" onclick="RedirectToCreateLicense()">@Resource.btnLabelYes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

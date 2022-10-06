@@ -1,0 +1,371 @@
+﻿@model CustomerDetailsViewModel
+<style type="text/css">
+    .hide-billing-address-radio {
+        display: none;
+    }
+</style>
+
+@{ 
+    bool IsAdmin = CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierAdmin;
+}
+
+<div class="well">
+    <div class="col-sm-12 pb15">
+        <h4 class="pb10">@Resource.headingCustomerDetails</h4>
+        <div class="row">
+            <div class="col-md-3 col-xs-6 col-sm-4 mb10">
+                <label class="f-normal">@Resource.lblCustomerCompany</label>
+                <div id="company-name" class="break-word">@Model.CustomerCompanyName</div>
+            </div>
+            @if (Model.IsSAPCreditCheckEnabled)
+            {
+                <div class="col-md-3 col-xs-6 col-sm-4 mb10">
+                    <label class="f-normal">@Resource.lblTFXCustomerId</label>
+                    <div id="company-name" class="break-word">@CommonHelperMethods.GetCustomerTFCUId(Model.CustomerCompanyId)</div>
+                </div>
+            }
+            <div class="col-md-3 col-xs-6 col-sm-4 mb10">
+                <label class="f-normal">@Resource.lblCustomerContact</label>
+                <div id="company-contact" class="break-word">
+                    @Model.CustomerContact.Name<br />@Model.CustomerContact.Email<br /> <span class="phone">@Model.CustomerContact.PhoneNumber</span>
+                </div>
+            </div>
+            <div class="col-md-3 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblAddress</label>
+                <div id="company-address">
+                    @Model.CustomerAddress.Address <br> @Model.CustomerAddress.City, @Model.CustomerAddress.StateCode @Model.CustomerAddress.ZipCode
+                </div>
+            </div>
+            <div>
+                <label class="f-normal">@Resource.lblAccountingCompanyId</label>
+                @if ((Model.AccountingCompanyId != null) && (Model.AccountingCompanyId != string.Empty))
+                {
+                    <div class="break-word">
+                        @Model.AccountingCompanyId
+                    </div>
+                }
+                else
+                {
+                    <div class="break-word">
+                        @Resource.lblHyphen
+                    </div>
+                }
+            </div>
+        </div>
+        @if (Model.OnboardedTypeId == (int)OnboardedType.ThirdPartyOrderOnboarded)
+        {
+            using (Html.BeginForm("SaveDirectTax", "Dashboard", new { area = "Supplier" }, FormMethod.Post))
+            {
+                @Html.HiddenFor(m => m.SupplierCompanyId)
+                @Html.HiddenFor(m => m.IsEditDirectTax)
+                <div class="col-sm-12 row" id="direct-tax">
+                    <div class="row col-sm-3 mt30 pull-left">
+                        <div class="form-group">
+                            <div class="form-check form-check-inline">
+                                @Html.CheckBoxFor(m => m.IsDirectTax, new { @class = "form-check-input", @id = "checkbox-directtax", onclick = "showHideElementOnRadioChange(this, 'div-direct-tax-states')" })
+                                <label class="form-check-label" for="checkbox-directtax">@Resource.lblEnableDirectTaxes</label>
+                            </div>
+                            <div>
+                                <span class="field-validation-error"><span id="spn-enable-direct-tax-error"></span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 div-direct-tax-states pull-left @(Model.IsDirectTax ? "" : "hide-element")">
+                        <div class="partial-section">
+                            <div class="partial-block-collection-section">
+                                @foreach (var DirectTaxes in Model.DirectTaxes)
+                                {
+                                    @Html.PartialFor("_PartialStates", m => DirectTaxes)
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row text-right pb20 mt30 pull-right">
+                        <div class="text-right">
+                            <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("BuyerDetails", "Dashboard", new { area = "Supplier", buyerCompanyId = Model.SupplierCompanyId })'">
+                            <input type="submit" class="btn btn-primary" id="idSaveDirectTax" value="@Resource.btnLabelSave" onclick="return validateDirectTaxDetails();">
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    @if (Model.OnboardedTypeId == (int)OnboardedType.ThirdPartyOrderOnboarded)
+    {
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div>
+            @Html.PartialFor("_PartialBillingAddresses", m => m)
+        </div>
+    }
+    <div class="border-b-dash ma15 clearboth"></div>
+    <div class="col-sm-12 pb15">
+        <h4 class="pb10">@Resource.headingOrders</h4>
+        <div class="row">
+            <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                <label class="f-normal">@Resource.lblTotalOrders</label>
+                <div id="total-orders">
+                    @Model.TotalOrders
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                <label class="f-normal">@Resource.lblOpenOrders</label>
+                <div id="open-orders">
+                    @Model.OpenOrders
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblClosedOrders</label>
+                <div id="closed-orders">
+                    @Model.ClosedOrders
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblCancelledOrders<br /> (@Resource.lblByYou)</label>
+                <div id="canceled-by-you">
+                    @Model.CanceledOrdersByYou
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblCancelledOrders<br /> (@(Model.IsBuyerAccount ? Resource.lblBySupplier : Resource.lblByCustomer))</label>
+                <div id="canceled-by-your-partner">
+                    @Model.CanceledOrdersByCustomer
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="border-b-dash ma15 clearboth"></div>
+    <div class="col-sm-12 pb15">
+        <h4 class="pb10">@Resource.headingDelivery</h4>
+        <div class="row">
+            <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                <label class="f-normal">@Resource.lblTotalDeliveries</label>
+                <div id="total-deliveries">
+                    @Model.TotalDeliveries
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                <label class="f-normal">@Resource.lblScheduled</label>
+                <div id="total-scheduled">
+                    @Model.ScheduledDeleveries
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblOnTime</label>
+                <div id="ontime-deliveries">
+                    @Model.OntimeDeliveries
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblLate</label>
+                <div id="late-deliveries">
+                    @Model.LateDeliveries
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblRescheduled<br /> (@Resource.lblByYou)</label>
+                <div id="rescheduled-by-you">
+                    @Model.RescheduledByYou
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblRescheduled<br /> (@Resource.lblByCustomer)</label>
+                <div id="rescheduled-by-partner">
+                    @Model.RescheduledByCustomer
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="border-b-dash ma15 clearboth"></div>
+    <div class="col-sm-12 pb15">
+        <h4 class="pb10">@Resource.lblFuel</h4>
+        <div class="overflow-x">
+            <table class="table table-hover margin bottom" id="table-customerDetails-fr">
+                <tr class="f-bold">
+                    <td width="155" class="no-break">@Resource.gridColumnType</td>
+                    <td>@Resource.gridColumnTotalOrders</td>
+                    <td>@Resource.lblGallonsOrdered</td>
+                    <td>@Resource.lblAvgPPGDrop</td>
+                    <td>@Resource.lblAverageGallonsDrop</td>
+                </tr>
+                @foreach (var item in Model.FuelSection)
+                {
+                    <tr>
+                        <td width="155" class="no-break">@item.FuelType</td>
+                        <td>@item.TotalOrdersOfFuelType</td>
+                        <td>@item.GallonsOrderedOfFuelType.GetCommaSeperatedValue()</td>
+                        <td>@Resource.constSymbolCurrency@item.AvgPpgPerOrder</td>
+                        <td>@item.AvgGallonsPerDrop.GetCommaSeperatedValue()</td>
+                    </tr>
+                }
+            </table>
+        </div>
+    </div>
+    <div class="border-b-dash ma15 clearboth"></div>
+    <div class="col-sm-12 pb15">
+        <h4 class="pb10">@Resource.headingPricing</h4>
+        <div class="row">
+            <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                <label class="f-normal">@Resource.lblTotalDDTs</label>
+                <div id="ddt-count">
+                    @Model.TotalDdtCount
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                <label class="f-normal">@Resource.lblTotalInvoices</label>
+                <div id="invoice-count">
+                    @Model.TotalInvoiceCount
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblTotalDryRun</label>
+                <div id="dryrun-count">
+                    @Model.TotalDryRunCount
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblAvgPPGDrop</label>
+                <div>
+                    @Resource.constSymbolCurrency@Model.AvgPpgPerDrop
+                </div>
+            </div>
+            <div class="col-md-2 col-xs-6 col-sm-4">
+                <label class="f-normal">@Resource.lblTotalFees</label>
+                <div id="total-fees">
+                    @Resource.constSymbolCurrency@Model.TotalFees.GetPreciseValue(2).GetCommaSeperatedValue()
+                </div>
+            </div>
+        </div>
+    </div>
+    @if (Model.IsBuyerAccount && Model.PrivateListSection.Any())
+    {
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12 pb15">
+            <h4 class="pb10">@Resource.headingPrivateList</h4>
+            <div class="overflow-x">
+                <table class="table table-hover margin bottom" id="table-customerDetails-privateList">
+                    <thead>
+                        <tr>
+                            <th width="155" class="no-break">@Resource.lblName</th>
+                            <th>@Resource.lblCreated</th>
+                            <th>@Resource.lblLastUsed</th>
+                        </tr>
+                    </thead>
+                    @foreach (var item in Model.PrivateListSection)
+                    {
+                        <tr>
+                            <td width="155" class="no-break">@item.ListName</td>
+                            <td>@item.CreatedDate</td>
+                            <td>@item.LastUsed</td>
+                        </tr>
+                    }
+                </table>
+            </div>
+        </div>
+    }
+    @if (!Model.IsBuyerAccount)
+    {
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12 pb15">
+            <h4 class="pb10">@Resource.headingApprovals</h4>
+            <div class="row">
+                <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                    <label class="f-normal">@Resource.lblTotalApprovals</label>
+                    <div id="total-approvals">
+                        @Model.TotalApprovals
+                    </div>
+                </div>
+                <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                    <label class="f-normal">@Resource.lblDDTs</label>
+                    <div id="approval-ddts">
+                        @Model.ApprovalDDTs
+                    </div>
+                </div>
+                <div class="col-md-2 col-xs-6 col-sm-4">
+                    <label class="f-normal">@Resource.lblInvoices</label>
+                    <div id="approval-invoices">
+                        @Model.ApprovalInvoices
+                    </div>
+                </div>
+                <div class="col-md-2 col-xs-6 col-sm-4">
+                    <label class="f-normal">@Resource.lblTotalRejected</label>
+                    <div id="total-rejected">
+                        @Model.TotalRejected
+                    </div>
+                </div>
+                <div class="col-md-2 col-xs-6 col-sm-4">
+                    <label class="f-normal">@Resource.lblRejectedDDTs</label>
+                    <div id="rejected-ddts">
+                        @Model.RejectedDDTs
+                    </div>
+                </div>
+                <div class="col-md-2 col-xs-6 col-sm-4">
+                    <label class="f-normal">@Resource.lblRejectedInvoices</label>
+                    <div id="rejected-invoices">
+                        @Model.RejectedInvoices
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12">
+            <h4 class="pb10">@Resource.lblOther</h4>
+            <div class="row">
+                <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                    <label class="f-normal">@Resource.lblCreditApplication<br /> (@Resource.lblSentToCustomer)</label>
+                    <div id="creditapp-count">
+                        @Model.CreditApplication
+                    </div>
+                </div>
+                <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                    <label class="f-normal">@Resource.btnLabelTaxExemption</label>
+                    <div id="is-taxexemption">
+                        @Model.IsTaxExemption.ToYesNo()
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="clearboth"></div>
+    }
+</div>
+<div class="modal fade" id="deleteCustomerModalPopup" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="pa bg-white z-index5 loading-wrapper delete-customer-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+            <div class="modal-header">
+                <h4 class="modal-title">Are you sure to delete the customer <b>@Model.CustomerCompanyName</b>?</h4>
+                @*<button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>*@
+            </div>
+            <div class="modal-body">
+                <div>
+                    Deleting the customer will result in:
+                </div>
+                <div>
+                    1. Closing all the location(s) <br />
+                    2. Closing all the order(s) <br />
+                    3. Deletion of all the asset(s) / tank(s) <br />
+                    4. Closing all the brokered order(s), if any
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                <button type="button" class="btn btn-primary" onclick="return deleteTpoBuyerCompany();">@Resource.btnLabelDelete</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="pull-right">
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#deleteCustomerModalPopup">@Resource.btnLabelDelete</button>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if (!@IsAdmin) {
+                $("#checkbox-directtax").attr("disabled", "disabled");
+                $("#idSaveDirectTax").attr("disabled", "disabled");
+            }
+        });
+    </script>
+}

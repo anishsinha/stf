@@ -1,0 +1,318 @@
+﻿@{
+    ViewBag.Title = "Where Is My Driver Summary";
+}
+
+<style>
+    #map {
+        height: 400px;
+    }
+</style>
+<div class="row">
+    <div class="col-sm-12">
+        <h4>@Resource.headingWhereIsMyDriver</h4>
+    </div>
+</div>
+<div class="well overflow-h">
+    <div class="row">
+        <div class="col-9 col-md-4 col-lg-3">
+            <div class="form-group mb0">
+                @Html.DropDownList("jobList", new SelectList(CommonHelperMethods.GetJobs(CurrentUser.Id), "Id", "Name", 0), string.Format(Resource.valMessageSelect, Resource.lblJob), new { @class = "form-control mb10" })
+            </div>
+        </div>
+        <div class="col-9 col-md-4 col-lg-4">
+            <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element po-loader"><span class="spinner-dashboard pa mtm10"></span></div>
+            <div class="form-group mb0">
+                <select id="orderList" class="form-control">
+                    <option>@string.Format(Resource.valMessageSelect, Resource.lblPoNumber)</option>
+                </select>
+                <div class="color-red fs12 pt5" id="error-msg"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div id="map"></div>
+<div class="row mt10">
+    <div class="col-sm-6" id="dvDistance"></div>
+</div>
+<div class="row mt20">
+    <div class="col-sm-12" id="deliverySchedules"></div>
+</div>
+<div>
+    @Html.Partial("~/Views/Shared/_PartialEnrouteDeliveryStatus.cshtml")
+</div>
+@using (Html.BeginScripts())
+{
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)&callback=initMap"></script>
+    <script type="text/javascript">
+        var selectedJobCountryId = 0;
+        $(document).ready(function () {
+            getAllJobLocations();
+        });
+
+        function initMap() {
+            loadDefaultMap();
+
+            var onJobChangeHandler = function () {
+                dvDistance.innerHTML = "";
+                $("#error-msg").html("");
+                $("#deliverySchedules").html("");
+                var jobId = parseInt(this.options[this.selectedIndex].value);
+                if (jobId > 0) {
+                    $(".po-loader").show();
+                    target = $("#orderList");
+                    var selectedStatus = GetSelectedEnrouteStatus();
+                    var url = "@Url.Action("GetDeliveryScheduleForJobAsync", "Order", new { area = "Buyer" })?jobId=" + jobId + "&enrouteStatus=" + selectedStatus;
+                    $.get(url, function (response) {
+                        target.empty();
+                        target.append($('<option></option>').val("").html('@string.Format(Resource.valMessageSelect, Resource.lblPoNumber)'));
+                        $.each(response, function (i, element) {
+                            target.append($('<option></option>').val(element.DriverId + "," + element.OrderId + "," + element.DeliveryRequestId).html(element.ScheduleDetails));
+                        });
+                        $(".po-loader").hide();
+                        if (response.length > 0) {
+                            if (directionsDisplay !== undefined)
+                                directionsDisplay.setDirections({ routes: [] });
+                            displayAllDriverAndJobLocations(response);
+                        }
+                        else {
+                            $("#error-msg").html('@Resource.errMessageNoOrderAvailable');
+                            selectedJobCountryId = 0;
+                            clearDriverMarkers();
+                        }
+                    });
+                }
+                else {
+                    getAllJobLocations();
+                }
+            };
+            document.getElementById('jobList').addEventListener('change', onJobChangeHandler);
+            document.getElementById('orderList').addEventListener('change', onOrderChangeHandler);
+        }
+
+        function displayDriverLocation(driverId, orderId, deliveryRequestId) {
+            var orders = $("#orderList");
+            if (orders.val() == '')
+                return;
+
+            clearDriverMarkers();
+            $("#deliverySchedules").html("");
+            if (driverId > 0) {
+                var selectedStatus = GetSelectedEnrouteStatus();
+                var url = "@Url.Action("GetDriverDistance", "Order", new { area = "Buyer" })?driverId=" + driverId + "&orderId=" + orderId + "&deliveryRequestId=" + deliveryRequestId + "&enrouteStatus=" + selectedStatus;
+                $.get(url, function (response) {
+                    if (response.IsDriverStartedDelivery) {
+                        calculateAndDisplayRoute(response);
+                    }
+                    else {
+                        displayDriverAndJobLocation(response);
+                    }
+                });
+
+                $.get("@Url.Action("GetDriverScheduleGridDetails", "Order", new { area = "Buyer" })?driverId=" + driverId + "&orderId=" + orderId + "&deliveryRequestId=" + deliveryRequestId,
+                    function (response) {
+                        $("#deliverySchedules").html(response)
+                    });
+                $("#error-msg").html("");
+            }
+            else {
+                $("#error-msg").html('@Resource.errDriverNotAssigned')
+            }
+        }
+
+        function getAllJobLocations() {
+            var url = "@Url.Action("GetAllJobLocationsByUser", "Order", new { area = "Buyer" })?userId=" + @CurrentUser.Id;
+            $.get(url, function (data) {
+                if (data.length > 0) {
+                    displayAllJobLocations(data);
+                }               
+            });
+        }        
+
+        function displayAllJobLocations(data) {
+            google.maps.visualRefresh = true;
+
+            $.each(data, function (i, item) {
+                var jobMarker = new google.maps.Marker({
+                    position: new google.maps.LatLng(item.JobLatitude, item.JobLongitude),
+                    map: buyerMap,
+                    title: item.JobAddress
+                });
+                // Make the job location marker-pin green!
+                jobMarker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png');
+
+                driverMarkers.push(jobMarker);
+            });
+        }
+
+        var onOrderChangeHandler = function () {
+            var selected = $('#orderList').val();
+            dvDistance.innerHTML = "";
+            var selected = this.options[this.selectedIndex].value.split(',');
+            var driverId = selected[0];
+            var orderId = selected[1];
+            var deliveryRequestId = selected[2];
+            if (directionsDisplay !== undefined)
+                directionsDisplay.setDirections({ routes: [] });
+            displayDriverLocation(driverId, orderId, deliveryRequestId);
+        }
+
+        var buyerMap;
+        var directionsService;
+        var directionsDisplay;
+        var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+        var PageCountryId = selectedCountryAndCurrency.countryId;
+        var PageCurrencyId = selectedCountryAndCurrency.currencyType;
+        var centerlat = 0;
+        var centerlon = 0;
+        var centerpoint;
+        var mapOptions;
+        function loadDefaultMap() {
+            if (buyerMap === undefined) {
+                google.maps.visualRefresh = true;
+                directionsService = new google.maps.DirectionsService;
+                directionsDisplay = new google.maps.DirectionsRenderer;
+
+                var centerlat = 41.850033;
+                var centerlon = -87.6500523;
+                if (selectedJobCountryId > 0 && selectedJobCountryId == '@((int)Country.CAN)') {
+                    centerlat = 56.14;
+                    centerlon = -106.34;
+                }
+
+                buyerMap = new google.maps.Map(document.getElementById('map'), {
+                    zoom: 4,
+                    center: { lat: centerlat, lng: centerlon },
+                    mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+                });
+                directionsDisplay.setMap(buyerMap);
+                buyerMap.controls[google.maps.ControlPosition.LEFT_TOP].push(document.getElementById("mapLegend"));
+            }
+        }
+
+        function calculateAndDisplayRoute(data) {
+            google.maps.visualRefresh = true;
+            var marker = new google.maps.Marker({
+                position: new google.maps.LatLng(data.DriverLatitude, data.DriverLongitude),
+                map: buyerMap
+            });
+            driverMarkers.push(marker);
+            marker.setIcon('https://maps.google.com/mapfiles/ms/icons/truck.png');
+
+            directionsDisplay.setMap(buyerMap);
+
+            directionsService.route({
+                origin: { lat: data.DriverLatitude, lng: data.DriverLongitude },
+                destination: { lat: data.JobLatitude, lng: data.JobLongitude },
+                travelMode: google.maps.TravelMode.DRIVING,
+            }, function (response, status) {
+                if (status === 'OK') {
+                    directionsDisplay.setDirections(response);
+                    var distance = response.routes[0].legs[0].distance.text;
+                    var duration = response.routes[0].legs[0].duration.text;
+                    var dvDistance = document.getElementById("dvDistance");
+
+                    dvDistance.innerHTML = "";
+                    dvDistance.innerHTML += "<i class='fa fa-road'></i>" + "<span class='pl5 pr10'>Distance: <b>" + distance + "</b></span>";
+                    dvDistance.innerHTML += "<i class='fa fa-clock-o ml15'></i>" + "<span class='pl5'>Time: <b>" + duration + "</b></span>";
+                    $("#error-msg").html("")
+                } else {
+                    $("#error-msg").html('@Resource.valMessageDirectionRequestFailed ' + status);
+                }
+            });
+        }
+
+        function displayDriverAndJobLocation(data) {
+            google.maps.visualRefresh = true;
+            var jobMarker = new google.maps.Marker({
+                position: new google.maps.LatLng(data.JobLatitude, data.JobLongitude),
+                map: buyerMap,
+                title: data.JobAddress
+            });
+            // Make the job location marker-pin green!
+            jobMarker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png');
+            driverMarkers.push(jobMarker);
+
+            var markerDriver = new google.maps.Marker({
+                position: new google.maps.LatLng(data.DriverLatitude, data.DriverLongitude),
+                map: buyerMap,
+                title: data.DriverName,
+                icon: { url: getMapDotUrl(data.StatusId) }
+            });
+            driverMarkers.push(markerDriver);
+
+            directionsDisplay.setMap(buyerMap);
+        }
+
+        function displayAllDriverAndJobLocations(driverRoutes) {
+            var zoomarea = 4;
+            centerlat = 0;
+            centerlon = 0;
+            var latLongCount = 0;
+            var zoomAreaArr = [];
+            $.each(driverRoutes, function (i, item) {
+                if (item.DeliveryDetails.DriverLatitude != 0 && item.DeliveryDetails.DriverLongitude != 0) {
+                    centerlat = centerlat + item.DeliveryDetails.DriverLatitude;
+                    centerlon = centerlon + item.DeliveryDetails.DriverLongitude;
+                    latLongCount++;
+
+                    zoomAreaArr.push({ "Latitude": item.DeliveryDetails.DriverLatitude }, { "Longitude": item.DeliveryDetails.DriverLongitude });
+                }
+            });
+
+            zoomarea = getZoomArea(zoomAreaArr);
+            setCenterLocation(driverRoutes, latLongCount);
+            centerpoint = new google.maps.LatLng(centerlat, centerlon);
+            // These are options that set initial zoom level, where the map is centered globally to start, and the type of map to show
+            mapOptions = {
+                zoom: zoomarea,
+                center: centerpoint,
+                mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+            };
+
+            clearDriverMarkers();
+
+            var jobIdx = 0;
+            $.each(driverRoutes, function (idx, data) {
+                if (data.DriverId > 0 && data.DeliveryDetails.DriverLatitude != 0 && data.DeliveryDetails.DriverLongitude != 0) {
+                    if (jobIdx == 0) {
+                        google.maps.visualRefresh = true;
+                        var jobMarker = new google.maps.Marker({
+                            position: new google.maps.LatLng(data.DeliveryDetails.JobLatitude, data.DeliveryDetails.JobLongitude),
+                            map: buyerMap,
+                            title: data.DeliveryDetails.JobAddress
+                        });
+                        // Make the job location marker-pin green!
+                        jobMarker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png');
+                        driverMarkers.push(jobMarker);
+                        jobIdx++;
+                    }
+                    
+                    var markerDriver = new google.maps.Marker({
+                        position: new google.maps.LatLng(data.DeliveryDetails.DriverLatitude, data.DeliveryDetails.DriverLongitude),
+                        map: buyerMap,
+                        title: data.DeliveryDetails.DriverName,
+                        icon: { url: getMapDotUrl(data.DeliveryDetails.StatusId) }
+                    });
+                    driverMarkers.push(markerDriver);
+                }
+            });
+        }
+
+        function updateDriverStatus(element) {
+            $("#status-legends").find("a").css("font-weight", "normal");
+            if ($(element).attr("data-select") == "true") {
+                $("#status-legends").find("a").attr("data-select", false);
+            }
+            else {
+                $("#status-legends").find("a").attr("data-select", false);
+                $(element).css("font-weight", "bold");
+                $(element).attr("data-select", true);
+            }
+
+            var elementOrder = document.getElementById('jobList');
+            var event = new Event('change');
+            elementOrder.dispatchEvent(event);
+        }
+    </script>
+}

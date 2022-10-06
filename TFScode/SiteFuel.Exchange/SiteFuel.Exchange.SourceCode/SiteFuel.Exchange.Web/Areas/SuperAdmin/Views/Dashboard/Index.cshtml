@@ -1,0 +1,266 @@
+﻿@{
+    ViewBag.Title = "Dashboard";
+}
+<div class="row">
+    @if (CurrentUser.IsSuperAdmin)
+    {
+        <div class="col-sm-4 mb10">
+            <div class="input-group">
+                @Html.TextBox("txtInvoiceToDelete", "", new { @class = "form-control r-topleft r-bottomleft", @placeholder = Resource.lblSearchInvoiceNumberToDelete })
+                <div class="input-group-btn"><input type="button" value="Search" class="btn btn-primary" id="searchInvoice" onclick='GetInvoiceDetails()' /></div>
+            </div>
+        </div>
+    }
+    <div class="col-sm-4 mb10">
+        <div class="input-group">
+            @Html.TextBox("txtSearchOrder", "", new { @class = "form-control r-topleft r-bottomleft", @placeholder = Resource.lblSearchPoNumber })
+            <div class="input-group-btn"><input type="button" value="Search" class="btn btn-primary" id="searchPoNumber" onclick='GetOrderDetails()' /></div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div id="InvoiceRowToDelete" class="hide-element">
+            <h3 class="f-light pb5 mb0 fs18">@Resource.lblInvoice</h3>
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive grid-loader">
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                        <table id="deleteRequestedInvoiceTable" class="table table-striped table-bordered table-hover white-header">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnInvoiceNumber</th>
+                                    <th>@Resource.gridColumnPoNumber</th>
+                                    <th>@Resource.gridColumnCustomerOrSupplier</th>
+                                    <th>@Resource.gridColumnFuelType</th>
+                                    <th>@Resource.gridColumnTerminal</th>
+                                    <th>@Resource.gridColumnInvoiceAmount</th>
+                                    <th>@Resource.gridColumnDropDate</th>
+                                    <th>@Resource.gridColumnDropTime</th>
+                                    <th>@Resource.gridColumnInvoiceDate</th>
+                                    <th>@Resource.gridColumnPaymentDueDate</th>
+                                    <th>@Resource.gridColumnDriver</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan='13' class='text-center'>@Resource.valMessageNoMatchingRecords</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="OrderToSearch" class="hide-element">
+            <h3 class="f-light pb5 mb0 fs18">@Resource.lblPO</h3>
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive grid-loader">
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                        <table id="orderDetails-datatable" class="table table-striped table-bordered table-hover white-header">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnPoNumber</th>
+                                    <th>@Resource.gridColumnJob</th>
+                                    <th>@Resource.gridColumnCustomer</th>
+                                    <th>@Resource.gridColumnSupplier</th>
+                                    <th>@Resource.gridColumnFuelType</th>
+                                    <th>@Resource.lblStartDate</th>
+                                    <th>@Resource.lblGallonsOrdered</th>
+                                    <th>@Resource.lblRackPPG</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan='13' class='text-center'>@Resource.valMessageNoMatchingRecords</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-4">
+        <div class="row">
+            @if (CurrentUser.IsSuperAdmin)
+            {
+                <div class="col-sm-12">
+                    <div class="widget blue-bg p-sm mt0">
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                        @Html.Partial("_PartialDashboardSuperAdmins", new DashboardSuperAdminCountViewModel())
+                    </div>
+                </div>
+            }
+            <div class="col-sm-12">
+                <div class="widget yellow-bg p-sm mt0">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                    @Html.Partial("_PartialDashboardCompanyUsers", new DashboardSuperAdminCountViewModel())
+                </div>
+            </div>
+            @if (CurrentUser.IsSuperAdmin)
+            {
+                <div class="col-sm-12">
+                    <div class="widget navy-bg p-sm mt0">
+                        @Html.Partial("_PartialDashboardAuditReport", new AuditReportAxxisFilter())
+                    </div>
+                </div>
+            }
+            <div class="col-sm-12 progress-report">
+                <div class="widget blue-bg p-sm mt0">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                    @Html.Partial("_PartialProgressReport", new ProgressReportFilter())
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-8">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="widget navy-bg p-sm mt0">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                    @Html.Partial("_PartialDashboardCompanies", new DashboardSuperAdminCompanyCountViewModel())
+                </div>
+            </div>
+            <div class="col-sm-12 fuelrequest-tile-stats">
+                <div class="widget lazur-bg p-sm mt0">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                    @Html.Partial("_PartialDashboardFuelRequestStats", new DashboardFuelRequestViewModel())
+                </div>
+            </div>
+
+            <div class="col-sm-6 gallons-ordered">
+                <div class="widget lazur-bg p-sm mt0">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                    @Html.Partial("_PartialTotalGallonsOrderedWidget")
+                </div>
+            </div>
+            <div class="col-sm-6 gallons-delivered">
+                <div class="widget navy-bg p-sm mt0">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                    @Html.Partial("_PartialTotalGallonsDeliveredWidget")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .main-wrapper {
+        background: #fafafa;
+    }
+</style>
+<script>
+    $("#txtInvoiceToDelete").keypress(function (e) {
+        if (e.which == 13) {
+            $("#searchInvoice").trigger("click");
+        }
+    });
+    function GetInvoiceDetails() {
+        $("#deleteRequestedInvoiceTable").closest(".grid-loader").find('.loading-wrapper').show();
+        if ($("#txtInvoiceToDelete").val() != "") {
+            $("#InvoiceRowToDelete").show();
+            $.ajax({
+                type: "get",
+                url: "@Url.Action("DeleteRequestsInvoiceGrid", "SuperAdmin", new { area = "SuperAdmin" })",
+                dataType: "json",
+                data: { invoiceNumber: $("#txtInvoiceToDelete").val() },
+                success: function (data) {
+                    $("#deleteRequestedInvoiceTable tbody").html("");
+                    if (data.Id > 0) {
+                        var confirmationBtn = '<i class="fa fa-trash-alt color-maroon fs18 handpointer" data-toggle="confirmation" data-placement="top" data-popout="true" data-singleton="true" href="@Url.Action("DeleteInvoice", "SuperAdmin", new { area = "SuperAdmin" })/' + data.Id + '"></i>';
+                        $("#deleteRequestedInvoiceTable tbody").append("<tr>" +
+							"<td>" + data.InvoiceNumber + "</td>" +
+							"<td>" + data.PoNumber + "</td>" +
+							"<td>" + data.Supplier + "</td>" +
+							"<td>" + data.FuelType + "</td>" +
+							"<td>" + data.TerminalName + "</td>" +
+                            "<td>" + data.InvoiceAmount + "</td>" +
+                            "<td>" + data.DropDate + "</td>" +
+                            "<td>" + data.DropTime + "</td>" +
+                            "<td>" + data.InvoiceDate + "</td>" +
+                            "<td>" + data.PaymentDueDate + "</td>" +
+                            "<td>" + data.DriverName + "</td>" +
+                            "<td>" + data.Status + "</td>" +
+                            "<td class='text-center' valign='middle' width='80'>" + confirmationBtn + "</td>" +
+                            "</td></tr>");
+
+                        $("#deleteRequestedInvoiceTable").closest(".grid-loader").find('.loading-wrapper').hide();
+
+                        wrapperHeight();
+
+                        $('[data-toggle=confirmation]').confirmation({
+                            rootSelector: '[data-toggle=confirmation]',
+                            html: true
+                        });
+                    }
+                    else {
+                        $("#deleteRequestedInvoiceTable tbody").append("<tr><td colspan='13' class='text-center'>@Resource.valMessageNoMatchingRecords</td ></tr>");
+                        $("#deleteRequestedInvoiceTable").closest(".grid-loader").find('.loading-wrapper').hide();
+                    }
+                }
+            });
+        }
+        else {
+            $("#deleteRequestedInvoiceTable tbody").html("");
+            $("#deleteRequestedInvoiceTable tbody").append("<tr><td colspan='13' class='text-center'>@Resource.valMessageNoMatchingRecords</td ></tr>");
+            $("#deleteRequestedInvoiceTable").closest(".grid-loader").find('.loading-wrapper').hide();
+        }
+	}
+
+	function GetOrderDetails()
+	{
+		var poNumber = $('#txtSearchOrder').val();
+		$("#txtSearchOrder").closest(".grid-loader").find('.loading-wrapper').show();
+		if (poNumber != "") {
+			$("#OrderToSearch").show();
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("GetOrders", "SuperAdmin", new { area = "SuperAdmin" })",
+                dataType: "json",
+				data: { poNumber: poNumber },
+                success: function (data) {
+					$("#orderDetails-datatable tbody").html("");
+					if (data.length > 0) {
+					for (var i = 0; i < data.length; i++) {
+                        var editBtn = '<a href="@Url.Action("OrderDetails", "SuperAdmin", new { area = "SuperAdmin" })?id=' + data[i].Id + '">@Resource.btnLabelEdit</a>';
+                        var confirmationOrderBtn = '<i class="fa fa-trash-alt color-maroon fs18 handpointer" data-toggle="confirmation" data-placement="top" data-popout="true" data-singleton="true" href="@Url.Action("DeleteOrder", "SuperAdmin", new { area = "SuperAdmin" })/' + data[i].Id + '"></i>';
+							$("#orderDetails-datatable tbody").append("<tr>" +
+								"<td class='allow-white-spaces'>" + data[i].PoNumber + "</td>" +
+								"<td>" + data[i].Job + "</td>" +
+								"<td>" + data[i].Customer + "</td>" +
+								"<td>" + data[i].Supplier + "</td>" +
+								"<td>" + data[i].FuelType + "</td>" +
+								"<td>" + data[i].StartDate + "</td>" +
+								"<td>" + data[i].GallonsOrdered + "</td>" +
+								"<td>" + data[i].RackOrPpg + "</td>" +
+								"<td>" + data[i].Status + "</td>" +
+                                "<td class='text-center' valign='middle' width='80'>" + editBtn + "</td>" +
+                                "<td class='text-center' valign='middle' width='80'>" + confirmationOrderBtn + "</td>" +
+								"</td></tr>");
+						}
+					}
+					else {
+						$("#orderDetails-datatable tbody").append("<tr><td colspan='13' class='text-center'>@Resource.valMessageNoMatchingRecords</td ></tr>");
+					}
+				},
+				complete: function ()
+				{
+					wrapperHeight();
+
+					$('[data-toggle=confirmation]').confirmation({
+						rootSelector: '[data-toggle=confirmation]',
+						html: true
+					});
+					$("#orderDetails-datatable").closest(".grid-loader").find('.loading-wrapper').hide();
+				}
+            });
+        }
+        else {
+			$("#orderDetails-datatable tbody").html("");
+			$("#orderDetails-datatable tbody").append("<tr><td colspan='13' class='text-center'>@Resource.valMessageNoMatchingRecords</td ></tr>");
+        }
+	}
+</script>

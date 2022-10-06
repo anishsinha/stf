@@ -1,0 +1,452 @@
+﻿<div class="pr">
+    <div class="well bg-white shadow-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-border no-padding">
+                <div id="LFrecord-div" class="table-responsive">
+                    <table id="tbl-LFrecord-grid" class="table table-striped table-bordered table-hover lfvrecodegrid">
+                        <thead>
+                            <tr>
+                                <th>@Resource.lblLiftRecordId</th>
+                                <th>@Resource.lblBOL</th>
+                                <th>@Resource.lblTerminals</th>
+                                <th>@Resource.lblCorrectedQty</th>
+                                <th>@Resource.lblTerminalItemCode</th>
+                                <th>@Resource.gridColumnProductType</th>
+                                <th>@Resource.lblLoadDate</th>
+                                <th>@Resource.lblRecordDate</th>
+                                <th>@Resource.lblLFVCarrierId</th>
+                                <th>@Resource.lblReason</th>
+                                <th class="action-column">@Resource.gridColumnAction</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--These two button will be shown only when grid is of No Match records.-->
+<div class="col-sm-12 text-right mb25 btn-wrapper">
+    <div class="row">
+        <div class="form-group col-sm-12">
+            <input type="button" id="btnCancelNoMatchGrid" class="btn btn-default" data-dismiss="modal" value="@Resource.btnLabelCancel" />
+            <input type="button" class="btn btn-primary" value="@Resource.btnIgnore" id="btnIgnoreNomatchedRecords" />
+        </div>
+    </div>
+</div>
+
+
+
+<!--These two button will be shown only when grid is of duplicate records.-->
+<div class="col-sm-12 text-right mb25 btn-wrapper">
+    <div class="row">
+        <div class="form-group col-sm-12">
+            <input type="button" id="btnCancel" class="btn btn-default" data-dismiss="modal" value="@Resource.btnLabelCancel" />
+            <input type="button" class="btn btn-primary" value="@Resource.btnReprocess" id="btnReprocess" />
+        </div>
+    </div>
+</div>
+
+<!--These three button will be shown only when grid is of unmatched records.-->
+<div class="col-sm-12 text-right mb25 btn-wrapper">
+    <div class="row">
+        <div class="form-group col-sm-12">
+            <input type="button" id="btnCloseUnmatchedGrid" class="btn btn-default" data-dismiss="modal" value="@Resource.btnLabelCancel" />
+            <input type="button" id="btnReprocessUnmatchedRecords" class="btn btn-primary" value="@Resource.btnReprocess" />
+            <input type="button" id="btnIgnoreUnmatchedRecords" class="btn btn-primary" value="@Resource.btnIgnore" />
+        </div>
+    </div>
+</div>
+
+
+
+<button id="btnResolve" data-target="#edit-bol-details" class="hide-element" onclick="slidePanel('#edit-bol-details', '55%')"></button>
+<div class="side-panel" id="edit-bol-details">
+    <div class="side-panel-wrapper">
+        <div class="pa bg-white top0 left0 z-index5 loading-wrapper boleditlider-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+        <div class="pt10 pb0">
+            <a class="ml15 close-panel" onclick="closeSlidePanel();"><i class="fa fa-close fs18"></i></a>
+            <h3 class="dib mt0 mb0 ml15">@Resource.lblBolDetailsEdit </h3>
+        </div>
+        <div id="edit-bol-details-slider">
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        exportGridColumns = { columns: [1, 2, 3, 4, 5, 6, 7, 8,9] };
+        //exportGrid();
+        var callId = @ViewBag.lfCallId;
+        var recordStatus = @ViewBag.recordStatus;
+        var url = '@Url.Action("LFRecordsGrid", "Exception", new { area = "Supplier" })';
+        url += '?recordStatus=' + recordStatus + '&lfCallId=' + callId;
+        LFGrid = $('#tbl-LFrecord-grid').DataTable({
+            "ajax": {
+                "url": url,
+                "type": "GET",
+                "datatype": "json",
+                "data": function () {
+                    $('#LFrecord-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#LFrecord-div").find('.loading-wrapper').remove();
+                    return json;
+                }
+            },
+            "columns": [
+                { "data": "LiftFileRecordId", "autoWidth": true },
+                { "data": "bol", "autoWidth": true },
+                { "data": "TerminalName", "autoWidth": true },
+                { "data": "correctedQuantity", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2) },
+                { "data": "TerminalItemCode", "autoWidth": true },
+                { "data": "ProductType", "autoWidth": true },
+                { "data": "LoadDate", "autoWidth": true },
+                { "data": "RecordDate", "autoWidth": true },
+                { "data": "CarrierID", "autoWidth": true },
+                { "data": "Reason", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        if ((data.Status == @((int)LFVRecordStatus.ActiveExceptions)) || (data.Status == @((int)LFVRecordStatus.PartialMatch)) || (data.Status == @((int)LFVRecordStatus.Duplicate))
+                            || (data.Status == @((int)LFVRecordStatus.UnMatched)) || (data.Status == @((int)LFVRecordStatus.NoMatch))) {
+                            if ((data.Status == @((int)LFVRecordStatus.PartialMatch))) {
+                                return '<button class="btn btn-default btn-sm lfrecordrowdata"> Resolve </button>';
+                            }
+                            else if ((data.Status == @((int)LFVRecordStatus.ActiveExceptions))) {
+                                return '<button class="btn btn-default btn-sm" onclick="rediectToMyApprovaltab();"> Resolve </button>';
+                            }
+                            else if ((data.Status == @((int)LFVRecordStatus.Duplicate))) {
+                                return '<input type="checkbox" class = "chk-duplicate-record" id="' + data.LiftFileRecordId + '"  value = "' + data.LiftFileRecordId + '"/>';
+                            }
+                            else if ((data.Status == @((int)LFVRecordStatus.UnMatched))) {
+                                return '<input type="checkbox" class = "chk-unmatched-record" id="' + data.LiftFileRecordId + '"  value = "' + data.LiftFileRecordId + '"/>';
+                            }
+                            else if ((data.Status == @((int)LFVRecordStatus.NoMatch))) {
+                                return '<input type="checkbox" class = "chk-noMatch-record" id="' + data.LiftFileRecordId + '"  value = "' + data.LiftFileRecordId + '"/>';
+                            }
+                        }
+                        else {
+                            return '';
+                          }
+                        },
+                    "orderable": false,
+                    "autoWidth": true,
+                    //"visible": false,
+                    "className": 'dt-body-center'
+                }
+            ],
+            pageLength: 10,
+            responsive: true,
+            fixedHeader: false,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "fnDrawCallback": function (settings) {
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true
+                });
+            },
+            "fnRowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                if (aData.Status == @((int)LFVRecordStatus.Clean) && aData['IsRecordPushedToExternalApi'] == false) {
+                    $(nRow).css('background-color', '#ffcccc')
+                }
+            },
+            "columnDefs": [
+                { "name": "LiftFileRecordId", "targets": 0, "visible": false },
+                { "name": "bol", "targets": 1 },
+                { "name": "TerminalName", "targets": 2 },
+                { "name": "correctedQuantity", "targets": 3 },
+                { "name": "TerminalItemCode", "targets": 4 },
+                { "name": "ProductType", "targets": 5 },
+                { "name": "LoadDate", "targets": 6 },
+                { "name": "RecordDate", "targets": 7 },
+                { "name": "CarrierID", "targets": 8 },
+                { "name": "Reason", "targets": 9 },
+                { "targets": [-1], "visible": false, "searchable": false }
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                //{ extend: 'copy' },
+                { extend: 'csv', title: '@Resource.lblLiftFileGrid', exportOptions: exportGridColumns },
+                { extend: 'excel', title: '@Resource.lblLiftFileGrid', exportOptions: exportGridColumns },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('lfvrecodegrid')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                },
+                { extend: 'pdf', orientation: 'landscape', pageSize: 'LETTER' }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+       // HIding action columns for => No Match records, Ignore match records, Matched records
+        //Code added to show hide action column
+        var recordStatus = @ViewBag.recordStatus;
+        if ((recordStatus == @((int)LFVRecordStatus.Duplicate))
+            || (recordStatus == @((int)LFVRecordStatus.ActiveExceptions))
+            || (recordStatus == @((int)LFVRecordStatus.PartialMatch))
+            || (recordStatus == @((int)LFVRecordStatus.UnMatched))
+            || (recordStatus == @((int)LFVRecordStatus.NoMatch))) {
+            var table = $('#tbl-LFrecord-grid').DataTable();
+            table.columns('.action-column').visible(true);
+        }
+        else if ((recordStatus != @((int)LFVRecordStatus.Duplicate))
+            && (recordStatus != @((int)LFVRecordStatus.ActiveExceptions))
+            && (recordStatus != @((int)LFVRecordStatus.PartialMatch))
+            && (recordStatus != @((int)LFVRecordStatus.UnMatched))
+            && (recordStatus != @((int)LFVRecordStatus.NoMatch))) {
+            var table = $('#tbl-LFrecord-grid').DataTable();
+            table.columns('.action-column').visible(false);
+        }
+
+
+         // Start:Code block for reprocess workflow of duplicate records
+        if (recordStatus == @((int)LFVRecordStatus.Duplicate)) {
+            var table = $('#tbl-LFrecord-grid').DataTable();
+            // table.columns('.action-column').visible(false);
+            $('.action-column').text('');// remove "Action"  text from colum header
+            $('.action-column').html("Select all <input type=checkbox id='select-all-records' value='selected-all-records'>");//append new checkbox in header
+            if (($('#btnCancel').hasClass('hide-element')) || ($('#btnCancel').hasClass('hide-element'))) {
+                $('#btnCancel').addClass('show-element');
+                $('#btnReprocess').addClass('show-element');
+            }
+        }
+        else {
+            $('#btnCancel').addClass('hide-element');
+            $('#btnReprocess').addClass('hide-element');
+        }
+        $('#select-all-records').click(function () {
+           var allPages =  $('#tbl-LFrecord-grid').dataTable().fnGetNodes();
+            if ($(this).is(":checked")) {
+                $("input:checkbox", allPages).each(function () {
+                    $(this).prop('checked', true);
+                })
+            }
+            else {
+                $("input:checkbox", allPages).each(function () {
+                    $(this).prop('checked', false);
+                })
+            }
+        });
+
+
+        
+        $("#btnReprocess").one("click",function () {
+            var lfRecordIds = [];
+            var allPages = $('#tbl-LFrecord-grid').dataTable().fnGetNodes();
+            $("input:checkbox", allPages).each(function () {
+                if ($(this).is(":checked")) {
+                    lfRecordIds.push(parseInt($(this).attr('id')));
+                }
+                })
+            if (lfRecordIds != null && lfRecordIds != undefined && lfRecordIds.length > 0) {
+                //call serverside api for posting the data
+                addRecordForReprocessing(lfRecordIds);
+            }
+            else {
+                msgerror("@Resource.errMsgNoRecordsFoundForProcessing");
+            }
+        });
+        // End:Code block for reprocess workflow of duplicate records
+
+
+         // Start:Code block for reprocess and ignore match workflow of unmatched records
+        if (recordStatus == @((int)LFVRecordStatus.UnMatched)) {
+            var table = $('#tbl-LFrecord-grid').DataTable();
+            // table.columns('.action-column').visible(false);
+            $('.action-column').text('');// remove "Action"  text from colum header
+            $('.action-column').html("Select all <input type=checkbox id='select-all-unmatchedrecords' value='select-all-unmatchedrecords'>");//append new checkbox in header
+            if (($('#btnCloseUnmatchedGrid').hasClass('hide-element')) || ($('#btnReprocessUnmatchedRecords').hasClass('hide-element'))
+                || ($('#btnIgnoreUnmatchedRecords').hasClass('hide-element'))) {
+                $('#btnCloseUnmatchedGrid').addClass('show-element');
+                $('#btnReprocessUnmatchedRecords').addClass('show-element');
+                $('#btnIgnoreUnmatchedRecords').addClass('show-element');
+
+            }
+        }
+        else {
+            $('#btnCloseUnmatchedGrid').addClass('hide-element');
+            $('#btnReprocessUnmatchedRecords').addClass('hide-element');
+            $('#btnIgnoreUnmatchedRecords').addClass('hide-element');
+
+        }
+        $('#select-all-unmatchedrecords').click(function () {
+           var allPages =  $('#tbl-LFrecord-grid').dataTable().fnGetNodes();
+            if ($(this).is(":checked")) {
+                $("input:checkbox", allPages).each(function () {
+                    $(this).prop('checked', true);
+                })
+            }
+            else {
+                $("input:checkbox", allPages).each(function () {
+                    $(this).prop('checked', false);
+                })
+            }
+        });
+        $("#btnReprocessUnmatchedRecords").click(function () {
+            var lfRecordIds = [];
+            var allPages = $('#tbl-LFrecord-grid').dataTable().fnGetNodes();
+            $("input:checkbox", allPages).each(function () {
+                if ($(this).is(":checked")) {
+                    lfRecordIds.push(parseInt($(this).attr('id')));
+                }
+                })
+            if (lfRecordIds != null && lfRecordIds != undefined && lfRecordIds.length > 0) {
+                //call serverside api for posting the data
+                addRecordForReprocessing(lfRecordIds);
+            }
+            else {
+                msgerror("@Resource.errMsgNoRecordsFoundForProcessing");
+            }
+        });
+        $("#btnIgnoreUnmatchedRecords").click(function () {
+            var lfRecordIds = [];
+            var allPages = $('#tbl-LFrecord-grid').dataTable().fnGetNodes();
+            $("input:checkbox", allPages).each(function () {
+                if ($(this).is(":checked")) {
+                    lfRecordIds.push(parseInt($(this).attr('id')));
+                }
+                })
+            if (lfRecordIds != null && lfRecordIds != undefined && lfRecordIds.length > 0) {
+                //call serverside api for posting the data
+                addRecordForIgnoreMatchProcessing(lfRecordIds);
+            }
+            else {
+                msgerror("@Resource.errMsgNoRecordsFoundForProcessing");
+            }
+        });
+        // End:Code block for reprocess and ignore match workflow of unmatched records
+
+        //Start:Code block for ignore match workflow of no match records
+        if (recordStatus == @((int)LFVRecordStatus.NoMatch)) {
+            var table = $('#tbl-LFrecord-grid').DataTable();
+            $('.action-column').text('');// remove "Action"  text from colum header
+            $('.action-column').html("Select all <input type=checkbox id='select-all-nomatchrecords' value='select-all-nomatchrecords'>");//append new checkbox in header
+            if (($('#btnCancelNoMatchGrid').hasClass('hide-element')) || ($('#btnIgnoreNomatchedRecords').hasClass('hide-element'))) {
+                $('#btnCancelNoMatchGrid').addClass('show-element');
+                $('#btnIgnoreNomatchedRecords').addClass('show-element');
+            }
+        }
+        else {
+            $('#btnCancelNoMatchGrid').addClass('hide-element');
+            $('#btnIgnoreNomatchedRecords').addClass('hide-element');
+        }
+
+        $('#select-all-nomatchrecords').click(function () {
+           var allPages =  $('#tbl-LFrecord-grid').dataTable().fnGetNodes();
+            if ($(this).is(":checked")) {
+                $("input:checkbox", allPages).each(function () {
+                    $(this).prop('checked', true);
+                })
+            }
+            else {
+                $("input:checkbox", allPages).each(function () {
+                    $(this).prop('checked', false);
+                })
+            }
+        });
+        $("#btnIgnoreNomatchedRecords").one("click",function () {
+            var lfRecordIds = [];
+            var allPages = $('#tbl-LFrecord-grid').dataTable().fnGetNodes();
+            $("input:checkbox", allPages).each(function () {
+                if ($(this).is(":checked")) {
+                    lfRecordIds.push(parseInt($(this).attr('id')));
+                }
+                })
+            if (lfRecordIds != null && lfRecordIds != undefined && lfRecordIds.length > 0) {
+                //call serverside api for posting the data
+                addRecordForIgnoreMatchProcessing(lfRecordIds);
+            }
+            else {
+                msgerror("@Resource.errMsgNoRecordsFoundForProcessing");
+            }
+        });
+        $('#tbl-LFrecord-grid tbody').on('click', '.lfrecordrowdata', function () {
+            var $row = $(this).closest('tr');
+            var data = $('#tbl-LFrecord-grid').DataTable().row($row).data();
+            if (data != null && data != undefined && data.bol != null && data.bol != undefined) {
+                $('#btnResolve').click();
+                loadBolData(data);
+            }
+        });
+    });
+
+    function reprocessRecord(ele) {
+        var liftFileRecordId = parseInt($(ele).attr('liftFileRecordId'));
+        if (liftFileRecordId != null && liftFileRecordId != undefined && liftFileRecordId > 0) {
+            // call server side api for reprocessing records
+            addRecordForReprocessing(liftFileRecordId);
+        }
+    }
+
+    function addRecordForReprocessing(Ids) {
+        var url = '@Url.Action("AddUnmatchedRecordForReProcessing", "Exception", new { area="Supplier"})';
+        $('#LFrecord-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>")
+        $.post(url, { LfRecordIds: Ids }, function (response) {
+            $("#LFrecord-div").find('.loading-wrapper').remove();
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess(response.StatusMessage);
+                reloadLfReordsGrids();
+            }
+            else if (response.StatusCode == @((int)Status.Failed)) {
+                msgerror(response.StatusMessage);
+            }
+        });
+    }
+
+    function addRecordForIgnoreMatchProcessing(Ids) {
+         var url = '@Url.Action("AddRecordsAsIgnoreMatch", "LiftFile", new { area="Supplier"})';
+        $('#LFrecord-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>")
+        $.post(url, { LfRecordIds: Ids }, function (response) {
+            $("#LFrecord-div").find('.loading-wrapper').remove();
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess(response.StatusMessage);
+                reloadLfReordsGrids();
+            }
+            else if (response.StatusCode == @((int)Status.Failed)) {
+                msgerror(response.StatusMessage);
+            }
+        });
+    }
+
+
+    function reloadLfReordsGrids() {
+        $('#tbl-LFrecord-grid').DataTable().ajax.reload();//reload records grid
+        $('#tbl-liftfile-grid').DataTable().ajax.reload();//reload record count grid
+    }
+    $(document).off('submitNoDataAction');
+    $(document).on('submitNoDataAction', function (e) {
+        reprocessRecord(e.target);
+    });
+
+    function rediectToMyApprovaltab() {
+        $(".lfgridmodal").trigger("click"); // close grid modal.
+        $("#tab-my-approvals").trigger("click"); // trigger click on tab
+    }
+
+    function loadBolData(selectedBolData) {
+        if (selectedBolData != null && selectedBolData != undefined)
+        {
+            $('.boleditlider-loader').show();
+            $.post("@Url.Action("GetLFBolEditDetailsForSlider","LiftFile", new { area = "Supplier" })", { model: selectedBolData }).done(function (response) {
+            if (response != null) {
+                $('#edit-bol-details-slider').html(response);
+                parseForm();
+            }
+        }).always(function () {
+            $('.boleditlider-loader').hide();
+        });
+        }
+    }
+</script>
+

@@ -1,0 +1,155 @@
+﻿@model InvoiceDetailViewModel
+@{
+    string pricePerGallon = CommonHelperMethods.GetInvoicePricePerGallon(Model.Invoice.Id);
+    ViewBag.Title = "Invoice Detail";
+}
+<div class="row">
+    <div class="col-sm-12">
+        <!-- details starts -->
+        <div class="row mb10">
+            <div class="col-md-6 tab-headers">
+                <a href="javascript:void(0)" id="auto-tabinvoice" onclick="showsection('invoice'), activelink(this), inputBoxShowHide('download', 'detailsTab'), inputBoxShowHide(null, 'download-images')" class="mr20 @(Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned ? "pntr-none" : "")"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoice"
+                   data-ajax-url="@Url.Action("ConsolidatedInvoicePdfTab", "SuperAdmin", new { area = "SuperAdmin", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })">
+                    <div class="step-inprogress fs18">
+                        @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                        {
+                            <span class="f-light step-text float-left">@Resource.tabheadingDropTicket</span>
+                        }
+                        else
+                        {
+                            <span class="f-light step-text float-left">@Resource.tabheadingInvoice</span>
+                        }
+                    </div>
+                </a>
+                <a href="javascript:void(0)" id="auto-tabhistory" onclick="showsection('invoice-history'),  activelink(this), inputBoxShowHide(null, 'download'), inputBoxShowHide(null, 'download-images')" class="mr20"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoice-history"
+                   data-ajax-url="@Url.Action("InvoiceHistoryTab", "SuperAdmin", new { area = "SuperAdmin", id = Model.Invoice.Id })">
+                    <div class="step-inprogress fs18">
+                        <span class="f-light step-text float-left">@Resource.tabHeadingHistory</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <div class="panel-section hide-element bg-white radius-5 animated slideInLeft pa">
+            <a href="#." class="pa fs25 right0 top0 color-darkgrey mr15 mt5 z-index5" onclick="closePanel()">×</a>
+            <div class="pt15 pb15 ph20">
+                <div class="row mt15">
+                    <div class="col-md-12 mb10">
+                        @if (Model.Invoice.ShouldHidePricing() || Model.Invoice.StatusId == (int)InvoiceStatus.Draft || Model.Invoice.StatusId == (int)InvoiceStatus.Canceled || Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned)
+                        {
+                            <h1 class="no-margins fs21">@Resource.lblHyphen</h1>
+                        }
+                        else
+                        {
+                            <span class="float-left">@Resource.constSymbolCurrency</span>
+                            <h1 class="no-margins fs21 float-left">@Model.TotalInvoiceAmount.GetPreciseValue(2).GetCommaSeperatedValue() </h1>
+                            <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                        }
+                        <div class="fs12 clearboth">
+                            @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                            {
+                                @Resource.lblDropTicketAmount
+                            }
+                            else
+                            {
+                                <div> @Resource.lblInvoice @Resource.lblAmount </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        @if (Model.Invoice.ShouldHidePricing() || Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DryRun)
+                        {
+                            <h1 class="no-margins fs21">@Resource.lblHyphen</h1>
+                            <span class="fs12">@(string.Format(Resource.lblRackPP, Model.Invoice.Currency == Currency.USD ? "PPU" : "PPU"))</span>
+                        }
+                        else
+                        {
+                            if (!Model.IsBuyAndSellOrder)
+                            {
+                                if (Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.Tier)
+                                {
+                                    <h1 class="no-margins fs21">@(CommonHelperMethods.GetName<PricingType>(Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId))</h1>
+                                }
+                                else if (Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackAverage
+                                || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackLow
+                                || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackHigh
+                                || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.Suppliercost)
+                                {
+                                    <span class="float-left">@Resource.constSymbolCurrency</span>
+                                    <h1 class="no-margins fs21 float-left">@Model.Invoice.PricePerGallon.ToString(ApplicationConstants.DecimalFormat4WOZero)</h1>
+                                    <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                                    <div class="fs12 clearboth">(@pricePerGallon)</div>
+                                }
+                                else
+                                {
+                                    <span class="float-left">@Resource.constSymbolCurrency</span>
+                                    <h1 class="no-margins fs21 float-left">@Model.Invoice.PricePerGallon.ToString(ApplicationConstants.DecimalFormat4WOZero)</h1>
+                                    <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                                }
+                                <span class="fs12 float-left clearboth">@(string.Format(Resource.lblRackPP, Model.Invoice.Currency == Currency.USD ? "PPU" : "PPU"))</span>
+                            }
+                            else if (Model.IsBuyAndSellOrder && Model.BuyAndSellPricingDetail.IsBuyPriceInvoice)
+                            {
+                                <span class="float-left">@Resource.constSymbolCurrency</span>
+                                <h1 class="no-margins fs21 float-left">@Model.BuyAndSellPricingDetail.BuyPrice.ToString(ApplicationConstants.DecimalFormat4WOZero) @Model.Invoice.Currency</h1>
+                                <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                                <div class="fs12 mb10 float-left clearboth">(@Model.BuyAndSellPricingDetail.BuyPriceDetail)</div>
+                            }
+                            else if (Model.IsBuyAndSellOrder && !Model.BuyAndSellPricingDetail.IsBuyPriceInvoice)
+                            {
+                                <span class="float-left">@Resource.constSymbolCurrency</span>
+                                <h1 class="no-margins fs21 float-left">@Model.BuyAndSellPricingDetail.SellPrice.ToString(ApplicationConstants.DecimalFormat4WOZero) @Model.Invoice.Currency</h1>
+                                <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                                <div class="fs12 mb10 float-left clearboth">(@Model.BuyAndSellPricingDetail.SellPriceDetail)</div>
+                            }
+                        }
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <h1 class="no-margins fs21 float-left">@Model.Invoice.DroppedGallons.GetPreciseValue(2).GetCommaSeperatedValue()</h1>
+                        <span class="float-left fs11 pt8 pl2">@Model.Invoice.UoM</span>
+                        <span class="fs12 float-left clearboth">@Resource.lblGallonsDelivered</span>
+                    </div>
+                    <div class="col-md-6 mb10 clearboth">
+                        <h1 class="no-margins fs21">@Model.PercentFuelDelivered</h1>
+                        <span class="fs12">@Resource.lblOrderCompleted</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-container">
+            <div class="mb10 panel-icon">
+                <a href="javascript:void(0)" class="radius-5 dib text-center" onclick="loadSidePanel();">
+                    @Resource.lblInvoiceInfo
+                </a>
+            </div>
+            <div id="invoice"></div>
+            <div id="invoice-history"></div>
+            <div class="position-abs mt15 text-center hide-element" id="ajax-loading">
+                <span class='spinner-small ml10 mt5'></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+   <script type="text/javascript">
+        SetPageCulture('@Model.Culture');
+    $(document).ready(function () {
+        $(".download-images").click(function () {
+            hideLoader();
+        });
+    });
+
+    $(document).ajaxComplete(function () {
+        if ('@Model.Invoice.UoM' == '@(UoM.Litres.ToString())') {
+            $('th').each(function () {
+                $(this).text($(this).text().replace('@Resource.lblGallons', '@Resource.lblLitres'));
+                $(this).text($(this).text().replace('@Resource.lblPricePerGallon', '@Resource.lblPricePerLitre'));
+                $(this).text($(this).text().replace('@Currency.USD.ToString()', '@Currency.CAD.ToString()'));
+            });
+        }
+    });
+    </script>
+}

@@ -1,0 +1,201 @@
+﻿@model IEnumerable<DriverDropDetailsGridViewModel>
+
+<h4>@Resource.headingNextDrop</h4>
+<div class="row">
+	<div class="col-sm-12">
+		<div class="well bg-white shadow-b">
+			<div class="ibox mb0">
+				<div class="ibox-content no-padding no-border">
+					<div class="table-responsive">
+						<table id="nextdriverdrop-datatable" class="table table-striped table-bordered table-hover">
+							<thead>
+								<tr>
+									<th>@Resource.gridColumnDriverName</th>
+									<th>@Resource.lblDriverPhone</th>
+									<th>@Resource.gridColumnPoNumber</th>
+									<th>@Resource.lblCarrier</th>
+									<th>@Resource.gridColumnScheduledDate</th>
+									<th>@Resource.lblScheduledTime</th>
+									<th class="no-break">@Resource.gridColumnFuelType</th>
+									<th>@Resource.gridColumnGallonsScheduled</th>
+									<th>@Resource.gridColumnCustomer</th>
+									<th>@Resource.gridColumnAddress</th>
+									<th>@Resource.gridColumnStatus</th>
+									<th>@Resource.gridColumnDeliverySchedule</th>
+									<th class="text-nowrap">@Resource.gridColumnAction</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+	var exportWiMyDriverColumns = {
+		columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], format: {
+			body: function (data, row, col, node) {
+				var elementType = node.firstChild;
+				if (elementType != null) {
+					var selectElement = $(elementType).find('select');
+					if (selectElement.length > 0)
+						return $(selectElement).find(':selected').text();
+					else
+						return $(elementType).text();
+				}
+				else
+					return data;
+			}
+		}
+	};
+
+	 exportScheduleColumns = {
+		columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], format: {
+			body: function (data, row, col, node) {
+				var elementType = node.firstChild;
+				if (elementType != null) {
+					var selectElement = $(elementType).find('select');
+					if (selectElement.length > 0)
+						return $(selectElement).find(':selected').text();
+					else
+						return $(elementType).text();
+				}
+				else
+					return data;
+			}
+		}
+	};
+
+    $(document).ready(function () {
+        var data = @Html.Raw(Json.Encode(Model));
+
+        $('#nextdriverdrop-datatable').dataTable({
+            "data": data,
+            "columns": [
+                {
+                    "data": function (data, type, row, meta) {
+                        var $select = $('<select class="dd form-control reassign-driver" data-orderid="' + data.OrderId + '" data-scheduleId="' + data.DeliveryScheduleId + '" data-tschedule="' + data.TrackableScheduleId + '"></select>').attr("id", data.Id);
+                        $select.append($("<option></option>", {
+                            "text": '@Resource.lblSelect',
+                            "value": -1
+                        }));
+
+                        $.each(drivers, function (k, v) {
+                            var $option = $("<option></option>", {
+                                "text": v.Name,
+                                "value": v.Id
+                            });
+                            if (data.DriverId === v.Id) {
+                                $option.attr("selected", "selected")
+                            }
+                            $select.append($option);
+                        });
+                        var dropdownHtml = $(popupDivForReassign).append($select.prop("outerHTML"));
+                        return $(dropdownHtml).prop("outerHTML");
+                    }, "autoWidth": true
+                },
+                { "data": "PhoneNumber", "autoWidth": true, className: "phone" },
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<a href="@Url.Action("Details", "Order", new { area = "Supplier" })/' + data.OrderId + '">' + data.PONumber + '</a>';
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.Carrier.Id > 0) return data.Carrier.Name;
+                        return '@Resource.lblHyphen';
+                    }, "autoWidth": true
+                },
+                { "data": "ScheduleDate", "autoWidth": true },
+                { "data": "ScheduleTime", "autoWidth": true },
+                { "data": "FuelType", "autoWidth": true, className: "break-word" },
+                { "data": "Quantity", "autoWidth": true },
+                { "data": "Customer", "autoWidth": true },
+                { "data": "Location", "autoWidth": true },
+                { "data": "Status", "autoWidth": true },
+                { "data": "DeliverySchedule", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        var columnData = '<span id="actionButtons' + data.TrackableScheduleId + '">';
+                        columnData += '<div class="pa top0 bg-white left0 z-index5 loading-wrapper hide-element"><span class="spinner-dashboard pa"></span></div>';
+                        if (data.TrackableScheduleId != null && data.TrackableScheduleId > 0 || data.IsFtlOrder) {
+                            var statusId = data.Status == '@Resource.lblMissed' ?@((int)TrackableDeliveryScheduleStatus.MissedAndCanceled) : @((int)TrackableDeliveryScheduleStatus.Canceled);
+							columnData += "<a id='btnChangePickUp' class = 'btn btn-default mr10 btn-xs mt5' data-orderId='" + data.OrderId + "' data-trackableScheduleId='" + data.TrackableScheduleId + "' data-deliveryScheduleId='" + data.DeliveryScheduleId + "' data-IsFtlOrder='" + data.IsFtlOrder + "' data-EnrouteStatus='" + data.EnrouteStatus + "' onclick='getTrackableScheduleDetails(this)' data-toggle='modal' data-target='#nearest-terminals-modal'>@Resource.btnLabelModifySchedule</a>";
+                            if (data.TrackableScheduleId != null && data.TrackableScheduleId > 0) {
+                                columnData += "<a id='btnCancelSchedule" + data.DeliveryScheduleId + "' data-toggle = 'confirmation' data-popout = 'true' data-singleton = 'true' class = 'btn label-danger mr10 btn-xs mt5' data-confirmation-event='CancelDeliverySchedule' data-orderId='" + data.OrderId + "' data-trackableScheduleId='" + data.TrackableScheduleId + "' data-deliveryScheduleStatusId=" + statusId + "> @Resource.btnLabelCancel </a>";
+                            }
+                        }
+                        else {
+                            columnData += "<a> @Resource.lblHyphen </a>";
+                        }
+                        columnData += '</span>';
+                        return columnData;
+                    }, "autoWidth": true, "bSortable": false, "className": "pr"
+                }
+            ],
+            pageLength: 10,
+            responsive: true,
+            fixedHeader:false,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+                if (isSupplier == true) {
+                    $('#nextdriverdrop-datatable th:eq(0)').addClass('filtering-disabled');
+                }
+                else {
+                    $('#nextdriverdrop-datatable th:eq(0)').removeClass('filtering-disabled');
+                }
+            },
+            "fnDrawCallback": function (settings) {
+                ClosePopup();
+                CloseReassignPopup();
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true,
+                    onConfirm: CancelDeliverySchedule
+                }).on('show.bs.confirmation', function (e) {
+                    CloseReassignPopup();
+                    $('.popover').not(this).remove();
+                });
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.headingDriverScheduleDetails', exportOptions: exportWiMyDriverColumns },
+                { extend: 'excel', title: '@Resource.headingDriverScheduleDetails', exportOptions: exportWiMyDriverColumns },
+                { extend: 'pdf', title: '@Resource.headingDriverScheduleDetails', exportOptions: exportWiMyDriverColumns },
+                {
+                    extend: 'print',
+                    exportOptions: exportWiMyDriverColumns,
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            },
+            'aoColumnDefs': [{
+                'bSortable': false,
+                'aTargets': [-1]
+            },
+            {
+                "targets": [0],
+                "searchable": isSupplier == false
+            },
+            { "targets": [11], "visible": isSupplier, "searchable": isSupplier }],
+            "stateSave": false
+        });
+    });
+
+     //$(document).off('CancelDeliverySchedule');
+     //$(document).on('CancelDeliverySchedule', function (e) {
+     //        CancelDeliverySchedule();
+     //});
+</script>
+

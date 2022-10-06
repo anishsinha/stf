@@ -1,0 +1,71 @@
+﻿@model ReOpenJobViewModel
+<div class="form-group">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="radio-inline">
+                @Html.RadioButtonFor(m => m.IsEndDate, false, null)
+                @Resource.lblNoEndDate
+            </label>
+        </div>
+        <div class="col-md-3">
+            <div class="row">
+                <div class="col-sm-12">
+                    <label class="radio-inline">
+                        @Html.RadioButtonFor(m => m.IsEndDate, true, null)
+                        @Resource.lblNewEndDate
+                    </label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 pt10 ml20">
+                    @Html.TextBoxFor(m => m.EndDate, new { @class = "form-control datepicker end-date" })
+                    @Html.ValidationMessageFor(m => m.EndDate)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script>
+        $(document).ready(function () {
+            $(".end-date").data("DateTimePicker").minDate(moment());
+
+            var isEndDate = $("#@Html.IdFor(m => m.IsEndDate)").is(":checked")
+            if (isEndDate == false) {
+                $("#@Html.IdFor(m => m.EndDate)").removeAttr("disabled");
+            }
+            else {
+                $("#@Html.IdFor(m => m.EndDate)").val("").attr("disabled", "disabled");
+            }
+
+            $("input[name='IsEndDate']").on("change", function () {
+                var isEndDate = $("#@Html.IdFor(m => m.IsEndDate)").is(":checked")
+                if (isEndDate == false) {
+                    $("#@Html.IdFor(m => m.EndDate)").removeAttr("disabled");
+                    $("#@Html.IdFor(m => m.EndDate)").focus();
+                }
+                else {
+                    $("#@Html.IdFor(m => m.EndDate)").val("").attr("disabled", "disabled");
+                }
+            });
+
+            $('#btnSave').click(function () {
+
+                var isEndDate = $("#@Html.IdFor(m => m.IsEndDate)").is(":checked")
+                if (isEndDate == true) {
+
+                    var StartDate = new Date('@Model.StartDate').setHours(0, 0, 0, 0);
+                    var EndDate = $('#@Html.IdFor(m => m.EndDate)').val() != '' ? new Date($('#@Html.IdFor(m => m.EndDate)').val()).setHours(0, 0, 0, 0) : '';
+
+                    if (EndDate != "" && StartDate > EndDate) {
+                        validationMessageFor("@Html.NameFor(m => m.EndDate)", '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanOrEqual, new object[] { Resource.lblEndDate,Resource.lblStartDate })');
+                        return false;
+                    }
+                }
+                $('#reopenjob-form').submit();
+            });
+        });
+    </script>
+}

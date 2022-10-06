@@ -1,0 +1,129 @@
+﻿@model SiteFuel.Exchange.ViewModels.Offer.OfferViewModel
+
+<div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="row mb10">
+                <div class="col-sm-12">
+                    <h4 class="dib pt0">@Resource.stepLabelOfferDetails</h4>
+                    <div class="btn-group pull-right">
+                        <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                        <ul class="dropdown-menu dropdown-menu-right medium-menu">
+                            <li class="dropdown-item"><a href="@Url.Action("Create", "Offer", new { area = "Supplier" })?OfferPricingId=@Model.Id">@Resource.btnLabelEdit <i class="fa fa-edit float-left mt7 mr5"></i></a></li>
+                            @if (Model.IsApplicableToLaunch)
+                            {
+                                <li role="separator" class="divider"></li>
+                                <li class="dropdown-item"><a href="javascript:void(0)" data-placement="bottom" data-toggle="confirmation" data-content="This Exclusive Offer will now be available to Market" data-popout="true" data-offerpricingid="@Model.Id" data-singleton="true" >@Resource.lblLaunchToMarket <i class="fa fa-rocket float-left mt7 mr5"></i></a></li>
+                                //data-on-confirm="launchExclusiveOfferToMarket"
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.gridColumnOfferType</label>
+                    <div>
+                        @((OfferType)Model.OfferTypeId)
+                    </div>
+                </div>
+                <div class="col-xs-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.lblFuelType (@(((PricingSource)@Model.FuelPricing.FuelPricingDetails.PricingSourceId).GetDisplayName()))</label>
+                    <div>
+                        @Model.FuelTypeName
+                    </div>
+                </div>
+                <div class="col-xs-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.lblOfferName</label>
+                    <div>
+                        @Model.Name
+                    </div>
+                </div>
+                <div class="col-xs-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.gridColumnTruckLoadType</label>
+                    <div>
+                        @(Model.FuelPricing.FuelPricingDetails.TruckLoadTypes == TruckLoadTypes.FullTruckLoad ? Resource.lblFullTruckLoad : Resource.lblLessTruckLoad)
+                    </div>
+                </div>
+            </div>
+            @if (Model.OfferTypeId == (int)OfferType.Exclusive)
+            {
+                <div class="row">
+                    <div class="col-xs-6 col-sm-3 mb10">
+                        <label class="f-normal">@Resource.lblCustomer</label>
+                        <div>
+                            @Html.Raw(string.Join(", ", Model.CustomerNames))
+                        </div>
+                    </div>
+                    <div class="col-xs-6 col-sm-3 mb10">
+                        <label class="f-normal">@Resource.lblTier</label>
+                        <div>
+                            @Html.Raw(string.Join(", ", Model.TierNames))
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 mb10">
+                    <label class="f-normal">@Resource.lblLocation</label>
+                    <div>
+                        @foreach (var item in Model.LocationViewModel)
+                        {
+                            <div>
+                                @item.ToString()
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="border-b-dash mt15 mb15 clearboth"></div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <h4>@Resource.headingPricing</h4>
+                    <div class="row">
+                        <div class="col-sm-6 mb10">
+                            @if (Model.FuelPricing.PricingTypeId == (int)PricingType.Tier)
+                            {
+                                @Html.Partial("~/Views/Shared/_PartialOfferPricingDetails.cshtml", Model.FuelPricing)
+                            }
+                            else
+                            {
+                                <div>
+                                    @Model.FuelPricing.FormattedPricing @Model.FuelPricing.Currency
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (Model.FuelDeliveryDetails.FuelFees.FuelRequestFees.Count() > 0)
+            {
+                <div class="border-b-dash mt15 mb15 clearboth"></div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <h4>@Resource.headingFees</h4>
+                        <div class="row">
+                            @Html.PartialFor("_PartialFuelFeeDetails", m => m.FuelDeliveryDetails)
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .confirmation-content {
+        text-align: center
+    }    
+</style>
+<script>
+    $(document).ready(function () {
+        $('[data-toggle=confirmation]').confirmation({
+            rootSelector: '[data-toggle=confirmation]',
+            html: true,
+            onConfirm: launchExclusiveOfferToMarket
+        });
+    });
+
+</script>

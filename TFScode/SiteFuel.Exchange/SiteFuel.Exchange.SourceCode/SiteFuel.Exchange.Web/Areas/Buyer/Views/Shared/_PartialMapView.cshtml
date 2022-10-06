@@ -1,0 +1,181 @@
+﻿@model dynamic
+
+<!-- This is the div that will contain the Google Map -->
+@{ var mapId = "map_" + DateTime.Now.ToString("yyyyMMddHHmmss"); }
+    <div class="row col-sm-12">
+        <div class="col-md-8 col-12">
+            <div class="map_canvas" id="@mapId"></div>
+        </div>
+        <div class="col-md-4 col-12">
+            <div class="row">
+                <div class="col-sm-2 col-md-12 col-xs-4">
+                    <div class="job-name">
+                        <h5 class="f-bold mb5">@Resource.headingJob</h5>
+                        <p class="title"></p>
+                    </div>
+                </div>
+                <div class="col-sm-2 col-md-12 col-xs-8">
+                    <div class="job-location">
+                        <h5 class="f-bold mb5">@Resource.headingLocation</h5>
+                        <p class="address1 mb0"></p>
+                        <p class="address2 mt0"></p>
+                    </div>
+                </div>
+                <div class="col-sm-2 col-md-12 col-xs-6">
+                    <div class="job-contact">
+                        <h5 class="f-bold mb5">@Resource.gridColumnContact</h5>
+                        <p class="contactname mb0"></p>
+                        <p class="email mb0"></p>
+                        <p class="phone"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<script type="text/javascript">
+    var centerlat = "";
+    var centerlon = "";
+    google.maps.visualRefresh = true;
+    var data = @Html.Raw(Json.Encode(@Model));
+    var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+    var PageCountryId = selectedCountryAndCurrency.countryId;
+    var statelist = "";
+
+    if (data.length > 0) {
+        $.each(data, function (i, stateitem) {
+            if (statelist == "") {
+                statelist = stateitem.State;
+            }
+            else {
+                statelist = statelist + "," + stateitem.State;
+            }
+        });
+    }
+
+    var states = statelist.split(',');
+    states = states.filter(function (elem, index, self) { return index == self.indexOf(elem); });
+
+    var zoomarea = 3;
+    var setcenterlocation = false;
+    if (states.length == 1) {
+        if (data.length == 1) {
+            zoomarea = 12;
+        }
+        else if (data.length >= 2 && data.length <= 4) {
+            zoomarea = 9;
+        }
+        else if (data.length >= 5 && data.length <= 9) {
+            zoomarea = 6;
+        }
+        else if (data.length >= 10) {
+            zoomarea = 5;
+        }
+    }
+    else if (states.length >= 2) {
+        zoomarea = 4;
+        setcenterlocation = true;
+    }
+
+    if (data.length == 0) {
+        zoomarea = 4;
+        setcenterlocation = true;
+    }
+
+    if (setcenterlocation) {
+        if (PageCountryId == '@((int)Country.CAN)') {
+            centerlat = "56.14";
+            centerlon = "-106.34";
+        }
+        else {
+            centerlat = "38";
+            centerlon = "-98.35";
+        }
+    }
+
+    if (states.length == 1) {
+        $.each(data, function (i, pickitem) {
+            centerlat = pickitem.Latitude;
+            centerlon = pickitem.Longitude;
+            return false;
+        });
+    }
+
+    if (data.length > 0) {
+        $(".job-name .title").html(data[0].Name);
+        $(".job-location .address1").html(data[0].Address);
+        $(".job-location .address2").html(data[0].City + ", " + data[0].State + " " + data[0].ZipCode);
+
+        var _onSiteContact = "";
+        var _onSiteEmail = "";
+        var _onSitePhone = "";
+        if (data[0].ContactPersons.length > 0) {
+            _onSiteContact = data[0].ContactPersons[0].Name;
+            _onSiteEmail = data[0].ContactPersons[0].Email;
+            _onSitePhone = data[0].ContactPersons[0].PhoneNumber;
+        }
+
+        if (_onSiteContact == _onSiteEmail && _onSiteEmail == _onSitePhone)
+            _onSiteEmail = '-';
+
+        $(".job-contact .contactname").html(_onSiteContact);
+        $(".job-contact .email").html(_onSiteEmail);
+        $(".job-contact .phone").html(_onSitePhone);
+    }
+
+    var centerpoint = new google.maps.LatLng(centerlat, centerlon);
+    // These are options that set initial zoom level, where the map is centered globally to start, and the type of map to show
+    var mapOptions = {
+        zoom: zoomarea,
+        center: centerpoint,
+        mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+    };
+
+    // This makes the div with id "map_canvas" a google map
+    var map = new google.maps.Map(document.getElementById("@mapId"), mapOptions);
+
+    $.each(data, function (i, item) {
+        var jobNameAddress = item.Name + "\n" + item.Address +
+            "\n" + item.City + ", " + item.State + " " + item.ZipCode;
+        var marker = new google.maps.Marker({
+            'position': new google.maps.LatLng(item.Latitude, item.Longitude),
+            'map': map,
+            'title': jobNameAddress
+        });
+
+        // Make the marker-pin blue!
+        marker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png')
+
+        // finally hook up an "OnClick" listener to the map so it pops up out info-window when the marker-pin is clicked!
+        var groupIds = getCompanyGroup().groupIds;
+        if (groupIds == "") {
+            google.maps.event.addListener(marker, 'click', function () {
+                var appPath = document.location.origin + '@Url.Action("Details", "Job", new { area = "Buyer" })';
+                window.location.href = appPath + "?id=" + item.JobId;
+            });
+        }
+
+        google.maps.event.addListener(marker, 'mouseover', function () {
+            $(".job-name .title").html(item.Name);
+            $(".job-location .address1").html(item.Address);
+            $(".job-location .address2").html(item.City + ", " + item.State + " " + item.ZipCode);
+
+            var _onSiteContact = "";
+            var _onSiteEmail = "";
+            var _onSitePhone = "";
+            if (item.ContactPersons.length > 0) {
+                _onSiteContact = item.ContactPersons[0].Name;
+                _onSiteEmail = item.ContactPersons[0].Email;
+                _onSitePhone = item.ContactPersons[0].PhoneNumber;
+            }
+
+            if (_onSiteContact == _onSiteEmail && _onSiteEmail == _onSitePhone)
+                _onSiteEmail = '-';
+
+            $(".job-contact .contactname").html(_onSiteContact);
+            $(".job-contact .email").html(_onSiteEmail);
+            $(".job-contact .phone").html(_onSitePhone);
+        });
+    });
+</script>

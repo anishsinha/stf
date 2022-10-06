@@ -1,0 +1,204 @@
+<div class="row">
+    <div class="col-sm-4">
+        <div class="well bg-white shadow-b location-panel">
+            <div id="accordion-location" class="location-accordion">
+                <!--<img *ngIf="IsLocDrpDwnLoading"
+                     src="https://www.animatedimages.org/data/media/1617/animated-truck-image-0009.gif"
+                     alt="animated-truck-image-0009" />-->
+                <div class="position-abs text-center" [ngClass]="{'hide-element': !IsLocDrpDwnLoading }">
+                    <span class='spinner-small ml10 mt5'></span>
+                </div>
+
+                <div *ngIf="!IsLocDrpDwnLoading" class="mb10">
+                    <div class="inner-addon left-addon">
+                        <i class="glyphicon glyphicon-search"></i>
+                        <input class="form-control" name="txtSearch" placeholder="Search Location" type="text" (input)="Partsfiltering($event)" autocomplete="off">
+                    </div>
+                </div>
+
+                <div *ngIf="!IsLocDrpDwnLoading && FilterLocationDrpDwnList && FilterLocationDrpDwnList.length == 0">No Location Available</div>
+                <div *ngIf="!IsLocDrpDwnLoading && FilterLocationDrpDwnList && FilterLocationDrpDwnList.length > 0">
+
+    
+                    <table class="table tank-view">
+                        <thead>
+                            <tr>
+                                <th width="49%">Location</th>
+                                <th width="24%"(click)="setSortArgs('DaysRemaining')" class="cursor_pointer">
+                                    Days remaining&nbsp;<i class="fa fa-sort" aria-hidden="true"></i>
+                                </th>
+                                <!-- [class.color-icon-light] = "filterArgs.key != 'DaysRemaining'" -->
+                                <th>
+                                    Status
+                                </th>
+                                <!-- <th (click)="setSortArgs('Status')" class="cursor_pointer">
+                                    Status&nbsp;<i class="fa fa-sort" [class.color-icon-light] = "filterArgs.key != 'Status'" aria-hidden="true"></i>
+                                </th> -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <ng-container *ngFor="let loc of FilterLocationDrpDwnList | sortingPipe: filterArgs; let i = index">
+                                <tr>
+                                    <td>
+                                        <div class="card-header" [attr.id]="'headingOne'+loc?.JobId">
+                                            <h2 class="mb-0">
+                                                <div ngbTooltip="{{loc.LocationName}}{{(loc && loc.CustomerInfo)? ' - '+loc.CustomerInfo: null}}"
+                                                    class="position-relative pr-3 btn btn-link collapsed text-left"
+                                                    data-toggle="collapse" [attr.data-target]="'#col'+loc?.JobId"
+                                                    aria-expanded="true" [attr.aria-controls]="'col'+loc?.JobId"
+                                                    (click)="locationChange(loc)">
+                                                    <ng-container>
+                                                        {{loc?.LocationName}}
+                                                        {{(loc && loc.CustomerInfo && loc.CustomerInfo.length>5)? '(' + (loc.CustomerInfo | slice:0:5) + '..)': '' }}
+                                                        {{(loc && loc.CustomerInfo && loc.CustomerInfo.length<=5)? '(' + (loc.CustomerInfo | slice:0:5) + ')': '' }}
+                                                    </ng-container>
+                                                    <span class="fa-stack fa-sm icon-color-b position-absolute" style="top:3px;right:-7px;">
+                                                        <i class="fas fa-circle fa-stack-2x"></i>
+                                                        <i class="fas fa-plus fa-stack-1x fa-inverse"></i>
+                                                    </span>
+                                                </div>
+                                            </h2>
+                                        </div>
+                                       
+                                    </td>
+                                    <td>{{(loc.DaysRemaining == null)? "N\A": loc.DaysRemaining + " Days"}}</td>
+                                    <!-- <td>{{loc.Status}}</td> -->
+                                    <td>
+                                        <a href="javascript:void(0)" class="" (click)="showTanks(loc)" onclick="slidePanel('#raisedr','60%')">
+                                            <span class="">{{loc.Status}}</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr [attr.id]="'col'+loc?.JobId" class="collapse"
+                                data-parent="#accordion-location"
+                                [attr.aria-labelledby]="'headingOne'+loc?.JobId">
+                                <td colspan="3">
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush">
+                                            <table class="table tank-view-child">
+                                                <tbody>
+                                                    <tr *ngFor="let tank of loc?.Tanks">
+                                                        <td  width="45%">
+                                                            <a href="javascript:void(0)" (click)="tankChange(tank)" [ngClass]="{'active': SelectedTankId==tank?.TankId+'_'+tank?.StorageId}">
+                                                                {{tank.Name}}
+                                                                <!-- ({{(tank.DaysRemaining == null)? "N\A": tank.DaysRemaining + " Days"}})  -->
+                                                                <span *ngIf="tank?.IsUnknowDeliveryOrMissDelivery"
+                                                                    class="active-dot"></span>
+                                                                <span title="Tank Inventory Alert"
+                                                                    class="activediff-dot"
+                                                                    *ngIf="tank?.TankInventoryDiffinHrs>2 || tank?.TankInventoryDiffinHrs==0"></span>
+                                                            </a>
+                                                        </td>
+                                                        <td width="24%">
+                                                            {{(tank.DaysRemaining == null)? "N\A": tank.DaysRemaining + " Days"}}
+                                                        </td>
+                                                        <td>
+                                                            <a href="javascript:void(0)" class="" (click)="showTanks(loc)" onclick="slidePanel('#raisedr','60%')">
+                                                                <span class="">{{tank.Status}}</span>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <!-- <li class="list-group-item " *ngFor="let tank of loc?.Tanks"
+                                                [ngClass]="{'active': SelectedTankId==tank?.TankId+'_'+tank?.StorageId}">
+                                                <a href="javascript:void(0)" (click)="tankChange(tank)">
+                                                    {{tank.Name}}({{(tank.DaysRemaining == 0)? "N\A": tank.DaysRemaining + " Days"}}) <span *ngIf="tank?.IsUnknowDeliveryOrMissDelivery"
+                                                        class="active-dot"></span>
+                                                    <span title="Tank Inventory Alert" class="activediff-dot"
+                                                        *ngIf="tank?.TankInventoryDiffinHrs>2 || tank?.TankInventoryDiffinHrs==0"></span>
+                                                </a>
+                                            </li> -->
+                                        </ul>
+                                    </div>
+                                    </td>
+                                </tr>
+                            </ng-container>
+                            
+                            
+                        </tbody>
+                    </table>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-8 location-chart-panel">
+        <div class="well bg-white shadow-b">
+            <app-tank-chart [JobId]="SelectedLocationId" [SiteId]="SelectedSiteId" [TankId]="SelectedTankId" [isSupplierView]="true"></app-tank-chart>
+        </div>
+        <div class="well bg-white shadow-b pr">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <!--Enum - GridName.DispatherMustGoGrid => 19-->
+                        <table id="table-Location" class="table table-bordered table-hover"
+                               datatable [dtOptions]="dtOptions" [dtTrigger]="dtTrigger">
+                            <thead>
+                                <tr>
+                                    <th data-key="Cust">Customer</th>
+                                    <th data-key="LocName">Location Name</th>
+                                    <th data-key="Loc">Location</th>
+                                    <th data-key="TName">Tank Name</th>
+                                    <th data-key="WL">Water Level</th>
+                                    <th data-key="Avg7Day">Trailing 7 Day Average</th>
+                                    <th data-key="PDS">Previous Day Sale</th>
+                                    <th data-key="SaleWeek">Week Ago Sale</th>
+                                    <th data-key="CI">Last Inventory Reading</th>
+                                    <th data-key="LastReadingTime">Last Reading Time</th>
+                                    <th data-key="Ullg">Ullage</th>
+                                    <th data-key="lastDeliveryQty">Last Delivered Qty</th>
+                                    <th data-key="lastDelivery">Last Delivered On</th>                                   
+                                    <th data-key="DRemg">Days Remaining</th>
+
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngIf="IsLoading" class='pa bg-white top0 left0 z-index5 loading-wrapper'>
+                                    <span class='spinner-dashboard pa'></span>
+                                </tr>
+                                <tr *ngFor="let row of LocationSchedules">
+                                    <td>{{row.CompanyName}}</td>
+                                    <td>{{row.LocationName}}</td> <!-- <td>{{row.SiteId}}</td> -->
+                                    <td>{{row.Location}}</td>
+                                    <td>{{row.TankName}}</td>
+                                    <td>{{row.WaterLevel}}</td>
+                                    <td>{{row.AvgSale}}</td>
+                                    <td>
+                                        <div *ngIf="row.PrevSale == 'NA*'">
+                                            Not Available <span placement="top" ngbTooltip="Deliveries are missing!">*</span>
+                                        </div>
+                                        <div *ngIf="row.PrevSale != 'NA*'">
+                                            {{row.PrevSale}}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div *ngIf="row.WeekAgoSale == 'NA*'">
+                                            Not Available <span placement="top" ngbTooltip="Deliveries are missing!">*</span>
+                                        </div>
+                                        <div *ngIf="row.WeekAgoSale != 'NA*'">
+                                            {{row.WeekAgoSale}}
+                                        </div>
+                                    </td>
+                                    <td>{{row.Inventory}}</td>
+                                    <td>{{row.LastReadingTime}}</td>
+                                    <td>{{row.Ullage}}</td>
+                                    <td>{{row.LastDeliveredQuantity}}</td>
+                                    <td>{{row.LastDeliveryDate}}</td>  
+                                    <td>{{(row.DaysRemaining == null)? "N\A": row.DaysRemaining + " Days"}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+      
+    </div>
+</div>
+
+<div id="create-dip-test">
+    <app-dip-test [isDisableControl]="true" (onRaiseDR)="closeSidePanel();" [IsSalesPage]="true"
+        [SelectedRegionId]="SelectedTankRegionId" [IsThisFromDrDisplay]="false"></app-dip-test>
+</div>

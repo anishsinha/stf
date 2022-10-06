@@ -1,0 +1,76 @@
+﻿@model ProductSequenceViewModel
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="row">
+                <div class="col-sm-12 text-center">
+                    <div class="btn-group btn-toggle btn-group-toggle mb15" data-toggle="buttons">
+                        <label class="btn">
+                            @Html.RadioButtonFor(m => m.SequenceType, ProductSequenceType.Product, new { onchange = "loadProductypes(this);" })
+                            @Resource.lblSequenceByProd
+                        </label>
+                        <label class="btn">
+                            @Html.RadioButtonFor(m => m.SequenceType, ProductSequenceType.Order, new { onchange = "loadProductypes(this);" })
+                            @Resource.lblSequenceByOrder
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-md-4">
+                            @Html.PartialFor("~/Views/Shared/_PartialProductSequence.cshtml", m => m)
+                        </div>
+                    </div>
+                    <div class="page_footer">
+                        <div class="row">
+                            <div class="col-sm-12 text-right">
+                                <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.reload();" />
+                                <input id="seq-submit" type="button" onclick="SaveProductSequence();" value="@Resource.btnLabelSave" class="btn btn-primary btn-lg form-submit" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="jobproducts-wrapper">
+                <div class="pa bg-white z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $("#@Html.IdFor(m => m.SequenceType):checked").closest("label").addClass("active")
+        $(".prod-seq-section").addClass("Sequence-" + $("#@Html.IdFor(m => m.SequenceType):checked").val());
+        loadListView($("#@Html.IdFor(m => m.SequenceType):checked").val());
+    })
+    function SaveProductSequence() {
+
+        var prodSeq = GetProductSequence($("#@Html.IdFor(m => m.SequenceType):checked").val());
+        loadListView($("#@Html.IdFor(m => m.SequenceType):checked").val());
+        var data = {
+            SequenceMethod: '@Model.SequenceMethod',
+            JobId: '@Model.JobId',
+            ProductSequence: prodSeq
+        };
+        var url = "@Url.Action("SaveProductSequence", "Job")";
+        
+        $(".jobproducts-wrapper .loading-wrapper").show();
+
+        $.post(url, data)
+            .done(function (response) {
+                if (response != null) {
+                    if (response.StatusCode == 0) {
+                        msgsuccess(response.StatusMessage)
+                    }
+                    else {
+                        msgerror(response.StatusMessage)
+                    }
+                }
+            }).always(function () {
+                $(".jobproducts-wrapper .loading-wrapper").hide();
+            });
+    }
+</script>

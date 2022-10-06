@@ -1,0 +1,273 @@
+﻿@model InvoiceFilterViewModel
+
+@{
+    ViewBag.Title = "BOL Summary";
+}
+
+@Html.HiddenFor(m => m.GroupIds)
+<div class="row">
+    <div class="col-sm-7 col-md-9" id="invoice-heading">
+        <h4 class="pt0 pull-left"><span id="spnGroupName"></span>@Resource.headingBolSummary</h4>
+    </div>
+    <div class="col-sm-5 col-md-3">
+        @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb0">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtBolInvoiceFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtBolInvoiceToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                    <input type="button" class="btn btn-primary" id="btnShowEmailPopup" onclick="showEmailAttachmentPopup();" value="Send Email" />
+                    <input type="button" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div id="30DaysDataWarning" class="col-md-12">
+        <div class="alert alert-info fs12 mb15"><strong>@Resource.lblInfo</strong>@Resource.lbl30DaysDataWarning</div>
+    </div>
+    <div class="col-md-12">
+        @Html.Partial("~/Views/Shared/_PartialBolInvoiceGrid.cshtml", Model)
+    </div>
+</div>
+<div class="modal animated" id="modal-invoice-pdf-email" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-invoice-pdf-email" role="document">
+        @using (Ajax.BeginForm("SaveInvoicePdfEmailNotificationDetails", "Invoice", new { }, new AjaxOptions
+        {
+            HttpMethod = "POST",
+            OnSuccess = "saveInvoicePdfEmailSuccess",
+            OnFailure = "saveInvoicePdfEmailFailed"
+        }, new { id = "invoice-pdf-email-form" })) // set new Id name for  Form
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(m => m.InvoiceAttachment.InvoiceIds)
+            @Html.HiddenFor(m => m.PoNumber)
+            @Html.HiddenFor(m => m.OrderId)
+            @Html.HiddenFor(m => m.InvoiceAttachment.StartDate)
+            @Html.HiddenFor(m => m.InvoiceAttachment.EndDate)
+            @Html.HiddenFor(m => m.MaxInvoiceCountPerSession)
+            @Html.HiddenFor(m => m.InvoiceAttachment.CompanyType, new { Value = CurrentUser.CompanyTypeId })
+
+            <div class="modal-content pa10 pt0">
+                <div class="modal-body" id="invoice-pdf-email-div">
+                    <div id="body-invoice-pdf-email">
+                        <div>
+                            <h4 class="pt0">@Resource.btnLabelSendEmail</h4>
+                        </div>
+                        <div class="form-group">
+                            <label class="f-normal">Invoice(s)</label><br />
+                            @Html.ListBoxFor(m => m.InvoiceAttachment.SelectedInvoices, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name"), new { @class = "form-control multi-select selected-invoices" })
+                        </div>
+                        <div class="form-group">
+                            <label class="f-normal">Email To</label>
+                            @Html.TextBoxFor(m => m.InvoiceAttachment.ToEmailAddress, new { @class = "form-control multiple-emails" })
+                        </div>
+                        <div class="form-group">
+                            <label class="f-normal">Email Text</label>
+                            @Html.TextAreaFor(m => m.InvoiceAttachment.EmailBody, new { @class = "form-control" })
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer no-border pt0">
+                    <div class="pull-left">
+                        <span class="field-validation-error hide" id="spnPopupErrorMsg"></span>
+                    </div>
+                    <div class="pull-right">
+                        <a href="javascript:void(0);" data-dismiss="modal" class="btn actions" onclick="closeEmailPopup()">@Resource.btnLabelCancel</a>
+                        <input id="btnInvoiceSendEmail" type="button" value="@Resource.btnLabelSend" class="btn btn-lg btn-primary" onclick="return submitInvoiceEmailForm();" />
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    @section Scripts {
+        @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/multiple-emails")
+        @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/multiple-emails")
+    }
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            var totalInvChecked = 0;
+            var maxInvoiceCountPerSession = parseInt($('#@Html.IdFor(m => m.MaxInvoiceCountPerSession)').val());
+            var valMessageMaxInvoiceSelect = '@(string.Format(Resource.valCanNotSelectMoreThanInvoices, Model.MaxInvoiceCountPerSession))';
+
+            var companyGroup = getCompanyGroup();
+            if (companyGroup.groupIds != "") {
+                $('#spnGroupName').text(companyGroup.groupName + ' ');
+            }
+            else {
+                $('#spnGroupName').text();
+            }
+
+            if (window.location.href.toLowerCase().indexOf("filter") < 0) {
+                $("#invoice-heading a").hide();
+            }
+
+            $('.multiple-emails').multiple_emails({ position: "top" });
+
+            $(document).on('click', '#select-all-invoices', function () {
+                var status = $(this).prop('checked');
+                $(".chk-invoice").each(function () {
+                    if (status == true) {
+                        if (totalInvChecked < maxInvoiceCountPerSession) {
+                            totalInvChecked++;
+                        }
+                        else {
+                            msgerror(valMessageMaxInvoiceSelect);
+                            return false;
+                        }
+                    }
+                    else {
+                        totalInvChecked = 0;
+                    }
+                    $(this).prop("checked", status);
+                });
+            });
+
+            $(document).on('click', '.chk-invoice', function () {
+                var status = $(this).prop('checked');
+                if (status == true) {
+                    if (totalInvChecked < maxInvoiceCountPerSession) {
+                        totalInvChecked++;
+                    }
+                    else {
+                        $(this).prop('checked', false);
+                        msgerror(valMessageMaxInvoiceSelect);
+                        return false;
+                    }
+                }
+                else {
+                    totalInvChecked--;
+                }
+                $(this).prop("checked", status);
+
+                if (totalInvChecked == 0) {
+                    $('#select-all-invoices').prop('checked', false);
+                }
+            });
+
+            $('#@Html.IdFor(m => m.InvoiceAttachment.SelectedInvoices)').select2({
+                placeholder: 'Select an option'
+            });
+        });
+
+        $(document).ajaxComplete(function (event, xhr, settings) {
+            $('#bol-invoice-datatable').find('th.col-hide,td.col-hide').removeClass('hide');
+        });
+
+        function setInvoicesBackground() {
+            var strInvIds = sessionStorage.getItem('processed-pdf-bol-invoices');
+            if (strInvIds != null && strInvIds != '' && strInvIds.length > 0) {
+                var invIdsArr = strInvIds.split(',');
+                $(".chk-invoice").each(function () {
+                    var invId = $(this).attr('id');
+                    if (jQuery.inArray(invId, invIdsArr) !== -1) {
+                        $(this).closest('tr').addClass('row-invoice-pdfsent');
+                    }
+                });
+            }
+        }
+
+        function submitInvoiceEmailForm() {
+            $('#spnPopupErrorMsg').addClass('hide').text('');
+            var emailIds = $('#@Html.IdFor(m => m.InvoiceAttachment.ToEmailAddress)').val();
+            if (emailIds == null || emailIds == '') {
+                $('#spnPopupErrorMsg').removeClass('hide').text('@Resource.errMessageEmailToRequired');
+                return false;
+            }
+
+            var selectedInvoices = $('#@Html.IdFor(m => m.InvoiceAttachment.SelectedInvoices)').val();
+            if (selectedInvoices == null || selectedInvoices.length <= 0) {
+                $('#spnPopupErrorMsg').removeClass('hide').text('@Resource.errMessageInvoiceNumberRequired');
+                return false;
+            }
+
+            $('#btnInvoiceSendEmail').attr('disabled', true);
+            $('#invoice-pdf-email-form').submit();
+        }
+
+        function showEmailAttachmentPopup() {
+            var selectedInvoices = [];
+            var gridRows = $("#bol-invoice-datatable tbody tr");
+
+            for (var i = 0; i < gridRows.length; ++i) {
+                var chkId = 'input.chk-invoice:checkbox';
+                if ($(gridRows[i]).find(chkId).is(':checked')) {
+                    selectedInvoices.push({ 'id': $(gridRows[i]).find(chkId).attr('id'), 'invoiceNumber': $(gridRows[i]).find(chkId).attr('invoiceNumber') });
+                }
+            }
+
+            var selectedInvoicesElement = $('#@Html.IdFor(m => m.InvoiceAttachment.SelectedInvoices)');
+            selectedInvoicesElement.empty();
+            if (selectedInvoices.length > 0) {
+                $.each(selectedInvoices, function (index, inv) {
+                    selectedInvoicesElement.append($("<option selected='selected'></option>").val(inv.id).html(inv.invoiceNumber));
+                });
+
+                $("#@Html.IdFor(m => m.InvoiceAttachment.StartDate)").val($('#txtBolInvoiceFromDate').val());
+                $("#@Html.IdFor(m => m.InvoiceAttachment.EndDate)").val($('#txtBolInvoiceToDate').val());
+                $('#modal-invoice-pdf-email').show();
+            }
+            else {
+                msgerror('@Resource.errorMessageSelectInvoiceToSendEmail');
+            }
+        }
+
+        function closeEmailPopup() {
+            $('#modal-invoice-pdf-email').hide();
+        }
+
+        function saveInvoicePdfEmailSuccess(response) {
+            if (response.StatusCode == @((int)Status.Success)) {
+                $('#modal-invoice-pdf-email').hide();
+                $('#@Html.IdFor(m => m.InvoiceAttachment.SelectedInvoices)').val('');
+                $('#@Html.IdFor(m => m.InvoiceAttachment.EmailBody)').val('');
+                $('#@Html.IdFor(m => m.InvoiceAttachment.ToEmailAddress)').val('');
+
+                var invIds = [];
+                $(".chk-invoice").each(function () {
+                    var status = $(this).prop('checked');
+                    if (status == true) {
+                        $(this).closest('tr').addClass('row-invoice-pdfsent');
+                        var invId = $(this).attr('id');
+                        invIds.push(invId);
+                    }
+                    $(this).prop("checked", false);
+                });
+
+                if (invIds.length > 0) {
+                    var strInvIds = sessionStorage.getItem('processed-pdf-bol-invoices');
+                    if (strInvIds != null && strInvIds != '' && strInvIds.length > 0) {
+                        var invIdsArr = strInvIds.split(',');
+                        $.each(invIdsArr, function (index, invId) {
+                            invIds.push(invId);
+                        });
+                    }
+                    sessionStorage.setItem('processed-pdf-bol-invoices', invIds);
+                }
+
+                $("#select-all-invoices").prop("checked", false);
+                msgsuccess(response.StatusMessage);
+            }
+            else {
+                msgerror(response.StatusMessage);
+            }
+            $('#btnInvoiceSendEmail').removeAttr('disabled');
+        }
+
+        function saveInvoicePdfEmailFailed(response) {
+            msgerror('@Resource.errorMessgeFailedToSubmitEmailRequest');
+            $('#btnInvoiceSendEmail').removeAttr('disabled');
+        }
+    </script>
+}

@@ -1,0 +1,114 @@
+﻿@model OrderMissedSchedulesViewModel
+<div class="well bg-white shadow-b">
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div class="table-responsive">
+                <table id="missedschedules-datatable" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnDeliveryDate</th>
+                            <th>@Resource.gridColumnDeliveryWindow</th>
+                            <th>@Resource.gridColumnDriverName</th>
+                            <th>@Resource.gridColumnStatus</th>
+                            <th>@Resource.gridColumnAction</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var missedSchedules;
+    $(document).ready(function () {
+        missedSchedules = $('#missedschedules-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetMissedDeliverySchedules", "Order", new { orderId = Model.OrderId })",
+                "type": "GET",
+                "datatype": "json",
+                "dataSrc": ""
+            },
+            "columns": [
+                { "data": "ScheduleDate", "autoWidth": true },
+                { "data": "DeliveryWindow", "autoWidth": true },
+                { "data": "DriverName", "autoWidth": true },
+                 {
+                            "data": function (data, type, row, meta) {
+                                return columnData = '<label id="lblStatus' + data.Id + '">' + data.Status + '</label>';
+                            }, "autoWidth": true
+                },
+                {
+					"data": function (data, type, row, meta) {
+						if ('@Model.IsOpenOrder' == 'True') {
+							var columnData = '<span id="actionButtons' + data.Id + '">';
+							if (data.Status.toLowerCase() != 'canceled') {
+								columnData += "<a id='btnReschedule" + data.Id + "' data-toggle = 'confirmation' data-popout = 'true' data-singleton = 'true' class = 'btn btn-primary mr10 btn-xs' data-orderId='" + data.OrderId + "' data-trackableScheduleId='" + data.Id + "' data-deliveryScheduleStatusId=@((int)DeliveryScheduleStatus.Rescheduled)> @Resource.btnLabelReschedule </a>";
+								columnData += "<a id='btnCancelSchedule" + data.Id + "' data-toggle = 'confirmation' data-popout = 'true' data-singleton = 'true' class = 'btn btn-danger mr10 btn-xs' data-orderId='" + data.OrderId + "' data-trackableScheduleId='" + data.Id + "' data-deliveryScheduleStatusId=@((int)TrackableDeliveryScheduleStatus.MissedAndCanceled)> @Resource.btnLabelCancel </a>";
+                                    @*columnData += '<a id="btnCancelSchedule' + data.Id + '" data-toggle = "confirmation" data-popout = "true" data-singleton = "true" class = "btn btn-danger mr10 btn-xs" href="@Url.Action("ProcessDeliverySchedule", "Order", new { area = "Supplier" })?orderId=' + data.OrderId + '&trackableScheduleId=' + data.Id + '&deliveryScheduleStatusId=@((int)DeliveryScheduleStatus.Canceled)">@Resource.btnLabelCancel</a>';*@
+							}
+							columnData += '</span>';
+							return columnData;
+						}
+						else {
+							return '@Resource.lblHyphen';
+						}
+                    }, "autoWidth": true,"bSortable":false
+                }
+            ],
+            pageLength: 10,
+            responsive: true,
+            fixedHeader: false,
+            dom: 'lTfgitp',
+            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            "order": [],
+            "initComplete": function (settings, json) {
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true,
+                    onConfirm: ProcessDeliverySchedule
+                });
+                wrapperHeight();
+            },
+            "fnDrawCallback": function (settings) {
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true,
+                    onConfirm: ProcessDeliverySchedule
+                });
+            },
+            "columnDefs": [{
+                "targets": [4],
+                "visible": '@(Model.IsEndSupplier && !Model.IsBrokeredOrder)' == 'True' ? true : false,
+            }],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+
+    function ProcessDeliverySchedule() {
+        var orderId = $(this).attr("data-orderId");
+        var trackableScheduleId = $(this).attr("data-trackableScheduleId");
+        var deliveryScheduleStatusId = $(this).attr("data-deliveryScheduleStatusId");
+        if (deliveryScheduleStatusId == @((int)DeliveryScheduleStatus.Rescheduled)){
+            var url = "@Url.Action("RescheduleDeliverySchedule", "Order")?trackableScheduleId=" + trackableScheduleId;
+            $.get(url, function (response) {
+				$("#delivery-schedule-section").children(".partial-block-collection-section").append(response);
+                parseForm();
+                documentReady(true);
+                enableSubmit();
+                var curRow = $("#lblStatus" + trackableScheduleId).closest('tr');
+                missedSchedules.row(curRow).remove().draw();
+            });
+        }
+        else {
+             var url = "@Url.Action("ProcessDeliverySchedule", "Order")?orderId=" + orderId + "&trackableScheduleId=" + trackableScheduleId + "&deliveryScheduleStatusId=" + deliveryScheduleStatusId;
+             $.get(url, function (response) {
+                 $("#lblStatus" + trackableScheduleId).html('@TrackableDeliveryScheduleStatus.Canceled');
+                 $("#actionButtons" + trackableScheduleId).html('-');
+             });
+        }
+    }
+        
+</script>

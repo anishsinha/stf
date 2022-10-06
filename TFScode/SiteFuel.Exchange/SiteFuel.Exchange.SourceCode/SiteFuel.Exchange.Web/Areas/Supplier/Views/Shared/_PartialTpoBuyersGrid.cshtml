@@ -1,0 +1,244 @@
+﻿@model UspBuyerPerformanceViewModel
+
+<div class="row">
+    <div class="col-sm-12">
+        <h4>@Resource.lblTpoBuyers</h4>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="tpo-buyers-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.lblCompanyName</th>
+                                    <th>@Resource.lblCustomerId</th>
+                                    <th>@Resource.gridColumnTotalOrders</th>
+                                    <th>@Resource.gridColumnTotalSpend</th>
+                                    <th>@Resource.lblTotalQuantityOrdered</th>
+                                    <th>@Resource.lblTotalQuantityDelivered</th>
+                                    <th>@Resource.lblAveragePrice</th>
+                                    <th>@Resource.gridColumnTotalDdtCount</th>
+                                    <th>@Resource.gridColumnTotalInvoiceCount</th>
+                                    @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierAdmin)
+                                    {
+                                        <th>@Resource.gridColumnAction</th>
+                                    }
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="TPOCustomerId-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-sm">
+        @*Add Modal Content here*@
+        <div class="modal-content">
+            <div class="pa bg-white z-index5 loading-wrapper edit-loader"><span class='spinner-dashboard pa'></span></div>
+            <div class="modal-body modal-autoscroll">
+                <h4 class="pt0">@Resource.lblCustomerId</h4>
+                <p style="word-wrap: break-word;">
+                    <div id="edit-TPOCustomerId-form">
+                        <input type="hidden" id="oBuyerCompanyId" value=0 />
+                        <input class="form-control" id="txtTPOCustomerId" type="text" value="" placeholder="@Resource.lblCustomerId" />
+                    </div>
+                </p>
+                <div class="text-right mt20">
+                    <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                    <input type="button" id="btn-save-TPOCustomerId" class="btn btn-primary btn-lg" onclick="updateTPOCustomerId()" value="@Resource.btnLabelSave" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="deleteCustomerModalPopup" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    @Html.Hidden("hdnBuyerCompanyId")
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="pa bg-white z-index5 loading-wrapper delete-customer-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+            <div class="modal-header">
+                <h4 class="modal-title">Are you sure to delete the customer <b><span id="spnBuyerCompanyName"></span></b>?</h4>
+                @*<button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>*@
+            </div>
+            <div class="modal-body">
+                <div>
+                    Deleting the customer will result in:
+                </div>
+                <div>
+                    1. Closing all the location(s) <br />
+                    2. Closing all the order(s) <br />
+                    3. Deletion of all the asset(s) / tank(s) <br />
+                    4. Closing all the brokered order(s), if any
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="resetCustomerId()">@Resource.btnLabelCancel</button>
+                <button type="button" class="btn btn-primary" onclick="return deleteTpoBuyerCompany();">@Resource.btnLabelDelete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var supplierTpoCustomersGrid, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7] };
+    var ClearFilter;
+
+    $(document).ready(function () {
+        supplierTpoCustomersGrid = $('#tpo-buyers-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("TpoBuyersGrid", "Dashboard", new { area = "Supplier" })",
+                "type": "GET",
+                "datatype": "json",
+                "dataSrc": ""
+            },
+            "columnDefs": [{
+                "targets": [0],
+                "orderable": false
+            }],
+            "columns": [
+                {
+                    "data": function (data) {
+                        return '<a href="@Url.Action("BuyerDetails", "Dashboard" )?buyerCompanyId=' + data.BuyerCompanyId + '">' + data.BuyerName + '</a>';
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if ((data.CustomerId != null) && (data.CustomerId != '')) {
+                            return data.CustomerId + '<a id="btnTPOCustomerId"  class ="TPOCustomerId"  data-toggle="modal" data-target="#TPOCustomerId-modal"><span class="fas fa-edit ml5" data-placement="top" title="@Resource.lblCustomerId"></span></a>'
+                        }
+                        else {
+                            return '<a id="btnTPOCustomerId" class ="TPOCustomerId" data-toggle="modal" data-target="#TPOCustomerId-modal"><span class="fas fa-edit ml5" data-placement="top"  title="@Resource.lblCustomerId"></span></a>'
+                        }
+                    },
+                    "autoWidth": true
+                },
+                { "data": "TotalOrders", "autoWidth": true },
+                { "data": "TotalSpend", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+                { "data": "TotalGallonsOrdered", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 0, '') },
+                { "data": "TotalGallonsDelivered", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 0, '') },
+                { "data": "AveragePPG", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+                { "data": "TotalDDTCount", "autoWidth": true },
+                { "data": "TotalInvoiceCount", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+
+                        if ('@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsSupplierAdmin' == 'True') {
+                            return '<a class="fa fa-trash-alt fs18 color-maroon" data-toggle="modal" data-target="#deleteCustomerModalPopup" onclick="setCustomerId(' + data.BuyerCompanyId + ', \'' + data.BuyerName +'\');"></a>'
+                        }
+                        else {
+                            return "";
+                        }
+                    }, "width": "40px", "bSortable": false
+                },
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.lblYourCustomers', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.lblYourCustomers', exportOptions: exportColumns },
+                { extend: 'pdf', title: '@Resource.lblYourCustomers', exportOptions: exportColumns, orientation: 'landscape' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            },
+        });
+
+        $('#tpo-buyers-datatable tbody').on('click', '.TPOCustomerId', function () {
+            var $row = $(this).closest('tr');
+            var data = $('#tpo-buyers-datatable').DataTable().row($row).data();
+            editTPOCustomerId(data.BuyerCompanyId, data.CustomerId);
+        });
+    });
+
+    function editTPOCustomerId(id,CustomerId) {
+        $(".edit-loader").show();
+        $("#txtTPOCustomerId").val(CustomerId);
+        $("#oBuyerCompanyId").val(id);
+        $(".edit-loader").hide();
+    }
+
+    function updateTPOCustomerId() {
+        var url = '@Url.Action("SaveUpdateCustomerId", "Dashboard", new { area="Supplier"})';
+          var data = { buyerCompanyId: $("#oBuyerCompanyId").val(), customerId: $("#txtTPOCustomerId").val()}
+        $.post(url, data, function (response) {
+            if (response.StatusCode == 0) {
+                $("#TPOCustomerId-modal").modal("hide");
+                msgsuccess(response.StatusMessage);
+                setTimeout(function () {
+                    window.location.reload(true);
+                }, 1000);
+
+            } else if (response.StatusCode == 2) {
+                msgwarning(response.StatusMessage)
+            }
+            else
+            msgerror(response.StatusMessage);
+        });
+    }
+
+    function deleteTpoBuyerCompany() {
+        var buyerCompanyId = parseInt($('#hdnBuyerCompanyId').val());
+        if (isNaN(buyerCompanyId) || buyerCompanyId == 0)
+            return false;
+
+        $('.delete-customer-loader').removeClass("hide-element");
+        var url = '@Url.Action("DeleteTpoBuyerCompany", "Dashboard", new { area="Supplier"})';
+        var request = { buyerCompanyId: buyerCompanyId };
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            dataType: "json",
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify(request),
+            success: function (response) {
+                if (response != null && response != undefined && response.StatusCode == '@((int)Status.Success)') {
+                        msgsuccess(response.StatusMessage);
+                        supplierTpoCustomersGrid.ajax.reload();
+                    }
+                    else {
+                        msgerror(response.StatusMessage);
+                    }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(jqXHR, textStatus, errorThrown);
+            }
+        }).always(function () {
+            $('#deleteCustomerModalPopup').modal('hide');
+            $('.delete-customer-loader').addClass("hide-element");
+        });
+    }
+
+    function setCustomerId(buyerCompanyId, companyName) {
+        $('#hdnBuyerCompanyId').val(buyerCompanyId);
+        $('#spnBuyerCompanyName').html(companyName);
+    }
+
+    function resetCustomerId() {
+        $('#hdnBuyerCompanyId').val(0);
+    }
+
+</script>
+

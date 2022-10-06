@@ -1,0 +1,604 @@
+﻿
+<form [formGroup]="rForm" (ngSubmit)="onSubmit(2)">
+    <div>
+        <div *ngIf="RuleMode!='CREATE'">
+            <button type="button" class="btn btn-link" (click)="clearForm()"><i class="fa fa-plus-circle"></i> Create New</button>
+        </div>
+        <fieldset [ngClass]="{'pntr-none': disableInputControls}" [disabled]="disableInputControls ? true : null">
+            <div class="row mt-2">
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" formControlName="RuleType" id="Range" [name]="'RuleType'" [value]="2"
+                                   (change)="RuleTypeTypeChange(2)">
+                            <label class="form-check-label" for="Range">Range</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" formControlName="RuleType" id="P2P" [name]="'RuleType'" [value]="1"
+                                   (change)="RuleTypeTypeChange(1)">
+                            <label class="form-check-label" for="P2P">P2P</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" formControlName="RuleType" id="Route" [name]="'RuleType'" [value]="3"
+                                   (change)="RuleTypeTypeChange(3)">
+                            <label class="form-check-label" for="Route">Route</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <app-freight [PricingRuleType]="rForm.get('RuleType').value"
+                         [IsEditable]="IsEditable"
+                         (onGenerateTable)="getOutput($event)"
+                         (onGenerateFuelGroup)="onFuelGroupChange($event)"
+                         (onImportClick)="onImportClick($event)">
+            </app-freight>
+            <div class="well bg-white" *ngIf="freightComponent!=null && freightComponent!=undefined && freightComponent.rcForm!=undefined && freightComponent.rcForm.get('FuelGroups').value.length>0">
+
+
+                <div *ngIf="rForm.get('RuleType').value==3 && freightComponent!=null && freightComponent!=undefined && freightComponent.rcForm!=undefined && freightComponent.rcForm.get('FuelGroups').value.length>0">
+                    <div class="row" *ngIf="!freightComponent.ShowMessage">
+                        <div class="col-sm-6">
+
+                           <!--{{rcForm.get('FuelGroupTable').value|json}}-->
+                            <h3 class="mb-1">Min Quantity</h3>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th *ngFor="let item of freightComponent.rcForm.get('FuelGroups').value">
+                                            {{item.Name}}
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <ng-container formArrayName="FuelGroupTable">
+                                        <ng-container *ngFor="let item of rForm.get('FuelGroupTable')['controls'];let o =index;">
+                                            <ng-container [formGroupName]="o">
+                                                <tr>
+                                                    <ng-container formArrayName="group">
+                                                        <ng-container *ngFor="let groupDetail of item.get('group')['controls'];let p =index;">
+                                                            <ng-container [formGroupName]="p">
+                                                                <td>
+                                                                    <input type="text" formControlName="MinQuantity" class="form-control" />
+                                                                    <div *ngIf="groupDetail.get('MinQuantity').invalid && groupDetail.get('MinQuantity').touched" class="color-maroon">
+                                                                        <div *ngIf="groupDetail.get('MinQuantity').errors.required">
+                                                                            Required.
+                                                                        </div>
+                                                                        <div *ngIf="groupDetail.get('MinQuantity').errors.pattern">
+                                                                            Invalid.
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+
+                                                            </ng-container>
+                                                        </ng-container>
+                                                    </ng-container>
+                                                </tr>
+                                            </ng-container>
+                                        </ng-container>
+                                    </ng-container>
+
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+
+                    <div class="row" *ngIf="!freightComponent.ShowMessage">
+                        <!--{{rcForm.get('RangeTable').value|json}}-->
+                        <table class="table table-bordered table-hover mt-3">
+                            <thead>
+                                <tr>
+                                    <th colspan="3" align="center">Quantity (Gallons)</th>
+                                    <th *ngFor="let item of freightComponent.rcForm.get('FuelGroups').value">
+                                        {{item.Name}} (USD/G)
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <ng-container formArrayName="RangeTable">
+                                    <ng-container *ngFor="let item of rForm.get('RangeTable')['controls'];let o =index;">
+                                        <ng-container [formGroupName]="o">
+                                            <tr>
+                                                <td>
+                                                    <input type="text" formControlName="StartQuantity" class="form-control" (input)="onStartQuantityKeyPress($event,o)"
+                                                           (change)="onStartQuantityLostFocus(o)" />
+                                                    <div *ngIf="item.get('StartQuantity').invalid && item.get('StartQuantity').touched" class="color-maroon">
+                                                        <div *ngIf="item.get('StartQuantity').errors.required">
+                                                            Required.
+                                                        </div>
+                                                        <div *ngIf="item.get('StartQuantity').errors.pattern">
+                                                            Invalid, must be greater than zero.
+                                                        </div>
+                                                        <div *ngIf="item.get('StartQuantity').errors.InvalidRange">
+                                                            Invalid range.
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>To</td>
+                                                <td *ngIf="!item.get('IsLast').value">
+                                                    <input type="text" formControlName="EndQuantity" class="form-control" (input)="onEndQuantityKeyPress(o)"
+                                                           (change)="onEndQuantityLostFocus(o)" />
+                                                    <div *ngIf="item.get('EndQuantity').invalid && item.get('EndQuantity').touched" class="color-maroon">
+                                                        <div *ngIf="item.get('EndQuantity').errors.required">
+                                                            Required.
+                                                        </div>
+                                                        <div *ngIf="item.get('EndQuantity').errors.pattern">
+                                                            Invalid, must be greater than zero.
+                                                        </div>
+                                                        <div *ngIf="item.get('EndQuantity').errors.InvalidRange">
+                                                            Invalid range.
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td *ngIf="item.get('IsLast').value">
+                                                    Above
+                                                    <!--<input type="hidden" formControlName="EndQuantity" value="99999999" />-->
+                                                </td>
+
+                                                <ng-container formArrayName="group">
+                                                    <ng-container *ngFor="let groupDetail of item.get('group')['controls'];let p =index;">
+                                                        <ng-container [formGroupName]="p">
+                                                            <td>
+                                                                <input type="text" formControlName="RateValue" class="form-control" />
+                                                                <div *ngIf="groupDetail.get('RateValue').invalid && groupDetail.get('RateValue').touched" class="color-maroon">
+                                                                    <div *ngIf="groupDetail.get('RateValue').errors.required">
+                                                                        Required.
+                                                                    </div>
+
+                                                                    <div *ngIf="groupDetail.get('RateValue').errors.pattern">
+                                                                        Invalid.
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+
+                                                        </ng-container>
+                                                    </ng-container>
+                                                </ng-container>
+
+                                                <td>
+                                                    <ng-container *ngIf="o==(rForm.get('RangeTable')['controls'].length-1)">
+                                                        <a type="button"
+                                                           class="fa fa-plus-circle mt4 mr5 mr10"
+                                                           title="Add"
+                                                           (click)="AddRanges(o)">
+                                                        </a>
+                                                        <a type="button"
+                                                           class="fa fa-trash-alt mt7 color-maroon remove-partial-block tier"
+                                                           title="Remove"
+                                                           (click)="RemoveRanges(o)">
+                                                        </a>
+                                                    </ng-container>
+                                                </td>
+
+                                            </tr>
+                                        </ng-container>
+                                    </ng-container>
+                                </ng-container>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div *ngIf="rForm.get('RuleType').value==1 && freightComponent!=null && freightComponent!=undefined && freightComponent.rcForm!=undefined && freightComponent.rcForm.get('FuelGroups').value.length>0">
+                    <div class="row" *ngIf="!freightComponent.ShowMessage">
+                        <div hidden class="col-sm-6">
+                            <h3 class="mb-1">Min Quantity</h3>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th *ngFor="let item of freightComponent.rcForm.get('FuelGroups').value">
+                                            {{item.Name}}
+                                        </th>
+                                        <th *ngIf="freightComponent.rcForm.get('FuelGroups').value.length>1">
+                                            Mixed Load
+                                        </th>
+                                        <th *ngIf="freightComponent.rcForm.get('FuelGroups').value.length>1">
+                                            Calculation of Mixed fuel group load based on:
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <ng-container formArrayName="FuelGroupTable">
+                                        <ng-container *ngFor="let item of rForm.get('FuelGroupTable')['controls'];let o =index;">
+                                            <ng-container [formGroupName]="o">
+                                                <tr>
+                                                    <ng-container formArrayName="group">
+                                                        <ng-container *ngFor="let groupDetail of item.get('group')['controls'];let p =index;">
+                                                            <ng-container [formGroupName]="p">
+                                                                <td>
+                                                                    <input type="text" formControlName="MinQuantity" class="form-control" />
+                                                                    <div *ngIf="groupDetail.get('MinQuantity').invalid && groupDetail.get('MinQuantity').touched" class="color-maroon">
+                                                                        <div *ngIf="groupDetail.get('MinQuantity').errors.required">
+                                                                            Required.
+                                                                        </div>
+                                                                        <div *ngIf="groupDetail.get('MinQuantity').errors.pattern">
+                                                                            Invalid.
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+
+                                                            </ng-container>
+                                                        </ng-container>
+                                                    </ng-container>
+
+                                                    <td *ngIf="freightComponent.rcForm.get('FuelGroups').value.length>1">
+
+                                                        <input type="text" formControlName="MixLoadMinValue" class="form-control" />
+                                                        <div *ngIf="item.get('MixLoadMinValue').invalid && item.get('MixLoadMinValue').touched" class="color-maroon">
+                                                            <div *ngIf="item.get('MixLoadMinValue').errors.required">
+                                                                Required.
+                                                            </div>
+                                                            <div *ngIf="item.get('MixLoadMinValue').errors.pattern">
+                                                                Invalid.
+                                                            </div>
+                                                        </div>
+
+                                                    </td>
+
+                                                    <td *ngIf="freightComponent.rcForm.get('FuelGroups').value.length>1">
+                                                        <div>
+                                                            <div class="row mb-2">
+                                                                <div class="col-sm-12">
+                                                                    <div class="form-check form-check-inline">
+                                                                        <input class="form-check-input" type="radio" formControlName="FreightRateCalcPreferenceType" id="RoundUp" [name]="'FreightRateCalcPreferenceType'" [value]="1" [attr.disabled]="item.get('MixLoadMinValue').value==0?true:null">
+                                                                        <label class="form-check-label" for="RoundUp">Round Up</label>
+                                                                    </div>
+                                                                    <div class="form-check form-check-inline">
+                                                                        <input class="form-check-input" type="radio" formControlName="FreightRateCalcPreferenceType" id="Proportion" [name]="'FreightRateCalcPreferenceType'" [value]="2" [attr.disabled]="item.get('MixLoadMinValue').value==0?true:null">
+                                                                        <label class="form-check-label" for="Proportion">Proportion</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="row" *ngIf="item.get('FreightRateCalcPreferenceType').value==1 && item.get('MixLoadMinValue').value>0">
+                                                                <div class="col-sm-12">
+                                                                    <ng-multiselect-dropdown formControlName="FuelGroups"
+                                                                                             class="single-select"
+                                                                                             id="fuelGroup"
+                                                                                             [placeholder]="'Select fuel group (Required)'"
+                                                                                             [settings]="SingleSelectSettingsById" [data]="SelectedFuelGroups">
+                                                                    </ng-multiselect-dropdown>
+                                                                    <div *ngIf="item.get('FuelGroups').invalid && item.get('FuelGroups').touched" class="color-maroon">
+                                                                        <div *ngIf="item.get('FuelGroups').errors.required">
+                                                                            Required.
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </ng-container>
+                                        </ng-container>
+                                    </ng-container>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row" [ngClass]="{'hide-element':freightComponent.ShowMessage }">
+                        <div class="col-md-12">
+                            <div class="well bg-white shadow-b">
+                                <div class="ibox mb0">
+                                    <div class="ibox-content no-padding no-border">
+                                        <div id="div-p2p-rate-table" class="table-responsive">
+                                            <table class="table table-bordered" datatable [dtOptions]="dtOptions" [dtTrigger]="DtTrigger">
+                                                <thead>
+                                                    <tr>
+                                                        <th data-key="ptbp">
+                                                            Terminals/Bulk Plants
+                                                        </th>
+                                                        <th data-key="pln">
+                                                            Location Name
+                                                        </th>
+                                                        <th data-key="pla">Location Address</th>
+                                                        <th data-key="pli">LaneId</th>
+                                                        <th data-key="pam">Assumed Miles</th>
+                                                        <ng-container *ngFor="let item of freightComponent.rcForm.get('FuelGroups').value">
+                                                            <th data-key="item.Name">
+                                                                {{item.Name}} (USD/G)
+                                                            </th>
+                                                        </ng-container>
+                                                        <th data-key="plr">A Lane Required</th>
+                                                    </tr>
+                                                </thead>
+
+                                                <tbody>
+
+                                                    <ng-container formArrayName="RangeTable">
+                                                        <ng-container *ngFor="let item of rForm.get('RangeTable')['controls'];let o =index;">
+                                                            <ng-container [formGroupName]="o">
+                                                                <tr>
+                                                                    <td>
+                                                                        <ng-container *ngIf="item.get('IsLast').value==true">
+                                                                            <label> {{item.get('TerminalAndBulkPlantName').value}}</label>
+                                                                        </ng-container>
+                                                                    </td>
+                                                                    <td>
+                                                                        <ng-container>
+                                                                            <label> {{item.get('LocationName').value}}</label>
+                                                                        </ng-container>
+                                                                    </td>
+
+                                                                    <td class="break-word">
+                                                                        <ng-container>
+                                                                            <label> {{item.get('LocationAddress').value}}</label>
+                                                                        </ng-container>
+                                                                    </td>
+
+                                                                    <td>
+                                                                        <ng-container>
+                                                                            <label> {{item.get('LaneID').value}}</label>
+                                                                        </ng-container>
+                                                                        <div *ngIf="item.get('LaneID').invalid && item.get('LaneID').touched" class="color-maroon">
+                                                                            <div *ngIf="item.get('LaneID').errors.required">
+                                                                                Required.
+                                                                            </div>
+                                                                            <div *ngIf="item.get('LaneID').errors.pattern">
+                                                                                Invalid.
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    <td>
+                                                                        <input type="text" formControlName="AssumedMiles" class="form-control" />
+                                                                        <div *ngIf="item.get('AssumedMiles').invalid && item.get('AssumedMiles').touched" class="color-maroon">
+                                                                            <div *ngIf="item.get('AssumedMiles').errors.required">
+                                                                                Required.
+                                                                            </div>
+                                                                            <div *ngIf="item.get('AssumedMiles').errors.pattern">
+                                                                                Invalid.
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <ng-container formArrayName="group">
+                                                                        <ng-container *ngFor="let groupDetail of item.get('group')['controls'];let p =index;">
+                                                                            <ng-container [formGroupName]="p">
+                                                                                <td>
+                                                                                    <input type="text" formControlName="RateValue" class="form-control" />
+                                                                                    <div *ngIf="groupDetail.get('RateValue').invalid && groupDetail.get('RateValue').touched" class="color-maroon">
+                                                                                        <div *ngIf="groupDetail.get('RateValue').errors.required">
+                                                                                            Required.
+                                                                                        </div>
+
+                                                                                        <div *ngIf="groupDetail.get('RateValue').errors.pattern">
+                                                                                            Invalid.
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </td>
+
+                                                                            </ng-container>
+                                                                        </ng-container>
+                                                                    </ng-container>
+
+                                                                    <td class="text-center">
+                                                                        <input type="checkbox" formControlName="IsLaneRequired" class="form-check-input" [value]="1" />
+                                                                    </td>
+
+                                                                </tr>
+                                                            </ng-container>
+                                                        </ng-container>
+                                                    </ng-container>
+
+                                                </tbody>
+
+
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="rForm.get('RuleType').value==2 && freightComponent!=null && freightComponent!=undefined && freightComponent.rcForm!=undefined && freightComponent.rcForm.get('FuelGroups').value.length>0">
+
+                    <div class="row" *ngIf="!freightComponent.ShowMessage">
+                        <div hidden class="col-sm-6">
+                            <h3 class="mb-1">Min Quantity</h3>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th *ngFor="let item of freightComponent.rcForm.get('FuelGroups').value">
+                                            {{item.Name}}
+                                        </th>
+                                        <th *ngIf="freightComponent.rcForm.get('FuelGroups').value.length>1">
+                                            Mixed Load
+                                        </th>
+                                        <th *ngIf="freightComponent.rcForm.get('FuelGroups').value.length>1">
+                                            Calculation of Mixed fuel group load based on:
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <ng-container formArrayName="FuelGroupTable">
+                                        <ng-container *ngFor="let item of rForm.get('FuelGroupTable')['controls'];let o =index;">
+                                            <ng-container [formGroupName]="o">
+                                                <tr>
+                                                    <ng-container formArrayName="group">
+                                                        <ng-container *ngFor="let groupDetail of item.get('group')['controls'];let p =index;">
+                                                            <ng-container [formGroupName]="p">
+                                                                <td>
+                                                                    <input type="text" formControlName="MinQuantity" class="form-control" />
+                                                                    <div *ngIf="groupDetail.get('MinQuantity').invalid && groupDetail.get('MinQuantity').touched" class="color-maroon">
+                                                                        <div *ngIf="groupDetail.get('MinQuantity').errors.required">
+                                                                            Required.
+                                                                        </div>
+                                                                        <div *ngIf="groupDetail.get('MinQuantity').errors.pattern">
+                                                                            Invalid.
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+
+                                                            </ng-container>
+                                                        </ng-container>
+                                                    </ng-container>
+
+                                                    <td *ngIf="freightComponent.rcForm.get('FuelGroups').value.length>1">
+                                                        <input type="text" formControlName="MixLoadMinValue" class="form-control" />
+                                                        <div *ngIf="item.get('MixLoadMinValue').invalid && item.get('MixLoadMinValue').touched" class="color-maroon">
+                                                            <div *ngIf="item.get('MixLoadMinValue').errors.required">
+                                                                Required.
+                                                            </div>
+                                                            <div *ngIf="item.get('MixLoadMinValue').errors.pattern">
+                                                                Invalid.
+                                                            </div>
+                                                        </div>
+
+                                                    </td>
+
+                                                    <td *ngIf="freightComponent.rcForm.get('FuelGroups').value.length>1">
+                                                        <div>
+                                                            <div class="row mb-2">
+                                                                <div class="col-sm-12">
+                                                                    <div class="form-check form-check-inline">
+                                                                        <input class="form-check-input" type="radio" formControlName="FreightRateCalcPreferenceType" id="RoundUp" [name]="'FreightRateCalcPreferenceType'" [value]="1" [attr.disabled]="item.get('MixLoadMinValue').value==0?true:null">
+                                                                        <label class="form-check-label" for="RoundUp">Round Up</label>
+                                                                    </div>
+                                                                    <div class="form-check form-check-inline">
+                                                                        <input class="form-check-input" type="radio" formControlName="FreightRateCalcPreferenceType" id="Proportion" [name]="'FreightRateCalcPreferenceType'" [value]="2" [attr.disabled]="item.get('MixLoadMinValue').value==0?true:null">
+                                                                        <label class="form-check-label" for="Proportion">Proportion</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="row" *ngIf="item.get('FreightRateCalcPreferenceType').value==1 && item.get('MixLoadMinValue').value>0">
+                                                                <div class="col-sm-12">
+                                                                    <ng-multiselect-dropdown formControlName="FuelGroups"
+                                                                                             class="single-select"
+                                                                                             id="fuelGroup"
+                                                                                             [placeholder]="'Select fuel group'"
+                                                                                             [settings]="SingleSelectSettingsById" [data]="SelectedFuelGroups">
+                                                                    </ng-multiselect-dropdown>
+                                                                    <div *ngIf="item.get('FuelGroups').invalid && item.get('FuelGroups').touched" class="color-maroon">
+                                                                        <div *ngIf="item.get('FuelGroups').errors.required">
+                                                                            Required.
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </ng-container>
+                                        </ng-container>
+                                    </ng-container>
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row" *ngIf="!freightComponent.ShowMessage">
+                        <div class="col-sm-6">
+                            <h3 class="mb-1">Miles Range Table</h3>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            Upto
+                                        </th>
+                                        <th *ngFor="let item of freightComponent.rcForm.get('FuelGroups').value">
+                                            {{item.Name}} (USD/G)
+                                        </th>
+                                        <!--<th>
+                                        Status
+                                    </th>-->
+                                        <th>
+                                            Action
+                                        </th>
+
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <ng-container formArrayName="RangeTable">
+                                        <ng-container *ngFor="let item of rForm.get('RangeTable')['controls'];let o =index;">
+                                            <ng-container [formGroupName]="o">
+                                                <tr>
+                                                    <td>
+                                                        <input type="text" formControlName="UptoQuantity" class="form-control" />
+                                                        <div *ngIf="item.get('UptoQuantity').invalid && item.get('UptoQuantity').touched" class="color-maroon">
+                                                            <div *ngIf="item.get('UptoQuantity').errors.required">
+                                                                Required.
+                                                            </div>
+                                                            <div *ngIf="item.get('UptoQuantity').errors.pattern">
+                                                                Invalid, must be greater than zero.
+                                                            </div>
+                                                            <span *ngIf="item.get('UptoQuantity').errors.DuplicateEntry">
+                                                                Duplicate.
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <ng-container formArrayName="group">
+                                                        <ng-container *ngFor="let groupDetail of item.get('group')['controls'];let p =index;">
+                                                            <ng-container [formGroupName]="p">
+                                                                <td>
+                                                                    <input type="text" formControlName="RateValue" class="form-control" />
+                                                                    <div *ngIf="groupDetail.get('RateValue').invalid && groupDetail.get('RateValue').touched" class="color-maroon">
+                                                                        <div *ngIf="groupDetail.get('RateValue').errors.required">
+                                                                            Required.
+                                                                        </div>
+
+                                                                        <div *ngIf="groupDetail.get('RateValue').errors.pattern">
+                                                                            Invalid.
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+
+                                                            </ng-container>
+                                                        </ng-container>
+                                                    </ng-container>
+                                                    <!--<td>
+                                                    <a type="button"
+                                                       class="fa fa-exclamation-triangle mt4 mr5 mr10"
+                                                       title="Status">
+                                                    </a>
+                                                </td>-->
+                                                    <td>
+                                                        <ng-container>
+                                                            <a type="button"
+                                                               class="fa fa-plus-circle mt4 mr5 mr10"
+                                                               title="Add"
+                                                               (click)="AddRanges(o)">
+                                                            </a>
+                                                            <a type="button"
+                                                               class="fa fa-trash-alt mt7 color-maroon remove-partial-block tier"
+                                                               title="Remove"
+                                                               (click)="RemoveRanges(o)">
+                                                            </a>
+                                                        </ng-container>
+                                                    </td>
+
+                                                </tr>
+                                            </ng-container>
+                                        </ng-container>
+                                    </ng-container>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </fieldset>
+        <div class="text-right">
+            <input type="button" class="btn btn-lg btn-light" value="Cancel" (click)="onCancel()" />
+            <button class="btn btn-lg btn-outline-primary" type="button" (click)="onSubmit(1)" [disabled]="disableInputControls ? true : null">Save Draft</button>
+            <button class="btn btn-lg btn-primary" type="submit" [disabled]="disableInputControls ? true : null">Submit</button>
+        </div>
+    </div>
+
+</form>
+<div class="loader" *ngIf="IsLoading">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Loading</div>
+    </div>
+</div>

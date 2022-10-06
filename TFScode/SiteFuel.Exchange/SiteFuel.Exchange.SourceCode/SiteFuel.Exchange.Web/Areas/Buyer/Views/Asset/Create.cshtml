@@ -1,0 +1,192 @@
+﻿@model AssetViewModel
+@{
+    if (Model.Type == (int)AssetType.Asset)
+    {
+        ViewBag.Title = Model.Id > 0 ? "Asset Details" : "Create New Asset";
+    }
+    else if (Model.Type == (int)AssetType.Tank)
+    {
+        ViewBag.Title = Model.Id > 0 ? "Tank Details" : "Create New Tank";
+    }
+}
+
+<div class="row mb10">
+    <div class="col-sm-6 tab-headers">
+        <a href="javascript:void(0)" onclick="showPanelsection('asset-details'), activePanellink(this), inputBoxShowHide(null, 'download')" class="active mr20">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.tabheadingDetails</span>
+            </div>
+        </a>
+        @if (Model.DisplayMode == PageDisplayMode.Edit && Model.Type == (int)AssetType.Asset)
+        {
+            <a href="javascript:void(0)" onclick="showPanelsection('asset-history'), activePanellink(this), inputBoxShowHide('download',null)" class="mr20">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.tabHeadingHistory</span>
+                </div>
+            </a>
+        }
+    </div>
+    @if (Model.Type == (int)AssetType.Asset)
+    {
+        <div class="col-sm-6 text-right">
+            @if (CurrentUser.IsBuyer || CurrentUser.IsBuyerAdmin)
+            {
+                if (Model.DisplayMode != PageDisplayMode.Edit)
+                {
+                    using (Html.BeginForm("BulkUpload", "Asset", new { area = "Buyer" }, FormMethod.Post, new { enctype = "multipart/form-data", @id = "assetBulkuploadForm" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.Partial("_PartialAssetBulkUpload")
+                    }
+                }
+            }
+        </div>
+    }
+</div>
+<div class="tab-container">
+    <div id="asset-details">
+        @if (CurrentUser.IsBuyer || CurrentUser.IsBuyerAdmin)
+        {
+            using (Html.BeginForm("Create", "Asset", new { area = "Buyer" }, FormMethod.Post, new { enctype = "multipart/form-data", @id = "createAssetForm" }))
+            {
+                @Html.AntiForgeryToken()
+                if (Model.Type == (int)AssetType.Asset)
+                {
+                    <div class="@(CurrentUser.IsBuyerAdmin ? "row" : "row disable-controls")">
+                        <div class="col-sm-12 ">
+                            @Html.PartialFor("_PartialAsset", m => m)
+                        </div>
+                    </div>
+                }
+                else if (Model.Type == (int)AssetType.Tank)
+                {
+                    <div class="@(CurrentUser.IsBuyerAdmin ? "row" : "row disable-controls")">
+                        <div class="col-sm-12 ">
+                            @Html.PartialFor("_PartialTank", m => m)
+                        </div>
+                    </div>
+                }
+
+                if (CurrentUser.IsBuyerAdmin)
+                {
+                    <div class="row">
+                        <div class="col-sm-12 text-right pb30 form-buttons">
+                            <span>
+                                <input type="button" class="btn btn-lg btn-primary" id="assetSubmit" value="@Resource.btnLabelSubmit" />
+                            </span>
+                        </div>
+                    </div>
+                }
+            }
+        }
+    </div>
+    <div id="asset-history" class="hide-element">
+        @if (Model.DisplayMode == PageDisplayMode.Edit)
+        {
+            @Html.Partial("_PartialAssetHistory", Model.Id)
+        }
+    </div>
+</div>
+<script type="text/javascript">
+    $('#assetSubmit').click(function () {
+        var isValidForm = true;
+        if ('@(Model.Type == (int)AssetType.Tank)' == 'True') {
+            validationMessageFor('FuelType.Id', '');
+            validationMessageFor('AssetAdditionalDetail.TankModelTypeId', '');
+            if (($('#FuelType_Id').val() == null || $('#FuelType_Id').val() == undefined || $('#FuelType_Id').val() == 0)) {
+                validationMessageFor('FuelType.Id', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblProductType })');
+                isValidForm = false;
+            }
+
+            var maxFill = $('#AssetAdditionalDetail_MaxFill').val();
+            var fuelCapacity = $('#AssetAdditionalDetail_FuelCapacity').val();
+            var fillType = $('#AssetAdditionalDetail_FillType').val();
+            if (maxFill != null && maxFill != "" && fillType == '@((int)FillType.Percent)' && maxFill > 100) {
+                isValidForm = false;
+            }
+
+            if (fuelCapacity != null && fuelCapacity != "" && maxFill != null && maxFill != "" && fillType == '@((int)FillType.UoM)' && parseFloat(maxFill) > parseFloat(fuelCapacity)) {
+                isValidForm = false;
+            }
+
+            var minFill = $('#AssetAdditionalDetail_MinFill').val();
+            if (minFill != null && minFill != "" && fillType == '@((int)FillType.Percent)' && minFill > 100) {
+                isValidForm = false;
+            }
+
+            var runOutLevel = $('#AssetAdditionalDetail_RunOutLevel').val();
+            if (runOutLevel != null && runOutLevel != "" && runOutLevel > 100) {
+                isValidForm = false;
+            }
+
+            var thresholdDeliveryRequest = $('#AssetAdditionalDetail_ThresholdDeliveryRequest').val();
+            if (thresholdDeliveryRequest != null && thresholdDeliveryRequest != "" && thresholdDeliveryRequest > 100) {
+                isValidForm = false;
+            }
+
+            var physicalPumpStop = $('#AssetAdditionalDetail_PhysicalPumpStop').val();
+            if (physicalPumpStop != null && physicalPumpStop != "" && physicalPumpStop > 100) {
+                isValidForm = false;
+            }
+
+            var dipTestMethodId = parseInt($('#AssetAdditionalDetail_DipTestMethod').find(":selected").val());
+            if (!isNaN(dipTestMethodId) && dipTestMethodId == @((int)DipTestMethod.Pedigree)) {
+                var pedigreeAssetDBID = $.trim($('#AssetAdditionalDetail_PedigreeAssetDBID').val());
+                if (pedigreeAssetDBID == null || pedigreeAssetDBID == '' || pedigreeAssetDBID == undefined) {
+                    validationMessageFor('AssetAdditionalDetail.PedigreeAssetDBID', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblPedigreeAssetDBID })');
+                    isValidForm = false;
+                }
+            }
+            if (!isNaN(dipTestMethodId) && dipTestMethodId == @((int)DipTestMethod.Skybitz)) {
+                var skybitzRTUId = $.trim($('#AssetAdditionalDetail_SkyBitzRTUID').val());
+                if (skybitzRTUId == null || skybitzRTUId == '' || skybitzRTUId == undefined) {
+                    validationMessageFor('AssetAdditionalDetail.SkyBitzRTUID', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblSkyBitzRTUID })');
+                    isValidForm = false;
+                }
+            }
+            if (!isNaN(dipTestMethodId) && dipTestMethodId == @((int)DipTestMethod.Insight360)) {
+                var insightTankId = $.trim($('#AssetAdditionalDetail_Insight360TankId').val());
+                if (insightTankId == null || insightTankId == '' || insightTankId == undefined) {
+                    validationMessageFor('AssetAdditionalDetail.Insight360TankId', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblInSight360ID })');
+                    isValidForm = false;
+                }
+            }
+
+            // validate veeder root controls
+            if (!isNaN(dipTestMethodId) && dipTestMethodId == @((int)DipTestMethod.VeederRoot)) {
+                isValidForm = validateVeederRootControls(isValidForm);
+            }
+
+            
+
+            // validate water level threshold
+            isValidForm = validateWaterLevelThreshold(isValidForm);
+        }
+       
+        if (isValidForm && ValidateStorageTypeIdAndStorageId() && $('#createAssetForm').valid()) {
+            if (@Model.Type == 2) {
+                var tankId = $('#@Html.IdFor(m => m.Id)').val();
+                var tankSequence = $('#@Html.IdFor(m => m.AssetAdditionalDetail.TankSequence)').val();
+                var jobId = '@Model.JobId';
+                 var targetUrl = '@Url.Action("CheckDuplicateTankSequence")';
+                checkDuplicateTankSequenceForTankDetails(targetUrl,tankId,tankSequence,jobId);
+            } else {
+                SubmitAsset();
+            }
+		}
+		else {
+			$(".btnSubmit").addClass("show-onsubmit");
+			return;
+		}
+	})
+	$('#csvFile').bind('change', function () {
+		ValidateAssetUploadFileSize(this, parseInt('@Model.MaxAllowedFileSize'), "uploadAssetsButton", "divAssetFileSizeError");
+    });
+    $("#uploadAssetsButton").click(function () {
+        if ($('#csvFile')[0].files[0] == undefined) {
+            msgerror('@Resource.errMessageNoFileChosen');
+            return false;
+        }
+    });
+</script>
+<script src="~/Content/js/tankSequence.js"></script>

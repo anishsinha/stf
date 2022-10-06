@@ -1,0 +1,278 @@
+﻿@model ManualInvoiceViewModel
+@{
+    ViewBag.Title = (Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp) ? "Create Digital Drop Ticket" : "Create Invoice";
+}
+
+@using (Html.BeginForm("Create", "Invoice", new { area = "Supplier", orderId = Model.OrderId, PoNumber = Model.PoNumber }, FormMethod.Post, new { role = "form", id = "invoice-form", enctype = "multipart/form-data" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.InvoiceTypeId)
+    <div class="col-sm-12">
+        <div class="row mb15">
+            <div id="invite-user-section" class="row partial-section">
+                <div class="col-sm-12">
+                    @Html.HiddenFor(m => m.FuelRemaining)
+                    @Html.HiddenFor(m => m.IsFTL)
+
+                    @if (Model.IsFTL)
+                    {
+                        @Html.PartialFor("_PartialFtlInvoice", m => m)
+                    }
+                    else
+                    {
+                        @Html.PartialFor("_PartialInvoice", m => m)
+                    }
+                </div>
+            </div>
+            <div class="row text-right">
+                <div class="col-sm-2"></div>
+                <div class="col-sm-10 text-right form-buttons">
+                    <input class="btn" type="button" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Details", "Order", new { area = "Supplier", id = Model.OrderId })'" />
+                    <input class="btn btn-lg btn-primary form-submit" type="button" value="@Resource.btnLabelSubmit" onclick="return submitForm();" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/address-goecoder")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Invoice")
+    <script type="text/javascript">
+        var mapsApiKey = '@SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleApiKey';
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = @(Model.DropAddress != null ? @Model.DropAddress.State.Id : 0); // for state autofill
+		var pickupStateId = @(Model.PickUpAddress != null ? @Model.PickUpAddress.State.Id : 0);
+        var CollectionName = "Assets";
+		var assetsFromModel =  @Html.Raw(Json.Encode(Model.Assets));
+		var isFtl = '@Model.IsFTL' == 'True';
+		var isBolRequired = '@Model.IsBolRequired' == 'True';
+        $('#@Html.IdFor(m=>m.FuelDropped)').on("input, change", function () {
+            if (parseFloat('@Model.FuelRemaining') < parseFloat($('#@Html.IdFor(m=>m.FuelDropped)').val())) {
+                $("#valFuelDropped").addClass('show-element').removeClass('hide-element');
+            }
+            else {
+                $("#valFuelDropped").addClass('hide-element').removeClass('show-element');
+            }
+
+            calculateSurcharge();
+        });
+
+        $('.surchargePercentage').on("input, change", function () {
+            calculateSurcharge();
+        });
+
+        $('.surchargeDistance').on("input, change", function () {
+            calculateSurcharge();
+        });
+
+        function calculateSurcharge() {
+            var isbyDistance = '@Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.IsFeeByDistance';
+            if (isbyDistance == 'True') {
+                var distance = parseFloat($('.surchargeDistance').val());
+                if (distance > 0)
+                    SetDistanceBasedFreightCost(distance);
+            }
+            var surchargePartial = (parseFloat($('.surchargePercentage').val()) / 100) * parseFloat($('.surchargeFreightCost').val());
+            var surchargeQty = parseFloat($('#FuelDropped').val());
+            var surchargeFee = surchargePartial.toFixed(4) * surchargeQty;
+            if (surchargeFee > 0)
+                $('.totalFuelSurchargeFee').val(surchargeFee.toFixed(4));
+        }
+
+        var surchargeFeeByQty;
+        $(document).ready(function () {
+            surchargeFeeByQty = JSON.parse('@Html.Raw(Json.Encode(Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.DeliveryFeeByQuantity.ToList()))');
+            $('#@Html.IdFor(m => m.DeliveryDate)').val('');
+        });
+
+        function SetDistanceBasedFreightCost(distance) {
+            var exactFee = surchargeFeeByQty.find(function (x) { return x.MinQuantity <= distance && x.MaxQuantity >= distance;});
+            if (exactFee != undefined)
+                $('.surchargeFreightCost').val(exactFee.Fee);
+            else {
+                exactFee = surchargeFeeByQty[surchargeFeeByQty.length - 1];
+                if (exactFee != undefined)
+                    $('.surchargeFreightCost').val(exactFee.Fee);
+                else
+                    $('.surchargeFreightCost').val(0);
+                //set message as cost not available for this distance
+            }
+        }
+
+		$('#SelectedAssets').change(function (e) {
+			var newAssets = [];
+			$(this).find('option:selected').each(function () {
+                newAssets.push({ id: $(this).data('id'), jobxAssetId: $(this).data('jobxassetid') });
+			});
+
+            var existingAssets = [];
+            var existingAssetBlocks = $('#asset-drops .partial-block');
+            existingAssetBlocks.each(function () {
+                existingAssets.push({ id: $(this).find('[id$="_Id"]').val(), jobxAssetId: $(this).find('[id$="_JobXAssetId"]').val() });
+            });
+
+            for (var i = 0; i < existingAssetBlocks.length; i++) {
+                var mappingId = $(existingAssetBlocks[i]).find('[id$="_Id"]').val();
+                var jobxAssetId = $(existingAssetBlocks[i]).find('[id$="_JobXAssetId"]').val();
+                var assetDropGallons = parseInt($(existingAssetBlocks[i]).closest('.partial-block').find('[id$="_DropGallons"]').val()) || 0;
+                var totalDroppedGallons = parseInt($("#@Html.IdFor(m=> m.FuelDropped)").val()) || 0;
+                if (jobxAssetId > 0 && $.grep(newAssets, function (key, value) {
+                    return key.id == mappingId && key.jobxAssetId == jobxAssetId
+                }).length == 0) {
+                    if (totalDroppedGallons > assetDropGallons) {
+                        $("#@Html.IdFor(m=> m.FuelDropped)").val(totalDroppedGallons - assetDropGallons);
+                    }
+                    else {
+                        $("#@Html.IdFor(m=> m.FuelDropped)").val('');
+                    }
+                    $(existingAssetBlocks[i]).prev("input[type='hidden']").remove();
+                    $(existingAssetBlocks[i]).remove();
+                }
+            }
+            var assetsToAdd = $.grep(newAssets, function (element, index) {
+                if ($.grep(existingAssets, function (key, value) {
+                    return element.id == key.id && element.jobxAssetId == key.jobxAssetId
+                }).length == 0) {
+                    return element.jobxAssetId;
+                }
+            });
+			for (var i = 0; i < assetsToAdd.length; i++) {
+				var data = $.grep(assetsFromModel, function (asset) {
+                    return asset.JobXAssetId == assetsToAdd[i].jobxAssetId && asset.Id == assetsToAdd[i].id;
+                });
+
+                //removed code with .findIndex as it was not working with IE
+                var index;
+                for (var ind = 0; ind < assetsFromModel.length; ++ind) {
+                    if (assetsFromModel[ind].JobXAssetId == assetsToAdd[i].jobxAssetId && assetsFromModel[ind].Id == assetsToAdd[i].id) {
+                        index = ind;
+                        break;
+                    }
+                }
+
+                var assetDrop = new AssetDropModule.AssetDrop(data[0], index, '@Model.UoM');
+                var partialView = assetDrop.getPartialBlock();
+                $("#asset-drop-section .partial-block-collection-section").append(partialView);
+            }
+            if (assetsToAdd.length > 0) {
+                parseForm();
+                documentReady(true);
+                enableSubmit();
+            }
+		});
+        var $form = $("#invoice-form");
+
+        function submitForm() {
+            var isValidForm = true;
+			try {
+				var assets = $('#asset-drops .partial-block');
+				for (var i = 0; i < assets.length; i++) {
+					var dropGallons = $(assets[i]).find('.drop-input');
+					var dropStartTime = $(assets[i]).find('.starttime');
+					var dropEndTime = $(assets[i]).find('.endtime');
+					if (dropGallons.val() != '' || dropStartTime.val() != '' || dropEndTime.val() != '') {
+						var isdropGallonsValid = dropGallons.valid();
+						var isStartTimeValid = dropStartTime.valid();
+						var isEndTimeValid = dropEndTime.valid();
+						if (isValidForm == true) {
+							isValidForm = isdropGallonsValid && isStartTimeValid && isEndTimeValid;
+						}
+					}
+				}
+
+				var isdropDateValid = $('#FuelDropped').valid();
+				var isDropTimeValid = $('.dropstarttime').valid();
+				var isDropEndTimeValid = $('.dropendtime').valid();
+				if (isValidForm == true) {
+					isValidForm = isdropDateValid && isDropTimeValid && isDropEndTimeValid;
+				}
+				var dropEndTimeVal = $('.dropendtime').val();
+				var dropStartTimeVal = $('.dropstarttime').val();
+                var dropStartTimevalInSeconds = dropStartTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(dropStartTimeVal))) : 0;
+                var dropEndTimevalInSeconds = dropEndTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(dropEndTimeVal))) : 0;
+				if (dropStartTimeVal != '' && dropEndTimeVal != '' && dropEndTimeVal != dropStartTimeVal){
+                    if (dropStartTimevalInSeconds > dropEndTimevalInSeconds) {
+                            validationMessageFor('@Html.NameFor(m => m.EndTime)', '@ResourceMessages.GetMessage(Resource.valMessageGreaterThan, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+                            isValidForm = false;
+                        }
+                 }
+                $(".endtime").each(function () {
+                    var endTimeVal = $(this).val();
+					var startTimeVal = $(this).parents('.partial-block').find('.starttime').val();
+                    var startTimevalInMinutes = startTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(startTimeVal))) : 0;
+                    var endTimevalInMinutes = endTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(endTimeVal))) : 0;
+
+					if (startTimeVal != '' && endTimeVal != '' && endTimeVal != startTimeVal) {
+                        if (startTimevalInMinutes > endTimevalInMinutes) {
+                            validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageGreaterThan, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+                            isValidForm = false;
+                        }
+					}
+                    if (endTimeVal != '' && ((dropEndTimeVal != '' && endTimevalInMinutes > dropEndTimevalInSeconds) || (dropStartTimeVal != '' && endTimevalInMinutes < dropStartTimevalInSeconds)))
+					{
+						validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageAssetEndTimeMismatchWithInvoiceDropTime)');
+                        isValidForm = false;
+					}
+                    if (startTimeVal != '' && ((dropEndTimeVal != '' && startTimevalInMinutes > dropEndTimevalInSeconds) || (dropStartTimeVal != '' && startTimevalInMinutes < dropStartTimevalInSeconds)))
+					{
+						validationMessageFor($(this).parents('.partial-block').find('.starttime').attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageAssetStartTimeMismatchWithInvoiceDropTime)');
+                        isValidForm = false;
+					}
+				});
+
+                $(".dropquantity").each(function () {
+                    var quantity = $(this).val();
+                    var dropStat = $(this).closest(".row").find(".dd-dropstatus").text();
+                    if ((quantity == '0' || quantity == '') && dropStat == '') {
+                        validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageFuelQuantity)');
+                        isValidForm = false;
+                    }
+                });
+
+                var specialDateVal = '@((int)FeeConstraintType.SpecialDate)';
+                var specialDateErrorMsg = '@Resource.valMessageSpecialFeesDuplicate';
+                var quantityRangMsg = '@Resource.valMessageQuantityNotInRange';
+
+                if ('@Model.QuantityTypeId' != '@((int)QuantityType.NotSpecified)') {
+                    isValidForm = isValidForm && ValidateRangeCoversTotalQuantity(quantityRangMsg)
+                        && validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+                }
+                else {
+                    isValidForm = isValidForm && validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+                }
+
+                if (isValidForm)
+                    isValidForm = validateLiftDate($("#BolDetails_LiftDate"));
+
+				isValidForm = validateBolControls(isValidForm);
+                if (isValidForm == true) {
+					for (var i = 0; i < assets.length; i++)
+					{
+						var dropGallons = $(assets[i]).find('.drop-input').val();
+						if (dropGallons == '')
+						{
+							$(assets[i]).prev("input[type='hidden']").remove();
+							$(assets[i]).remove();
+						}
+					}
+                    $('form').submit();
+                }
+                else {
+                    $('.form-submit').removeAttr('disabled');
+                    isValidForm = false;
+                }
+            }
+            catch (error) {
+                console.log(error.message);
+                $('.form-submit').removeAttr('disabled');
+                isValidForm = false;
+            }
+            fixedButtons(".form-submit", isValidForm);
+            focusonErrorControl();
+		}		
+    </script>
+}
+

@@ -1,0 +1,606 @@
+﻿@using SiteFuel.Exchange.Web.Common
+@model ManualInvoiceViewModel
+
+<!-- details starts -->
+<div class="row">
+    @*@Html.HiddenFor(m => m.InvoiceId)*@
+    @Html.HiddenFor(m => m.InvoiceNumber.Id)
+    @Html.HiddenFor(m => m.InvoiceNumber.Number)
+    @Html.HiddenFor(m => m.AssetTracked)
+    @Html.HiddenFor(m => m.TypeofFuel)
+    @Html.HiddenFor(m => m.ConversionDDTId)
+    @Html.HiddenFor(m => m.IsConvertFromDDT)
+    @Html.HiddenFor(m => m.OrderTypeId)
+    @Html.HiddenFor(m => m.QuantityTypeId)
+    @Html.HiddenFor(m => m.FuelRequestId)
+    @Html.HiddenFor(m => m.IsTaxServiceFailure)
+    @Html.HiddenFor(m => m.CsvFilePath)
+    @Html.HiddenFor(m => m.IsBuyPriceInvoice)
+    @Html.HiddenFor(m => m.FuelDropped)
+	@Html.HiddenFor(m => m.QuantityIndicatorTypeId)
+    <div class="col-sm-12">
+        @if (Model.InvoiceId > 0)
+        {
+            <div class="col-sm-12">
+                <div class="row well mb15">
+                    <div class="col-md-2 col-xs-6 col-sm-3">
+                        <label class="f-normal">@Resource.lblInvoiceNumber</label>
+                        <div>
+                            @Html.DisplayFor(m => m.DisplayInvoiceNumber)
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-3 mb10">
+                        <label class="f-normal">@Resource.lblAmount</label>
+                        <div><span class="label label-success fs14 f-normal">@Resource.constSymbolCurrency@Model.TotalInvoiceAmount.ToString(ApplicationConstants.DecimalFormat2)</span></div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-3">
+                        <label class="f-normal">@Resource.lblDate</label>
+                        <div>@Model.CreatedDate.ToString(Resource.constFormatDate)</div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-3">
+                        <label class="f-normal">@Resource.lblPaymentDueDate</label>
+                        <div>@Model.PaymentDueDate</div>
+                    </div>
+
+                    @if (Model.TypeofFuel != (int)ProductDisplayGroups.OtherFuelType)
+                    {
+                        <div class="col-sm-2 col-xs-4 col-sm-3 mb10">
+                            <label class="f-normal">@Resource.lblStatus</label>
+                            <div>
+                                @if (Model.StatusId == (int)InvoiceStatus.Received)
+                                {
+                                    <label class="label label-primary">@(CommonHelperMethods.GetName<InvoiceStatus>(Model.StatusId))</label>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- details ends -->
+<!-- po starts -->
+<div class="col-sm-12">
+    <div class="row well mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.headingPO</h4>
+            <div class="row">
+                <div class="col-sm-2 col-xs-6 mb10">
+                    <label class="f-normal">@Resource.lblPoNumber</label>
+                    <div class="break-word"><a href="@Url.Action("Details","Order",new { area="Supplier" , id=Model.OrderId })">@Html.DisplayFor(m => m.PoNumber)</a></div>
+                </div>
+                <div class="col-md-2 col-xs-6 mb10">
+                    <label class="f-normal">@Resource.lblGallonsOrdered</label>
+                    @if (Model.QuantityTypeId != (int)QuantityType.NotSpecified)
+                    {
+                        <div>@Model.OrderTotal.GetPreciseValue(2).GetCommaSeperatedValue() @Model.UoM</div>
+                    }
+                    else
+                    {
+                        <div>@Resource.lblNotSpecified</div>
+                    }
+                    @Html.HiddenFor(m => m.OrderTotal, new { @class = "total-gallons-required" })
+                </div>
+                <div class="col-md-2 col-xs-6 mb10">
+                    <label class="f-normal">@Resource.lblGallonsRemaining</label>
+                    @if (Model.QuantityTypeId != (int)QuantityType.NotSpecified)
+                    {
+                        <div>@(Model.FuelRemaining <= 0 ? Convert.ToDecimal("0").GetPreciseValue(2).GetCommaSeperatedValue() : Model.FuelRemaining.GetPreciseValue(2).GetCommaSeperatedValue()) @Model.UoM</div>
+                    }
+                    else
+                    {
+                        <div>@Resource.lblHyphen</div>
+                    }
+                </div>
+                <div class="col-sm-2 col-xs-6 mb10">
+                    <label class="f-normal">@Resource.lblOrderType</label>
+                    <div>@(CommonHelperMethods.GetName<OrderType>(Model.OrderTypeId))</div>
+                </div>
+                <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                    <label class="f-normal">@Resource.lblRequestType</label>
+                    <div>@(Model.IsPublicRequest ? BroadcastType.Public : BroadcastType.Private)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- po ends -->
+<!-- fuel starts -->
+<div class="col-sm-12">
+    <div class="row well mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.headingFuel</h4>
+            <div class="row">
+                <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                    <label class="f-normal">@(string.Format(Resource.lblRackPP, Model.Currency == Currency.USD ? "PPU" : "PPU"))</label>
+                    <div class="break-word">@CommonHelperMethods.GetInvoicePricePerGallon(Model.InvoiceId) @Model.Currency</div>
+                </div>
+                <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                    <label class="f-normal">@Resource.lblProductName</label>
+                    <div class="break-word">@Model.FuelType</div>
+                </div>
+                <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                    <label class="f-normal">@Resource.lblTotalQuantityDelivered</label>
+                    <div class="break-word">@Model.FuelDropped</div>
+                </div>
+                @if (Model.TypeofFuel == (int)ProductDisplayGroups.OtherFuelType)
+                {
+                    <div class="col-sm-3 col-md-2 mb10">
+                        <label class="f-normal">@Resource.lblProductDescription</label>
+                        <div class="break-word">@(!string.IsNullOrWhiteSpace(Model.ProductDescription) ? Model.ProductDescription : Resource.lblHyphen)</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="col-sm-3 col-md-3 col-xs-6 mb10">
+                        <label class="f-normal">@Resource.lblTerminal</label>
+                        <div class="break-word">@Model.TerminalName</div>
+                    </div>
+                    if (Model.CityGroupTerminalId > 0)
+                    {
+                        <div class="col-sm-3 col-md-3 col-xs-6 mb10">
+                            <label class="f-normal">@Resource.lblCityGroupTerminal</label>
+                            <div class="break-word">@Model.CityGroupTerminalName</div>
+                        </div>
+                    }
+                    @*<div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                            <div class="pa bg-white subSectionOpacity top0 left0 z-index5 loading-wrapper terminal-loader"><span class='spinner-dashboard pa'></span></div>
+                            <label class="f-normal">@Resource.lblTerminalPrice</label>
+                            <div class="form-group">
+                                @Html.TextBoxFor(m => m.TerminalPrice, new { @id = "terminalPrice", @readonly = "readonly", @class = "form-control" })
+                            </div>
+                        </div>*@
+                }
+            </div>
+        </div>
+    </div>
+</div>
+@Html.HiddenFor(m => m.PaymentTermId)
+@Html.HiddenFor(m => m.NetDays)
+@Html.HiddenFor(m => m.PaymentMethod)
+@Html.HiddenFor(m => m.InvoiceCreationPricePerGallon)
+<!-- fuel ends -->
+
+@Html.HiddenFor(m => m.StartTime)
+@Html.HiddenFor(m => m.EndTime)
+@Html.HiddenFor(m => m.DeliveryDate)
+
+@if (Model.AssetTracked == true && Model.Assets.Count > 0)
+{
+    var cntAssets = 1;
+    <div class="trigger-container">
+        <div class="col-sm-12">
+            <div class="row well mb15">
+                <div class="col-sm-3">
+                    <h4>@Resource.headingAssets</h4>
+                    <select class="form-control entity-select col-sm-3">
+                        <option>Select Asset</option>
+                        @foreach (var asset in Model.Assets.Where(t => t.IsDropMade))
+                        {
+                            var controlTarget = "asset-" + cntAssets.ToString();
+                            <option data-target="@controlTarget">@asset.AssetName</option>
+                            cntAssets++;
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="row hide-element">
+                                <div class="col-sm-9">
+                                    <div id="valFuelDropped" class="hide-element">
+                                        <div class="alert alert-warning fs12" role="alert">
+                                            @if (Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                            {
+                                                @Resource.errMessageInvoiceWithExceedingQuantity.Replace("an invoice", "a drop ticket")
+                                            }
+                                            else
+                                            {
+                                                @Resource.errMessageInvoiceWithExceedingQuantity
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt7">
+                                <div class="col-sm-12">
+                                    <div id="asset-drop-section" class="partial-section">
+                                        <div id="asset-drops" class="partial-block-collection-section">
+                                            @{
+                                                cntAssets = 1;
+                                            }
+                                            @foreach (var asset in Model.Assets.Where(t => t.IsDropMade))
+                                            {
+                                                asset.UoM = Model.UoM;
+                                                var controlTarget = "asset-" + cntAssets.ToString();
+                                                <div id="@controlTarget" class="hide-element credit-entity">
+                                                    @Html.PartialFor("_PartialCreditAssetDrop", m => asset)
+                                                </div>
+                                                cntAssets++;
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<div class="col-sm-12">
+    <div class="row well pb0 mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.headingDelivery</h4>
+            <div class="row">
+                <div class="col-md-2 col-xs-6 z-index5 mb10">
+                    <label class="f-normal">@Resource.lblProductName</label>
+                    <div class="break-word">@Model.FuelType</div>
+                </div>
+                <div class="col-md-2 col-xs-6 mb10">
+                    <div class="form-group">
+                        <label class="f-normal">@Resource.btnLabelCredit @Resource.lblQuantity</label>
+                        @if (Model.AssetTracked == true && Model.Assets.Count > 0)
+                        {
+                            @Html.TextBoxFor(m => m.ZeroGallonAllowedFuelDropped, new { @class = "form-control drop-input datatype-decimal total-qty", @readonly = "readonly", @onchange = "CalculateCreditAmount(this);" })
+                            @Html.ValidationMessageFor(m => m.ZeroGallonAllowedFuelDropped)
+                        }
+                        else
+                        {
+                            @Html.TextBoxFor(m => m.ZeroGallonAllowedFuelDropped, new { @class = "form-control credit-qty", @onchange = "CalculateCreditAmount(this);" })
+                            @Html.ValidationMessageFor(m => m.ZeroGallonAllowedFuelDropped)
+                        }
+                    </div>
+                </div>
+                <div class="col-sm-2 mb15">
+                    <div class="form-group">
+                        <label class="f-normal">@Resource.btnLabelCredit @Resource.lblAmount</label>
+                        @Html.TextBox("CalculatedAssetCreditAmount", Model.ZeroGallonAllowedFuelDropped * Model.InvoiceCreationPricePerGallon, new { @class = "form-control credit-amount datatype-decimal", @readonly = "readonly" })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@Html.HiddenFor(m => m.TrackableScheduleId)
+
+<!-- fees starts -->
+@if (Model.FuelDeliveryDetails.FuelFees != null && Model.FuelDeliveryDetails.FuelFees.FuelRequestFees != null && Model.FuelDeliveryDetails.FuelFees.FuelRequestFees.Any())
+{
+    <div class="col-sm-12">
+        <div class="row well trigger-container mb15">
+            @Html.HiddenFor(m => m.ExternalBrokerId)
+            @Html.HiddenFor(m => m.IsThirdPartyHardwareUsed)
+            @if (Model.FuelDeliveryDetails.FuelFees != null && Model.FuelDeliveryDetails.FuelFees.FuelRequestFees != null && Model.FuelDeliveryDetails.FuelFees.FuelRequestFees.Any())
+            {
+                var cntFees = 1;
+                <div class="col-sm-3">
+                    <h4>@Resource.headingFees</h4>
+                    <select class="form-control entity-select">
+                        <option>Select Fee</option>
+                        @foreach (var fee in Model.FuelDeliveryDetails.FuelFees.FuelRequestFees)
+                        {
+                            var feeName = @fee.CommonFee ? @fee.FeeTypeName : @fee.OtherFeeDescription;
+                            var controlTarget = "fee-" + cntFees.ToString();
+                            <option data-target="@controlTarget">@feeName</option>
+                            cntFees++;
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-12 mt20">
+                    @{
+                        cntFees = 1;
+                    }
+                    @foreach (var fee in Model.FuelDeliveryDetails.FuelFees.FuelRequestFees)
+                    {
+                        var controlTarget = "fee-" + cntFees.ToString();
+                        <div class="row hide-element credit-entity" id="@controlTarget">
+                            @using (Html.BeginCollectionItem("FuelDeliveryDetails.FuelFees.FuelRequestFees"))
+                            {
+                                Html.RenderPartial("_PartialCreditInvoiceFee", fee);
+                            }
+                        </div>
+                        cntFees++;
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+<!-- fees ends -->
+<!-- Taxes starts -->
+@Html.HiddenFor(m => m.WaitingForAction)
+@Html.HiddenFor(m => m.InvoiceId)
+@Html.HiddenFor(m => m.PricingType)
+@if (Model.InvoiceId > 0 && Model.TypeofFuel != (int)ProductDisplayGroups.OtherFuelType && Model.TaxDetails.AvaTaxDetails.Count > 0)
+{
+    var cntTaxes = 1;
+    <div class="col-sm-12 tax-section @(Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp ? "hide-element" : "")">
+        <div class="row well mb15 trigger-container">
+            <div class="col-sm-3">
+                <h4>@Resource.headingTaxes</h4>
+                <select class="form-control entity-select">
+                    <option>Select Tax</option>
+                    @foreach (var tax in Model.TaxDetails.AvaTaxDetails)
+                    {
+                        var controlTarget = "tax-" + cntTaxes.ToString();
+                        <option data-target="@controlTarget">@tax.RateDescription</option>
+                        cntTaxes++;
+                    }
+                </select>
+            </div>
+            <div class="col-sm-12">
+                <div class="tax-details">
+                    <div class="row">
+                        @if (Model.TaxDetails != null && Model.TaxDetails.AvaTaxDetails.Count > 0)
+                        {
+                            cntTaxes = 1;
+                            <div class="col-sm-6">
+                                <table class="table table-bordered mt10">
+                                    <tr>
+                                        <th class="no-top-border">@Resource.lblTaxDescription</th>
+                                        <th class="no-top-border">@Resource.btnLabelCredit @Resource.lblAmount</th>
+                                        <th class="no-top-border text-center">@Resource.btnLabelAction</th>
+                                    </tr>
+                                    @foreach (var item in Model.TaxDetails.AvaTaxDetails)
+                                    {
+                                        var controlTarget = "tax-" + cntTaxes.ToString();
+                                        <tr class="hide-element credit-entity" id="@controlTarget">
+                                            @using (Html.BeginCollectionItem("TaxDetails.AvaTaxDetails"))
+											{
+													var RateDescription = item.RateDescription;
+													var TaxType = item.TaxType;
+													var RateSubtype = item.RateSubtype;
+													var TaxAmount = item.TaxAmount;
+													var Currency = item.Currency;
+													var TradingCurrency = item.TradingCurrency;
+													var TradingTaxAmount = item.TradingTaxAmount;
+													var ExchangeRate = item.ExchangeRate;
+													var TaxingLevel = item.TaxingLevel;
+													var IsModified = item.IsModified;
+													var RateType = item.RateType;
+													var CalculationTypeInd = item.CalculationTypeInd;
+													var UnitOfMeasure = item.UnitOfMeasure;
+													var TaxExemptionInd = item.TaxExemptionInd;
+
+													@Html.HiddenFor(m => RateDescription)
+													@Html.HiddenFor(m => TaxType)
+													@Html.HiddenFor(m => RateSubtype)
+													@Html.HiddenFor(m => TaxAmount)
+													@Html.HiddenFor(m => Currency)
+													@Html.HiddenFor(m => TradingCurrency)
+													@Html.HiddenFor(m => ExchangeRate)
+													@Html.HiddenFor(m => TaxingLevel)
+													@Html.HiddenFor(m => IsModified)
+													@Html.HiddenFor(m => RateType)
+													@Html.HiddenFor(m => CalculationTypeInd)
+													@Html.HiddenFor(m => UnitOfMeasure)
+													@Html.HiddenFor(m => TaxExemptionInd)
+                                                <td><label class="normal">@item.RateDescription</label></td>
+                                                <td>
+                                                    @Html.TextBoxFor(m => TradingTaxAmount, new { @class = "form-control credit-amount" })
+                                                    @Html.ValidationMessageFor(m => TradingTaxAmount)
+                                                </td>
+                                                <td class="text-center">
+                                                    <a href="javascript:void(0)" class="fa fa-trash-alt color-maroon mt7 delete-tr" title="Remove"></a>
+                                                </td>
+                                            }
+                                        </tr>
+                                        cntTaxes++;
+                                    }
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-sm-2 mt7">
+                                <label class="normal">@Resource.lblStateTax</label>
+                                @Html.TextBoxFor(m => m.StateTax, new { @class = "form-control credit-amount" })
+                                @Html.ValidationMessageFor(m => m.StateTax)
+                            </div>
+                            <div class="col-sm-2 mt7">
+                                <label class="normal">@Resource.lblFederalTax</label>
+                                @Html.TextBoxFor(m => m.FederalTax, new { @class = "form-control credit-amount" })
+                                @Html.ValidationMessageFor(m => m.FederalTax)
+                            </div>
+                            <div class="col-sm-2 mt7">
+                                <label class="normal">@Resource.lblSalesTax</label>
+                                @Html.TextBoxFor(m => m.SalesTax, new { @class = "form-control credit-amount" })
+                                @Html.ValidationMessageFor(m => m.SalesTax)
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Taxes ends -->
+<!-- Taxes for OtherFuelType starts -->
+@if (Model.TypeofFuel == (int)ProductDisplayGroups.OtherFuelType)
+{
+    if (Model.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp)
+    {
+        <div class="col-sm-12">
+            <div class="row well mb15">
+                <div class="col-sm-12">
+                    <h4>@Resource.headingTaxes</h4>
+                    <div id="tax-section" class="partial-section">
+                        <div class="partial-block-collection-section">
+                            @if (Model.Taxes != null && Model.Taxes.Any())
+                            {
+                                foreach (var tax in Model.Taxes)
+                                {
+                                    Html.RenderPartial("_PartialTax", tax);
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+<!-- Taxes for OtherFuelType end -->
+
+<div class="col-sm-12">
+    <div class="row well">
+        <div class="col-sm-3">
+            <div class="form-group">
+                <label>Total Invoice Amount :</label>
+                @Html.TextBoxFor(m => m.TotalInvoiceAmount, new { @readonly = "readonly", @class = "form-control datatype-decimal" })
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="form-group">
+                <label>Total Credit Amount :</label>
+                @Html.TextBoxFor(m => m.TotalCreditAmount, new { @readonly = "readonly", @class = "form-control datatype-decimal" })
+                @Html.ValidationMessageFor(m => m.TotalCreditAmount)
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (Model.BolDetails != null && Model.BolDetails.Id > 0)
+{
+    @Html.HiddenFor(m => m.BolDetails.BolNumber)
+    @Html.HiddenFor(m => m.BolDetails.Carrier)
+    @Html.HiddenFor(m => m.BolDetails.Id)
+    @Html.HiddenFor(m => m.BolDetails.GrossQuantity)
+    @Html.HiddenFor(m => m.BolDetails.NetQuantity)
+}
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/quantityrange-validate")
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+            if ('@(Model.AssetTracked)'.toLowerCase() == 'true' && '@(Model.Assets.Any())'.toLowerCase() == 'true') {
+                $('.asset-drops.dropquantity').val(0);
+            }
+
+            $('.checkbox').hide();
+            $('.standard-tax-type-warning').hide();
+
+            if ('@(Model.IsMulitpleDelivery)' == 'False') {
+                $('.weekend-fee-types').hide();
+            }
+
+			if (('@Model.AssetTracked').toLowerCase() == 'false') {
+                $(".asset-tracking").addClass("pntr-none subSectionOpacity").attr("disabled");
+			}
+
+            originalDropDate = $("#DeliveryDate").val();
+
+            // apply the decimal place format behaviour to elements with 'decimal-place-format' as their class
+            $.each($('.decimal-place-format'), function () {
+                $(this).decimalPlaceFormat(4);
+                var gallons = parseFloat($(this).val());
+                gallons = isNaN(gallons) ? 0 : gallons;
+                if (gallons > 0) {
+                    $(this).val(gallons.toFixed(4));
+                }
+            });
+		});
+
+        function UpdateOtherProductTaxesUoM() {
+            if ('@Model.UoM' == '@Resource.lblLitres') {
+                $('.ddl-other-product-tax').find('option').each(function () {
+                    $(this).text($(this).text().replace('@Resource.lblPerGallon', '@Resource.lblPerLitre'));
+                });
+            }
+        }
+
+		$(document).on("keyup", ".credit-qty", function () {
+            var dropinputs = $(document).find(".credit-qty");
+			var total = 0;
+            dropinputs.each(function () {
+                if (!$(this).closest('.credit-entity').hasClass('hide-element')) {
+                    var value = $(this).val();
+                    var value = parseFloat($(this).val());
+                    if (!isNaN(value)) {
+                        total += value;
+                    }
+                }
+			});
+			total = Number(total.toFixed(2));
+
+            var calculationElement = $(this).closest('.row').find('.credit-amount');
+            calculationElement.val(($(this).val() * @Model.InvoiceCreationPricePerGallon).toFixed(2));
+
+            $("#@Html.IdFor(m => m.ZeroGallonAllowedFuelDropped)").change();
+            UpdateTotalCreditAmount();
+		});
+
+		$(document).on("keyup", ".drop-input", function () {
+			var dropinputs = $(document).find(".drop-input");
+			var total = 0;
+            dropinputs.each(function () {
+                if (!$(this).closest('.credit-entity').hasClass('hide-element')) {
+                    var value = parseFloat($(this).val());
+                    if (!isNaN(value) && !$(this).hasClass('total-qty')) {
+                        total += value;
+                    }
+                }
+			});
+			total = Number(total.toFixed(2));
+
+            var calculationElement = $(this).closest('.row').find('.credit-amount');
+            calculationElement.val(($(this).val() * @Model.InvoiceCreationPricePerGallon).toFixed(2));
+
+            $("#@Html.IdFor(m => m.ZeroGallonAllowedFuelDropped)").val(total).change();
+            UpdateTotalCreditAmount();
+		});
+
+            $(document).on("change", ".credit-amount", function () {
+                UpdateTotalCreditAmount();
+            });
+
+            function UpdateTotalCreditAmount() {
+                var creditAmounts = $(document).find(".credit-amount");
+                var total = 0;
+                creditAmounts.each(function () {
+                    if (!$(this).closest('.credit-entity').hasClass('hide-element') && !$(this).hasClass('asset-credit-amount')) {
+                        var value = parseFloat($(this).val());
+                        if (!isNaN(value)) {
+                            total += value;
+                        }
+                    }
+                });
+                total = Number(total.toFixed(2));
+                $("#@Html.IdFor(m => m.TotalCreditAmount)").val(total).change();
+            }
+
+			function removePartialAndUpdate(element)
+            {
+                var jobXassetId = $(element).closest('.partial-block').find('[id$="_JobXAssetId"]').val();
+                var assetId = parseInt($(element).closest('.partial-block').find('[id$="_Id"]').val()) || 0;
+                if (assetId == 0) {
+                    var assetDropGallons = parseInt($(element).closest('.partial-block').find('[id$="_DropGallons"]').val()) || 0;
+                    var totalDroppedGallons = parseInt($("#@Html.IdFor(m => m.ZeroGallonAllowedFuelDropped)").val()) || 0;
+                    if (totalDroppedGallons > assetDropGallons) {
+                        $("#@Html.IdFor(m => m.ZeroGallonAllowedFuelDropped)").val(totalDroppedGallons - assetDropGallons);
+                    }
+                    else {
+                        $("#@Html.IdFor(m => m.ZeroGallonAllowedFuelDropped)").val('');
+                    }
+                }
+				var id = $(element).closest('.partial-block').find('[id$="_Id"]').val();
+				$('.asset-select').find('input[data-jobxassetid="' + jobXassetId + '"][data-id="' + id+'"]').trigger('click');
+				removePartial(element);
+			}
+
+        function CalculateCreditAmount(elem) {
+            var calculationElement = $(elem).closest('.row').find('.credit-amount');
+            calculationElement.val(($(elem).val() * @Model.InvoiceCreationPricePerGallon).toFixed(2));
+        }
+    </script>
+}

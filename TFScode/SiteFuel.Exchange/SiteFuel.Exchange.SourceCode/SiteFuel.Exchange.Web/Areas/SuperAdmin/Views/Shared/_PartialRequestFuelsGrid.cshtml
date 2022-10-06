@@ -1,0 +1,130 @@
+﻿@model RequestFuelFilterType
+
+<div class="well bg-white shadow-b">
+    <div class="ibox mb0">
+        <div class="ibox-content no-padding no-border">
+            <div class="table-responsive">
+                <table id="requestfuel-datatable" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnId</th>
+                            <th>@Resource.gridColumnName</th>
+                            <th>@Resource.gridColumnCompany</th>
+                            <th>@Resource.gridColumnPhoneNumber</th>
+                            <th>@Resource.gridColumnEmail</th>
+                            <th>@Resource.gridColumnDateAdded</th>
+                            <th>@Resource.gridColumnContactedCustomer</th>
+                            <th>@Resource.gridColumnContactedDate</th>
+                            <th>@Resource.gridColumnBusinessDone</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+        $(document).ready(function () {
+            requestedFuelsDataTable = $('#requestfuel-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetRequestedFuels", "Advertisement", new { area = "SuperAdmin", filter = Model })",
+                    "type": "GET",
+					"datatype": "json",
+					"data": function (d) {
+                        d.filter = @((int)Model);
+                        d.fromDate = $('#txtFromDate').val();
+                        d.toDate = $('#txtToDate').val();
+					},
+                    "dataSrc": ""
+                },
+                "columns":
+                [
+                    { "data": "Id", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            return data.FirstName + ' ' + data.LastName;
+
+                        }, "autoWidth": true
+                    },
+                    { "data": "CompanyName", "autoWidth": true },
+                    { "data": "PhoneNumber", "autoWidth": true },
+                    { "data": "Email", "autoWidth": true },
+                    { "data": "RequestDateTime", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            var url = '@Url.Action("ChangeRequestFuelStatus", "Advertisement", new { area = "SuperAdmin" })?id=' + data.Id + '&type=1' + '';
+                            var checked = data.IsCustomerContacted ? "checked=\"checked\"" : "";
+
+                            var columnCtrl = '<input type = "checkbox" data-url = "' + url + '" onchange = "updateRequestFuelStatus(this)" ' + checked + '></input>';
+                            columnCtrl += '<span class="hidden">' + (data.IsCustomerContacted ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+
+                            return columnCtrl;
+                        }, "width": "50px", "bSortable": false, "className": "text-center"
+                    },
+                    { "data": "CustomerContactedDateTime", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            var url = '@Url.Action("ChangeRequestFuelStatus", "Advertisement", new { area = "SuperAdmin" })?id=' + data.Id + '&type=2' + '';
+                            var checked = data.IsBusinessDone ? "checked=\"checked\"" : "";
+
+                            var columnCtrl = '<input type = "checkbox" data-url = "' + url + '" onchange = "updateRequestFuelStatus(this)" ' + checked + '></input>';
+                            columnCtrl += '<span class="hidden">' + (data.IsBusinessDone ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+
+                            return columnCtrl;
+                        }, "width": "50px", "bSortable": false, "className": "text-center"
+                    },
+				],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingRequestedFuels' },
+                    { extend: 'excel', title: '@Resource.headingRequestedFuels'},
+                    { extend: 'pdf', title: '@Resource.headingRequestedFuels' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+            $('.datepicker').datetimepicker({
+                format: 'L'
+            });
+        });
+
+        function updateRequestFuelStatus(element) {
+            var url = $(element).data('url') + '&isDone=' + $(element).is(':checked') + '';
+            $.get(url, function (response) {
+                if (response.StatusMessage != '@Status.Success') {
+                    showSuccessErrorMsg(response);
+                }
+                else {
+                    requestedFuelsDataTable.ajax.url("@Url.Action("GetRequestedFuels", "Advertisement", new { area = "SuperAdmin", filter = Model })");
+                    requestedFuelsDataTable.ajax.reload();
+                }
+            });
+        };
+</script>
+
+
+

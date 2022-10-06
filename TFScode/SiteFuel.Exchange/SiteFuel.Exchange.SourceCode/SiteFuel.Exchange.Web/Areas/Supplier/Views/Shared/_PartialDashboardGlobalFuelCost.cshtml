@@ -1,0 +1,175 @@
+﻿@model CountryViewModel
+@{
+    var isMultipleServingStates = CommonHelperMethods.IsMultipleServingStates(CurrentUser.CompanyId, Model.Id);
+
+    var currentUrl = HttpContext.Current.Request.Url.AbsoluteUri.IndexOf("Order");
+    var borderClass = currentUrl > -1 ? "" : "widget-text-box";
+}
+<div class="tile-body">
+    <div class="bg-darkgray no-b-radius radius-10  pa20 gfc-wrapper gfc-dashboard">
+        <div class="m-b-md mb0">
+            <div class="mb0 mt0">
+                <h2 class="color-white dib mt0 mb0 fs16">
+                    <span class="fa fa-dollar"></span> @Resource.headingGlobalFuelCost
+                </h2>
+                <i class="fa fa-info-circle color-white ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgInfoGFC"></i>
+                <div class="pull-right">
+                    <a href="#." class="color-white fs18 ml5 toggle-tiledata" onclick="toggleData(this,'@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.GlobalFuelCost.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+                    <a href="#." class="color-white fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.GlobalFuelCost.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+                </div>
+                @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin)
+                {
+                    <div class="tile-content @(Model.IsCollapsed ? "hide-element" : "")">
+                        <div class="row mt15">
+                            <div class="col-4">
+                                <label class="color-white">@Resource.lblFuelType</label>
+                                @Html.DropDownList("GlobalCostFuelType", new SelectList(new List<DropdownDisplayItem>(), "Id", "Name"), Resource.lblSelect, new { @class = "select2_demo_4 form-control", @id= "GlobalCostFuelType" })
+                            </div>
+                            <div class="col-4 col-lg-3 col-xl-3">
+                                <label class="color-white">@Resource.lblCurrentCost</label>
+                                <div class="form-group mb0">
+                                    <div class="input-group">
+                                        <div class="input-group-addon">@Resource.constSymbolCurrency</div>
+                                        <input type="text" class="form-control" id="txtCurrentCost">
+                                        <div id="fuelcost-currency" class="input-group-addon"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-2 col-lg-3 col-xl-3">
+                                <label class="color-white">@Resource.lblUomShort</label>
+                                <div class="form-group">
+                                    <div class="input-group">                                       
+                                        @Html.DropDownList("GlobalCostFuelUoM",new SelectList(CommonHelperMethods.GetAllUoMlList() ,"Id","Name") ,Resource.lblSelect ,new { @class="form-control" ,@id= "GlobalCostFuelUoM" })
+                                    </div>
+                                </div>
+                            </div>
+                            @if (@isMultipleServingStates)
+                            {
+                                <div class="col-3">
+                                    <label class="color-white">@Resource.lblDeliveryStates</label>
+                                    @Html.ListBox("FuelCostStates", new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", 0), new { @id= "FuelCostStates", @class = "form-control multi-select states", @disabled = "disabled" })
+                                </div>
+                            }
+                            <div class="col-12 col-lg-2">
+                                <input type="button" id="btnSubmitGlobalFuelCost" value="@Resource.btnLabelSubmit" class="btn btn-primary mt25" disabled />
+                            </div>
+                        </div>
+                        <div class="row mt15">
+                            <div class="col-sm-8">
+                                <div class="alert alert-warning mb0 fs12 fuelCostExistMsg hide-element">@Resource.errMsgSupplierCostAlreadyPresent</div>
+                                <div class="alert alert-warning mb0 fs12 fuelCostGreaterThanZero hide-element">
+                                    @ResourceMessages.GetMessage(Resource.valMessageGreaterThanZero, new object[] { Resource.lblFuelCost })
+                                </div>
+                                <div class="alert alert-warning mb0 fs12 fuelCostUoMRequired hide-element">
+                                    @ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblUomShort })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="tile-content @(Model.IsCollapsed ? "hide-element" : "")">
+        <div class="overflow-x tbl-fuel-cost hide-element pa5" id="widget-global-fuel-cost">
+            <table class="table table-hover margin bottom mb0" id="table-fuelcost">
+                <thead>
+                    <tr>
+                        <th class="pl0">@Resource.lblFuelType</th>
+                        <th>@Resource.lblCurrentCost</th>
+                        <th>@Resource.lblUomShort</th>
+                        @if (@isMultipleServingStates)
+                        {
+                            <th>@Resource.lblDeliveryStates</th>
+                        }
+                        @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin)
+                        {
+                            <th></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>  </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/GlobalFuelCost")
+<script type="text/javascript">
+    var addGlobalFuelCostUrl = '@Url.Action("AddGlobalFuelCost", "Dashboard", new { area = "Supplier" })';
+    var getAllGlobalFuelCostsUrl = '@Url.Action("GetGlobalFuelCosts", "Dashboard", new { area = "Supplier" })';
+    var deleteGlobalFuelCostUrl = '@Url.Action("DeleteGlobalFuelCost", "Dashboard", new { area = "Supplier" })';
+    var checkExistingGlobalFuelCostUrl = '@Url.Action("IsSupplierCostExistForFuelType", "Dashboard", new { area = "Supplier" })';
+    var updateGlobalFuelCostUrl = '@Url.Action("UpdateGlobalFuelCost", "Dashboard", new { area = "Supplier" })';
+    var notDefinedGFCUrl = '@Url.Action("GetGFCNotDefinedStates", "Dashboard", new { area = "Supplier" })';
+    var iseditable = '@(CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)' == 'True';
+    var btnLabelSave = '@Resource.btnLabelSave';
+    var btnLabelCancel = '@Resource.btnLabelCancel';
+    var msgSaved = '@Resource.msgSaved';
+    var ishidden = "@isMultipleServingStates" == "False" ? "hidden" : "";
+    var selectedStateIds = [];
+    var servingStatesList = [];
+    var orderfuelTypeId = 0;
+    var dashboardFilter = { countryId: 0, currencyType: 0 };
+
+    $(document).on('LoadFuelCostCurrency', function () {
+        dashboardFilter = getDashboardFilter();
+    });
+
+    $(document).ready(function () {
+        $("#FuelCostStates").select2({
+            placeholder: "@Resource.lblAllStates",
+            allowClear: true
+        });
+        var isOrderDetailsPage = window.location.href.indexOf("Order") > -1;
+        if (isOrderDetailsPage) {
+            $(".gfc-dashboard").hide();
+            orderfuelTypeId = $("#TfxFuelTypeId").val();
+            dashboardFilter = { countryId: @Model.Id , currencyType: @((int)Model.Currency) };
+        }
+        var fuelCostCurrency = dashboardFilter.currencyType == 1 ? 'USD' : 'CAD';
+        $("#fuelcost-currency").text(fuelCostCurrency);
+
+       
+        var currentCountryId = dashboardFilter.countryId;
+        if (currentCountryId == '@((int)Country.USA)') {
+            $('#GlobalCostFuelUoM').children('option[value="@((int)UoM.Litres)"]').hide();
+            $('#GlobalCostFuelUoM').children('option[value="@((int)UoM.Gallons)"]').show();;
+        }
+        else if (currentCountryId == '@((int)Country.CAN)') {
+            $('#GlobalCostFuelUoM').children('option[value="@((int)UoM.Litres)"]').show();
+            $('#GlobalCostFuelUoM').children('option[value="@((int)UoM.Gallons)"]').hide();
+        }
+       
+
+        var target = $("#GlobalCostFuelType");
+        var getAllProductsUrl = '@Url.Action("GetAllProductsForCountry", "Dashboard",new { Area="Supplier" })';
+        $.get(getAllProductsUrl, { countryId: dashboardFilter.countryId }, function (response) {
+            target.empty();
+            target.append($('<option></option>').val(0).html('-- Select --'));
+            $.each(response, function (i, element) {
+                target.append($('<option></option>').val(element.Id).html(element.Name));
+            });
+        });
+
+        var target2 = $("#FuelCostStates");
+        $.get(notDefinedGFCUrl, { countryId: dashboardFilter.countryId }, function (response) {
+            target2.empty(), $.each(response, function (i, element) {
+                target2.append($('<option></option>').val(element.Id).html(element.Name));
+                servingStatesList.push({ Id: element.Id, Name: element.Name });
+            });
+        });
+    });
+
+    $(document).ajaxComplete(function () {
+        $(".serving-states").select2({
+            placeholder: "@Resource.lblAllStates",
+            allowClear: true
+        });
+        $('[data-toggle=confirmation]').confirmation({
+            rootSelector: '[data-toggle=confirmation]'
+        });
+    });
+</script>
+
+

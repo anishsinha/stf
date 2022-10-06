@@ -1,0 +1,74 @@
+﻿@model FuelPricingViewModel
+
+<div class="row mt10">
+    <div class="col-sm-12 col-xs-12 mb10">
+        <label class="f-normal">@Resource.lblTier</label>
+        <div>
+            <table class="table table-hover mb0 details-table">
+                <thead>
+                    <tr>
+                        <th>@Resource.lblFrom</th>
+                        <th>@Resource.lblUpto</th>
+                        <th>@Resource.lblPriceType</th>
+                        <th>@Resource.lblPricePerGallon</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.DifferentFuelPrices.Count > 0)
+                    {
+                        foreach (var fuelPrice in Model.DifferentFuelPrices)
+                        {
+                            <tr>
+                                <td>@fuelPrice.MinQuantity.GetCommaSeperatedValue()</td>
+                                <td>@(fuelPrice.MaxQuantity == null ? Resource.lblHyphen : fuelPrice.MaxQuantity.Value.GetCommaSeperatedValue())</td>
+                                @if (fuelPrice.PricingTypeId == (int)PricingType.PricePerGallon)
+                                {
+                                    <td>
+                                        @Resource.lblPricePerGallon
+                                    </td>
+                                    <td>
+                                        @(fuelPrice.PricePerGallon == null ? Resource.lblHyphen : fuelPrice.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                    </td>
+                                }
+                                else
+                                {
+                                    string price = Resource.constSymbolCurrency + fuelPrice.PricePerGallon.Value.GetPreciseValue(4);
+                                    string rackText = fuelPrice.PricingTypeId == (int)PricingType.RackHigh ? Resource.lblRackHigh : fuelPrice.PricingTypeId == (int)PricingType.RackLow ? Resource.lblRackLow : Resource.lblRackAverage;
+                                    <td>@Resource.lblRackPrice</td>
+                                    <td>
+                                        @if (fuelPrice.RackAvgTypeId == (int)RackPricingType.PlusPercent)
+                                        {
+                                            @($"{rackText} + {fuelPrice.PricePerGallon.Value.GetPreciseValue(4)}{Resource.constSymbolPercent}")
+                                        }
+                                        else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.MinusPercent)
+                                        {
+                                            @($"{rackText} - {fuelPrice.PricePerGallon.Value.GetPreciseValue(4)}{Resource.constSymbolPercent}")
+                                        }
+                                        else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.PlusDollar)
+                                        {
+                                            @($"{rackText} + {Resource.constSymbolCurrency}{fuelPrice.PricePerGallon.Value.GetPreciseValue(4)}")
+                                        }
+                                        else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.MinusDollar)
+                                        {
+                                            @($"{rackText} - {Resource.constSymbolCurrency}{fuelPrice.PricePerGallon.Value.GetPreciseValue(4)}")
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="2"> @Resource.lblNoDifferentFuelPrice </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+

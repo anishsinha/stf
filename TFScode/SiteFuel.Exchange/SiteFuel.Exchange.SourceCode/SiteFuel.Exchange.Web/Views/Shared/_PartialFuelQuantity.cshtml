@@ -1,0 +1,83 @@
+﻿@model FuelDetailsViewModel
+@using System.Linq;
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="form-check form-check-inline quantitytype-specificamount radio">
+            @Html.RadioButtonFor(m => m.FuelQuantity.QuantityTypeId, (int)QuantityType.SpecificAmount, new { @id = "radio-quantityfixed", onclick = "radioChange(this,'fixed-quantity','range-quantity');showHideControls(this,'fixed-quantity','range-quantity')", onchange = "focusOnFirst(this, 'fixed-quantity')", @class = "revalidate quantity-type-id form-check-input" })
+            <label class="form-check-label" for="radio-quantityfixed">@Resource.lblFixed</label>
+        </div>
+        <div class="form-check form-check-inline quantitytype-range radio">
+            @Html.RadioButtonFor(m => m.FuelQuantity.QuantityTypeId, (int)QuantityType.Range,
+                                        new {@id= "radio-quantityrange", onclick = "radioChange(this,'range-quantity','fixed-quantity');showHideControls(this,'range-quantity','fixed-quantity')", onchange = "focusOnFirst(this, 'range-quantity');", @class = "revalidate form-check-input" })
+            <label class="form-check-label" for="radio-quantityrange">@Resource.lblRange</label>
+        </div>
+        <div class="form-check form-check-inline quantitytype-notspecified radio">
+            @Html.RadioButtonFor(m => m.FuelQuantity.QuantityTypeId, (int)QuantityType.NotSpecified,
+                            new {@id= "quantitynotspecified", onclick = "radioChange(this,'abc','fixed-quantity,range-quantity');showHideControls(this,'abc','fixed-quantity,range-quantity')", onchange = "focusOnFirst(this, 'range-quantity');", @class = "revalidate form-check-input" })
+            <label class="form-check-label" for="quantitynotspecified">@Resource.lblNotSpecified</label>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-3 fixed-quantity">
+        <div class="form-group">
+            <div class="mt5 defaultDisabled">
+                <label>@Resource.headingQuantity</label>
+                <div class="input-group">
+                    @Html.TextBoxFor(m => m.FuelQuantity.Quantity, new { @class = "form-control datatype-decimal total-gallons-required" })
+                    <span class="input-group-addon uom quantity-uom"> @Model.FuelQuantity.UoM</span>
+                </div>
+                @Html.ValidationMessageFor(m => m.FuelQuantity.Quantity)
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 range-quantity">
+        <div class="resetleftspace">
+            <div class="row mt5 mb15 defaultDisabled form-group">
+                <div class="col-sm-6">
+                    <div class="dib">@Html.LabelForEx(m => m.FuelQuantity.MinimumQuantity, Resource.lblMin)</div>
+                    <div class="input-group pull-left">
+                        @Html.TextBoxFor(m => m.FuelQuantity.MinimumQuantity, new { @class = "form-control datatype-decimal" })
+                        <span class="input-group-addon uom quantity-uom"> @Model.FuelQuantity.UoM</span>
+                    </div>
+                    <div>
+                        @Html.ValidationMessageFor(m => m.FuelQuantity.MinimumQuantity)
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="dib">@Html.LabelForEx(m => m.FuelQuantity.MaximumQuantity, Resource.lblMax)</div>
+                    <div class="input-group pull-left">
+                        @Html.TextBoxFor(m => m.FuelQuantity.MaximumQuantity, new { @class = "form-control datatype-decimal total-gallons-required" })
+                        <span class="input-group-addon uom quantity-uom"> @Model.FuelQuantity.UoM</span>
+                    </div>
+                    <div>
+                        @Html.ValidationMessageFor(m => m.FuelQuantity.MaximumQuantity)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3 ftl-controls ftl-billable-quantity mt5">
+        <div class="form-group">
+            <label>@Resource.lblBillableQuantity</label>
+            @Html.EnumDropDownListFor(m => m.FuelQuantity.QuantityIndicatorTypes, new { @class = "form-control enum-ddl qty-ind" })
+            <div class="row">
+                <div class="text-danger col-12 fs12 mt5" id="quantity-warning-message">
+                    <span class="qty-ind-err hide-element warning">@Resource.warningMessageQuantityIndicatorChanged</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="form-group mt5">
+            <label>@Resource.lblUomShort</label>
+            <div class="input-group">
+                @Html.DropDownListFor(m => m.FuelQuantity.UoM,
+                        from UoM uom in Enum.GetValues(typeof(UoM)).Cast<UoM>().ToList().Where(t => (int)t !=(int)UoM.None)
+                        select new SelectListItem() { Text = uom.ToString(), Value = ((int)uom).ToString() }, new { @class = "form-control", @id="MFNQuantityUoM" }
+                    )
+            </div>
+        </div>
+    </div>
+</div>

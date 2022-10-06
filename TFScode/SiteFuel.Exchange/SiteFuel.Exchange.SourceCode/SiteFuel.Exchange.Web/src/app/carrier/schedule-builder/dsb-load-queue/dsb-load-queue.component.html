@@ -1,0 +1,205 @@
+<div class="load-queue-container">
+    <button *ngIf="SbForm.controls['DSBFilter'].value==2 && isDisableControl==false" type="button" class="btn btn-primary btn-block btn-sm mt3"
+        (click)="openPanel()">
+        Load Queue
+    </button>
+    <ng-sidebar-container style="z-index: 99;" *ngIf="_isQueuePanelInitiated">
+        <ng-sidebar [(opened)]="_opened" [animate]="true" [position]="'left'" style="height: 100vh">
+            <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loading">
+                <span class='spinner-dashboard pa'></span>
+            </div>
+            <form [formGroup]="LoadQueueFilterForm">
+                <div class="header-panel">
+                    <div class="heading">
+                        <h3 class="dib title">Load Queue</h3>
+                        <a (click)="_opened=false"><i class="fa fa-close fs18 float-right"></i></a>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <ng-multiselect-dropdown #multiSelect_shift [placeholder]="'Select Shift'"
+                                [settings]="settings" [data]="shifts"
+                                [formControl]="LoadQueueFilterForm.controls['Shift']">
+                            </ng-multiselect-dropdown>
+                        </div>
+                        <div class="col-6">
+                            <ng-multiselect-dropdown #multiSelect_shift [placeholder]="'Select Status'"
+                                [settings]="settings" [data]="statuses"
+                                [formControl]="LoadQueueFilterForm.controls['Status']">
+                            </ng-multiselect-dropdown>
+                        </div>
+                    </div>
+                    <div class="status-panel">
+                        <span class="text"><span class="dot empty mr5"></span>Empty</span>
+                        <span class="text"><span class="dot partial mr5"></span>Partially Completed</span>
+                        <span class="text"><span class="dot completed mr5"></span>Completed</span>
+                        <span class="text"><span class="dot published mr5"></span>Published</span>
+                    </div>
+                </div>
+            </form>
+            <div>
+                <div class="scroll-body">
+                    <ngb-accordion #acc="ngbAccordion" [activeIds]="panels">
+                        <ng-container *ngFor="let shift of SbForm.controls['Shifts']['controls'];  let i = index;">
+                            <ng-container *ngIf="checkShiftVisibility(shift)">
+                                <!-- shift -->
+                                <ngb-panel id="panel-{{i+1}}">
+                                    <ng-template ngbPanelTitle>
+                                        <div>
+                                            <span class="shift-name">Shift {{i+1}}&nbsp;</span>
+                                            <span class="shift-time">{{shift.get('StartTime').value}}&nbsp;-&nbsp;{{shift.get('EndTime').value}}</span>
+                                            <i class="fas fa-chevron-up ml10"></i>
+                                            <i class="fas fa-chevron-down ml10"></i>
+                                        </div>
+                                    </ng-template>
+                                    <ng-template ngbPanelContent>
+                                        <!-- column -->
+                                        <div class="load-panel-row">
+                                            <ng-container *ngFor="let schedule of shift.controls['Schedules'].controls; let j = index;">
+                                                <!-- [schedule.isValid?'completed':'', !schedule.isValid?'partial':''] -->
+                                                <div class="load-panel" [ngClass]="getClassByStatus(i, j)"
+                                                    placement="right" [ngbPopover]="popContent" container="body"
+                                                    popoverClass="load-queue-popover" [autoClose]="'outside'"
+                                                    *ngIf="schedule.get('IsLoadQueueCollapsed').value && schedule.get('LoadQueueFilterVisibility').value"
+                                                    (click)="setValidationObjectFromList(i, j)">
+                                                    <div class="column-inital-div">
+                                                        <div class="column-inital">
+                                                            C{{j+1}}
+                                                        </div>
+                                                    </div>
+                                                    <div class="driver-name">
+                                                        <div>
+                                                            <ng-container *ngIf="schedule.get('Drivers').value.length;else naTemplate">
+                                                                <span placement="top"
+                                                                    ngbTooltip="{{schedule.get('Drivers').value[0].Name}}">{{schedule.get('Drivers').value[0].Name}}</span>
+                                                            </ng-container>
+                                                        </div>
+                                                        <small *ngIf="schedule.get('LoadQueueColumnStatus').value!=-1 && schedule.get('LoadQueueColumnStatus').value!=2 && getLoadQueueStatus(schedule.get('LoadQueueColumnStatus').value,i,j)!=''">{{getLoadQueueStatus(schedule.get('LoadQueueColumnStatus').value,i,j)}}</small>
+                                                    </div>
+                                                    <div class="col-check"
+                                                        *ngIf="!schedule.get('IsLoadQueueColumnBlocked').value">
+                                                        <div class="custom-control custom-checkbox">
+                                                            <input type="checkbox" class="custom-control-input" id="checkbox_{{i
+                                                                   }}_{{j}}"
+                                                                [checked]="schedule.get('IsColumnSelected').value"
+                                                                (change)="selectColumn($event, schedule)">
+                                                            <label class="custom-control-label"
+                                                                for="checkbox_{{i}}_{{j}}"></label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </ng-container>
+                                        </div>
+                                    </ng-template>
+                                </ngb-panel>
+                            </ng-container>
+                        </ng-container>
+                    </ngb-accordion>
+                </div>
+                <div class="footer" *ngIf="shifts.length">
+                    <div class="row">
+                        <div class="col-8">
+                            <button type="button" class="btn btn-large"
+                                [ngClass]=" _selectAll== true ? 'btn-danger' : 'btn-primary'"
+                                (click)="selectAllColumn();">
+                                <span>{{ _selectAll ? 'UnSelect All' :' Select All' }}</span>
+                            </button>
+                            <button type="button" placement="top" container="body" ngbTooltip="Move To Grid"
+                                (click)="moveColumnsToGrid()" class="btn btn-danger">
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                        <div class="col-4 text-right">
+                            <button type="button" class="btn btn-large btn-success" (click)="iniatePublishColumns()">
+                                Publish
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ng-sidebar>
+    </ng-sidebar-container>
+</div>
+<ng-template #popContent>
+    <div class="popover-details">
+        <ul class="nav nav-tabs" id="popoverTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" id="validation-tab" data-toggle="tab" href="#validation" role="tab"
+                    aria-controls="validation" aria-selected="true">Validations</a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="location-tab" data-toggle="tab" href="#location" role="tab"
+                    aria-controls="location" aria-selected="false">Locations/Customers</a>
+            </li>
+        </ul>
+        <div class="tab-content" id="popoverTabsContent">
+            <div class="tab-pane fade show active" id="validation" role="tabpanel" aria-labelledby="validation-tab">
+                <div class="row">
+                    <div class="col-12">
+                        <ng-container *ngIf="validationObj.DrCount>0; else emptyLoad">
+                            
+                            <ng-container>
+                                <!-- *ngIf="validationObj.Errors && validationObj.Errors.length" -->
+                                <h4 *ngIf="validationObj.Errors.length" class="title">Column</h4>
+                                <ng-container *ngFor="let colErr of validationObj.Errors; let colIndex = index;">
+                                    <p class="sub-text error-text">
+                                        <i class="fa fa-arrow-circle-right"
+                                           aria-hidden="true"></i> {{colErr}}
+                                    </p>
+                                </ng-container>
+                            </ng-container>
+                            <ng-container *ngIf="validationObj.TripErrors.length">
+                                <ng-container
+                                    *ngFor="let trErrors of validationObj.TripErrors; let trErrIndex = index;">
+
+                                    <h4 *ngIf="trErrors.Errors.length" class="title">
+                                        Load {{(+trErrIndex+1)}}
+                                    </h4>
+
+                                    <p class="sub-text error-text" *ngFor="let err of trErrors.Errors;">
+                                        <i class="fa fa-arrow-circle-right" aria-hidden="true"></i>
+                                        {{err}}
+                                    </p>
+                                </ng-container>                               
+                            </ng-container>
+                            <ng-container *ngIf="validationObj.TripErrors.length==0">
+                                <h4 class="title">No error found.</h4>
+                            </ng-container>
+                        </ng-container>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="location" role="tabpanel" aria-labelledby="location-tab">
+                <div class="row">
+                    <div class="col-12">
+
+                        <!-- <h4 *ngIf="validationObj.Locations && validationObj.Locations.length" class="title">Locations</h4> -->
+
+                        <p *ngFor="let jb of validationObj.Locations; let jbIndex = index;" class="sub-text">
+                            {{+jbIndex+1}}) {{jb}}--{{validationObj.Customers[jbIndex]}}
+                        </p>
+
+                        <!-- <h4 *ngIf="validationObj.Customers && validationObj.Customers.length" class="title">
+                            Customers</h4>
+
+                        <p *ngFor="let cst of validationObj.Customers; let cstIndex = index;" class="sub-text">
+                            {{+cstIndex+1}}) {{cst}}</p> -->
+
+                        <p *ngIf="validationObj.Locations.length==0">Locations
+                            and customers not available.</p>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</ng-template>
+<ng-template #naTemplate>
+    <div class="fs12 text-truncate" container="body" placement="bottom" ngbTooltip="Driver not assigned">Driver not
+        assigned</div>
+</ng-template>
+<ng-template #emptyLoad>
+    <p>Delivery requests does not exist in selected column.</p>
+</ng-template>
+<ng-template #validColumn>
+    <p>Valid column.</p>
+</ng-template>

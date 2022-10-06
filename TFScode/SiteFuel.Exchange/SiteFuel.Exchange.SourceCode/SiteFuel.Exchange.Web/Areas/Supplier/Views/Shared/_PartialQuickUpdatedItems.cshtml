@@ -1,0 +1,120 @@
+﻿
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div id="updated-items-div" class="table-responsive">
+                <table id="updated-items-datatable" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnOfferName</th>
+                            <th>@Resource.gridColumnType</th>
+                            <th>@Resource.gridColumnTier</th>
+                            <th>@Resource.gridColumnCustomer</th>
+                            <th>@Resource.gridColumnFuelTypes</th>
+                            <th>@Resource.lblLocation</th>
+                            <th>@Resource.gridColumnPricingFormat</th>
+                            <th>@Resource.lblFees</th>
+                            <th>@Resource.gridColumnLastUpdated</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8] };
+    var updateditemsGrid = undefined; currentCommandId = 0;
+    function showUpdatedItems() {
+        updateditemsGrid = $('#updated-items-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetQuickUpdatedItems", "Offer", new { area ="Supplier" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data.CommandId = currentCommandId;
+                    $('#updated-items-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#updated-items-div").find('.loading-wrapper').remove();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            "ordering": false,
+            aaSorting: [[]],
+            "serverSide": true,
+            "searchDelay": 500,
+            processing: true,
+            "searching": { "regex": false },
+            "bProcessing": true,
+            lengthChange: true,
+            "columns": [
+                { "data": "Name", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.OfferType == 1)
+                            return '@OfferType.Exclusive';
+                        else
+                            return '@OfferType.Market';
+                    }, "autoWidth": true
+                },
+                { "data": "Tiers", "autoWidth": true },
+                { "data": "Customers", "autoWidth": true },
+                { "data": "FuelTypes", "autoWidth": true },
+                { "data": "Locations", "autoWidth": true },
+                { "data": "Pricing", "autoWidth": true },
+                { "data": "Fees",  "autoWidth": true },
+                { "data": "CreatedDate", "autoWidth": true, "sType": "date"}
+            ],
+            pageLength: 10,
+            responsive: true,
+            fixedHeader: false,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "columnDefs": [
+                { "name": "Name", "targets": 0, "regex": true },
+                { "name": "OfferType", "targets": 1, "sortable": false },
+                { "name": "Tier", "targets": 2, "regex": true },
+                { "name": "Customers", "targets": 3, "regex": true },
+                { "name": "FuelTypes", "targets": 4, "regex": true },
+                { "name": "Locations", "targets": 5, "orderable": false },
+                { "name": "Pricing", "targets": 6, "orderable": false },
+                { "name": "Fees", "targets": 7, "orderable": false },
+                { "name": "CreatedDate", "targets": 8, "orderable": false }
+            ],
+            dom: '<"html5buttons"B>Tgt',
+            buttons: [
+                { extend: 'csv', title: '@Resource.headingOffers', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.headingOffers', exportOptions: exportColumns },
+                { extend: 'pdf', title: '@Resource.headingOffers', exportOptions: exportColumns, orientation: 'landscape' },
+                {
+                    extend: 'print', exportOptions: exportColumns,
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    }
+    function LoadItemsDataTable(commandId) {
+        $('#modal-updated-items').modal('show');
+        currentCommandId = commandId;
+        if (updateditemsGrid == undefined) {
+            showUpdatedItems();
+        }
+        else {
+            updateditemsGrid.ajax.reload();
+        }
+    }
+</script>

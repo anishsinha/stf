@@ -1,0 +1,134 @@
+﻿@model TPOBrokeredOrderViewModel
+
+<div class="brokeredorder-details mt10">
+    <div class="row">
+        <div class="col-sm-3">
+            <div class="form-group mb5 broker-details">
+                <label>@Resource.lblCompanyBrokeringFor</label>
+                <div class="oldcustomer">
+                    @Html.DropDownListFor(m => m.CustomerId, new SelectList(CommonHelperMethods.GetCustomersForBrokeredOrder(CurrentUser.CompanyId), "Id", "Name", Model.CustomerId), new { @class = "form-control" })
+                    @Html.ValidationMessageFor(m => m.CustomerId) 
+                    @Html.HiddenFor(m => m.TPOBrokeredCustomerDetails.IsNewCompany)
+                    <a id="link-addnewcustomer" href="javascript:void(0)" class="form-group dib mt7" onclick="AddNewSupplier();"><i class="fas fa-plus-circle"></i> @Resource.lblAddNewSupplier</a>
+                </div>
+            </div>
+        </div>
+        @*<div class="col-sm-4 col-md-4">
+                <div class="form-group">
+                    <label class="f-normal">@Resource.lblInvoicePreferences</label><span class="required pl4" aria-required="true">*</span>
+                    @{
+                        var listItems = new List<DropdownDisplayItem> { new DropdownDisplayItem { Name = "Send Invoice Directly to Customer", Id = 1 },
+                                                                                                        new DropdownDisplayItem { Name = "Send Invoice on behalf of Broker", Id = 2 },
+                                                                                                        new DropdownDisplayItem { Name = "Send Broker Data File to Broker", Id = 3 }
+                                                                                                      };
+                        @Html.DropDownListFor(m => m.InvoicePreferenceId, new SelectList(listItems, "Id", "Name", 0), new { @class = "form-control" })
+                    }
+                </div>
+            </div>*@
+    </div>
+
+    <div class="newcustomer">
+            <div class="row mt10">
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label class="f-normal">@Resource.lblCompanyName</label><span class="required pl4" aria-required="true">*</span>
+                        @Html.TextBoxFor(m => m.TPOBrokeredCustomerDetails.CustomerCompanyName, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.TPOBrokeredCustomerDetails.CustomerCompanyName)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label class="f-normal">@Resource.lblEmail</label><span class="required pl4" aria-required="true">*</span>
+                        @Html.TextBoxFor(m => m.TPOBrokeredCustomerDetails.CustomerEmail, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.TPOBrokeredCustomerDetails.CustomerEmail)
+                    </div>
+                </div>
+            </div>
+            <div class="address-container other-address mt5">
+                <div class="row">
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.TPOBrokeredCustomerDetails.Address)
+                            @Html.TextBoxFor(m => m.TPOBrokeredCustomerDetails.Address, new { @class = "form-control", autofocus = "autofocus" })
+                            @Html.ValidationMessageFor(m => m.TPOBrokeredCustomerDetails.Address)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.TPOBrokeredCustomerDetails.ZipCode)
+                            @Html.TextBoxFor(m => m.TPOBrokeredCustomerDetails.ZipCode, new { @class = "form-control zipcode" })
+                            @Html.ValidationMessageFor(m => m.TPOBrokeredCustomerDetails.ZipCode)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.TPOBrokeredCustomerDetails.City)
+                            @Html.TextBoxFor(m => m.TPOBrokeredCustomerDetails.City, new { @class = "form-control city" })
+                            @Html.ValidationMessageFor(m => m.TPOBrokeredCustomerDetails.City)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.TPOBrokeredCustomerDetails.StateId)
+                            @Html.DropDownListFor(m => m.TPOBrokeredCustomerDetails.StateId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", Model.TPOBrokeredCustomerDetails.StateId), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state" })
+                            @Html.ValidationMessageFor(m => m.TPOBrokeredCustomerDetails.StateId)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.TPOBrokeredCustomerDetails.CountryId)
+                            @Html.DropDownListFor(m => m.TPOBrokeredCustomerDetails.CountryId, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.TPOBrokeredCustomerDetails.CountryId), new { @class = "form-control country" })
+                            @Html.ValidationMessageFor(m => m.TPOBrokeredCustomerDetails.CountryId)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.TPOBrokeredCustomerDetails.PhoneNumber)
+                            @Html.TextBoxFor(m => m.TPOBrokeredCustomerDetails.PhoneNumber, new { @class = "form-control phone input-phoneformat" })
+                            @Html.ValidationMessageFor(m => m.TPOBrokeredCustomerDetails.PhoneNumber)
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 text-right">
+                        <a href="javascript:void(0)" class="btn btn-default" onclick="DropAddCompanyDetails();"><span class="fa fa-times hoverwhite mr5"></span>@Resource.btnLabelCancel</a>
+                    </div>
+                </div>
+            </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $(".newcustomer").hide();
+        $(".newcustomer :input").attr("disabled", "disabled");
+        $("#BrokeredOrder_CustomerId").select2({
+            placeholder: "@Resource.lblCompanyBrokeringFor",
+            allowClear: true
+        });
+        $("#BrokeredOrder_CustomerId").val(1).trigger('change.select2');
+        if (window.location.href.indexOf("Order/Edit") >= 0) {
+            $(".broker-details a").hide();
+        }
+    });
+
+    function AddNewSupplier() {
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.IsNewCompany)").val('True');
+        $(".oldcustomer").slideUp();
+        $(".newcustomer").slideDown();
+        $(".newcustomer :input").removeAttr("disabled");
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.CustomerCompanyName)").focus();
+    }
+
+    function DropAddCompanyDetails() {
+        $(".newcustomer").slideUp();
+        $(".oldcustomer").slideDown();
+        $(".newcustomer :input").attr("disabled", "disabled");
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.IsNewCompany)").val('False');
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.CustomerCompanyName)").val('');
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.CustomerEmail)").val('');
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.Address)").val('');
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.ZipCode)").val('');
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.City)").val('');
+        $("#@Html.IdFor(m => m.TPOBrokeredCustomerDetails.StateId)").val('');
+    }
+</script>

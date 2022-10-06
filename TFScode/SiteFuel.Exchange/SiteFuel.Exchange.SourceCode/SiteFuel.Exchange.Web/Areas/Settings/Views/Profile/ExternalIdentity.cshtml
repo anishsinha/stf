@@ -1,0 +1,153 @@
+﻿@model CompanyExternalIdViewModel
+@{
+    ViewBag.Title = "External Company Identity";
+    if (!string.IsNullOrWhiteSpace(CurrentUser.CxmlFormPost))
+    {
+        Layout = "~/Views/Shared/_LayoutExternal.cshtml";
+    }
+}
+
+<div class="well bg-white shadow-b pr">
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div class="table-responsive">
+                <table id="external-identities" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnCompanyName</th>
+                            <th>@Resource.gridColumnAddedBy</th>
+                            <th>@Resource.gridColumnDateAdded</th>
+                            <th>@Resource.gridColumnUpdatedBy</th>
+                            <th>@Resource.gridColumnUpdatedDate</th>
+                            <th>@Resource.gridColumnExternalId</th>
+                            <th>@Resource.gridColumnAction</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade animated" id="modal-externalId" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        @using (Html.BeginForm("SaveExternalId", "Profile", new { area = "Settings" }, FormMethod.Post, new { id = "external-identity-form" })) // set new Id name for  Form
+        {
+            <div class="modal-content">
+                <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                <div class="modal-header">
+                    <h3 class="modal-title" id="modalLabel"></h3>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 col-xs-12 mb10">
+                            @Html.HiddenFor(m => m.Id)
+                            @Html.HiddenFor(m => m.CompanyId)
+                            @Resource.lblCompanyName:
+                        </div>
+                        <div class="col-md-6 col-xs-12 mb10">
+                            <label id="company-name" class="font-bold"></label>
+                        </div>
+                        <div class="col-md-6 col-xs-12 mb10">
+                            @Resource.lblExternalId:
+                        </div>
+                        <div class="col-md-6 col-xs-12 mb10">
+                            @Html.TextBoxFor(m => m.ExternalId, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.ExternalId)
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer no-border">
+                    <a href="#." data-dismiss="modal" class="btn btn-default actions">@Resource.btnLabelCancel</a>
+                    <input id="form-submit" type="button" value="@Resource.btnLabelSave" class="btn btn-primary" onclick="submitForm()" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script>
+        var externalIdentification;
+        $(document).ready(function () {
+            exportFvColumns = { columns: [0, 1, 2, 3, 4, 5] };
+            externalIdentification = $('#external-identities').DataTable({
+                "ajax": {
+                        "url": "@Url.Action("GetExternalCompanyIds", "Profile", new { area ="Settings" })",
+                        "type": "GET",
+                        "datatype": "json",
+                        "dataSrc": ""
+                },
+                "columns": [
+                    { "data": "CompanyName", "autoWidth": true },
+                    { "data": "AddedBy", "autoWidth": true },
+                    { "data": "AddedDate", "autoWidth": true },
+                    { "data": "UpdatedBy", "autoWidth": true },
+                    { "data": "UpdatedDate", "autoWidth": true },
+                    { "data": "ExternalId", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            var displayText = data.ExternalId == '--' ? 'Add' : 'Update';
+                            var showModel = "showModel(" + data.Id + "," + data.CompanyId + ",'" + data.CompanyName + "','" + data.ExternalId + "','" + displayText + "')";
+                            return '<a href="javascript:void(0)" onclick="' + showModel + '" />' + displayText + '</a>';
+                        }, "autoWidth": true, className: "text-center"
+                    }
+                ],
+                //"aaSorting": [],
+                "columnDefs": [{
+                    "targets": [6],
+                    "searchable": false,
+                    "orderable": false,
+                }],
+                fixedHeader: true,
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: 'Company External Identification', exportOptions: exportFvColumns },
+                    { extend: 'excel', title: 'Company External Identification', exportOptions: exportFvColumns },
+                    { extend: 'pdf', title: 'Company External Identification', exportOptions: exportFvColumns },
+                    {
+                        extend: 'print', exportOptions: exportFvColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+                            $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
+                        }
+                    }]
+            });
+        });
+        function showModel(id, companyId, companyName, externalId, title) {
+            $('.modal-title').text(title + ' External ID');
+            $('#company-name').text(companyName);
+            $('#@Html.IdFor(m => m.Id)').val(id);
+            $('#@Html.IdFor(m => m.CompanyId)').val(companyId);
+            $('#@Html.IdFor(m => m.ExternalId)').val(externalId == '--' ? '' : externalId);
+            $("#modal-externalId").modal("show");
+        }
+
+        function submitForm() {
+            var $form = $('#external-identity-form');
+            if (!$form.valid()) return;
+            $('.loading-wrapper').show();
+            $.ajax({
+                type: 'POST',
+                url: $form.attr('action'),
+                data: $form.serialize(),
+                success: function (response) {
+                    if (response.StatusCode == 0) {
+                        msgsuccess(response.StatusMessage);
+                        if (externalIdentification != undefined)
+                            externalIdentification.ajax.reload();
+                    }
+                    else {
+                        msgerror(response.StatusMessage);
+                    }
+                    $("#modal-externalId").modal("hide");
+                    $('.loading-wrapper').hide();
+                }
+            });
+        }
+    </script>
+}

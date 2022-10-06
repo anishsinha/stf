@@ -1,0 +1,66 @@
+﻿@model DashboardJobAveragesViewModel
+<div class="row">
+    <div class="col-sm-8">
+        <div class="row">
+            <div class="col-md-5">
+                <h2 class="fs16">
+                    <span class="fa fa-tint mr5"></span> @Resource.headingJobAverages
+                </h2>
+            </div>
+            <div class="col-md-7 group-element">
+                @Html.DropDownListFor(m => m.FuelTypeId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", Model.FuelTypeId), "", new { @class = "select2_demo_3" })
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="pull-right">
+            <a href="#." class="color-white fs18 ml5 toggle-tiledata" onclick="toggleData(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.JobAverages.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+            <a href="#." class="color-white fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.JobAverages.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+        </div>
+    </div>
+</div>
+<div class="row mt15 tile-content @(Model.IsCollapsed ? "hide-element" : "")">
+    <div class="col-xs-6 col-sm-5 mt10">
+        <a id="jobAvgOrderLink" class="text-white">
+            <h1 class="no-margins"><span id="jobAvgOrderCount">0</span></h1>
+            @Resource.lblOrders
+        </a>
+    </div>
+    <div class="col-xs-6 col-sm-5 mt10">
+        <a href="javascript:void(0)" class="text-white">
+            <h1 class="no-margins"><span id="jobAvgtotalDrops">0</span></h1>
+            @Resource.lblTotalDrops
+        </a>
+    </div>
+    <div class="col-xs-6 col-sm-5 mt10">
+        <a href="javascript:void(0)" cl class="text-white">
+            <h1 class="no-margins"><span id="jobAvgAveragePpgPerDrop">0</span></h1>
+            <span id="avg-drop-label">@Resource.lblAveragePPGDrop</span>
+        </a>
+    </div>
+    <div class="col-xs-6 col-sm-5 mt10">
+        <a href="javascript:void(0)" class="text-white">
+            <h1 class="no-margins"><span id="jobAvgAverageGallonsPerDrop">0</span></h1>
+            @Resource.lblAverageGallonsDrop
+        </a>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var jobAvergesUrl = '@Url.Action("GetJobAverages", "Dashboard", new { area = "Buyer" })?jobId=@Model.SelectedJobId';
+    var jobAverageOrderUrl = '@Url.Action("View", "Order", new { area = "Buyer" })?jobId=@Model.SelectedJobId' + '&filter=@OrderFilterType.All';
+    var jobAveragefuelTypeDropDown = $("#@Html.IdFor(m => m.FuelTypeId)");
+    var dashboardFilter = { countryId: 1, currencyType: 1 };
+    var groupIds = getCompanyGroup().groupIds;
+
+    $(document).off('LoadCurrency');
+    $(document).on('LoadCurrency', function () {
+        dashboardFilter = getDashboardFilter();
+    });
+
+    $(document).ready(function () {
+        if (dashboardFilter.countryId == @((int)Country.CAN))
+            $("#avg-drop-label").text("@Resource.lblAvgPPLDrop") ;
+    });
+</script>
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/BuyerDashboard")

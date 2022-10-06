@@ -1,0 +1,605 @@
+﻿@model List<TankDetailViewModel>
+
+@if (Model != null && Model.Any())
+{
+
+    string fuelUoM = "";
+    if (Model[0].UoM == UoM.Gallons)
+    {
+        fuelUoM = "Gallons";
+    }
+    else if (Model[0].UoM == UoM.Litres)
+    {
+        fuelUoM = "Litres";
+    }
+
+    <div class="diptest_panel_body">
+        <div class="row">
+            @foreach (var item in Model)
+            {
+                if (item.FillType == FillType.Percent)
+                {
+                    item.MaxFill = (item.MaxFillPercent * item.FuelCapacity) / 100;
+                    item.MinFill = (item.MinFillPercent * item.FuelCapacity) / 100;
+                    item.WaterLevel = (item.WaterLevelPercent * item.FuelCapacity) / 100;
+                }
+                else if (item.FillType == FillType.UoM)
+                {
+                    item.MaxFillPercent = (item.MaxFill / item.FuelCapacity) * 100;
+                    item.MinFillPercent = (item.MinFill / item.FuelCapacity) * 100;
+                    item.WaterLevelPercent = (item.WaterLevel / item.FuelCapacity) * 100;
+                }
+
+                <div class="col-sm-6">
+                    <div id="tank">
+                        <div class="border radius-5 pa15 shadow-b mb20">
+                            <div class="row mb10">
+                                <div class="col-sm-12">
+                                    <div>
+                                        <h2 class="mt0 mb0 pull-left fs14 f-bold " id="TankName">
+                                            @item.TankName&nbsp;
+                                        </h2>
+                                        <h2 class="mt0 mb0 pull-left fs12 " id="TankMakeModel">
+                                            (@item.TankMakeModel)
+                                        </h2>
+                                    </div>
+                                    @if (item.TankSequence.GetValueOrDefault() > 0)
+                                    {
+                                        <a onclick="setTankIdToChange(@item.AssetId, @item.TankSequence, @item.JobId, false)" class="pull-right mb5 ml10 hide-element btnTankSequence" data-toggle="modal" data-target="#edit-tankSequence">
+                                            <i class="fas fa-edit mr5" aria-hidden="true"></i>@Resource.lblTankSequence (@item.TankSequence)
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <a onclick="setTankIdToChange(@item.AssetId, null, @item.JobId, false)" class="pull-right mb5 ml10 hide-element btnTankSequence" data-toggle="modal" data-target="#edit-tankSequence">
+                                            <i class="fas fa-edit mr5" aria-hidden="true"></i>@Resource.lblTankSequence (--)
+                                        </a>
+                                    }
+                                    @if (item.TankMakeModel != null)
+                                    {
+                                        <a href="void(0)" onclick="downloadDipChartSupplier('@item.TankChart')" id="DownlaodChart" class="pull-right  mb5">
+                                            <i class="fa fa-download mr5" aria-hidden="true"></i>Dip Chart
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                <div class="pntr-none subSectionOpacity">
+                                    <a href="void(0)" class="pull-right  mb5">
+                                        <i class="fa fa-download mr5" aria-hidden="true"></i>No Dip Chart Found
+                                    </a>
+                                </div>
+                                    }
+                                    </div>
+                            </div>
+                            <div id="TankDetails" class="tank-panel mb20 ">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <div class="tank_dip_chart text-center">
+                                            <div>
+                                                <div id="ShouldBeEmptyPercent_@item.AssetId" class="color-green"></div>
+                                                <div id="ShouldBeFilledPercent_@item.AssetId" class="color-green"> </div>
+                                                <div id="CurrentInventoryPercent_@item.AssetId" class="red-bg level-radius"> </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 pl0">
+                                        <table class="table table-condensed table-bordered table-hover small-table mb0 fs12" width="100%">
+                                            <tbody>
+                                                <tr>
+                                                    <td width="50%" class="f-bold">Storage ID</td>
+                                                    <td>
+                                                        <span id="StorageId">
+                                                            @item.StorageId
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="f-bold">Tank Type</td>
+                                                    <td>
+                                                        <span id="TankType">
+                                                            @item.TankType.GetDisplayName()
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="f-bold">Product Type</td>
+                                                    <td>
+                                                        <span id="ProductTypeName">
+                                                            @item.ProductTypeName
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="f-bold">Tank Capacity</td>
+                                                    <td>
+                                                        <span id="TankCapacity">
+                                                            @String.Format("{0:#,##0.##}", item.FuelCapacity.Value) @fuelUoM
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="f-bold">
+                                                        <span>Min Fill</span>
+                                                        <span id="MinFillPercent">
+                                                            (@String.Format("{0:#,##0.##}", item.MinFillPercent.Value)%)
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="MinFill">
+                                                            @String.Format("{0:#,##0.##}", item.MinFill.Value) @fuelUoM
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="f-bold">
+                                                        <span>Max Fill</span>
+                                                        <span id="MaxFillPercent">
+                                                            (@String.Format("{0:#,##0.##}", item.MaxFillPercent.Value)%)
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="MaxFill">
+                                                            @String.Format("{0:#,##0.##}", item.MaxFill.Value) @fuelUoM
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="f-bold">
+                                                        <span>Water Level Threshold</span>
+                                                        <span id="WaterLevelPercent">
+                                                            (@String.Format("{0:#,##0.##}", item.WaterLevelPercent.Value)%)
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="WaterLevel">
+                                                            @String.Format("{0:#,##0.##}", item.WaterLevel.Value) @fuelUoM
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="f-bold">@Resource.lblInventoryDataCaptureMethod</td>
+                                                    <td>
+                                                        <span id="dipTestMethod">
+                                                            @(item.DipTestMethod.HasValue ? item.DipTestMethod.GetDisplayName() : "NA")
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col-sm-3 pl0">
+                                        <div class="bg-midgray pa10 radius-5">
+                                            @Html.Label(Resource.lblUomShort, new { @class = "" })
+                                            @if (item.TankMakeModel != null)
+                                            {
+                                                <select id="ddlUOM_@item.AssetId" class="form-control" onchange="onChangeUomBySupplier(this.value, '@item.ScaleMeasurement', '@item.AssetId')" required>
+                                                    <option value="null" disabled selected>@Resource.btnLabelSelect</option>
+                                                    <option value="1">@Resource.lblCm</option>
+                                                    <option value="2">@Resource.lblIn</option>
+                                                    <option value="3">@Resource.lblGallons</option>
+                                                    <option value="4">@Resource.lblLitres</option>
+                                                </select>
+                                            }
+                                            else
+                                            {
+                                                <select id="ddlUOM_@item.AssetId" class="form-control" onchange="onChangeUomBySupplier(this.value, '@item.ScaleMeasurement', '@item.AssetId')" required>
+                                                    <option value="null" disabled selected>@Resource.btnLabelSelect</option>
+                                                    <option value="3">@Resource.lblGallons</option>
+                                                    <option value="4">@Resource.lblLitres</option>
+                                                </select>
+                                            }
+
+
+                                            @Html.Label(Resource.gridColumnValue, new { @class = "mt5" })
+
+                                            <input type="text"
+                                                   value=""
+                                                   id="UserInput_@item.AssetId"
+                                                   class="form-control"
+                                                   placeholder="Dip test value"
+                                                   onkeyup="onChangeReadingBySupplier(this.value);" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row " id="tblPreviousData">
+                                <div class="col-sm-12">
+                                    <table class="table table-condensed table-bordered small-table mb0">
+                                        <thead>
+                                            <tr>
+                                                <th>Last Reading</th>
+                                                <th>Ullage</th>
+                                                <th>Dip Test Value</th>
+                                                <th>Last Reading Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @if (item.CaptureTime == DateTime.MinValue || item.NetVolume == -1 || item.GrossVolume == -1)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <span id="LastReading">
+                                                            @Resource.lblNotApplicableShort
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="Ullage">
+                                                            @Resource.lblNotApplicableShort
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="LastReadingDate">
+                                                            @Resource.lblNotApplicableShort
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="DipTestValue">
+                                                            @Resource.lblNotApplicableShort
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                            else
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <span id="LastReading">
+                                                            @String.Format("{0:#,##0.##}", item.GrossVolume) @fuelUoM
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="Ullage">
+                                                            @String.Format("{0:#,##0.##}", item.Ullage) @fuelUoM
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="DipTestValue">
+                                                            @if (item.DipTestUoM == 0)
+                                                            {
+                                                                @String.Format("{0:#,##0.##}" + " {1}", item.GrossVolume, fuelUoM)
+                                                            }
+                                                            else
+                                                            {
+                                                                @String.Format("{0:#,##0.##}" + " {1}", item.DipTestValue, item.DipTestUoM.GetDisplayName())
+                                                            }
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span id="LastReadingDate">
+                                                            @item.CaptureTime
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="row hide-element CalculationTable" id="CalculationTable_@item.AssetId">
+                                <div class="col-sm-12">
+                                    <table class="table table-condensed table-bordered small-table mb0 mt10">
+                                        <thead>
+                                            <tr>
+                                                <th class="bg-darkgray color-white">Current Inventory</th>
+                                                <th class="bg-darkgray color-white">Ullage</th>
+                                                <th class="bg-darkgray color-white">Timestamp</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td id="tblDataCurrentInventory_@item.AssetId"></td>
+                                                <td id="tblDataUllage_@item.AssetId"></td>
+                                                <td id="tblDataTimeStamp_@item.AssetId"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+  
+
+    <div class="row">
+        <div class="col-sm-12 text-right">
+            <div>
+                <button type="button" id="btnCalculate" onclick="calculateUllageForSupplier()" class="btn btn-lg btn-default">
+                    @Resource.btnLabelCalculate
+                </button>
+                <div class="hide-element d-inline-block" id="SaveButtonDiv">
+                    <button type="button" id="btnSave" onclick="saveSupplierDipTest()" class="btn btn-lg btn-primary">
+                        @Resource.btnLabelSave
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-danger d-inline-block"><i class="fas fa-exclamation-circle fs14 mr5"></i> @Resource.warningNoTanksForSelectedJob</div>
+}
+
+
+<script>
+
+    var Tanks = new Array();
+    var fuelUoM = "";
+    $(document).ready(function () {
+        Tanks = @Html.Raw(Json.Encode(@Model));
+
+        if (Tanks.length > 0) {
+            //get fuel uom//remove unnecessory uom//set uom from dipchart
+            if (Tanks[0].UoM == @((int)(UoM.Gallons))) {
+                fuelUoM = "Gallons";
+                Tanks.forEach(function (tank) {
+                    $("#ddlUOM_" + tank.AssetId + " option[value='4']").remove();
+                    $('#ddlUOM_' + tank.AssetId + ' option[value=' + tank.ScaleMeasurement + ']').attr('selected', 'selected');
+                });
+            }
+            else if (Tanks[0].UoM == @((int)(UoM.Litres))) {
+                fuelUoM = "Litres";
+                Tanks.forEach(function (tank) {
+                    $("#ddlUOM_" + tank.AssetId + " option[value='3']").remove();
+                    $('#ddlUOM_' + tank.AssetId + ' option[value=' + tank.ScaleMeasurement + ']').attr('selected', 'selected');
+                });
+            }
+
+            //bind tank ui
+            bindTankUIForSupplier();
+
+            if (isTpoCompany) {
+                $(".btnTankSequence").each(function (idx, el) {
+                    $(el).show();
+                });
+            }
+        }
+    })
+    function saveSupplierDipTest() {
+        var DipTestTanks = new Array();
+
+        Tanks.forEach(function (tank) {
+
+            let _input = $("#UserInput_" + tank.AssetId).val();
+            let _uom = $("#ddlUOM_" + tank.AssetId).val();
+            //if (_input > 0 && _uom > 0 && tank.TankModelTypeId && tank.CalculatedGrossVolume >= 0 && tank.CalculatedUllage >= 0) {
+            if (_input > 0 && _uom > 0  && tank.CalculatedGrossVolume >= 0 && tank.CalculatedUllage >= 0 ) {
+                DipTestTanks.push({
+                    'SiteId': tank.JobDisplayId,
+                    'JobId': tank.JobId,
+                    'TankId': tank.TankId,
+                    'StorageId': tank.StorageId,
+                    'Level': 0,
+                    'Ullage': tank.CalculatedUllage,
+                    'GrossVolume': tank.CalculatedGrossVolume,
+                    'NetVolume': tank.CalculatedGrossVolume,
+                    'WaterNetLevel': 0,
+                    'WaterGrossLevel': 0,
+                    'ProductName': tank.ProductTypeName,
+                    'DataSourceTypeId': 1,
+                    'DipTestValue': _input,
+					'DipTestUoM': _uom,
+					'CaptureTime': tank.CaptureTime
+                });
+            }
+        });
+
+        if (DipTestTanks.length > 0) {
+
+            $('#slider-loader').show();
+            var url = '@Url.Action("CreateDipTest", "Dashboard", new { area="Supplier" })';
+                $.post(url, {
+                    demands: DipTestTanks
+                }, function (data) {
+
+                    if (data.StatusCode == 0) {
+                        msgsuccess(data.StatusMessage);
+                    } else if (data.StatusCode == 1) {
+                        msgerror(data.StatusMessage);
+                    } else {
+                        msgwarning(data.StatusMessage);
+                    }
+
+                }).always(function () {
+                    $('#slider-loader').hide();
+                    $("#creatediptestLink").click();
+                });
+        }
+        else {
+            msgerror("Tank(s) not found with valid dip test details.");
+        }
+    }
+    function calculateUllageForSupplier() {
+
+        $("#SaveButtonDiv").hide();
+
+        Tanks.forEach(function (tank) {
+            $("#CalculationTable_" + tank.AssetId).hide();
+        });
+
+        //hide
+        var validTanks = 0;
+        var tankMakeModelNotFound = 0;
+        Tanks.forEach(function (tank) {
+
+            let _input = $("#UserInput_" + tank.AssetId).val();
+            let _uom = $("#ddlUOM_" + tank.AssetId).val();
+
+            //get calculated data
+            if (_input > 0 && _uom > 0) {
+
+                //make model not assigned
+               // if (tank.TankModelTypeId == null)
+                    if (tank.TankModelTypeId == null && (_uom == 1 || _uom == 2))
+                {
+                    tankMakeModelNotFound++;
+                    msgerror("Tank make and model not available for tank " + tank.TankName);
+                }
+                else {
+                    validTanks++;
+
+                    $('#slider-loader').show();
+                    var requestModel = {
+						TankMakeModelId: tank.TankModelTypeId,
+						JobId: tank.JobId,
+                        ScaleMeasurement: _uom,
+                        DipValue: _input,
+                        FuelCapacity: tank.FuelCapacity,
+                        MaxFill: tank.MaxFill
+                    }
+
+                    tank.CalculatedUllage = -1;
+                    tank.CalculatedGrossVolume = -1;
+					tank.CaptureTime = '@DateTime.Now';
+                    let url = '@Url.Action("GetTankVolumeAndUllage")';
+                    $.ajax({
+                        type: "POST",
+                        url: url,
+                        data: { requestModel: requestModel},
+                        success: function (_response) {
+
+                            let calculationResult = JSON.parse(_response);
+
+                            if (calculationResult.StatusCode == 1) {
+                                msgerror(calculationResult.StatusMessage);
+                            }
+                            else if (calculationResult.StatusCode == 0) {
+
+                                tank.CalculatedUllage = calculationResult.TankUllage;
+                                tank.CalculatedGrossVolume = calculationResult.TankVolume;
+								tank.CaptureTime = calculationResult.CaptureTime;
+                                $("#SaveButtonDiv").css('display','inline-block');
+                                $("#CalculationTable_" + tank.AssetId).show();
+                                $("#tblDataUllage_" + tank.AssetId).html(ReplaceNumberWithCommas(calculationResult.TankUllage.toFixed(1)) + ' ' + fuelUoM);
+                                $("#tblDataCurrentInventory_" + tank.AssetId).html(ReplaceNumberWithCommas(calculationResult.TankVolume.toFixed(1)) + ' ' + fuelUoM);
+                                $("#tblDataTimeStamp_" + tank.AssetId).html(calculationResult.CaptureTime);
+                            }
+                        },
+                        error: function (jqXHR, exception) {
+                            console.log(jqXHR);
+                            console.log(exception);
+                        },
+                    }).always(function () {
+                        $('#slider-loader').hide();
+                    });
+                }
+            }
+            //set calculation result to n/a
+            //else {
+            //    $("#CalculationTable_" + tank.AssetId).show();
+            //    if (_input.length != "" && _input.length != null && _input.length != undefined) {
+            //        msgwarning('Dip test value is invalid for tank ' + tank.TankName);
+            //    }
+            //}
+        });
+        if (validTanks == 0 && tankMakeModelNotFound == 0) {
+            msgerror("Please enter valid dip test value and UOM for at least one tank.");
+        }
+    }
+    function bindTankUIForSupplier() {
+        Tanks.forEach(function (tank) {
+
+            if (tank.FillType == '@((int)FillType.Percent)') {
+                //tank diagram calculation
+                let ci_percent = (tank.LastReading / tank.FuelCapacity) * 100;
+                ci_percent = ci_percent > tank.MaxFillPercent ? tank.MaxFillPercent : ci_percent;
+                ci_percent = ci_percent < 0 ? 0 : ci_percent;
+
+                let sbf_percent = (tank.MaxFillPercent - ci_percent);
+                sbf_percent = sbf_percent > 100 ? 100 : sbf_percent;
+                sbf_percent = sbf_percent < 0 ? 0 : sbf_percent;
+
+                FillTankDiagramForSupplier(sbf_percent, ci_percent, tank.AssetId);
+            }
+            else if (tank.FillType == '@((int)FillType.UoM)') {
+                //tank diagram calculation
+                let ci_percent = (tank.LastReading / tank.FuelCapacity) * 100;
+                ci_percent = ci_percent > ((tank.MaxFill / tank.FuelCapacity) * 100) ? ((tank.MaxFill / tank.FuelCapacity) * 100) : ci_percent;
+                ci_percent = ci_percent < 0 ? 0 : ci_percent;
+
+                let sbf_percent = (((tank.MaxFill / tank.FuelCapacity) * 100) - ci_percent);
+                sbf_percent = sbf_percent > 100 ? 100 : sbf_percent;
+                sbf_percent = sbf_percent < 0 ? 0 : sbf_percent;
+
+                FillTankDiagramForSupplier(sbf_percent, ci_percent, tank.AssetId);
+            }
+        });
+    }
+    function FillTankDiagramForSupplier(sbf_percent, ci_percent, tankId) {
+        if ((sbf_percent + ci_percent) > 100) {
+            return;
+        }
+        //
+        $("#CurrentInventoryPercent_" + tankId).html(ci_percent.toFixed(1) + ' %');
+        $("#ShouldBeFilledPercent_" + tankId).html(sbf_percent.toFixed(1) + ' %');
+        //
+        let min_ShouldBeEmptyPercent = (125 - ((sbf_percent * 1.25) + (ci_percent * 1.25)));
+        let min_ShouldBeFilledPercent = (sbf_percent * 1.25);
+        let min_CurrentInventoryPercent = (ci_percent * 1.25);
+        //need of cal
+        if (min_ShouldBeFilledPercent < 16 || min_CurrentInventoryPercent < 16) {
+            //dont remove from emtty
+            if (min_ShouldBeEmptyPercent < 16) {
+
+                if (min_ShouldBeFilledPercent < 16) {
+                    min_ShouldBeFilledPercent = min_ShouldBeFilledPercent + 16;
+                    min_CurrentInventoryPercent = min_CurrentInventoryPercent - 16;
+                }
+                if (min_CurrentInventoryPercent < 16) {
+                    min_CurrentInventoryPercent = min_CurrentInventoryPercent + 16;
+                    min_ShouldBeFilledPercent = min_ShouldBeFilledPercent - 16;
+                }
+            }
+            //remove from empty
+            else {
+                if (min_ShouldBeFilledPercent < 16) {
+                    min_ShouldBeFilledPercent = min_ShouldBeFilledPercent + 16;
+                    min_ShouldBeEmptyPercent = min_ShouldBeEmptyPercent - 16;
+                }
+                if (min_CurrentInventoryPercent < 16) {
+                    min_CurrentInventoryPercent = min_CurrentInventoryPercent + 16;
+                    min_ShouldBeEmptyPercent = min_ShouldBeEmptyPercent - 16;
+                }
+            }
+        }
+
+        $("#ShouldBeEmptyPercent_" + tankId).css("height", min_ShouldBeEmptyPercent.toString());
+        $("#ShouldBeFilledPercent_" + tankId).css("height", min_ShouldBeFilledPercent.toString());
+        $("#CurrentInventoryPercent_" + tankId).css("height", min_CurrentInventoryPercent.toString());
+    }
+    function downloadDipChartSupplier(path) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (path) {
+            var link = document.createElement("a");
+            link.download = "";
+            link.href = path;
+            link.target = "_blank";
+            link.click();
+        }
+        else {
+            msgwarning('@Resource.errorMessageNotFound');
+        }
+    }
+    function onChangeReadingBySupplier(reading) {
+
+        Tanks.forEach(function (tank) {
+            $("#CalculationTable_" + tank.AssetId).hide();
+        });
+
+        $("#SaveButtonDiv").hide();
+    }
+    function onChangeUomBySupplier(uom, chartUom, tankId) {
+        if (uom > 0) {
+            var name = $('#ddlUOM_' + tankId).find(":selected").text();
+            if (uom != chartUom) {
+                msgwarning("UOM changed to " + name + ".");
+            }
+        }
+    }
+
+</script>

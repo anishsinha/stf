@@ -1,0 +1,42 @@
+﻿@model QuoteDetailsViewModel
+@{
+    var buttonLabel = Model.QuotationStatusId == (int)QuotationStatuses.Excluded ? Resource.btnLabelInclude : Resource.btnLabelExclude;
+}
+<div class="col-md-6 mb10">
+    <div>
+        <a class="btn btn-default btn-sm" onclick="BackButton();" href="javascript:void(0)"><i class="fa fa-chevron-left "></i> @Resource.btnLabelBack</a>
+    </div>
+</div>
+<div class="col-md-6 text-right mb10">
+    @if (Model.QuoteRequest.Status != null && !Model.QuoteRequest.Status.Equals(QuoteRequestStatuses.Canceled.ToString()) &&
+        !Model.QuoteRequest.Status.Equals(QuoteRequestStatuses.Awarded.ToString()) && (CurrentUser.IsBuyer || CurrentUser.IsBuyerAdmin))
+    {
+        <div class="btn-group">
+            <button data-toggle="dropdown" class="btn btn-primary btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li class="dropdown-item">
+                    <a class="btn" data-toggle="confirmation" data-placement="bottom" data-popout="true" data-singleton="true" data-url="@Url.Action( "Award", "Quote", new { area = "Buyer" ,id = Model.Id })" data-confirmation-event="ToggleQuote" href="javascript:void(0)">@Resource.btnLabelAward</a>
+                </li>
+                <li role="separator" class="divider"></li>
+                <li class="dropdown-item">
+                    <a class="btn" data-toggle="confirmation" data-placement="bottom" data-popout="true" data-singleton="true" data-url="@Url.Action("Exclude", "Quote", new { area = "Buyer" ,quotationId = Model.Id })" data-confirmation-event="ToggleQuote" href="javascript:void(0)">@buttonLabel</a>
+                </li>
+            </ul>
+        </div>
+    }
+</div>
+<script>
+    function ToggleQuote() {
+        var url = $(this).data('url');
+        SetLocalStorage('radiobuyerquoteview', $("#quotes-toggle:checked").val());
+        $.get(url, function (response) {
+            showSuccessErrorMsg(response);
+            location.reload(true);
+        });
+    }
+
+    $(document).off('ToggleQuote');
+    $(document).on('ToggleQuote', function (e) {
+         ToggleQuote();
+    });
+</script>

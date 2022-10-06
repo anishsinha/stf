@@ -1,0 +1,33 @@
+﻿@model QuoteRequestTileViewModel
+
+<div class="row">
+    <div class="col-sm-12 open-tiles row">
+        @Html.Partial("_PartialQuotesTileView", Model.Quotations.Where(t => !t.IsExcluded).ToList())
+    </div>
+</div>
+<hr />
+<div class="row mt15">
+    <div class="col-sm-12 excluded-tiles row">
+        @Html.Partial("_PartialQuotesTileView", Model.Quotations.Where(t => t.IsExcluded).ToList())
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        if ('@CurrentUser.IsBuyer' == 'True' || '@CurrentUser.IsBuyerAdmin' == 'True') {
+            $(".excluded-tiles,.open-tiles").sortable().bind('sortupdate', function (e) {
+                //Triggered when the user stopped sorting and the DOM position has changed.
+                var items = $(".open-tiles").sortable('toArray');
+                var excludeditems = $(".excluded-tiles").sortable('toArray');
+                $.merge(items, excludeditems);
+                $.post("@Url.Action("UpdateQuotesPriority", "Quote", new { area = "Buyer"})",
+                    { 'quoteReguestId': @Model.QuoteRequestId, 'ids' : items }, function () {}
+                 );
+            });
+        }
+        else {
+            $(".tiles").sortable("disable");
+        }
+    });
+</script>
+<script src="/Content/js/jquery.sortable.min.js"></script>
+<script src="/Content/js/jquery-ui.js"></script>

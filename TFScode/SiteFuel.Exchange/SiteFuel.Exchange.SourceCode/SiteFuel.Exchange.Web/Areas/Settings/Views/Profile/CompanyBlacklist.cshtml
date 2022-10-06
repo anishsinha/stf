@@ -1,0 +1,73 @@
+﻿@model CompanyBlacklistGridViewModel
+@{
+    ViewBag.Title = "Blacklisted Companies";
+}
+<div class="row">
+    <div class="col-md-4 tab-headers">
+        <a id="tab-blacklist" href="javascript:void(0)" onclick="showsection('blacklist'), activelink(this)" class="active mr20">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.headingBlackList</span>
+            </div>
+        </a>
+        <a id="tab-history" href="javascript:void(0)" onclick="showsection('history'), activelink(this)">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.headingHistory</span>
+            </div>
+        </a>
+    </div>
+</div>
+<div class="tab-container pt20">
+    <div id="blacklist" data-parent-tab="tab-blacklist" class="subTabs">
+        <div class="row">
+            <div class="col-md-4 col-sm-5">
+                @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierAdmin)
+                {
+                    using (Html.BeginForm())
+                    {
+                        @Html.AntiForgeryToken()
+
+                        <div class="col-sm-12">
+                            <div class="row well ph5">
+                                <div class="col-sm-12 pb10">
+                                    @Html.LabelFor(m => m.SelectedCompanyId)
+                                    @Html.DropDownListFor(m => m.SelectedCompanyId, new SelectList(Model.SelectCompanyList, "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblCompany), new { @class = "select2_demo_3 form-control" })
+                                </div>
+                                <div class="col-sm-12 pb10">
+                                    @Html.LabelFor(m => m.Reason)
+                                    @Html.TextAreaFor(m => m.Reason, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.Reason)
+                                </div>
+                                <div class="col-sm-12 text-right">
+                                    <input id="btnAddToBlacklist" type="submit" class="btn btn-lg btn-primary" value="@Resource.btnLabelAddToBlacklist" />
+                                </div>
+                            </div>
+                        </div>
+
+                    }
+                }
+            </div>
+                <div class="col-md-8 col-sm-12">
+                    @{ Html.RenderPartial("_PartialCompanyBlacklistGrid", Model.BlacklistCompanies);}
+                </div>
+            </div>
+
+    </div>
+    <div id="history" data-parent-tab="tab-history" class="subTabs hide-element">
+        <div class="row">
+            <div class="col-md-12">
+                @{ Html.RenderPartial("_PartialCompanyBlacklistHistory", Model.BlacklistCompanies);}
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script>
+        $(document).ready(function () {
+            $(".select2_demo_3").select2({
+                placeholder: "@string.Format(Resource.valMessageSelect, Resource.lblCompany)",
+                allowClear: true
+            });
+        });
+    </script>
+}

@@ -1,0 +1,470 @@
+﻿@model AssetFilterViewModel
+<div class="row">
+    <div class="col-sm-6">
+        <div class="assetgrid">
+            @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+            {
+                if (Model.JobId > 0)
+                {
+                    if (Model.IsJobDetails)
+                    {
+                        <a href="javascript:void(0)" id="auto-linkAssignAssets" class="mt10 float-left mr20">
+                            <span class="fa fa-check-circle fs18 float-left mt1 mr5"></span> @Resource.headingAssignAssets
+                        </a>
+                        <a id="auto-linkcreatenew" onclick='LoadAsset();' class="mt10 float-left">
+                            <span class="fa fa-plus-circle fs18 float-left mt1 mr5"></span> @Resource.btnLabelCreateNew
+                        </a>
+                    }
+                }
+            }
+        </div>
+    </div>
+    <div class="col-sm-6 text-right">
+        <div class="z-index5 right0" id="jobAssetsBulkUpload">
+            @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+            {
+                using (Html.BeginForm("UploadJobAssets", "Job", new { area = "Buyer", jobId = Model.JobId }, FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.Partial("_PartialAssetBulkUpload")
+                }
+            }
+        </div>
+    </div>
+</div>
+<div class="row assetgrid mt-8">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b pr">
+            <div class="ibox mb-1">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="asset-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="no-break">@Resource.gridColumnAssetName</th>
+                                    <th class="no-break">@Resource.gridColumnAssetClass</th>
+                                    <th class="no-break">@Resource.gridColumnCurrentJob</th>
+                                    <th class="no-break">@Resource.gridColumnLastJob</th>
+                                    <th>@Resource.gridColumnDateAssigned</th>
+                                    <th>@Resource.gridColumnVendor</th>
+                                    <th>@Resource.gridColumnImage</th>
+                                    <th>@Resource.gridColumnSubcontractor</th>
+                                    <th>@Resource.gridColumnAction</th>
+                                    @*<th>@Resource.gridColumnRemoveFromJob</th>*@
+                                    <th>@Resource.gridColumnDelete<input class="ml-2" type="checkbox" id="select-all"/></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 mt10 pr15 text-right mb10 btn-wrapper">
+                <div class="form-group">
+                    @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+                    {
+                        <input type="button" data-toggle="confirmation" data-popout="true" data-singleton="true" data-content="All history for this asset will be removed, are you sure you want to delete?" class="btn btn-danger" value="@Resource.btnLabelDelete" id="btnDelete" disabled="disabled" />
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.IsJobDetails)
+{
+    <div class="row assignAssets hide-element">
+        <div class="col-md-12">
+            @Html.Partial("~/Areas/Buyer/Views/Job/AssignAssets.cshtml")
+        </div>
+    </div>
+}
+<script type="text/javascript">
+
+	var assetDataTable, exportColumns = {
+        columns: [0, 1, 2, 3, 4, 5, 7], format: {
+			body: function (data, row, col, node) {
+				var elementType = node.firstChild;
+				if (elementType != null) {
+					if (elementType.nodeName == "SELECT")
+						return $(elementType).find(':selected').text();
+					else
+						return $(elementType).text();
+				}
+				else
+					return data;
+			}
+		}
+	};
+
+    // These columns should not be visible to accouting, reporting & onsite person
+	var columnToggle = ('@(CurrentUser.IsAccountingPerson || CurrentUser.IsReportingPerson || CurrentUser.IsOnsitePerson || CurrentUser.IsBuyer)' == 'False');
+    var ClearFilter;
+    $(document).ready(function () {
+
+        $('#txtAssetFromDate').val(GetLocalStorage('txtAssetFromDate'));
+        $('#txtAssetToDate').val(GetLocalStorage('txtAssetToDate'));
+
+        if (isJobEdit == true)
+		{
+			$("#jobAssetsBulkUpload").removeClass('hidden');
+            $("#divSunbeltAssetBulkUploadTemplate").show();
+            $("#lnkSFXAssetBulkUploadTemplate").html('@Resource.btnLabelDownloadSFXSample');
+            $(".btn-download").click(function () {
+                hideLoader();
+            });
+		}
+
+		if (@Model.JobId > 0 ? true : false)
+		{
+			$("#select-all").attr("disabled", true);
+		}
+		else {
+			$("#select-all").removeAttr("disabled");
+		}
+        assetDocumentReady();
+
+        ClearFilter = function () {
+            $('#txtAssetFromDate').val('');
+            $('#txtAssetToDate').val('');
+            $('#txtAssetToDate').data("DateTimePicker").minDate($("#txtAssetFromDate").datetimepicker("minDate"));
+            ReloadDataTable();
+        }
+
+        if ($('#txtAssetFromDate').length > 0 && $('#txtAssetToDate').length > 0) {
+            $("#txtAssetFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtAssetToDate').data("DateTimePicker").minDate($("#txtAssetFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtAssetToDate').data("DateTimePicker").minDate(moment($('#txtAssetFromDate').val()));
+            });
+		}
+
+		$('#auto-linkAssignAssets').click(function () {
+			$('.assetgrid').hide();
+			$('.assignAssets').show();
+		});
+	});
+
+    function ReloadDataTable() {
+        SetLocalStorage('txtAssetFromDate', $('#txtAssetFromDate').val());
+        SetLocalStorage('txtAssetToDate', $('#txtAssetToDate').val());
+        assetDataTable.ajax.reload();
+    }
+
+    function LoadAsset() {
+        var url = '@Url.Action("CreateAsset", "Job", new { area = "Buyer" })?jobId=' +@Model.JobId+'&type='+@((int)AssetType.Asset)+'';
+        $.get(url, function (response) {
+            if (response != null || response != "") {
+                $("#slider-heading").text('Create New Asset');
+                $("#slider-content").html(response);
+                parseForm();
+                slidePanel("#sliderpanel");
+                $(".lblforcastingNote").text('');
+                $(".lblforcastingNote").hide();
+            }
+        }).always(
+            function () {
+                $("#slider-loader").hide();
+            }
+        );
+    }
+
+	function updateSelectAllOnPageChange() {
+		var allChecked = true, anyOneChecked = false;
+
+		$('#asset-datatable tbody tr').each(function () {
+			$(this).find('.chk-asset').not(":disabled").each(function () {
+				if (!$(this).is(':checked')) {
+					allChecked = false;
+				}
+				else if (anyOneChecked == false)
+				{
+					anyOneChecked = true;
+				}
+			});
+		});
+		$('#select-all').prop('checked', allChecked);
+		if (anyOneChecked == true)
+		{
+			$("#btnDelete").attr("disabled", false);
+		}
+		else {
+			$("#btnDelete").attr("disabled", true);
+		}
+	}
+
+        function assetDocumentReady() {
+             assetDataTable = $('#asset-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("AssetGrid", "Asset", new { area = "Buyer" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "data": function () {
+                        var assetFilter = {
+                            JobId: '@Model.JobId',
+                            Filter: '@Model.Filter',
+                            Type: '@((int)@AssetType.Asset)',
+                            StartDate: $('#txtAssetFromDate').val(),
+                            EndDate: $('#txtAssetToDate').val()
+                        };
+                        return assetFilter;
+                    },
+                    "dataSrc": "",
+
+                },
+                "columns": [
+                            {
+                                "data": function (data, type, row, meta) {
+                                    if (data.IsActive) {
+                                        var allowEdit = ('@CurrentUser.IsBuyerAdmin' == 'True' || '@CurrentUser.IsBuyer' == 'True') ? true : false;
+                                        var isJobDetails = ('@Model.IsJobDetails' == 'True') ? true : false;
+                                        return `<a onclick="slideAssetTankDetails(` + data.Id + `,1,` + allowEdit + `,`+ isJobDetails +`,true)">` + data.Name + `</a>`;
+                                    }
+                                    else {
+                                        return data.Name;
+                                    }
+                                        }, "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    return data.Class == null ? '@Resource.lblHyphen' : data.Class;
+                                }, "autoWidth": true
+                            },
+                            {
+								"data": function (data, type, row, meta) {
+									if ('@CurrentUser.IsBuyerAdmin' == 'True') {
+										return data.CurrentJobName == '@Resource.lblHyphen' ? data.CurrentJobName : '<a href="@Url.Action("Details", "Job", new { area = "Buyer" })/' + data.CurrentJobId + '">' + data.CurrentJobName + '</a>';
+									}
+									else
+									{
+										return data.CurrentJobName == null ? '@Resource.lblHyphen' : data.CurrentJobName;
+                                    }
+                                }, "autoWidth": true, "className":"break-word"
+                            },
+                            {
+								"data": function (data, type, row, meta) {
+									if ('@CurrentUser.IsBuyerAdmin' == 'True') {
+										return data.LastJobName == '@Resource.lblHyphen' ? data.LastJobName : '<a href="@Url.Action("Details", "Job", new { area = "Buyer" })/' + data.LastJobId + '">' + data.LastJobName + '</a>';
+									}
+									else {
+										return data.LastJobName == null ? '@Resource.lblHyphen' : data.LastJobName;
+									}
+                                }, "autoWidth": true, "className": "break-word"
+                            },
+							{ "data": "DateAdded", "autoWidth": true, "sType": 'date', },
+                            { "data": "Vendor", "autoWidth": true },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    if (data.ImageId > 0) {
+                                        return "<img id='image-" + data.ImageId + "' class='img-max50' src='"+data.AzureBlobImageURL +  "'/>";
+                                    }
+                                    else {
+                                        return '@Resource.lblHyphen';
+                                    }
+                                }, "autoWidth": true
+							},
+							{
+                                "data": function (data, type, row, meta) {
+									if (data.Subcontractors.length > 0 && columnToggle == true && (@Model.JobId > 0 || (data.CurrentJobId != null && data.CurrentJobId > 0))) {
+                                        var $select = $("<select class='subcontractors form-control'></select>").attr("id", data.Id).attr("jobId", data.CurrentJobId);
+											$select.append($("<option></option>", {
+												"text": '@Resource.lblAssignSubcontractor',
+												"value": -1
+											}));
+											$.each(data.Subcontractors, function(k,v){
+											var $option = $("<option></option>", {
+										    	"text": v.Name,
+										        "value": v.Id
+										    });
+											if (data.SubcontractorId === v.Id){
+										    	$option.attr("selected", "selected")
+										    }
+											$select.append($option);
+										});
+										return $select.prop("outerHTML");
+                                    }
+									else {
+										if (data.Subcontractors.length > 0)
+										{
+											if (data.SubcontractorId > 0)
+                                            {
+                                                var name = $.grep(data.Subcontractors, function (e) { return e.Id == data.SubcontractorId; });
+                                                if (name.length > 0)
+												return name[0].Name;
+											}
+											return '@Resource.lblNeedToBeEnabled';
+										}
+                                        return '@Resource.lblNeedToBeEnabled';
+                                    }
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    var assetRemoveFromJob = "";
+                                    if (data.CurrentJobId != null && data.CurrentJobId != 0) {
+                                        var url = '@Url.Action("Remove", "Asset", new { area = "Buyer" })/' + data.JobXAssetsId + '?jobId=' + data.CurrentJobId + '';
+                                        assetRemoveFromJob = '<a data-toggle = "confirmation" data-placement="top" data-popout = "true" data-singleton = "true" href="' + url + '"><i class="fa fa-times color-maroon mr5"></i> @Resource.gridColumnRemoveFromJob </a>'
+                                    }                                 
+                                    if (data.CurrentJobId > 0) {
+                                        return '<div class="btn-group">' +
+                                            '<button id="auto-btnjobaction" data-toggle="dropdown" class="btn btn-primary btn-sm dropdown-toggle" aria-expanded="false">Action <span class="caret"></span></button>' +
+                                            '<ul class="dropdown-menu dropdown-menu-right medium-menu">' +
+                                            '<li class="dropdown-item"><a href="@Url.Action("Assign", "Asset", new { area = "Buyer" })?id=' + data.JobXAssetsId + '&assetId=' + data.Id + '"><i class="fa fas fa-exchange-alt mr5"></i> @Resource.gridColumnChangeAllocation </a></li>' +
+                                            '<li role="separator" class="divider"></li>' +
+                                            '<li class="dropdown-item">' + assetRemoveFromJob + '</li> ' +
+                                            '<li role="separator" class="divider"></li>' +
+                                            '</ul>' +
+                                            '</div>'
+                                    } else if (data.CurrentJobId == 0) {
+                                        return '<div class="btn-group">' +
+                                            '<button id="auto-btnjobaction" data-toggle="dropdown" class="btn btn-primary btn-sm dropdown-toggle" aria-expanded="false">Action <span class="caret"></span></button>' +
+                                            '<ul class="dropdown-menu dropdown-menu-right medium-menu">' +
+                                            '<li class="dropdown-item"><a href="@Url.Action("Assign", "Asset", new { area = "Buyer" })?id=' + data.JobXAssetsId + '&assetId=' + data.Id + '"><i class="fa fas fa-exchange-alt mr5"></i> assign</a></li>' +
+                                            '<li role="separator" class="divider"></li>' +                                          
+                                            '</ul>' +
+                                            '</div>'
+                                    }
+                                     else {
+                                        return '<div class="btn-group">' +
+                                            '<button id="auto-btnjobaction" data-toggle="dropdown" class="btn btn-primary btn-sm dropdown-toggle" aria-expanded="false">Action <span class="caret"></span></button>' +
+                                            '<ul class="dropdown-menu dropdown-menu-right medium-menu">' +
+                                            '<li class="dropdown-item">' + assetRemoveFromJob + '</li> ' +
+                                            '</ul>' +
+                                            '</div>'
+                                    }
+                                }, "autoWidth": true, "bSortable": false, "className":"text-center"
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    var disabled = (data.CurrentJobId != null && data.CurrentJobId != 0) ? "disabled=\"disabled\"" : "";
+                                    return '<input type="checkbox" class = "chk-asset" id="' + data.Id + '" value = "' + data.Active + '" ' + disabled + '/>';
+                                }, "autoWidth": true, "bSortable": false
+                            }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]'
+					});
+					updateSelectAllCheckboxStatus(json);
+                    wrapperHeight();
+                    tabGridHeader(this);
+                },
+				"fnDrawCallback": function (settings) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]',
+                        html: true
+					});
+					updateSelectAllOnPageChange();
+					updateSelectAllCheckboxStatus();
+					SubcontractorChangeEvent();
+                },
+                "columnDefs": [{
+                    "targets": [8, 9],
+                    "visible": columnToggle,
+                    "searchable": columnToggle
+                }],
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingAssets', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingAssets', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingAssets', exportOptions: exportColumns, orientation: 'landscape' },
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+             });
+
+            assetDataTable.on("init.dt", function () { showAjaxImages(); });
+
+            $("#btnDelete").click(function () {
+                var data = [], url = '@Url.Action("DeleteAssets", "Asset", new { area="Buyer"})';
+				var anNodes = $("#asset-datatable tbody tr");
+
+				for (var i = 0; i < anNodes.length; ++i) {
+					if ($(anNodes[i]).find('input:checkbox').is(':checked')) {
+						data.push($(anNodes[i]).find('input:checkbox').attr('id'));
+					}
+				}
+                var model = {
+                    assets: data
+                };
+
+                $.post(url, model, function (response) {
+                    if (response == 0) {
+                        //window.location.href = '@Url.Action("View", "Asset", new { area = "Buyer", id = Model.JobId, filter = (int)Model.Filter })';
+                        window.location.reload(true);
+                    }
+                }, 'json');
+            })
+        }
+
+		function SubcontractorChangeEvent()
+		{
+			$('.subcontractors').change(function () {
+				var element = $(this);
+				$(element).attr('disabled', 'disabled');
+                var selectedAsset = element.attr('id');
+                var currentJobId = element.attr('jobId');
+				var selectedSubcontractor = $(element).find('option:selected').val();
+				var assignUrl = '@Url.Action("AssignSubcontractor", "Asset", new { area="Buyer"})';
+				var model = {
+					assetId: selectedAsset,
+                    subcontractorId: selectedSubcontractor,
+                    jobId: currentJobId
+				};
+				$.post(assignUrl, model, function (response) {
+					$(element).removeAttr('disabled');
+					showSuccessErrorMsg(response);
+				});
+			});
+		}
+
+		function updateSelectAllCheckboxStatus()
+		{
+            $('#select-all').click(function () {
+                if ($(this).prop("checked") == true) {
+					$("#btnDelete").attr("disabled", false);
+                }
+                else if ($(this).prop("checked") == false) {
+					$("#btnDelete").attr("disabled", true);
+                }
+                var status = $(this).prop('checked');
+                $(".chk-asset").each(function () {
+                    $(this).not(":disabled").prop("checked", status);
+                });
+			});
+
+            $(".chk-asset").change(function () {
+                if ($(".chk-asset:checked").length > 0) {
+                    $("#btnDelete").attr("disabled", false)
+                }
+                else {
+                    $("#btnDelete").attr("disabled", true)
+                }
+
+				if ($('.chk-asset').not(":disabled").length == $(".chk-asset:checked").length) {
+                    $('#select-all').prop("checked", true);
+                }
+                else {
+                    $('#select-all').prop("checked", false);
+                }
+            });
+        }
+</script>
+

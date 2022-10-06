@@ -1,0 +1,218 @@
+﻿@model ComposeMessageViewModel
+@{
+    ViewBag.Title = @Resource.headingComposeMessage;
+}
+
+@using (Html.BeginForm("Compose", "Mailbox", new { area = "Messages" }, FormMethod.Post, new { role = "form", @class = "form-horizontal", Id = "frmComposeMessage" }))
+{
+    <div class="mail-box-header" style="border-bottom: 1px solid #e7eaec;">
+        <div class="pull-right tooltip-demo">
+            <a id="btnTopSaveDraft" href="JavaScript:void(0);" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Move to draft folder" onclick="completeAction(true);">@Resource.btnLabelDraft &nbsp;<i class="fa fa-floppy-o" aria-hidden="true"></i></a>
+            <a id="btnTopDiscard" href="@Url.Action("Compose", "Mailbox", new { area= "Messages" })" class="btn btn-danger btn-sm" style="background-color: #ff9da8; border-color: #ff9da8;" data-toggle="tooltip" data-placement="top" title="Discard email">@Resource.lblDiscard &nbsp;<i class="fa fa-times mr5"></i></a>
+        </div>
+        <h2>
+            @ViewBag.Title
+        </h2>
+    </div>
+    <div class="mail-box">
+        <div class="mail-body border-0 row">
+            @if (Model.ComposeType == AppMessageComposeType.Compose)
+            {
+                <div class="col-sm-6 form-group row">
+                    <label class="col-sm-4 control-label mt5 pr-0">@Html.LabelFor(m => m.Type)</label>
+                    <div class="col-sm-7">
+                        <div class="ml-1">
+                            @Html.DropDownListFor(m => m.Type, new SelectList(CommonHelperMethods.GetMailboxQueryTypes(), "Id", "Name", Model.Type), "Select Type", new { @class = "form-control select2_demo_3" })
+                            @Html.ValidationMessageFor(m => m.Type)
+                        </div>
+                    </div>
+                </div>
+                <div class=" col-sm-6 form-group row px-0">
+                    <label class="col-sm-2 control-label mt5">@Html.LabelFor(m => m.Number)</label>
+                    <div class="col-sm-10 px-0 ">
+                        @Html.DropDownListFor(m => m.Number, new List<SelectListItem>(), "", new { @class = "form-control select2_demo_3" })
+                        @Html.ValidationMessageFor(m => m.Number)
+                    </div>
+                </div>
+                <div class="col-12 form-group row">
+                    <label class="col-sm-2 control-label mt5">@Html.LabelFor(m => m.Recipients)</label>
+                    <div class="col-sm-10">
+                        @Html.ListBoxFor(m => m.Recipients, new List<SelectListItem>(), new { @class = "form-control multi-select" })
+                        @Html.ValidationMessageFor(m => m.Recipients)
+                    </div>
+                </div>
+			}
+			else
+			{
+				var recipientCompanies = new List<DropdownDisplayItem>();
+				if (Model.Type != AppMessageQueryType.Dispatch)
+				{
+					recipientCompanies = CommonHelperMethods.GetRecipients(CurrentUser.Id, Model.RecipientCompanies);
+				}
+				else
+				{
+					recipientCompanies = CommonHelperMethods.GetAllDrivers(CurrentUser.CompanyId);
+					recipientCompanies = recipientCompanies.Where(t => t.Id != CurrentUser.Id).ToList();
+                    @Html.HiddenFor(m => m.Type)
+				}
+                <div class="col-12 form-group row">
+                    <label class="col-sm-2 control-label mt5">@Html.LabelFor(m => m.Recipients)</label>
+                    <div class="col-sm-10 ">
+                        @Html.ListBoxFor(m => m.Recipients, new SelectList(recipientCompanies, "Id", "Name", Model.Recipients), new { @class = "form-control multi-select" })
+                        @Html.ValidationMessageFor(m => m.Recipients)
+                    </div>
+                </div>
+            }
+            <div class="col-12 form-group row">
+                <label class="col-sm-2 control-label mt5">@Html.LabelFor(m => m.Subject)</label>
+                <div class="col-sm-10">
+                    @Html.TextBoxFor(m => m.Subject, new { @class = "form-control" }).IsReadonly(Model.Type != AppMessageQueryType.Dispatch)
+                    @Html.ValidationMessageFor(m => m.Subject)
+                </div>
+            </div>
+        </div>
+        <div class="mail-text pt10 pr10 pb10 pl10 h-200">
+            @Html.HiddenFor(m => m.Id)
+            @Html.HiddenFor(m => m.ComposeType)
+            @Html.HiddenFor(m => m.IsDraft)
+            @Html.HiddenFor(m => m.Message)
+            @Html.HiddenFor(m => m.PlainTextMessage)
+            @Html.ValidationMessageFor(m => m.Message)
+            <div class="summernote"></div>
+            <div class="clearfix"></div>
+        </div>
+        <div class="mail-body text-right tooltip-demo">
+            <a id="btnBottomSend" href="JavaScript:void(0);" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" title="Send" onclick="completeAction(false);">Send &nbsp;<i class="fa fa-paper-plane" aria-hidden="true"></i></a>
+        </div>
+        <div class="clearfix"></div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/summernotes")
+
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/summernotes")
+
+    <script type="text/javascript">
+        $.validator.setDefaults({ ignore: ":hidden:not(.summernote),.note-editable.panel-body" });
+        $(document).ready(function () {
+            var queryType = '@((int)Model.Type)';
+			if (queryType != '0' && queryType != '4' && queryType != null && queryType != "") {
+                GetNumbersDropDown(true);
+            } else {
+                $("#@Html.IdFor(m => m.Type)").prop('selectedIndex', 0);
+            }
+
+			var queryStringRecieps = MainUtils.getParameterByName('recipients');
+			if (typeof queryStringRecieps != 'undefined' && queryStringRecieps != null) {
+				$("#Recipients").val(queryStringRecieps.split(','));
+				$("#Recipients").select2();
+			}
+
+            $('.summernote').summernote({
+                minHeight: 200,
+
+                focus: true,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ["fontname", ["fontname"]],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['height', ['height']],
+                    ['misc', ['sDraftsLoad', 'sDraftsSave']]
+                ]
+            });
+
+            $("#@Html.IdFor(m => m.Type)").select2({
+                placeholder: "Select Type",
+                allowClear: true
+            }).on('select2:unselect', function (evt) {
+                $("#@Html.IdFor(m => m.Number)").empty();
+                $("#@Html.IdFor(m => m.Recipients)").empty();
+                $("#@Html.IdFor(m => m.Subject)").val("");
+            });
+            $("#@Html.IdFor(m => m.Number)").select2({
+                placeholder: "Select Number",
+                allowClear: true
+            }).on('select2:unselect', function (evt) {
+                $("#@Html.IdFor(m => m.Recipients)").empty();
+                $("#@Html.IdFor(m => m.Subject)").val("");
+            });
+
+            $("#@Html.IdFor(m => m.Type)").change(function () {
+                GetNumbersDropDown(false);
+            });
+
+            function GetNumbersDropDown(selectNumber) {
+                var queryType = $("#@Html.IdFor(m => m.Type)").val(), target = $("#@Html.IdFor(m => m.Number)");
+                if (queryType && queryType.length > 0) {
+                    $.get("@Url.Action("GetNumbers", "Mailbox", new { area="Messages" })", { type: queryType }, function (response) {
+                        target.empty(), target.append($('<option>Select Number</option>')), $.each(response, function (i, element) {
+                            target.append($('<option ' + (selectNumber && @Model.Number==element.Id ? "selected" : "") +'></option>').val(element.Id).html(element.Name));
+                        });
+
+                        if (selectNumber) {
+                            GetReceipients();
+                        }
+                    });
+                }
+            }
+
+            $("#@Html.IdFor(m => m.Number)").change(function () {
+                GetReceipients();
+            });
+
+            function GetReceipients() {
+                var selectedType = $('#@Html.IdFor(m => m.Type)').find('option:selected').val();
+                var selectedNumberId = $("#@Html.IdFor(m => m.Number)").find('option:selected').val();
+                var selectedNumber = $("#@Html.IdFor(m => m.Number)").find('option:selected').text();
+                var target = $("#@Html.IdFor(m => m.Recipients)");
+
+                if (selectedNumber && selectedNumber.length > 0) {
+                    $.get("@Url.Action("GetRecipients", "Mailbox", new { area="Messages" })", { type: selectedType, number: selectedNumberId }, function (response) {
+                        target.empty(), $.each(response, function (i, element) {
+                            target.append($('<option></option>').val(element.Id).html(element.Name));
+                        });
+                    });
+                    $("#@Html.IdFor(m => m.Subject)").val('@CurrentUser.Name' + ' from ' + '@CurrentUser.CompanyName' + ' has a question regarding ' + selectedNumber);
+                }
+                else {
+                    target.empty();
+                    $("#@Html.IdFor(m => m.Subject)").val("");
+                }
+            }
+
+            (function () {
+                //Set the message
+				if ('@Model.ComposeType' !== '@AppMessageComposeType.Compose' && queryType != '4') {
+					var htmlMessage = decodeURIComponent('@Model.Message');
+                    $('.summernote').summernote('code', htmlMessage);
+                }
+            })();
+        });
+
+        function completeAction(isDraft) {
+            if ($('#frmComposeMessage').valid()) {
+                if (isDraft) {
+                    $("#@Html.IdFor(m => m.IsDraft)").val("true");
+                }
+                else {
+                    $("#@Html.IdFor(m => m.IsDraft)").val("false");
+                }
+
+                var plainText = $($(".summernote").summernote("code")).text();
+                $("#@Html.IdFor(m => m.PlainTextMessage)").val(plainText);
+                if (plainText && plainText.length > 0) {
+                    $("#@Html.IdFor(m => m.Message)").val(encodeURIComponent($(".summernote").summernote('code')));
+                    $('#frmComposeMessage').submit();
+                }
+                else {
+                    $("#@Html.IdFor(m => m.Message)").val("");
+                }
+            }
+        };
+    </script>
+}

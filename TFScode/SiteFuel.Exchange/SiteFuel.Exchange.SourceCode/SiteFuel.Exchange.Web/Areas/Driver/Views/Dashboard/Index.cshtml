@@ -1,0 +1,193 @@
+﻿@{
+    ViewBag.Title = "Dashboard";
+}
+<div class="col-centered dashboard">
+    <div class="row">
+        <div class="col-sm-12 col-md-6">
+            <div class="row">
+                <div class="col-md-12 grid-loader">
+                    @Html.Partial("_PartialDriverAppDownload")
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 grid-loader">
+                    @Html.Partial("_PartialDashboardMySchedules")
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 grid-loader">
+                    @Html.Partial("_PartialDashboardTimeCard")
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6">
+            <div class="row">
+                <div class="col-sm-12 grid-loader">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                    <div class="well bg-white shadow-b mb10">
+                        <h2 class="mt0 pt0 f-normal">
+                            <span class="fa fa-calendar mr5"></span> @Resource.headingCalender
+                        </h2>
+                        <div id='calendar' class="mt15"></div>
+                        <div>
+                            <div class="row">
+                                <div class="col-md-6 col-xs-12">
+                                    <h5 class="color-red f-normal"><span class="fa fa-circle mr_5 fs10 pr10"></span>@Resource.lblMissedDeliveries</h5>
+                                    <h5 class="color-orange f-normal"><span class="fa fa-circle mr_5 fs10 pr10"></span>@Resource.lblUpcomingDeliveries</h5>
+                                    <h5 class="color-green f-normal"><span class="fa fa-circle mr_5 fs10 pr10"></span>@Resource.lblCompletedDeliveries</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 grid-loader">
+                    @Html.Partial("_PartialDashboardDrops")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .main-wrapper {
+        background: #fafafa;
+    }
+</style>
+@using (Html.BeginScripts())
+{
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/fullcalendar")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/fullcalendar")
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            radioChange(null, null, 'disabled-while-counteroffer');
+        });
+
+        $('#calendar').fullCalendar({
+            header: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'month,basicWeek,basicDay'
+            },
+            fixedWeekCount : false,
+            navLinks: true,
+            eventLimit: false,
+            events: {
+                traditional: true,
+                url: '@Url.Action("GetCalenderData", "Dashboard", new { area = "Driver" })',
+                data: function () {
+                    var fecha = $('#calendar').fullCalendar('getDate')._d;
+                    return {
+                        month: fecha.getMonth() + 1,
+                        year: fecha.getFullYear()
+                    }
+                }
+            },
+            loading: function (isLoading, view) {
+                if (!isLoading) {
+                    $("#calendar").closest(".grid-loader").find('.loading-wrapper').hide();
+                }
+            },
+            dayRender: function (date, cell) {
+                var today = new Date();
+                var yesterday = new Date();
+                yesterday.setDate(today.getDate() - 1);
+
+                if (date <= yesterday) {
+                    cell.css("background-color", "#f4f4f4");
+                }
+            },
+            selectable: true,
+            eventRender: function (event, element, view) {
+                if ($.inArray(view.type, event.viewableIn) == -1) {
+                    element.length = 0;			// to "remove" the element from the view.
+                }
+
+                if (event.calendarEventType == @((int)CalendarEventType.DeliverySchedule))
+                {
+                    element.find(".fc-title").remove();
+                    event.textColor = "#000";
+                    event.backgroundColor = "transparent";
+                    if (event.eventStatus == @((int)TrackableDeliveryScheduleStatus.Missed) ||
+                        event.eventStatus == @((int)TrackableDeliveryScheduleStatus.RescheduledMissed))
+                    {
+                        event.textColor = "#ed5565";
+                        var new_description = '<table><tr><td class="daily-view"><div class="border-b pb5 pt5 overflow-h full-width"><div class="pt5 pb5 float-left"><h2 class="fs14 font-bold pt0 pb0 mt0 mb0">' + event.title +
+                            '</h2><h4 class="fs12 pt3 pb0 mt0 mb0 f-normal">' + event.subtitle + '</h4></div> <div class="pull-right"><label class="btn btn-danger btn-xs mt5 fs10">@Resource.lblMissed</label></div></div></td></tr></table>';
+                        element.append(new_description);
+                    }
+		            else if (event.eventStatus == @((int)TrackableDeliveryScheduleStatus.Canceled))
+                    {
+                        event.textColor = "#ed5565";
+                        var new_description = '<table><tr><td class="daily-view"><div class="border-b pb5 pt5 overflow-h full-width"><div class="pt5 pb5 float-left"><h2 class="fs14 font-bold pt0 pb0 mt0 mb0">' + event.title +
+                            '</h2><h4 class="fs12 pt3 pb0 mt0 mb0 f-normal">' + event.subtitle + '</h4></div> <div class="pull-right"><label class="btn btn-danger btn-xs mt5 fs10">@Resource.lblCancelled</label></div></div></td></tr></table>';
+                        element.append(new_description);
+                    }
+                    else if (event.eventStatus == @((int)TrackableDeliveryScheduleStatus.MissedAndCanceled) || event.eventStatus == @((int)TrackableDeliveryScheduleStatus.MissedAndRescheduled))
+                    {
+                        var new_description = '<table><tr><td class="daily-view"><div class="border-b pb5 pt5 overflow-h full-width"><div class="pt5 pb5 float-left"><h2 class="fs14 font-bold pt0 pb0 mt0 mb0">' + event.title +
+                            '</h2><h4 class="fs12 pt3 pb0 mt0 mb0 f-normal">' + event.subtitle + '</h4></div> <div class="pull-right"><i class="mt10 mr10 float-left fa fa-check"></i><label class="btn btn-danger btn-xs mt5 fs10">@Resource.lblMissed</label></div></div></td></tr></table>';
+                        element.append(new_description);
+                    }
+                    else if (event.eventStatus == @((int)TrackableDeliveryScheduleStatus.Accepted) || event.eventStatus == @((int)TrackableDeliveryScheduleStatus.Pending) || event.eventStatus == @((int)TrackableDeliveryScheduleStatus.Rescheduled))
+                    {
+                        var new_description = '<table><tr><td class="daily-view"><div class="border-b pb5 pt5 overflow-h full-width"><div class="pt5 pb5 float-left"><h2 class="fs14 font-bold pt0 pb0 mt0 mb0">' + event.title +
+                            '</h2><h4 class="fs12 pt3 pb0 mt0 mb0 f-normal">' + event.subtitle + '</h4></div> <div class="pull-right"></div></div></td></tr></table>';
+                        element.append(new_description);
+                    }
+                    else if (event.eventStatus == @((int)TrackableDeliveryScheduleStatus.Completed) ||
+                        event.eventStatus == @((int)TrackableDeliveryScheduleStatus.CompletedLate) ||
+                        event.eventStatus == @((int)TrackableDeliveryScheduleStatus.RescheduledCompleted) ||
+                        event.eventStatus == @((int)TrackableDeliveryScheduleStatus.RescheduledLate))
+                    {
+                        var new_description = '<table><tr><td class="daily-view"><div class="border-b pb5 pt5 overflow-h full-width"><div class="pt5 pb5 float-left"><h2 class="fs14 font-bold pt0 pb0 mt0 mb0">' + event.title +
+                            '</h2><h4 class="fs12 pt3 pb0 mt0 mb0 f-normal">' + event.subtitle + '</h4></div> <div class="pull-right"><label class="btn btn-success btn-xs mt5 fs10">@Resource.lblCompleted</label></div></div></td></tr></table>';
+                        element.append(new_description);
+                    }
+                    else if (event.eventStatus == @((int)TrackableDeliveryScheduleStatus.Discontinued))
+                    {
+                        var new_description = '<table><tr><td class="daily-view"><div class="border-b pb5 pt5 overflow-h full-width"><div class="pt5 pb5 float-left"><h2 class="fs14 font-bold pt0 pb0 mt0 mb0">' + event.title +
+                            '</h2><h4 class="fs12 pt3 pb0 mt0 mb0 f-normal">' + event.subtitle + '</h4></div> <div class="pull-right"><label class="btn btn-success btn-xs mt5 fs10">@Resource.lblDiscontinued</label></div></div></td></tr></table>';
+                        element.append(new_description);
+                    }
+                }
+
+                var dateString = event.start.format("YYYY-MM-DD");
+                if (event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Missed))
+                {
+                    $(view.el[0]).find('.fc-day-top[data-date=' + dateString + '] a').addClass('missedSchedule');
+                    if (view.name === 'basicDay') {
+                        $('.fc-widget-header').addClass('bg-red');
+                        $('.fc-widget-header span').css('color', 'white');
+                    }
+                }
+                else if (event.parentStatus == @((int)TrackableDeliveryScheduleStatus.MissedAndRescheduled) || event.parentStatus == @((int)TrackableDeliveryScheduleStatus.MissedAndCanceled))
+                {
+                    $(view.el[0]).find('.fc-day-top[data-date=' + dateString + '] a').addClass('missedActionTakenSchedule');
+                    if (view.name === 'basicDay') {
+                        $('.fc-widget-header').addClass('bg-red');
+                        $('.fc-widget-header span').css('color', 'white');
+                    }
+                }
+                else if (event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Pending) || event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Rescheduled) || event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Canceled))
+                {
+                    $(view.el[0]).find('.fc-day-top[data-date=' + dateString + '] a').addClass('pendingSchedule');
+                    if (view.name === 'basicDay') {
+                        $('.fc-widget-header').addClass('bg-orange');
+                        $('.fc-widget-header span').css('color', 'white');
+                    }
+                }
+                else if (event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Completed) || event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Discontinued))
+                {
+                    $(view.el[0]).find('.fc-day-top[data-date=' + dateString + '] a').addClass('completedSchedule');
+                    if (view.name === 'basicDay') {
+                        $('.fc-widget-header').addClass('bg-green');
+                    }
+                }
+            }
+        });
+        $(".loader").hide();
+    </script>
+}

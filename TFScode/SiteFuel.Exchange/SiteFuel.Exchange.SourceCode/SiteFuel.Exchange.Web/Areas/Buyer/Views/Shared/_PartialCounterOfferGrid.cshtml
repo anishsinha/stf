@@ -1,0 +1,106 @@
+﻿@model FuelRequestFilterViewModel
+
+<div class="col-md-12">
+    <div class="well bg-white shadow-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-padding no-border">
+                <div class="table-responsive">
+                    <table id="buyercounteroffer-fuelrequest-datatable" class="table table-striped table-bordered table-hover show-fixedheader">
+                        <thead>
+                            <tr>
+                                <th>@Resource.lblCounterOfferNumber</th>
+                                <th>@Resource.gridColumnRequestNumber</th>
+                                <th>@Resource.gridColumnSupplier</th>
+                                <th class="uom-by-country"> <span class="uom-lbl"></span> @Resource.lblRequested</th>
+                                <th class="rack-ppg-by-country"></th>
+                                <th>@Resource.gridColumnStatus</th>
+                                <th>@Resource.gridColumnOfferedOn</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+        var buyerCounterOfferGrid, exportCounterColumns = { columns: [0, 1, 3, 4, 5, 6] };
+
+    $(document).ready(function () {
+        SetUoMCurrencyAndRacklables();
+            buyerCounterOfferGrid = $('#buyercounteroffer-fuelrequest-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("PartialCounterOfferGrid", "FuelRequest", new { area ="Buyer", jobId = Model.JobId })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "data": function () {
+                        var frFilter = {
+                            JobId: '@Model.JobId',
+                            FuelRequestId: '@Model.FuelRequestId',
+                            Filter: '@Model.Filter',
+                            StartDate: $('#txtBuyerFRFromDate').val() == 'undefined' ? '' : $('#txtBuyerFRFromDate').val(),
+                            EndDate: $('#txtBuyerFRToDate').val() == 'undefined' ? '' : $('#txtBuyerFRToDate').val(),
+                            Currency: getSelectedCountryAndCurrency().currencyType,
+                            CountryId: getSelectedCountryAndCurrency().countryId,
+                            GroupIds: getCompanyGroup().groupIds,
+                        };
+                        return frFilter;
+                    },
+                    "dataSrc": ""
+                },
+                "columns": [
+                             {
+                                 "data": function (data, type, row, meta) {
+                                     return '<a href="@Url.Action("Details", "CounterOffer", new { area = "Buyer" })?fuelRequestId=' + data.FuelRequestId + '&supplierId=' + data.SupplierId + '">' + data.CounterOfferRequestNumber + '</a>';
+                                 }, "autoWidth": true
+                             },
+                             {
+                                 "data": function (data, type, row, meta) {
+                                     return '<a href="@Url.Action("Details", "FuelRequest", new { area = "Buyer" })?id=' + data.FuelRequestId + '">' + data.RequestNumber + '</a>';
+                                 }, "autoWidth": true
+                             },
+                             { "data": "Supplier", "autoWidth": true },
+                             { "data": "TotalGallons", "autoWidth": true },
+                             { "data": "Price", "autoWidth": true },
+                             { "data": "Status", "autoWidth": true },
+                             { "data": "CreatedDate", "autoWidth": true, "sType":"date" }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                "drawCallback": function (settings, json) {
+                    hideLinksForCompanyGroup(this);
+                },
+                "columnDefs": [{
+                    "targets": [2],
+                    "visible": false,
+                    "searchable": false
+                }],
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingCounterOffers', exportOptions: exportCounterColumns },
+                    { extend: 'excel', title: '@Resource.headingCounterOffers', exportOptions: exportCounterColumns },
+                    { extend: 'pdf', title: '@Resource.headingCounterOffers', exportOptions: exportCounterColumns },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+        });
+</script>

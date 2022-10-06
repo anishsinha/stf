@@ -1,0 +1,161 @@
+﻿@model int
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div id="quotations" class="table-responsive grid-loader">
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                        <table id="quotations-datatable" class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnSupplierName</th>
+                                    <th>@Resource.lblRackPPG</th>
+                                    <th>@Resource.gridColumnDeliveryFee</th>
+                                    <th>@Resource.gridColumnOtherFees</th>
+                                    <th>@Resource.gridColumnCreatedDate</th>
+                                    <th>@Resource.gridColumnCreatedBy</th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="text-align:center" colspan="8">No records found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var currenturl = window.location.href;
+    var quotationsDataTable;
+    var fileData = [];
+    var index = 0;
+    $(document).ready(function () {
+        fileData = new Array();
+        quotationsDataTable = $('#quotations-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("QuotationsGrid", "Quote", new { area ="Buyer", id = Model })",
+                "type": "GET",
+                "datatype": "json",
+                "dataSrc": "",
+            },
+            "columns":
+                [
+                    { "data": "SupplierName", "autoWidth": true },
+                    { "data": "RackPPG", "autoWidth": true },
+                    { "data": "DeliveryFee", "autoWidth": true },
+                    { "data": "OtherFees", "autoWidth": true },
+                    { "data": "CreatedDate", "autoWidth": true },
+                    { "data": "CreatedBy", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            var viewQuoteUrl = '@Url.Action("SupplierQuoteDetails", "Quote", new { area = "Buyer" })';
+                            return '<a class="" onclick="GetPartialViewData(\'quotes-detail-view\',' + data.Id + ')">@Resource.btnLabelDetails</a>';
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            var value = '<span><a href="javascript:void(0)" onclick="GetPartialViewData(\'quotes-pdf-view\',' + data.Id + ')"><i class="fa fa-file-pdf-o fa-2x" aria-hidden="true"></i></a></span>';
+                            if (data.Documents.length > 0)
+                            {
+                                var docs = [];
+                                for (var i = 0; i < data.Documents.length; i++) {
+                                    docs.push(data.Documents[i].ModifiedFileName);
+                                }
+                                fileData[index] = docs;
+                                value += '<span><a href="javascript:void(0)" onclick="DownloadAttachmentfile(' + index + ');" title="Click to Download" class="btn-download" download=""><i class="fa fa-paperclip" aria-hidden="true"></i></a></span>';
+                                index++;
+                            }
+                            return value;
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            var awardUrl = '@Url.Action("Award", "Quote", new { area = "Buyer" })/' + data.Id + '';
+                            var excludeUrl = '@Url.Action("Exclude", "Quote", new { area = "Buyer" })/?quotationId=' + data.Id;
+                            if (data.QuotationStatusId == @((int)QuoteRequestStatuses.Awarded)) {
+                                return '<a class="btn btn-default btn-xs" href="#">@(QuoteRequestStatuses.Awarded.ToString())</a>';
+                            }
+                            else if (data.IsExcluded) {
+                                if (data.QuoteRequestStatusId == @((int)QuoteRequestStatuses.Awarded)) {
+                                    return '<a class="excluded-quote" hidden></a>';
+                                }
+                                else if ('@CurrentUser.IsBuyer' == 'True' || '@CurrentUser.IsBuyerAdmin' == 'True') {
+                                    return '<a class="btn btn-primary btn-xs excluded-quote" data-url = "' + excludeUrl + '" onclick="includeExcludeAwardQuote(this);" href="#">@Resource.btnLabelInclude</a>';
+                                }
+                                else {
+                                    return '<a class="excluded-quote" hidden></a>';;
+                                }
+                            }
+                            else {
+                                if ('@CurrentUser.IsBuyer' == 'True' || '@CurrentUser.IsBuyerAdmin' == 'True')
+                                    return data.QuoteRequestStatusId == @((int)QuoteRequestStatuses.Open) ? '<a class="btn btn-primary btn-xs" data-url = "' + awardUrl + '" onclick="includeExcludeAwardQuote(this);" href="#">@Resource.btnLabelAward</a><a class="btn btn-danger btn-xs ml5" data-url = "' + excludeUrl + '" onclick="includeExcludeAwardQuote(this);" href="#">@Resource.btnLabelExclude</a>' : '';
+                                else
+                                    return '';
+                            }
+                        }, "autoWidth": true, "className": "text-nowrap"
+                    },
+                ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'copy' },
+                { extend: 'csv', title: '@Resource.headingAppSettings' },
+                { extend: 'excel', title: '@Resource.headingAppSettings' },
+                { extend: 'pdf', title: '@Resource.headingAppSettings' },
+
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+
+        $(".tab-headers a").click(function () {
+            localStorage.setItem("linkid-quotegrid", $(this).attr("id"));
+            localStorage.setItem("pageid-quotegrid", window.location.href);
+        });
+    });
+
+    $(document).ajaxStart(function () {
+        $("#quotations-datatable").closest(".grid-loader").find('.loading-wrapper').show();
+    });
+
+    $(document).ajaxComplete(function () {
+        $(".excluded-quote").closest("tr").addClass("row-hightlight");
+        $("#quotations-datatable").closest(".grid-loader").find('.loading-wrapper').hide();
+        $('[data-toggle=confirmation]').confirmation({
+            rootSelector: '[data-toggle=confirmation]',
+            html: true
+        });
+        if (localStorage.getItem("pageid-quotegrid") == currenturl) {
+            $(".tab-headers a#" + localStorage.getItem("linkid-quotegrid")).trigger("click");
+        }
+    });
+
+    function DownloadAttachmentfile(index) {
+        DownloadAttachments(fileData[index]);
+    }
+</script>

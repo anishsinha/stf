@@ -1,0 +1,82 @@
+﻿@model int
+<div class="row">
+	<div class="col-sm-12">
+		<div class="well bg-white shadow-b">
+			<div class="ibox mb0">
+				<div class="ibox-content no-padding no-border">
+					<div class="table-responsive">
+						<table id="order-version-history-datatable" class="table table-striped table-bordered table-hover" data-grid-parent="#order-versions-grid" data-grid-tab="#tab-order-versions">
+							<thead>
+                                <tr>
+                                    <th>@Resource.gridColumnPoNumber</th>
+                                    <th>@Resource.lblPaymentTerms</th>
+                                    <th>@Resource.lblNetDays</th>
+                                    <th>@Resource.gridColumnDateModified</th>
+                                    <th>@Resource.gridColumnModifiedBy</th>
+                                    <th>@Resource.btnLabelAction</th>
+                                </tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+        $(document).ready(function () {
+            $('#order-version-history-datatable').dataTable({
+                "ajax": {
+                    "url": "@Url.Action("OrderVersionHistory", "OrderBase", new { area = "", orderId = Model })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                            { "data": "PoNumber", "autoWidth": true },
+							//{ "data": "Version", "autoWidth": true },
+                            { "data": "PaymentTerm", "autoWidth": true },
+                            { "data": "NetDays", "autoWidth": true },
+                            { "data": "DateModified", "autoWidth": true },
+                            { "data": "ModifiedBy", "autoWidth": true },
+							{
+								"data": function (data) {
+                                    var url = "location.href='@Url.Action("DownloadPdf", "OrderBase", new { area = "" })?id=" + @Model + "&orderDetailVersionId=" + data.OrderDetailVersionId + "'";
+									return '<input type="button" class="btn btn-sm btn-warning mr10 download-orders" value="@Resource.btnLabelDownload" onclick=' + url+' />';
+                            }, "autoWidth": true }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+					wrapperHeight();
+					$(".download-orders").click(function () {
+						hideLoader();
+                    });
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingOrder' },
+                    { extend: 'excel', title: '@Resource.headingOrder' },
+                    { extend: 'pdf', title: '@Resource.headingOrder', orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        });
+
+	</script>

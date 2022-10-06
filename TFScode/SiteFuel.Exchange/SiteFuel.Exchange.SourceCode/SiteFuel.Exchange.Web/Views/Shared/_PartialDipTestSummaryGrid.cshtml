@@ -1,0 +1,105 @@
+﻿<div class="col-sm-12">
+    <div class="row">
+        <div class="col-md-2 form-group">
+            <label>@Resource.lblTanksNotUpdatedSince</label>
+            <select id="lastUpdated" class="form-control" onchange="reloadDipTestSummary();">
+                <option value="0" selected>Select</option>
+                <option value="6">Last 6 Hr</option>
+                <option value="12">Last 12 Hr</option>
+                <option value="24">Last 24 Hr</option>
+                <option value="48">Last 48 Hr</option>
+            </select>
+        </div>
+    </div> 
+</div>
+<div class="col-md-12">
+    <div class="well bg-white shadow-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-padding no-border">
+                <div class="table-responsive">
+                    <table id="diptest-summary-datatable" class="table table-striped table-bordered table-hover show-fixedheader">
+                        <thead>
+                            <tr>
+                                <th>@Resource.gridColumnCustomer</th>
+                                <th>@Resource.gridColumnLocation</th>
+                                <th>@Resource.gridColumnTankName</th>
+                                <th>@Resource.lblCapacity</th>
+                                <th>@Resource.gridColumnLastInventoryReading</th>
+                                <th>@Resource.gridColumnLastUpdatedOn</th>
+                                <th>@Resource.lblDipTestMethod</th>
+                                <th>@Resource.headingContactPerson</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+        var diptestSummaryGrid, exportCounterColumns = { columns: [0, 1, 3, 4, 5, 6, 7] };
+    var lastUpdated = 6;
+    $(document).ready(function () {
+        diptestSummaryGrid = $('#diptest-summary-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("DiptestSummaryGrid", "Profile", new { area = "Settings" })",
+                "type": "GET",
+                "datatype": "json",
+                "data": function () {
+                    var lastUpdateddata = {
+                        lastUpdated : $("#lastUpdated").val()
+                    };
+                    return lastUpdateddata;
+                },
+                "dataSrc": ""
+            },
+            "columns": [
+                { "data": "Customer", "autoWidth": true },
+                { "data": "Location", "autoWidth": true },
+                { "data": "TankName", "autoWidth": true },
+                { "data": "Capacity", "autoWidth": true },
+                { "data": "LastInventory", "autoWidth": true },
+                { "data": "LastUpdatedOn", "autoWidth": true },
+                {
+                    "data": "DisplayDiptestMethod", "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        return data.ContactPerson == null ? '<div class="text-center">@Resource.lblHyphen<div>' : data.ContactPerson.substring(0, data.ContactPerson.length).replace(/\;/g, '<br/><br/>');
+                    }, "autoWidth": true, "className": "contact-person"
+                },
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'colvis', columns: exportCounterColumns },
+                { extend: 'csv', title: '@Resource.headingDiptestSummary', exportOptions: exportCounterColumns },
+                { extend: 'excel', title: '@Resource.headingDiptestSummary', exportOptions: exportCounterColumns },
+                { extend: 'pdf', title: '@Resource.headingDiptestSummary', exportOptions: exportCounterColumns },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+
+    function reloadDipTestSummary() {
+        diptestSummaryGrid.ajax.reload();
+    }
+</script>

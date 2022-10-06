@@ -1,0 +1,88 @@
+﻿@model List<RecurringDRSchedule>
+@{
+    int iNumber = 0;
+    int MaxIndex = Model.FirstOrDefault() == null ? 0 : Model.FirstOrDefault().MaxIndex;
+    if (MaxIndex > 0)
+    {
+        iNumber = MaxIndex;
+    }
+    string rId = "recurring";
+}
+@if (Model != null && Model.Any())
+{
+    foreach (var item in Model)
+    {
+        if (string.IsNullOrEmpty(item.Date))
+        {
+            item.Date = DateTime.Now.ToString("MM/dd/yyyy");
+        }
+        rId = rId + "_" + item.Index.ToString() + "_" + iNumber.ToString();
+        iNumber = iNumber + 1;
+        <div class="row border-b rId_@item.Index" id="@rId">
+            <div class="col-sm-10 pa0">
+                <div class="row mb10">
+                    <div class="col-sm-6" id="dvScheduleType_@rId.ToString()">
+                        <div class="form-group mb0">
+                            <div class="input-group">
+                                @Html.DropDownListFor(m => item.ScheduleType, new SelectList(CommonHelperMethods.GetMstScheduleTypes().Where(top => top.Id != 4).ToList(), "Id", "Name", item.ScheduleType), new { @class = "form-control", @onchange = "enableControl('" + rId + "',this)", @id = "ScheduleType_" + rId.ToString() })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6" id="dvWeekDay_@rId.ToString()" style="@(item.ScheduleType==1 || item.ScheduleType==2 ? "display:block" : "display:none")">
+                        <div class="form-group mb0">
+                            <div class="input-group">
+                                @Html.ListBoxFor(m => item.WeekDayId, new MultiSelectList(CommonHelperMethods.GetWeekDays(), "Id", "Code", item.WeekDayId), new { @class = "form-control multi-select user-weekDetails", @id = "WeekDayType_" + rId.ToString() })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb5">
+                    <div class="col-sm-6" id="dvDate_@rId.ToString()" style="@(item.ScheduleType==3 ? "display:block" : "display:none")">
+                        <div class="form-group mb0">
+                            <div class="input-group">
+                                @Html.TextBoxFor(m => item.Date, new { @class = "form-control datepicker", @id = "DatePicker_" + rId.ToString() })
+                            </div>
+                        </div>
+                    </div>
+
+                    @Html.HiddenFor(m => item.MonthDayId, new { @Id = "MonthDayId_" + rId.ToString() })
+                    @Html.HiddenFor(m => item.Id, new { @Id = "RCId_" + rId.ToString() })
+                    <div class="col-sm-6" id="dvSCQtyType_@rId.ToString()">
+                        <div class="form-group mb0">
+                            <div class="input-group">
+                                @Html.DropDownListFor(m => item.ScheduleQuantityType, new SelectList(CommonHelperMethods.GetScheduleQtyType(), "Id", "Name", item.ScheduleQuantityType), new { @class = "form-control", @onchange = "enableReqQtyControl('" + rId + "',this)", @id = "SCQtyType_" + rId.ToString() })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6" id="dvRqOty_@rId.ToString()" style="@(item.ScheduleQuantityType==1 ? "display:block" : "display:none")">
+                        <div class="form-group mb0">
+                            <div class="input-group">
+                                @Html.TextBoxFor(m => item.RequiredQuantity, null, new { @class = "form-control", @id = "RequiredQty_" + rId.ToString(), @onkeyup = "validateQty(this)" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-2 pa0 text-center align-self-center">
+                @if (string.IsNullOrEmpty(item.Id))
+                {
+                    <a onclick="DeleteSchedule('@rId','')" class="fa fa-trash-alt fs18 color-maroon mt7" title="Remove"></a>
+                }
+                else
+                {
+                    <a onclick="DeleteSchedule('@rId','@item.Id')" class="fa fa-trash-alt fs18 color-maroon mt7" title="Remove"></a>
+                }
+            </div>
+        </div>
+    }
+}
+<script>
+    $(document).ready(function () {
+        $(".user-weekDetails").select2({
+            placeholder: "Select Day(s)"
+        });
+    });
+</script>
+
+
+

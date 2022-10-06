@@ -1,0 +1,360 @@
+﻿@model JobStepsViewModelForSuperAdmin
+@using System.Threading
+@{
+    ViewBag.Title = "Job Details";
+    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(Model.Culture);
+    string currentUrl = Request.Url.AbsoluteUri.ToString();
+}
+
+@using (Html.BeginForm(null, null, FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.CompanyId)
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-10 col-md-12 mb5 d-lg-none d-block d-sm-block d-md-block">
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                            @Resource.lblMoreDetails
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+                            <li class="dropdown-item">
+                                <a id="tab-fr-details" href="javascript:void(0)" onclick="showsection('fr-details'), activelink(this)">
+                                    @Resource.stepLabelJobDetails
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-12 tab-headers d-none d-sm-block pr0">
+                    @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin || CurrentUser.IsDispatcher)
+                    {
+                        <a id="tab-fr-details" href="javascript:void(0)" onclick="showsection('fr-details'), activelink(this);inputBoxShowHide('floating-buttons',null)" class="active mr15">
+                            <div class="step-inprogress fs16">
+                                <span class="f-light step-text float-left">@Resource.stepLabelJobDetails</span>
+                            </div>
+                        </a>
+                    }
+                    <div class="spinner-job-details dib float-left pr mtm3"><span class="spinner-small ml10 mt5 pa"></span></div>
+                    @if (CurrentUser.IsAccountSpecialist || CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin || CurrentUser.IsDispatcher)
+                    {
+                        <a id="tab-assets" href="javascript:void(0)" onclick="showsection('fr-assets'), activelink(this), inputBoxShowHide(null, 'download')" class="mr15 order-asset-tab">
+                            <div class="step-inprogress fs16">
+                                <span class="f-light step-text float-left">@Resource.lblAssetsTanks</span>
+                            </div>
+                        </a>
+                    }
+                    @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin || CurrentUser.IsDispatcher)
+                    {
+                        <a id="tab-sequence" href="javascript:void(0)" onclick="showsection('fr-sequence'), activelink(this), inputBoxShowHide(null, 'download')" class="mr15 order-asset-tab">
+                            <div class="step-inprogress fs16">
+                                <span class="f-light step-text float-left">@Resource.lblSequence</span>
+                            </div>
+                        </a>
+                    }
+                </div>
+            </div>
+            <div class="tab-container mt10 readOnlyModeFR">
+                <div id="fr-details" data-parent-tab="tab-fr-details" class="subTabs">
+                    @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin || CurrentUser.IsDispatcher)
+                    {
+                        Html.RenderPartial("_PartialJobDetails", Model);
+                        @Html.HiddenFor(m => m.UserOnboardedTypeId);
+                        @Html.HiddenFor(m => m.IsCreatedByMe);
+                    }
+                </div>
+                <div id="fr-assets" data-parent-tab="tab-fr-details" class="subTabs">
+                    @if (CurrentUser.IsAccountSpecialist || CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin || CurrentUser.IsDispatcher)
+                    {
+                        Html.RenderPartial("_PartialAssetTankDetails", Model);
+                    }
+                </div>
+                <div id="fr-sequence" data-parent-tab="tab-fr-details" class="subTabs">
+                    @if (CurrentUser.IsAccountSpecialist || CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin || CurrentUser.IsDispatcher)
+                    {
+                        Html.RenderPartial("_PartialLocationProductSequence", Model.ProductSequencing);
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/address-goecoder")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/js/news-feed")
+
+    <script>
+         var newsfeedUrl = "@Url.Action("GetNewsfeed", "Order", new { area = "Supplier" })";
+        SetPageCulture('@Model.Culture');
+		var mapsApiKey = '@SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleApiKey';
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+
+        var isJobEdit = true;
+        var currentEntityId = @Model.Job.Id; // for newsfeed
+        var stateId = @Model.Job.State.Id; // for state autofill
+
+        $(document).ready(function () {
+            checkBoxChange(".enableAssetTracking input:checkbox","enableStatusForAllAssets")
+			var jobEndDate = $(".job-end-date");
+			if (jobEndDate.length > 0) {
+				jobEndDate.data("DateTimePicker").useCurrent(false);
+				jobEndDate.data("DateTimePicker").minDate(moment());
+            }
+
+            if ($('input[name="@Html.NameFor(m => m.Job.LocationType)"]:checked').val() == '@(JobLocationTypes.Various)') {
+                $(".jobLocationTypes-location,.jobLocationTypes-geoLocation").addClass("pntr-none subSectionOpacity").attr("disabled");
+            }
+
+            if (@Model.Job.Id > 0) {
+                $('#ddl-currency-filter-div').find('.currency').attr('readonly', true);
+            }
+
+
+            $('#TankProductTypes').multiselect({
+				maxHeight: 200,
+				includeSelectAllOption: true,
+				nonSelectedText: 'Select Product Types',
+				buttonWidth: '135px'
+			});
+
+            $('#OrderProductTypes').multiselect({
+				maxHeight: 200,
+				includeSelectAllOption: true,
+				nonSelectedText: 'Select PO Number',
+				buttonWidth: '135px'
+			});
+
+
+            $('#@Html.IdFor(m => m.Job.IsTaxExempted)').on('change', function () {
+				if ('@Model.Job.Id' > 0 && '@Model.Job.StatusId' != '@((int)JobStatus.Draft)') {
+					var isTaxexempted = '@(Model.Job.IsTaxExempted)' == 'True' ? true : false;
+					if (isTaxexempted == $('#@Html.IdFor(m => m.Job.IsTaxExempted)').is(':checked')) {
+                        $("#valTaxExempted").addClass('hide-element').removeClass('show-element');
+					}
+					else {
+                        $("#valTaxExempted").addClass('show-element').removeClass('hide-element');
+					}
+				}
+			});
+
+            $('#@Html.IdFor(m => m.Job.IsAssetTracked)').on('change', function () {
+				if ('@Model.Job.Id' > 0 && '@Model.Job.StatusId' != '@((int)JobStatus.Draft)') {
+					if ('@Model.Job.IsAssetTracked' == 'True' && $('#@Html.IdFor(m => m.Job.IsAssetTracked)').is(':checked') == false) {
+						$("#valAssetTracking").addClass('show-element').removeClass('hide-element');
+					}
+					else {
+                        $("#valAssetTracking").addClass('hide-element').removeClass('show-element');
+					}
+				}
+            });
+            toggleAddressValidationElements();
+
+            $("#Submit").click(function (ele) {
+                fixedButtons(this);
+                var url = "@Url.Action("SaveJob", "Job", new { area = "Supplier" })";
+                var isAddressValid = validateLocationAddress();
+                if (isAddressValid) {
+                    $("form").attr("action", url);
+                }
+                else {
+                    ele.preventDefault();
+                }
+			});
+
+			//enable or disable required asset picture checkbox
+            requireAssetPic(true);
+
+            $(".chkGeoCode").click(function () {
+                if ($(this).is(":checked")) {
+                    $(".address-container .field-validation-error").addClass("hide-element");
+                }
+                else if (!$(this).is(":checked")) {
+                    $(".address-container .field-validation-error,.address-container .field-validation-valid").removeClass("hide-element");
+                }
+            });
+
+            if ('@Model.IsCreatedByMe' != 'True') {
+                $("#fr-details").find('input, textarea, button, select').attr('disabled', 'disabled');
+                $("#AddAnother").css("visibility", "hidden");
+                $(".fa-trash-alt").css("visibility", "hidden");
+            }
+        });
+
+		function showMessage(element)
+		{
+			if ($.inArray('@((int)UserRoles.Admin)', $(element).val()) != -1 && $(element).val().length > 1) {
+				$(element).closest('div').next().addClass('show-element').removeClass('hide-element');
+			}
+		     else {
+				$(element).closest('div').next().addClass('hide-element').removeClass('show-element');
+			}
+		}
+
+        $(document).ajaxComplete(function (event, request, settings) {
+            $(".spinner-job-details").hide()
+		});
+
+        $(function () {
+            $('.enableAssetTracking input').click(requireAssetPic);
+        })
+
+        function requireAssetPic(isOnDocumentReady) {
+			if ($("#@Html.IdFor(m => m.Job.IsAssetTracked)").is(':checked')) {
+                $(".requireAssetPic").removeClass("defaultDisabled subSectionOpacity");
+                $(".requireAssetPic label").removeClass("pntr-none");
+			}
+            else {
+                $(".requireAssetPic").addClass("defaultDisabled subSectionOpacity");
+                $(".requireAssetPic label").addClass("pntr-none");
+                $(".requireAssetPic input").prop("checked",false);
+			}
+        }
+        function showAssetTankDetails(currentId, type, allowEdit, jobId) {
+            $('#sliderpanel').animate({ "right": "0px" }, "fast").css('display', 'inline-block').width('95%');
+            $('#slider-loader').show();
+            var url = "";
+            var inputData = {
+                id: currentId,
+                type: type,
+                jobId: jobId
+                //isJobDetails: isDetails
+            };
+            url = '/Supplier/Asset/Create/';
+            $.ajax({
+                type: "Get",
+                url: url + currentId,
+                data: inputData,
+                success: function (data) {
+                    $('#slider-content').html(data);
+                    parseForm();
+                    if (type == 1 && allowEdit) {
+                        $("#slider-heading").text('Edit Asset');
+                    }
+                    else if (type == 2 && allowEdit) {
+                        $("#slider-heading").text('Edit Tank');
+                    }
+                    else if (type == 1 && !allowEdit) {
+                        $("#slider-heading").text('Asset Details');
+                    }
+                    else if (type == 2 && !allowEdit) {
+                        $("#slider-heading").text('Tank Details');
+                    }
+                    $('.tab-scroll').height(docHeight);
+                    $('#slider-loader').hide();
+                }
+            })
+           .done(function () {
+               getSupplierPreferenceSetting();
+                    $('.timepicker').datetimepicker({
+                        format: 'LT',
+                    });
+               $(".lblforcastingNote").text('');
+               $(".lblforcastingNote").hide();
+            })
+           .always(function () { $('#slider-loader').hide(); });
+        }
+        function openTankMakeGrid(JobId) {
+            $('#sliderpanel').animate({ "right": "0px" }, "fast").css('display', 'inline-block').width('90%');
+            $("#slider-heading").text('Tank Dip Chart');
+
+            $('#slider-loader').show();
+            var url = '/Supplier/Asset/GetTankTypesGrid/';
+            $.ajax({
+                type: "Get",
+                url: url,
+                data: { jobId: JobId },
+                "datatype": "json",
+                success: function (response) {
+                    $('#slider-content').html(response);
+                    $('.tab-scroll').height(docHeight);
+                }
+            })
+            .done(function () {
+                 getSupplierPreferenceSetting();
+            })
+           .always(function () { $('#slider-loader').hide(); });
+        }
+
+        function changeTab(radio) {
+            var temp_val = radio.value;
+            $(".page_body> div").hide();
+            $(".page_body ." + temp_val).show();
+            $(".page_label> span").hide();
+            $(".page_label ." + temp_val).show();
+        }
+
+        $(document).on('change', '.country', function () {
+            toggleAddressValidationElements();
+        });
+        function toggleAddressValidationElements() {
+            var countryId = parseInt($("#@Html.IdFor(m=>m.Job.Country.Id)").val());
+            var htmlElement = $("#@Html.IdFor(m=>m.Job.Country.Id)");
+            var container = $(htmlElement).closest('.address-container');
+                if (container != undefined && container.length > 0) {
+                    if (!isNaN(countryId) && countryId == '@((int)Country.CAR)') {
+                        container.find('.mandatory-symbol').addClass('hide-element');
+                    }
+                    else {
+                        container.find('.mandatory-symbol').removeClass('hide-element');
+                    }
+                }
+            }
+            function validateLocationAddress() {
+                var isValid = true;
+                var countryId = parseInt($('#@Html.IdFor(m => m.Job.Country.Id)').val());
+                var stateId = parseInt($("#@Html.IdFor(m => m.Job.State.Id)").val());
+            $('.address-validation-error').addClass('hide-element');
+
+                if (countryId == '@((int)Country.CAR)') {
+                    if (isNaN(stateId) || stateId <= 0) {
+                        validationMessageFor('@Html.NameFor(m => m.Job.State)', '@(string.Format(Resource.valMessageRequired, "State"))');
+                        isValid = false;
+                    }
+                    else {
+                $("#@Html.IdFor(m => m.Job.State.Name)").val($("#@Html.IdFor(m => m.Job.State.Id) option:selected").text());
+                    }
+                }
+                else {
+                    var city = $.trim($("#@Html.IdFor(m => m.Job.City)").val());
+                    var zipCode = $.trim($("#@Html.IdFor(m => m.Job.ZipCode)").val());
+                    var countyName = $.trim($("#@Html.IdFor(m => m.Job.CountyName)").val());
+                    var address = $.trim($("#@Html.IdFor(m => m.Job.Address)").val());
+
+                    if (address == '') {
+                $('#spnErrorAddress').html('@(string.Format(Resource.valMessageRequired, "Address"))');
+                $('#spnErrorAddress').removeClass('hide-element');
+                        isValid = false;
+                    }
+                    if (city == '') {
+                $('#spnErrorCity').html('@(string.Format(Resource.valMessageRequired, "City"))');
+                $('#spnErrorCity').removeClass('hide-element');
+                        isValid = false;
+                    }
+                    if (isNaN(stateId) || stateId <= 0) {
+                        validationMessageFor('@Html.NameFor(m => m.Job.State)', '@(string.Format(Resource.valMessageRequired, "State"))');
+                        isValid = false;
+                    }
+                    if (zipCode == '') {
+                $('#spnErrorZipCode').html('@(string.Format(Resource.valMessageRequired, "Zip"))');
+                $('#spnErrorZipCode').removeClass('hide-element');
+                        isValid = false;
+                    }
+                   @* if (countyName == '') {
+                $('#spnErrorCountyName').html('@(string.Format(Resource.valMessageRequired, "County Name"))');
+                $('#spnErrorCountyName').removeClass('hide-element');
+                        isValid = false;
+                    }*@
+                }
+
+                if (isValid)
+            $('.address-validation-error').addClass('hide-element');
+
+                return isValid;
+            }
+    </script>
+}

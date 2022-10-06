@@ -1,0 +1,65 @@
+﻿<div class="row" id="gallons-delivered">
+    <div class="col-sm-12">
+        <h2>
+            @Resource.lblTotalGallonsDelivered - <span id="totalGallonsDelivered" class="fs21">0</span>
+        </h2>
+    </div>
+</div>
+<div class="row mt10 color-darkgrey">
+    <div class="col-xs-6 col-md-6">
+        <input type="text" id="txtDeliveredStartDate" onchange="GetTotalGallonsDelivered()" placeholder="@Resource.lblStartDate" class="form-control datepicker" />
+    </div>
+    <div class="col-xs-6 col-md-6">
+        <input type="text" id="txtDeliveredEndDate" onchange="GetTotalGallonsDelivered()" placeholder="@Resource.lblEndDate" class="form-control datepicker" />
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-6 col-sm-12 mt10">
+        <h2 class="no-margins">
+            <span id="totalGallonsDeliveredSort" class="fs21">0</span>
+        </h2>
+        @Resource.lblGallonsDeliveredDates
+    </div>
+</div>
+
+<script>
+   
+    $('#txtDeliveredStartDate, #txtDeliveredEndDate').datetimepicker({
+        useCurrent: false,  
+        format: 'MM/DD/YYYY'
+    });
+    $(document).ready(function () {
+        GetTotalGallonsDelivered();
+    });
+
+    function GetTotalGallonsDelivered() {
+        var startDate = $('#txtDeliveredStartDate').val();
+        var endDate = $('#txtDeliveredEndDate').val();
+        var selectedCompany = $("#SelectedCompanyId").val();
+
+        var url = '@Url.Action("GetTotalGallonsDelivered", "Dashboard", new { area = "SuperAdmin"})';
+        var params = {};
+        params.startDate = startDate;
+        params.endDate = endDate;
+        params.selectedCompany = selectedCompany;
+
+        $("#gallons-delivered").closest('.gallons-delivered').find('.loading-wrapper').show();
+        $.get(url, params, function (data) {
+            if (data != null) {
+                $("#totalGallonsDelivered").html(data.TotalCount.toLocaleString("en-US", { maximumFractionDigits: 0 }));
+                $("#totalGallonsDeliveredSort").html(data.TotalOrderedDeliveredCount.toLocaleString("en-US", { maximumFractionDigits: 0 }));
+                $("#gallons-delivered").closest('.gallons-delivered').find('.loading-wrapper').hide();
+            }
+        });
+    }
+
+    $("#txtDeliveredStartDate, #txtDeliveredEndDate").on('dp.change', function (e) {
+        GetTotalGallonsDelivered();
+    });
+
+    $("#txtDeliveredStartDate").on('dp.change', function (e) {
+        $('#txtDeliveredEndDate').data("DateTimePicker").minDate(moment(e.date).startOf('d'));
+    });
+</script>
+
+

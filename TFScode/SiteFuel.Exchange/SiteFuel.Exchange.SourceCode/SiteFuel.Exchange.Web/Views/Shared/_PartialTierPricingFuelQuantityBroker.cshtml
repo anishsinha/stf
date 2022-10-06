@@ -1,0 +1,192 @@
+﻿@model BrokerFuelRequestDetailsViewModel
+
+@Html.Hidden("TotalRows", 0)
+
+<div class="col-sm-12 form-check form-check-inline checkbox">
+    @if (Model.IsMarineLocation)
+    {
+    @Html.CheckBoxFor(m => m.FuelPricing.IsTierPricing, new { disabled = "disabled" })
+    <label class="form-check-label opacity-half" for="IsTierPricing"> @Resource.lblCreateTierPricing</label>
+    }
+    else
+    {
+    @Html.CheckBoxFor(m => m.FuelPricing.IsTierPricing, new { @id = "IsTierPricing", @class = "form-check-input", onchange = "showTierPricingSection(this);" })
+    <label class="form-check-label" for="IsTierPricing"> @Resource.lblCreateTierPricing</label>
+    }
+</div>
+<div class="hide-element" id="tier-pricing-qty-section">
+    <div class="row mt5">
+        <div class="col-sm-12">
+            <div class="form-check form-check-inline radio volume-based-tier">
+                @Html.RadioButtonFor(m => m.FuelPricing.TierPricing.TierPricingType, (int)TierPricingType.VolumeBased,
+                        new { onclick = "showHideControls(this,'reset-cumulation,cumulative-delivered-quantity', 'delivery-quantity-ranging')", @class = "form-check-input" })
+                <label class="form-check-label" for="radio-volumeBased">@Resource.lblVolumeBased</label>
+            </div>
+            <div class="form-check form-check-inline radio delivery-quantity-based-tier">
+                @Html.RadioButtonFor(m => m.FuelPricing.TierPricing.TierPricingType, (int)TierPricingType.DeliveryQuantityBased,
+                        new { onclick = "showHideControls(this,'delivery-quantity-ranging','reset-cumulation,cumulative-delivered-quantity')", @class = "form-check-input" })
+                <label class="form-check-label" for="radio-deliveredquantityrange">@Resource.lblDeliveryQuantityBased</label>
+            </div>
+        </div>
+    </div>
+    <div class="tier-pricing-fuel-quantity">
+        <div class="row mt5">
+            <div class="col-sm-3">
+                <div class="cumulative-delivered-quantity">@Resource.lblCumulativeDeliveredQuantity</div>
+                <div class="delivery-quantity-ranging hide-element">@Resource.lblDeliveryQuantityRanging</div>
+            </div>
+            <div class="col-sm-12">
+                <div id="tier-fuel-qty-section" class="partial-section quantity-range">
+                    <div class="partial-block-collection-section mt5">
+                        @if (Model.FuelPricing.TierPricing.Pricings != null && Model.FuelPricing.TierPricing.Pricings.Count > 0)
+                        {
+                            foreach (var tierQty in Model.FuelPricing.TierPricing.Pricings)
+                            {
+                                tierQty.FuelTypeId = Model.FuelTypeId;
+                                tierQty.JobId = Model.JobId;
+                                tierQty.Currency = Model.FuelPricing.Currency;
+                                tierQty.UoM = Model.FuelQuantity.UoM;
+                                tierQty.PricingSourceId = Model.FuelPricing.FuelPricingDetails.PricingSourceId;
+
+                                Html.RenderPartial("_PartialTierFuelQuantitiesBroker", tierQty);
+                            }
+                        }
+                    </div>
+                    <div>
+                        @{
+                            var isEdit = false;
+                            var aboveQtyPricing = Model.FuelPricing.TierPricing.AboveQuantityPricing;
+                            if (Model.FuelPricing.TierPricing.Pricings != null && Model.FuelPricing.TierPricing.Pricings.Count > 0)
+                            {
+                                var aboveQtyModel = Model.FuelPricing.TierPricing.Pricings.Where(t => t.Quantity != null && t.Quantity > 0).FirstOrDefault();
+                                if (aboveQtyModel != null)
+                                {
+                                    isEdit = true;
+                                }
+                            }
+
+                            aboveQtyPricing.IsAboveQuantity = true;
+                        }
+                        @if (!isEdit)
+                        {
+                            aboveQtyPricing.FuelTypeId = Model.FuelTypeId;
+                            aboveQtyPricing.JobId = Model.JobId;
+                            aboveQtyPricing.Currency = Model.FuelPricing.Currency;
+                            aboveQtyPricing.UoM = Model.FuelQuantity.UoM;
+                            aboveQtyPricing.PricingSourceId = Model.FuelPricing.FuelPricingDetails.PricingSourceId;
+                            aboveQtyPricing.RowIndex = 2;
+                            aboveQtyPricing.IsAboveQuantity = true;
+                            @Html.Partial("_PartialTierFuelQuantitiesBroker", aboveQtyPricing)
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row reset-cumulation">
+        <div class="col-sm-12">
+            <div class="form-check form-check-inline checkbox">
+                @Html.CheckBoxFor(m => m.FuelPricing.TierPricing.IsResetCumulation, new { @class = "form-check-input", onchange = "showHideCumulationSection(this);" })
+                <label class="form-check-label" for="IsResetCumulation"> @Resource.lblResetCumulation</label>
+            </div>
+            <div class="hide-element" id="reset-cumulation-section">
+                <div class="row">
+                    <div class="col-sm-3">
+                        @Html.DropDownListFor(x => x.FuelPricing.TierPricing.ResetCumulationSetting.CumulationType,
+                                                                from CumulationType cumulationType in (Enum.GetValues(typeof(CumulationType)).Cast<CumulationType>().ToList().Where(t => (int)t != 0))
+                                                                select new SelectListItem() { Text = cumulationType.ToString(), Value = ((int)cumulationType).ToString() }, new { @class = "form-control", onchange="setResetCumulation(this);" }
+                                                            )
+                        @Html.ValidationMessageFor(m => m.FuelPricing.TierPricing.ResetCumulationSetting.CumulationType)
+                    </div>
+                    <div class="col-sm-3 reset-cumulation-date">
+                        <div class="form-group">
+                            @Html.TextBoxFor(m => m.FuelPricing.TierPricing.ResetCumulationSetting.Date, new { @class = "form-control datepicker", @placeholder="Cumulation Reset Date" })
+                            @Html.ValidationMessageFor(m => m.FuelPricing.TierPricing.ResetCumulationSetting.Date)
+                        </div>
+                    </div>
+                    <div class="col-sm-3 reset-cumulation-day">
+                        <div class="form-group">
+                            @*@Html.TextBoxFor(m => m.FuelDetails.TierPricing.ResetCumulationSetting.Day, new { @class = "form-control" })*@
+                            @Html.DropDownListFor(m => m.FuelPricing.TierPricing.ResetCumulationSetting.Day, new SelectList(CommonHelperMethods.GetWeekDays(), "Id", "Code", 0), Resource.lblSelectDay, new { @class = "form-control reset-cumulation-day" })
+                            @Html.ValidationMessageFor(m => m.FuelPricing.TierPricing.ResetCumulationSetting.Day)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.opacity-half').css("opacity", "0.5");
+        $("input[name='@Html.NameFor(m => m.FuelPricing.TierPricing.TierPricingType)'][value=" + @((int)Model.FuelPricing.TierPricing.TierPricingType) + "]").trigger('click');
+
+        var cumulationTypeEle = $('#@Html.IdFor(m => m.FuelPricing.TierPricing.ResetCumulationSetting.CumulationType)');
+        setResetCumulation(cumulationTypeEle);
+        cumulationTypeEle.trigger('change');
+
+        var tierPricingEle = $('#@Html.IdFor(m => m.FuelPricing.TierPricing.ResetCumulationSetting.CumulationType)');
+        tierPricingEle.trigger('change');
+
+        var resetCumulationEle = $('#@Html.IdFor(m => m.FuelPricing.TierPricing.IsResetCumulation)');
+        showHideCumulationSection(resetCumulationEle);
+        resetCumulationEle.trigger('change');
+        var isTierPricingChecked = $('#IsTierPricing').prop('checked');
+        if (isTierPricingChecked) {
+            $('#IsTierPricing').trigger('change');
+        }
+    });
+
+    function setResetCumulation(ele) {
+        var cumulationType = parseInt($(ele).val());
+        if (!isNaN(cumulationType) && (cumulationType == @((int)CumulationType.BiWeekly) || cumulationType == @((int)CumulationType.Weekly))) {
+            $('.reset-cumulation-day').slideDown('hide-element');
+            $('.reset-cumulation-date').slideUp('hide-element');
+        }
+        else if (!isNaN(cumulationType) && (cumulationType == @((int)CumulationType.SpecificDates) || cumulationType == @((int)CumulationType.Monthly))) {
+            $('.reset-cumulation-date').slideDown('hide-element');
+            $('.reset-cumulation-day').slideUp('hide-element');
+        }
+    }
+    var latestPricingCodeId = 0;
+    function showTierPricingSection(ele) {
+        var isChecked = $(ele).prop('checked');
+        if (isChecked) {
+            $('#tier-pricing-qty-section').slideDown('hide-element');
+            $(".section-pricing").hide();
+            var defaultPricingTypeId = parseInt('@((int)PricingType.PricePerGallon)');
+            $('input:radio[name="PricingDetails.PricingTypeId"][value=' + defaultPricingTypeId +']').prop('checked', true).trigger('click');
+            $('#@Html.IdFor(m => m.FuelPricing.PricePerGallon)').val(0);
+             latestPricingCodeId = $('#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingCode.Id)').val();
+            $('#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingCode.Id)').val(0);
+            $("input[name='@Html.NameFor(m => m.FuelPricing.PricingTypeId)'][value=" + @((int)PricingType.PricePerGallon) + "]").prop('checked', true).trigger('change');
+
+            var pricingTypeId = parseInt($('input[name="@Html.NameFor(m => m.FuelPricing.PricingTypeId)"]:checked').val());
+            var pricingSourceId = $(".tierPricingSourceId").val();
+            setPricingCodeForFixedAndFC(pricingTypeId, pricingSourceId);
+        }
+        else {
+            $('#tier-pricing-qty-section').slideUp('hide-element');
+            $(".section-pricing").show();
+            if (latestPricingCodeId != undefined && latestPricingCodeId != null && latestPricingCodeId != "0" && latestPricingCodeId != "" )
+                $('#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingCode.Id)').val(latestPricingCodeId);
+        }
+    }
+
+    function showHideCumulationSection(ele) {
+        var isChecked = $(ele).prop('checked');
+        if (isChecked) {
+            $('#reset-cumulation-section').slideDown('hide-element');
+        }
+        else {
+            $('#reset-cumulation-section').slideUp('hide-element');
+        }
+    }
+
+    function closeTierSlidePanel() {
+        $("#modal-tier-pricing-codes").remove();
+        $('.modal-backdrop').hide();
+        closeSlidePanel();
+    }
+</script>

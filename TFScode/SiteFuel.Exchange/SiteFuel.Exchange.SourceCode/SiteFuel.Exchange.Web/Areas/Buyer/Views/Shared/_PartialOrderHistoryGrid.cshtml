@@ -1,0 +1,91 @@
+﻿<div class="row">
+	<div class="col-sm-12">
+		<div class="well bg-white shadow-b">
+			<div class="ibox mb0">
+				<div class="ibox-content no-padding no-border">
+					<div class="table-responsive">
+						<table id="buyerorderhistory-datatable" class="table table-striped table-bordered table-hover small-grid" data-grid-parent="#order-history" data-grid-tab="#tab-history">
+							<thead>
+								<tr>
+									<th>@Resource.gridColumnPoNumber</th>
+									<th>@Resource.gridColumnVersion</th>
+									<th>@Resource.gridColumnSupplier</th>
+									<th>@Resource.lblRackPPG</th>
+									<th>@Resource.gridColumnPercentageDelivered</th>
+									<th>@Resource.gridColumnDBE <label class="f-normal">@Resource.lblDBE <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDBE"></i></label></th>
+									<th>@Resource.gridColumnDateModified</th>
+									<th>@Resource.gridColumnModifiedBy</th>
+									<th></th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+	$('#buyerorderhistory-datatable').dataTable({
+        "ajax": {
+            "url": "@Url.Action("OrderHistory", "Order", new { area = "Buyer", id = (ViewContext.RouteData.Values["id"] ?? 0) })",
+            "type": "GET",
+            "datatype": "json",
+            "dataSrc": ""
+        },
+        "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.Id == 0) {
+                                return data.PoNumber;
+                            }
+                            else {
+                                return '<a href="@Url.Action("Details", "Order", new { area = "Buyer", id= "" })/' + data.Id + '">' + data.PoNumber + '</a>';
+                            }
+                        }, "autoWidth": true },
+					{ "data": "Version", "autoWidth": true },
+                    { "data": "Supplier", "autoWidth": true },
+					{ "data": "PricePerGallon", "autoWidth": true },
+					{ "data": "FuelDeliveredPercentage", "autoWidth": true },
+					{ "data": "Eligibility", "autoWidth": true},
+					{ "data": "DateModified", "autoWidth": true },
+					{ "data": "ModifiedBy", "autoWidth": true },
+					{
+						"data": function (data, type, row, meta) {
+							var url = "location.href='@Url.Action("DownloadPdf", "OrderBase", new { area = "" })" + "/" + data.Id + "'";
+							return '<input type="button" class="btn btn-xs btn-warning mr10 download-orders" value="@Resource.btnLabelDownload" onclick=' + url+' />';
+                        }, "autoWidth": true }
+        ],
+        pageLength: 10,
+        responsive: true,
+        fixedHeader:false,
+        "order": [],
+        "initComplete": function (settings, json) {
+			wrapperHeight();
+			$(".download-orders").click(function () {
+				hideLoader();
+			});
+        },
+        dom: '<"html5buttons"B>lTfgitp',
+        buttons: [
+            { extend: 'copy' },
+            { extend: 'csv', title: '@Resource.headingOrders' },
+            { extend: 'excel', title: '@Resource.headingOrders' },
+            { extend: 'pdf', title: '@Resource.headingOrders', orientation: 'landscape' },
+            {
+                extend: 'print',
+                customize: function (win) {
+                    $(win.document.body).addClass('white-bg');
+                    $(win.document.body).css('font-size', '10px');
+
+                    $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                }
+            }
+        ],
+        language: {
+            sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+        }
+    });
+</script>

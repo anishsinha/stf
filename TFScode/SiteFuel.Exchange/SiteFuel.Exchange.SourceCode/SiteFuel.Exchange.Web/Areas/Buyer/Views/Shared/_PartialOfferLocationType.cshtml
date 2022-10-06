@@ -1,0 +1,80 @@
+﻿@model SiteFuel.Exchange.ViewModels.Offer.OfferLocationViewModel
+<div class="row">
+    <div class="form-group mb10 partial-block quantity-range col-sm-12 row" id="offer-location-list">
+        <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element offer-cityZipServiceCall"><span class='spinner-dashboard pa'></span></div>
+        <div class="col-sm-4 col-md-4">
+            <div class="form-group">
+                @Html.LabelFor(m => m.StateId)
+                @Html.DropDownListFor(m => m.StateId, new SelectList(CommonHelperMethods.GetStates(Model.CountryId, false), "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control offerstate" })
+                @Html.ValidationMessageFor(m => m.StateId)
+            </div>
+        </div>
+        <div class="col-sm-4 col-md-4">
+            <div class="form-group">
+                @Html.LabelFor(model => model.CityId)
+                @Html.DropDownListFor(model => model.CityId, new SelectList(CommonHelperMethods.GetCities(Model.StateId.HasValue ? Model.StateId.Value : 0), "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblCity), new { @class = "form-control offercity" })
+                @Html.ValidationMessageFor(m => m.CityId)
+            </div>
+        </div>
+        <div class="col-sm-4 col-md-4">
+            <div class="form-group offer-zipwrapper">
+                @Html.LabelFor(model => model.ZipStringList)
+                @Html.ListBoxFor(m => m.ZipStringList, new SelectList(Model.ZipList, "Code", "Name"), new { @class = "form-control offerzip multi-select" })
+                @Html.ValidationMessageFor(model => model.ZipStringList)
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $(".offerzip").select2({
+            maximumSelectionLength: 1
+        });
+        $(".offerzip").on("select2:selecting", function (e) {
+            if ($(this).val() && $(this).val().length >= 1) {
+                e.preventDefault();
+            }
+        });
+        $(".offerstate").on("change", function (e) {
+            var selectedState = $(e.target).closest("#offer-location-list").find(".offerstate").val();
+            var cityDropDown = $(e.target).closest("#offer-location-list").find(".offercity");
+            var zipDropDown = $(e.target).closest("#offer-location-list").find(".offerzip");
+            if (selectedState != "") {
+                zipDropDown.empty();
+                getCityList(cityDropDown, selectedState);
+            }
+        });
+
+        $(".offercity").on("change", function (e) {
+            var selectedState = $(e.target).closest("#offer-location-list").find(".offerstate :selected").text();
+            var cityName = $(e.target).closest("#offer-location-list").find(".offercity :selected").text();
+            var target = $(e.target).closest("#offer-location-list").find(".offerzip");
+            if (selectedState != "" && cityName != "" && cityName != "Select City") {
+                getZipcodeList(target, selectedState, cityName);
+            }
+        });
+
+    });
+
+        function getCityList(target, selectedState) {
+            $(".offer-cityZipServiceCall").show();
+            $.get("@Url.Action("GetCitesOfState", "Offer")", { stateId: selectedState }, function (response) {
+                target.find('option').not(':first').remove(), $.each(response, function (i, element) {
+                    target.append($('<option></option>').val(element.Id).html(element.Name));
+                });
+                $(".offer-cityZipServiceCall").hide();
+            });
+        }
+
+        function getZipcodeList(target, selectedState, cityName) {
+            $(".offer-cityZipServiceCall").show();
+            $.get("@Url.Action("GetZipCodeOfCity", "Offer")", { stateCode: selectedState, city: cityName }, function (response) {
+                target.empty(), $.each(response, function (i, element) {
+                    if (element.Id != 0) {
+                        target.append($('<option></option>').val(element.Code).html(element.Name));
+                    }
+                });
+                $(".offer-cityZipServiceCall").hide();
+            });
+        }
+</script>

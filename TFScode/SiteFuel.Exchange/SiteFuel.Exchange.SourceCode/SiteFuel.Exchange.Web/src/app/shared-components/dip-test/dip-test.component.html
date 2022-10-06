@@ -1,0 +1,1753 @@
+<div *ngIf="!IsSalesPage" class="row" id="dr">
+    <div class="col-sm-12 text-right">
+        <!--<button id="btn-createDr" type="button" class="btn btn-link pull-right pa0" data-target="raisedr" (click)="openRaiseDrPanel();" onclick="slidePanel('#raisedr','60%')" *ngIf="disableControl==false"><i class="fas fa-truck fs14 mr5"></i> Create DR</button>
+        <button  type="button" class="btn btn-link pull-right pa0" ><i class="fas fa-truck fs14 mr5"></i> Create DR</button>-->
+        <div class="btn-group legends">
+            <button type="button" class="btn dropdown-toggle pa0 mr-1" [ngClass]="{'ml75' : isDisableControl}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                DR Legends <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                <li class="dropdown-item"><a><i class="fas fa-circle fs12 dot-scheduled"></i> Scheduled</a></li>
+                <li class="dropdown-item"><a><i class="fas fa-circle fs12 dot-inprogress"></i> In Progress</a></li>
+                <li class="dropdown-item"><a><i class="fas fa-circle fs12 dot-cancelled"></i> Cancelled / Missed</a></li>
+                <li class="dropdown-item"><a><i class="fas fa-circle fs12 dot-completed"></i> Completed</a></li>
+                <li class="dropdown-item"><a><i class="fas fa-circle fs12 dot-mustgo"></i> Must Go</a></li>
+                <li class="dropdown-item"><a><i class="fas fa-circle fs12 dot-shouldgo"></i> Should Go</a></li>
+                <li class="dropdown-item"><a><i class="fas fa-circle fs12 dot-couldgo"></i> Could Go</a></li>
+            </ul>
+        </div>
+
+        <div class="btn-group ml-1" *ngIf="disableControl==false">
+            <a id="btn-createDr" class="font-weight-bold" data-target="raisedr" (click)="openRaiseDrPanel();" onclick="slidePanel('#raisedr','70%')">Create DR</a>
+            <span>&nbsp;&nbsp;</span>
+            <a id="btn-tbdDr" data-target="tbddr" (click)="openRaiseTBDDrPanel();" onclick="slidePanel('#tbddr','90%')">TBD DR</a>
+        </div>
+
+    </div>
+</div>
+<div class="dip-test-container">
+    <div class="side-panel" id="raisedr">
+        <div class="side-panel-wrapper">
+            <div class="header">
+                <a class="ml10 close-panel" onclick="closeSlidePanel();" (click)="clearForm();"><i class="fa fa-close fs18"></i></a>
+                <h3 class="dib mt0 mb0 ml15">Create Delivery Request</h3>
+                <button type="button" *ngIf="selectedLocation.length==0 && !showForm" class="btn btn-link pull-right mr20 pa0" (click)="createDR();"><i class="fas fa-plus fs18 mr5"></i> Create DR</button>
+            </div>
+            <div class="body-panel">
+                <div *ngIf="!IsSalesPage" class="row pr sticky-controls" #elementFilter>
+                            <div class="pa top0 bg-white left0 z-index5 loading-wrapper" *ngIf="loadingCustomers" id="loadingCustomers"><span
+                            class="spinner-dashboard pa"></span></div>
+                    <div [ngClass]="{'col-sm-6':isTankExists,'col-sm-4':!isTankExists}">
+                        <div class="form-group mb0">
+                            <ng-multiselect-dropdown class="single-select" id="selectCustomer"
+                                [placeholder]="'Select Customer (Optional)'" [(ngModel)]="selectedCustomer"
+                                [settings]="CustomerSettings" [data]="companySiteList" (onSelect)="onCustomerSelect($event)"
+                                (onDeSelect)="onCustomerDeSelect($event)">
+                            </ng-multiselect-dropdown>
+                        </div>
+                    </div>
+                    <div [ngClass]="{'col-sm-6':isTankExists,'col-sm-4':!isTankExists}">
+                        <div class="form-group">
+                            <ng-multiselect-dropdown class="single-select" id="selectSite" [placeholder]="'Select location'"
+                                [(ngModel)]="selectedLocation" [settings]="SiteddlSettings" [data]="SiteList"
+                                (onSelect)="onSiteSelect($event)" (onDeSelect)="onSiteDeSelect($event)">
+                            </ng-multiselect-dropdown>
+                        </div>
+                    </div>
+                    <div class="col-sm-4" *ngIf="!isTankExists">
+                        <div class="form-group">
+                            <ng-multiselect-dropdown class="" id="selectOrder" [placeholder]="'Select order'"
+                                [(ngModel)]="selectedOrder" [settings]="multiDropdownSettings" [data]="OrderList"
+                                (onSelect)="onOrderChange()" (onDeSelect)="onOrderChange()" (onSelectAll)="onSelectAll($event)"
+                                (onDeSelectAll)="onSelectAll($event)">
+                            </ng-multiselect-dropdown>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="mb10 small-tab tanks-wrapper" [style.height.px]="height_Panel">
+            
+                    <!-- dip testpage loader -->
+                    <div *ngIf="dipTestLoader" class="pa top0 bg-white left0 z-index5 loading-wrapper">
+                        <span class="spinner-dashboard pa"></span>
+                    </div>
+            
+                    <!-- tabs for tanks -->
+                    <ul class="nav nav-pills rounded-pill mb10 p-1" *ngIf="isTankExists" [ngClass]="{'border-0': !(selectedLocation && selectedLocation.length>0) }">
+                        <li class="nav-item">
+                            <a id="idTankTab" data-toggle="tab" href="#tanks" class="rounded-pill fs13 active">Tanks</a>
+                        </li>
+
+                        <li class="nav-item" *ngIf="selectedLocation && selectedLocation.length>0" (click)="getSalesData()">
+                          <a data-toggle="tab" href="#sales" class="rounded-pill fs13">Sales</a>
+                        </li>
+
+                        <li class="nav-item" *ngIf="selectedLocation && selectedLocation.length>0" (click)="loadChart()">
+                           <a data-toggle="tab" href="#trends" class="rounded-pill fs13">Trends</a>
+                        </li>
+                    </ul>
+            
+                    <!--  -->
+                    <div [class.tab-content]="isTankExists">
+            
+                        <div id="tanks" [ngClass]="{'tab-pane fade show active' : isTankExists}">
+                            <ng-container [formGroup]="fmGroup">
+                                <ng-container *ngFor="let product of fmGroup.get('DeliveryRequests')['controls']; let j = index">
+                                    <div class="dip-test-card">
+                                        <div class="row">
+                                            <div class="col-5">
+                                                <h6 class="product-type">{{product.get('ProductName').value}}</h6>
+                                                <p class="customer-name">Customer: {{product.get('BuyerCompanyName').value}}</p>
+                                                <p class="address" container="body" placement="bottom" ngbTooltip="{{product.get('JobName').value}}">
+                                                    {{product.get('JobName').value}}
+                                                </p>
+                                            </div>
+                                            <!-- current threshold for tank -->
+                                            <div class="col-7" *ngIf="product.get('TankId').value || product.get('StorageId').value">
+                                                <div class="tank-progrss-panel">
+                                                    <span class="tank-progrss-status">
+                                                        {{product.get('CurrentThreshold').value | number:'1.0-0'}}%-{{product.get('ProductName').value}}
+                                                    </span>
+                                                    <ngb-progressbar type="primary" height="10px"
+                                                        [value]="product.get('CurrentThreshold').value">
+                                                    </ngb-progressbar>
+                                                    <span class="tank-time">{{product.get('DisplayCaptureTime').value}}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+            
+                                        <!-- display tanks for location -->
+                                        <div class="row mt10" *ngIf="product.get('TankId').value || product.get('StorageId').value || (!isTankExists && product.get('Tanks').value && product.get('Tanks').value.length > 1)">
+                                            <div class="col-12">
+                                                <table class="table table-sm" id="tanks_details">
+                                                    <thead>
+                                                        <tr>
+                                                            <th scope="col">Tank Name</th>
+                                                            <th scope="col">Capacity</th>
+                                                            <th scope="col">MaxFill </th>
+                                                            <th scope="col">Inventory</th>
+                                                            <th scope="col">Ullage</th>
+                                                            <th scope="col">Re-order</th>
+                                                            <th *ngIf="product.get('TankId').value || product.get('StorageId').value" scope="col">Water Level</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr *ngIf="!isTankExists || (isTankExists && product.get('Tanks').value && product.get('Tanks').value.length > 1)">
+                                                            <td>Summary</td>
+                                                            <td>{{product.get('TankCapacity').value | number:'1.0-2'}}{{" " + product.get('UoM').value}}</td>
+                                                            <td>{{product.get('TankMaxFill').value | number:'1.0-2'}}{{" " + product.get('UoM').value}}</td>
+                                                            <td><span *ngIf="product.get('NetVolume').value == 0">NA</span><span *ngIf="product.get('NetVolume').value > 0">
+                                                                {{product.get('NetVolume').value | number:'1.0-2'}}{{" " + product.get('UoM').value}}</span></td>
+                                                            <td><span *ngIf="product.get('Ullage').value == -1">NA</span><span *ngIf="product.get('Ullage').value > -1">
+                                                                {{product.get('Ullage').value | number:'1.0-2'}}{{" " + product.get('UoM').value}}</span></td>
+                                                            <td>{{product.get('ReorderQuantity').value | number:'1.0-2'}}{{" " + product.get('UoM').value}}</td>
+                                                        </tr>
+                                                        <tr *ngFor="let tank of product.get('Tanks').value; let i = index">
+                                                             <td *ngIf="tank.TankName.length >= 40" class="w-25" title="{{tank.TankName}}">
+                                                                {{tank.TankName | slice:0:40}}...
+                                                            </td>
+                                                            <td *ngIf="tank.TankName.length < 40">{{tank.TankName}}</td>
+
+                                                            <td>{{tank.TankCapacity | number:'1.0-2'}}{{" " + product.get('UoM').value}}</td>
+                                                            <td>{{tank.TankMaxFill | number:'1.0-2'}}{{" " + product.get('UoM').value}}</td>
+                                                            <td>
+                                                                <span *ngIf="tank.NetVolume == 0">NA</span><span *ngIf="tank.NetVolume > 0">
+                                                                    {{tank.NetVolume | number:'1.0-2'}}{{" " + product.get('UoM').value}}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <span *ngIf="tank.Ullage == -1">NA</span><span *ngIf="tank.Ullage > -1">
+                                                                    {{tank.Ullage | number:'1.0-2'}}{{" " + product.get('UoM').value}}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{tank.ReorderQuantity | number:'1.0-2'}}{{" " + product.get('UoM').value}}</td>
+                                                            <td *ngIf="tank.TankId || tank.StorageId">{{tank.WaterLevel}}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+            
+                                        <!-- form started -->
+                                        <!-- *ngIf="((isTankExists && product.get('Tanks').value && product.get('Tanks').value.length>0) || (!isTankExists))" -->
+                                        <ng-container *ngIf='showForm'>
+                                            <ng-container>
+                                                <ng-container formArrayName="DeliveryRequests">
+                                                    <ng-container [formGroupName]="j">
+                                                        <div class="row mt10 align-items-center">
+                                                            <div class="col-sm-4" id="drPriority">
+                                                                <div class="dib border pa5 radius-capsule shadow-b float-left mb10">
+                                                                    <div class="btn-group btn-filter">
+                                                                        <div class="form-check form-check-inline mr-0">
+                                                                            <input id="mustgo{{j}}" class="hide-element" type="radio" value="1" formControlName="Priority">
+                                                                            <label class="btn ml-0" for="mustgo{{j}}"> Must Go</label>
+                                                                        </div>
+                                                                        <div class="form-check form-check-inline  mr-0">
+                                                                            <input class="hide-element" type="radio" formControlName="Priority" id="shouldgo{{j}}" value="2">
+                                                                            <label class="btn" for="shouldgo{{j}}">Should Go</label>
+                                                                        </div>
+                                                                        <div class="form-check form-check-inline mr-0">
+                                                                            <input class="hide-element" type="radio" value="3" formControlName="Priority" id="couldgo{{j}}">
+                                                                            <label class="btn" for="couldgo{{j}}">Could Go</label>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-2">
+                                                                <div *ngIf="preferenceSetting && preferenceSetting?.IsAdditiveBlendingEnabled" class="form-check form-check-inline">
+                                                                    <input type="checkbox" formControlName="IsBlendedRequest"
+                                                                           class="form-check-input" id="BlendedRequest{{j}}" (change)="onBlendChange($event.target.checked, product)">
+                                                                    <label class="form-check-label" for="BlendedRequest{{j}}">Blend</label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-6" *ngIf="!RequestFromBuyerWallyBoard && !this.fmGroup.controls['IsCommonPickup'].value" id="pickupLocation">
+                                                                <div class="clearfix color-lightgrey" *ngIf="product.get('IsBlendedRequest').value">
+                                                                    <div class="form-check form-check-inline">
+                                                                        <input type="checkbox" formControlName="IsCommonPickupForBlend" class="form-check-input" id="IsCommonPickupForBlend{{j}}">
+                                                                        <label class="form-check-label" for="IsCommonPickupForBlend{{j}}">Common Pick-up Location</label>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- individual dr pickup location OR common pickup for dr blended blend group -->
+                                                                <div class="clearfix color-lightgrey col-sm-12 pa0" *ngIf="!product.get('IsBlendedRequest').value || (product.get('IsBlendedRequest').value && product.get('IsCommonPickupForBlend').value)">
+                                                                    <div class="pull-left">
+                                                                        <i class="fas fa-map-marker-alt"></i>&nbsp; Pickup :
+                                                                        <span class="pr5" *ngIf="product.controls['PickupLocationType']?.value!=2; else location;">
+                                                                            Terminal
+                                                                        </span>
+                                                                        <ng-template #location>
+                                                                            <span class="pr5">
+                                                                                Location
+                                                                            </span>
+                                                                        </ng-template>
+                                                                    </div>
+                                                                    <div class="pull-left pr5" *ngIf="product.controls['PickupLocationType']?.value!=2; else bulkPlant;">
+                                                                        {{product.controls['Terminal']?.controls['Name']?.value}}
+                                                                        <div *ngIf="product.controls['Terminal']?.invalid && (product.controls['Terminal']?.dirty || product.controls['Terminal']?.touched)">
+                                                                            <label class="fs12" style="color:red" *ngIf="product.controls['Terminal']?.controls['Name'].errors.required">Required</label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <ng-template #bulkPlant class="pull-left pr5">
+                                                                        <span class="pull-left pl5 pr5" *ngIf="product.controls['BulkPlant']?.controls['SiteName'].value">
+                                                                            {{product.controls['BulkPlant']?.controls['SiteName'].value}}, {{product.controls['BulkPlant']?.controls['City'].value}},
+                                                                            {{product.controls['BulkPlant']?.controls['State']?.controls['Code'].value}} {{product.controls['BulkPlant']?.controls['ZipCode'].value}}
+                                                                        </span>
+                                                                        <div *ngIf="product.controls['BulkPlant'].invalid && (product.controls['BulkPlant'].dirty || product.controls['BulkPlant'].touched)">
+                                                                            <label class="fs12" style="color:red" *ngIf="product.controls['BulkPlant'].invalid">Required</label>
+                                                                        </div>
+                                                                    </ng-template>
+                                                                    <span *ngIf="(product.controls['PostLoadedFor']==null || product.controls['PostLoadedFor']==undefined)">
+                                                                        <a class="float-left" (click)="editPickupLocation_(product, j)" data-toggle="modal" placement="bottom" ngbTooltip="Edit Pickup Location" data-target="#dr-pickup-location"><i class="fa fa-edit fs18 ml-3 mt2"></i></a>
+                                                                    </span>
+                                                                    <span *ngIf="(product.controls['PostLoadedFor']==null || product.controls['PostLoadedFor']==undefined)">
+                                                                        <a (click)="RemovePickupLocation(product, j)" placement="bottom" ngbTooltip="Remove Pickup Location" class="color-maroon float-left"><i class="fa fa-close ml-2 mt2 fs18"></i></a>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+            
+                                                        <!-- non blended form part -->
+                                                        <div class="row" *ngIf="!product.get('IsBlendedRequest').value; else blendedRequestTemplate">
+  
+                                                            <!-- for tank - supplier dropdown for wally board pages -->
+                                                            <div *ngIf="isTankExists && RequestFromBuyerWallyBoard && product.get('SupplierCompanies')?.value?.length>1"
+                                                                class="col-sm-3 input-group mt10">
+                                                                <select formControlName="SupplierCompanyId" class="form-control">
+                                                                    <option disabled>Select Supplier</option>
+                                                                    <option *ngFor="let comp of product.get('SupplierCompanies')?.value;" [value]="comp.Id">
+                                                                        {{comp.Name}}
+                                                                    </option>
+                                                                </select>
+                                                            </div>
+                                                            <!-- for tank - order dropdown for non wally board pages -->
+
+                                                            <div *ngIf="!RequestFromBuyerWallyBoard && isTankExists && product.get('Tanks').value && product.get('Tanks').value.length>0" class="col-sm-3 mt10" id="selectOrder">
+                                                                <select class="form-control" formControlName="OrderId" (change)="changeTerminal_(product, $event, j)">
+                                                                    <option disabled value="null">Select Order</option>
+                                                                    <ng-container *ngIf="product.controls['OrderPickupDetails'].value?.length>0;">
+                                                                        <ng-container *ngFor="let order of product.controls['OrderPickupDetails'].value">
+                                                                            <option [value]="order.OrderId">{{order.PoNumber}}</option>
+                                                                        </ng-container>
+                                                                    </ng-container>
+                                                                </select>
+                                                            </div>
+                                                        
+                                                            <div class="col-sm-3 input-group mt10" id="quantityType">
+                                                                <select formControlName="ScheduleQuantityType" class="form-control">
+                                                                    <option *ngFor="let sqType of ScheduleQuantityTypeDetails" [value]="sqType.Id">{{sqType.Name}}</option>
+                                                                </select>
+                                                            </div>
+                                                        
+                                                            <div class="col-sm-3 mt10" *ngIf="product.controls['ScheduleQuantityType'].value==1" id="requiredQuanity">
+                                                                <div class="form-group mb0">
+                                                                    <div class="input-group">
+                                                                        <input type="text" formControlName="RequiredQuantity" numberWithDecimal class="form-control pr-2" placeholder="Required Quantity" />
+                                                                        <div class="input-group-addon">{{product.get('UoM').value}}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        
+                                                            <!-- render common fields bet blend & non-blend -->
+                                                            <ng-container *ngTemplateOutlet="commonFieldsTemplate">
+                                                                Cool! This text is not displayed.
+                                                            </ng-container>
+
+                                                            <!-- for tanks - allow max fill  //why inside in non blend?-->
+                                                            <div class="col-sm-3 input-group mt10"
+                                                                *ngIf="isTankExists && product.controls['ScheduleQuantityType'].value==1 && product.controls['IsTankAndAssetAvailableForJob'].value==true">
+                                                                <div class="form-check form-check-inline">
+                                                                    <input class="form-check-input" type="checkbox" formControlName="IsMaxFillAllowed" id="chk-MaxFillAllowed{{j}}">
+                                                                    <label class="form-check-label" for="chk-MaxFillAllowed{{j}}">Allow to exceed MaxFill</label>
+                                                                </div>
+                                                            </div>
+                                                            <!-- reassign to carrier //why inside in non blend?-->
+                                                            <div *ngIf="!RequestFromBuyerWallyBoard && selectedLocation?.length>0 && LocationManagedType==3"
+                                                                class="col-sm-3 input-group mt10">
+                                                                <div class="form-check form-check-inline">
+                                                                    <input class="form-check-input" type="checkbox" id="chk-IsReAssignToCarrier{{j}}" formControlName="IsReAssignToCarrier">
+                                                                    <label class="form-check-label" for="chk-IsReAssignToCarrier{{j}}">Re-assign</label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                         <!-- blended request -->
+                                                        <ng-template #blendedRequestTemplate>
+                                                            <div class="row mt10">
+                                                                <div class="col-sm-3">
+                                                                    <div class="form-group mb0">
+                                                                        <div class="input-group">
+                                                                            <input type="text" formControlName="RequiredQuantity" id="blendRequiredQuantity"
+                                                                                numberWithDecimal class="form-control pr-2"
+                                                                                placeholder="Required Quantity"
+                                                                                (input)="onBlendTotalQuantityChange($event.target.value, product.get('BlendedRequests'))" />
+                                                                            <div class="input-group-addon">{{product.get('UoM').value}}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="color-maroon"
+                                                                        *ngIf="product.get('RequiredQuantity').touched && product.get('RequiredQuantity').errors">
+                                                                        <div>Invalid required quantity</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-sm-3" id="clickBlend"
+                                                                    *ngIf="product.get('RequiredQuantity').valid;">
+                                                                    <a
+                                                                        (click)="openBlendRequestForm(product, j);product.get('BlendedRequests').markAllAsTouched()">
+                                                                        <i class="fas fa-fill-drip fs25 mt-1"></i>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        
+                                                            <div class="row">
+                                                                <ng-container *ngTemplateOutlet="commonFieldsTemplate">
+                                                                    Cool! This text is not displayed.
+                                                                </ng-container>
+                                                            </div>
+
+                                                            <ng-container *ngIf="product.get('RequiredQuantity').valid;">
+                                                                <ng-container
+                                                                    *ngFor="let blendedRequest of product.get('BlendedRequests')['controls']; let k = index;let first = first;">
+                                                                    <ng-container formArrayName="BlendedRequests">
+                                                                        <ng-container [formGroupName]="k">
+                                                                            <div>
+                                                                                <div *ngIf="first || blendedRequest.get('IsAdditive').value" class="mt-2">
+                                                                                    <label *ngIf="first" class="form-check-label">Products</label>
+                                                                                    <label *ngIf="blendedRequest.get('IsAdditive').value"
+                                                                                        class="form-check-label">Additive</label>
+                                                                                </div>
+                                                                                <div class="row">
+                                                                                    <div class="col-sm-3 mt10">
+                                                                                        <div>
+                                                                                            <select class="form-control" formControlName="OrderId" disabled>
+                                                                                                <option disabled value="null">
+                                                                                                    Select
+                                                                                                    Order
+                                                                                                </option>
+                                                                                                <ng-container *ngIf="!blendedRequest.get('IsAdditive').value && product.controls['BlendOrderPickupDetails'].value?.length>0;">
+                                                                                                    <option *ngFor="let order of product.controls['BlendOrderPickupDetails'].value"
+                                                                                                            [value]="order.OrderId">
+                                                                                                        {{order.PoNumber}}
+                                                                                                    </option>
+                                                                                                </ng-container>
+                                                                                                <ng-container *ngIf="!blendedRequest.get('IsAdditive').value && product.controls['BlendOrderPickupDetails'].value?.length==0 && !product.controls['TankId'].value">
+                                                                                                    <option *ngFor="let order of OrderDetails"
+                                                                                                            [value]="order.OrderId">
+                                                                                                        {{order.PoNumber}}
+                                                                                                    </option>
+                                                                                                </ng-container>
+                                                                                                <ng-container *ngIf="blendedRequest.get('IsAdditive').value">
+                                                                                                    <ng-container *ngFor="let order of additiveOrders">
+                                                                                                        <option [value]="order.Id">
+                                                                                                            {{order.Name}}
+                                                                                                        </option>
+                                                                                                    </ng-container>
+                                                                                                </ng-container>
+                                                                                            </select>
+                                                                                        </div>
+
+                                                                                        <div class="color-maroon" *ngIf="product.get('BlendedRequests').touched && blendedRequest.get('OrderId').errors">
+                                                                                            <div>Order is required </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="col-sm-3 mt10">
+                                                                                        <div class="form-group mb0">
+                                                                                            <div class="input-group">
+                                                                                                <input type="number" formControlName="RequiredQuantity" numberWithDecimal
+                                                                                                    class="form-control pr-2" placeholder="Required Quantity" disabled />
+                                                                                                <div class="input-group-addon">
+                                                                                                    {{blendedRequest.get('UoM').value !=
+                                                                                                    null ?
+                                                                                                    blendedRequest.get('UoM').value :
+                                                                                                    product.get('UoM').value}}</div>
+                                                                                            </div>
+                                                                                            <div class="color-maroon"
+                                                                                                *ngIf="product.get('BlendedRequests').touched && blendedRequest.get('RequiredQuantity').invalid">
+                                                                                                <div> Quantity is required </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="col-sm-3 mt10" *ngIf="!blendedRequest.get('IsAdditive').value">
+                                                                                        <div class="form-group mb0">
+                                                                                            <div class="input-group">
+                                                                                                <input type="number" formControlName="QuantityInPercent" numberWithDecimal
+                                                                                                    class="form-control" placeholder="Quantity In Percent" disabled />
+                                                                                                <div class="input-group-addon">%</div>
+                                                                                            </div>
+                                                        
+                                                                                            <div class="color-maroon"
+                                                                                                *ngIf="product.get('BlendedRequests').touched && blendedRequest.get('QuantityInPercent').invalid">
+                                                                                                <div>Invalid percentage</div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <!--  -->
+                                                                            <div class="col-sm-12 mt5"
+                                                                                 *ngIf="!product.get('IsCommonPickupForBlend').value && !fmGroup.get('IsCommonPickup').value && !blendedRequest.get('IsAdditive').value">
+                                                                                <div class="input-group">
+                                                                                    <div class="pull-left">
+                                                                                        <i class="fas fa-map-marker-alt"></i>&nbsp; Pickup :
+                                                                                        <span class="pr5"
+                                                                                              *ngIf="blendedRequest.controls['PickupLocationType']?.value!=2; else location;">Terminal</span>
+                                                                                        <ng-template #location><span class="pr5">Location</span></ng-template>
+                                                                                    </div>
+                                                                                    <div class="pull-left pr5"
+                                                                                         *ngIf="blendedRequest.controls['PickupLocationType']?.value!=2; else bulkPlant;">
+                                                                                        {{blendedRequest.controls['Terminal']?.controls['Name']?.value}}
+                                                                                        <div *ngIf="blendedRequest.controls['Terminal']?.invalid && (blendedRequest.controls['Terminal']?.dirty || blendedRequest.controls['Terminal']?.touched)">
+                                                                                            <label class="fs12" style="color:red"
+                                                                                                   *ngIf="blendedRequest.controls['Terminal']?.controls['Name'].errors.required">Required</label>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <ng-template #bulkPlant class="pull-left pr5">
+                                                                                        <span class="pull-left pl5 pr5">
+                                                                                            {{blendedRequest.controls['BulkPlant']?.controls['SiteName'].value}},
+                                                                                            {{blendedRequest.controls['BulkPlant']?.controls['City'].value}},
+                                                                                            {{blendedRequest.controls['BulkPlant']?.controls['State']?.controls['Code'].value}}
+                                                                                            {{blendedRequest.controls['BulkPlant']?.controls['ZipCode'].value}}
+                                                                                        </span>
+                                                                                        <div *ngIf="blendedRequest.controls['BulkPlant'].invalid && (blendedRequest.controls['BulkPlant'].dirty || blendedRequest.controls['BulkPlant'].touched)">
+                                                                                            <label class="fs12" style="color:red"
+                                                                                                   *ngIf="blendedRequest.controls['BulkPlant'].invalid">Required</label>
+                                                                                        </div>
+                                                                                    </ng-template>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        </ng-container>
+                                                                    </ng-container>
+                                                                </ng-container>
+                                                            </ng-container>
+                                                        </ng-template>
+            
+                                                        <ng-template #commonFieldsTemplate>
+                                                            <div class="col-sm-3 mt10">
+                                                                <div class="form-group mb0">
+                                                                    
+                                                                    <input type="text"  formControlName="DeliveryLevelPO" class="form-control"
+                                                                            id="deli-level" placeholder="Delivery-Level PO#" />
+                                                                </div>
+                                                            </div>
+                                                                                                               
+                                                            <div class="col-sm-3 mt10" *ngIf="preferenceSetting?.CreditCheckType==1">
+                                                                <div class="form-group">
+                                                                    <input type="text" formControlName="IndicativePrice" class="form-control" id="Indicative_Price"
+                                                                        placeholder="Indicative Price" />
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-sm-3 mt10">
+                                                                <div class="row">
+                                                                    <div class="col-10">
+                                                                        <div class="form-group mb0">
+                                                                            <input type="text" class="form-control datepicker" formControlName="SelectedDate" myDatePicker
+                                                                                   [format]="'MM/DD/YYYY'" [minDate]="MinDate" [maxDate]="MaxDate" placeholder="Select Date"
+                                                                                   (onDateChange)="OnSelectedDateChange(product,$event)" />
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-1 pl-0 mt-2">
+                                                                        <i class="fa fa-info-circle ml-1" data-toggle="tooltip" data-placement="top"
+                                                                            title="Select date for scheduling future loads. Future loads will be displayed in Calendar View."
+                                                                            data-original-title="Select date for scheduling future loads. Future loads will be displayed in Calendar View."></i>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        
+                                                            <div class="col-sm-3 mt10">
+                                                                <div class="form-group mb0">
+                                                                    <div class="input-group">
+                                                                        <input type="text" formControlName="ScheduleStartTime" class="form-control"
+                                                                            [disableControl]="!product.controls['SelectedDate'].value" myTimePicker [format]="'hh:mm A'"
+                                                                            (onTimeChange)="product.get('ScheduleStartTime').setValue($event)" id="strt-time"
+                                                                            placeholder="Start Time" />
+                                                                        <div class="input-group-addon"><i class="far fa-clock"></i></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        
+                                                            <div class="col-sm-3 mt10">
+                                                                <div class="form-group mb0">
+                                                                    <div class="input-group">
+                                                                        <input type="text" formControlName="ScheduleEndTime" class="form-control"
+                                                                            [disableControl]="!product.controls['SelectedDate'].value" myTimePicker [format]="'hh:mm A'"
+                                                                            (onTimeChange)="product.get('ScheduleEndTime').setValue($event)" id="end-time"
+                                                                            placeholder="End Time" />
+                                                                        <div class="input-group-addon"><i class="far fa-clock"></i></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        
+                                                        </ng-template>
+
+                                                        <!-- badges -->
+                                                        <div *ngIf="!RequestFromBuyerWallyBoard" class="row mt10">
+                                                            <div class="col-12">
+                                                                <div class="border p-3 radius-5 tank-panel bg-lightgrey">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-12 form-group mb0">
+                                                                            <div class="form-check form-check-inline float-left checkbox">
+                                                                                <input class="form-check-input" type="checkbox" id="CheckboxCommonBadge-{{j}}" formControlName="IsCommonBadge" (change)="hideShowCommonBadgeArea()">
+                                                                                <label class="form-check-label" for="CheckboxCommonBadge-{{j}}">Common Badge #</label>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row mt10" *ngIf="product.get('IsCommonBadge').value != true">
+                                                                        <div class="col-sm-4">
+                                                                            <div class="form-group mb5">
+                                                                                <input type="text" class="form-control" formControlName="BadgeNo1" fom placeholder="Badge #1">
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-4 pr10 pl10">
+                                                                            <div class="form-group mb5 ">
+                                                                                <input type="text" class="form-control" formControlName="BadgeNo2" placeholder="Badge #2">
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-4 pl5">
+                                                                            <div class="form-group mb5 ">
+                                                                                <input type="text" class="form-control" formControlName="BadgeNo3" placeholder="Badge #3">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+            
+                                                        <!-- tank ullage calculation result -->
+                                                        <div class="row mt10"
+                                                            *ngIf="isTankExists && product.get('Tanks')?.controls && product.controls['isRetainInfo'].value">
+                                                            <div class="col-12">
+                                                                <div class="border p-3 radius-5 tank-panel bg-lightgrey">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-12 form-group mb0">
+                                                                            <table class="table table-sm">
+                                                                                <tr>
+                                                                                    <th>Tank</th>
+                                                                                    <th>Retain Time</th>
+                                                                                    <th>Window Time</th>
+                                                                                </tr>
+                                                                                <tr
+                                                                                    *ngFor="let retainInfo of product.get('RetainInfo')?.controls">
+                                                                                    <td class="color-blue opacity8">
+                                                                                        {{retainInfo.get('TankName').value}}</td>
+                                                                                    <td class="color-blue opacity8">
+                                                                                        {{retainInfo.get('RetainTime').value}}-{{retainInfo.get('RetainDate').value}}
+                                                                                    </td>
+                                                                                    <td class="color-blue opacity8">
+                                                                                        {{retainInfo.get('WindowStartTime').value}}
+                                                                                        {{retainInfo.get('WindowStartDate').value}}
+                                                                                        -
+                                                                                        {{retainInfo.get('WindowEndTime').value}}
+                                                                                        {{retainInfo.get('WindowEndDate').value}}
+                                                                                    </td>
+            
+                                                                                    <!-- <td class="color-blue opacity8" *ngIf="product.controls['RetainTime'].value!='' && product.controls['RetainDate'].value!=''"><strong>Retain Time</strong><br />{{product.controls['RetainTime'].value}}-{{product.controls['RetainDate'].value}}</td> -->
+                                                                                    <!-- <td class="color-blue opacity8" *ngIf="product.controls['WindowStartTime'].value!='' && product.controls['WindowStartDate'].value!='' && product.controls['WindowEndTime'].value!='' && product.controls['WindowEndDate'].value!=''"><strong>Window Time</strong><br />{{product.controls['WindowStartTime'].value}} {{product.controls['WindowStartDate'].value}} - {{product.controls['WindowEndTime'].value}} {{product.controls['WindowEndDate'].value}}</td> -->
+                                                                                </tr>
+                                                                            </table>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+            
+                                                        <!-- reccuring schedule -->
+                                                        <div class="row mt10">
+                                                            <div class="col-12">
+                                                                <div class="border p-3 radius-5 tank-panel bg-lightgrey">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-12 form-group mb0">
+                                                                            <div class="form-check form-check-inline ">
+                                                                                <input class="form-check-input" type="checkbox" formControlName="isRecurringSchedule" (change)="enableSchedule(product,j);" id="chkreShedule_{{j}}">
+                                                                                <label class="form-check-label" for="chkreShedule_{{j}}">Recurring Schedule</label>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row">
+                                                                        <div class="col-sm-12 showHide{{j}}" style="display:none;">
+                                                                            <div formArrayName="RecurringSchdule">
+                                                                                <div *ngFor="let recurringSchedule of product.get('RecurringSchdule').controls;let reIndex = index">
+                                                                                    <div [formGroupName]="reIndex">
+                                                                                        <div class="row">
+
+                                                                                            <div class="col-sm-3 input-group mt10">
+                                                                                                <select formControlName="ScheduleType" class="form-control">
+                                                                                                    <option *ngFor="let scType of ScheduleTypes" [value]="scType.Id">
+                                                                                                        {{scType.Name}}
+                                                                                                    </option>
+                                                                                                </select>
+                                                                                            </div>
+
+                                                                                            <div class="col-sm-3 input-group mt10" *ngIf="recurringSchedule.controls['ScheduleType'].value==1 || recurringSchedule.controls['ScheduleType'].value==2">
+
+                                                                                                <ng-multiselect-dropdown class="single-select"
+                                                                                                                         style="width: 100%;"
+                                                                                                                         [settings]="DaySetting"
+                                                                                                                         [data]="ScheduleDaysDetails"
+                                                                                                                         formControlName="TempWeekDayId"
+                                                                                                                         (onSelect)="onDaySelect($event, recurringSchedule, true)"
+                                                                                                                         (onDeSelect)="onDaySelect($event, recurringSchedule, false)">
+                                                                                                </ng-multiselect-dropdown>
+                                                                                            </div>
+
+                                                                                            <div class="col-sm-3 input-group mt10" *ngIf="recurringSchedule.controls['ScheduleType'].value==3">
+                                                                                                <input type="text" formControlName="Date" class="form-control datepicker" myDatePicker [format]="'MM/DD/YYYY'" [maxDate]="MaxInputDate" (onDateChange)="setSelectedDate($event,recurringSchedule);" />
+                                                                                            </div>
+
+                                                                                            <div class="col-sm-3 input-group mt10" *ngIf="!recurringSchedule.controls['IsBlendedProduct'].value">
+                                                                                                <select formControlName="ScheduleQuantityType" class="form-control">
+                                                                                                    <option *ngFor="let sqType of ScheduleQuantityTypeDetails" [value]="sqType.Id">
+                                                                                                        {{sqType.Name}}
+                                                                                                    </option>
+                                                                                                </select>
+                                                                                            </div>
+
+                                                                                            <div class="col-sm-3 mt10" *ngIf="recurringSchedule.controls['ScheduleQuantityType'].value==1">
+                                                                                                <div class="input-group">
+                                                                                                    <input type="text" [disabled]="recurringSchedule.controls['IsBlendedProduct'].value" formControlName="RequiredQuantity" numberWithDecimal class="form-control pr-2" placeholder="Required Quantity" />
+                                                                                                    <div class="input-group-addon">{{product.get('UoM').value=='Gallons'?'G':'L'}}</div>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div class="col-sm-3 mt10">
+                                                                                                <div class="form-group mb0">
+                                                                                                    <input type="text"  formControlName="DeliveryLevelPO" class="form-control" placeholder="Delivery-Level PO#" />
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div class="col-sm-1 mt10">
+                                                                                                <a (click)="DeleteSchedule(product,reIndex,recurringSchedule.controls['Id'].value)" class="fa fa-trash-alt fs18 color-maroon mt7" title="Remove"></a>
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="mt10">
+                                                                                <a (click)="addNewSchedule(product)"><i class="fas fa-plus-circle"></i>&nbsp;Schedule</a>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+            
+                                                        <!-- notes -->
+                                                        <div class="row">
+                                                            <div class="col-sm-12">
+                                                                <div class="form-group mt10">
+                                                                    <textarea formControlName="Notes"
+                                                                        class="form-control add-note-tarea"
+                                                                        placeholder="Note (optional)" rows="2"></textarea>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+            
+                                                        <div class="row mt10">
+                                                            <!-- tank calculation -->
+                                                            <div class="col-sm-12 text-right">
+                                                                <button type="button" class="btn btn-default btn-lg" *ngIf='selectedLocation.length==0 && isTankExists'
+                                                                    (click)="onSingleCaculateRetainWindow(product)">Calculate</button>
+                                                                <button type="submit" *ngIf="selectedLocation.length==0" (click)="onSingleSubmit(product)"
+                                                                    class="btn btn-primary btn-lg" [disabled]="dipTestLoader">Submit</button>
+                                                            </div>
+            
+                                                            <!-- show existing drs -->
+                                                            <div class="col-sm-12" *ngIf="product.get('IsDRExists').value">
+                                                                <div class="alert alert-warning fs12 mb0 radius-10">
+                                                                    <i class="fas fa-exclamation-circle mr5"></i>
+                                                                    <strong>Warning:</strong> Delivery
+                                                                    Request(s) exists <a (click)="product.get('DisplayDRDetails').setValue(!product.get('DisplayDRDetails').value)">Show
+                                                                        Details</a>
+                                                                    <div *ngIf="product.get('DisplayDRDetails').value">
+                                                                        <table class="table table-hover margin bottom details-table">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Required Quantity</th>
+                                                                                    <th>Priority</th>
+                                                                                    <th>Status</th>
+                                                                                    <th>Created Date</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <tr *ngFor="let partialDR of product.get('ExistingDR').value">
+                                                                                    <!--for numeric-->
+                                                                                    <td *ngIf="partialDR.ScheduleQuantityType==0||partialDR.ScheduleQuantityType==1">
+                                                                                        {{partialDR.RequiredQuantity |
+                                                                                        number:'1.0-2'}}
+                                                                                        {{product.get('UoM').value}}</td>
+                                                                                    <!--for non numeric-->
+                                                                                    <td *ngIf="partialDR.ScheduleQuantityType>1">
+                                                                                        {{partialDR.ScheduleQuantityTypeName}}</td>
+                                                                                    <td>{{DelReqPriority[partialDR.Priority]}}</td>
+                                                                                    <td *ngIf="!partialDR.IsMissedDr">
+                                                                                        {{partialDR.ScheduleStatusName}}</td>
+                                                                                    <td *ngIf="partialDR.IsMissedDr">Missed</td>
+                                                                                    <td>{{partialDR.CreatedOn}}</td>
+                                                                                </tr>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+            
+                                                        <!-- OTHER PRODUCTS -->
+            
+                                                    </ng-container>
+                                                </ng-container>
+                                            </ng-container>
+                                        </ng-container>
+                                    </div>
+                                </ng-container>
+            
+                                <!-- badges and pickup details -->
+                                <ng-container
+                                    *ngIf="!RequestFromBuyerWallyBoard && fmGroup.get('DeliveryRequests')?.value?.length>0 && showForm">
+                                    <div class="border radius-5 pa15 tank-panel mb20 bg-lightgrey ">
+                                        <div class="mt10" *ngIf="IsCommonBadge">
+                                            <div class="row">
+                                                <div class="col-sm-4 pr5">
+                                                    <div class="form-group mb5">
+                                                        <input type="text" class="form-control" formControlName="BadgeNo1" fom
+                                                            placeholder="Badge #1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-4 pr10 pl10">
+                                                    <div class="form-group mb5 ">
+                                                        <input type="text" class="form-control" formControlName="BadgeNo2"
+                                                            placeholder="Badge #2">
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-4 pl5">
+                                                    <div class="form-group mb5 ">
+                                                        <input type="text" class="form-control" formControlName="BadgeNo3"
+                                                            placeholder="Badge #3">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+            
+                                        <div class="row">
+                                            <div class="col-sm-12 mt10">
+                                                <div class="float-left mt5" *ngIf="!this.fmGroup.controls['IsPreLoadInfo']?.value">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="comm-pick-Ckbox1"
+                                                            formControlName="IsCommonPickup">
+                                                        <label class="form-check-label" for="comm-pick-Ckbox1">Common Pick-up
+                                                            Location</label>
+                                                    </div>
+                                                </div>
+                                                <button *ngIf="!this.fmGroup.controls['IsPreLoadInfo']?.value"
+                                                    class="btn btn-default btn-sm float-left ml10"
+                                                    (click)="editPickupLocation_(null, null)"
+                                                    [disabled]="!this.fmGroup.controls['IsCommonPickup']?.value" data-toggle="modal"
+                                                    #idCommonPickUpBtn data-target="#dr-pickup-location">
+                                                    <i class="fas fa-map-marker-alt"></i> Choose Pick-up
+                                                </button>
+            
+                                                <div class="pr5 clearboth">
+                                                    <div *ngIf="fmGroup.controls['PickupLocationType']?.value!=2; else bulkPlant;">
+                                                        {{fmGroup.controls['Terminal']['controls'].Name.value}}
+                                                        <div
+                                                            *ngIf="fmGroup.controls['Terminal'].invalid && (fmGroup.controls['Terminal'].dirty || fmGroup.controls['Terminal'].touched)">
+                                                            <label class="fs12" style="color:red"
+                                                                *ngIf="fmGroup.controls['Terminal']['controls'].Name.errors.required">
+                                                                Required
+                                                                <!-- (Terminal) -->
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <ng-template #bulkPlant>
+                                                        {{fmGroup.controls['BulkPlant']['controls'].SiteName.value}}
+                                                        {{fmGroup.controls['BulkPlant']['controls'].City.value}}
+                                                        {{fmGroup.controls['BulkPlant']['controls'].State['controls']?.Code.value}}
+                                                        {{fmGroup.controls['BulkPlant']['controls'].ZipCode.value}}
+                                                        <div
+                                                            *ngIf="fmGroup.controls['BulkPlant'].invalid && (fmGroup.controls['BulkPlant'].dirty || fmGroup.controls['BulkPlant'].touched)">
+                                                            <label class="fs12" style="color:red"
+                                                                *ngIf="fmGroup.controls['BulkPlant'].invalid">
+                                                                Required
+                                                                <!-- (Bulk Plant) -->
+                                                            </label>
+                                                        </div>
+                                                    </ng-template>
+                                                </div>
+
+                                                <div *ngIf="fmGroup.controls['IsCommonPickup'].value || fmGroup.controls['IsCommonBadge'].value" class="alert alert-warning fs12 mb0 mt10 radius-10">
+                                                    Please verify common pickup/badges for auto orders if exists.
+                                                </div>
+                                            </div>
+                                        </div>
+            
+                                    </div>
+                                </ng-container>
+                            </ng-container>
+                        </div>
+            
+                        <!-- tab - trend chart for tanks -->
+                        <div id="trends" class="tab-pane fade" *ngIf="isTankExists">
+                            <app-demand-capture-chart *ngIf="(isChartDataExistSubject | async)" [data]="chartdata">
+                            </app-demand-capture-chart>
+                        </div>
+            
+                        <!-- tab - sales grid for tanks -->
+                        <div id="sales" class="tab-pane fade" *ngIf="isTankExists">
+                            <div class="ibox-content no-padding no-border">
+                                <div class="table-responsive">
+                                    <table id="table-sales" class="table table-bordered table-hover" datatable [dtOptions]="dtOptions"
+                                        [dtTrigger]="dtTrigger">
+                                        <thead>
+                                            <tr>
+                                                <!-- <th data-key="Cust">Customer</th>
+                                                <th data-key="Loc">Location</th> -->
+                                                <th data-key="TName">Tank Name</th>
+                                                <th data-key="Avg7Day">Trailing 7 day average</th>
+                                                <th data-key="PDS">Previous day sale</th>
+                                                <th data-key="SaleWeek">Sales on week ago</th>
+                                                <th data-key="CI">Last Inventory Reading</th>
+                                                <th data-key="LastReadingTime">Last Reading Time</th>
+                                                <th data-key="Ullg">Ullage</th>
+                                                <th data-key="lastDelivery">Last Delivered Qty</th>
+                                                <th data-key="lastDeliveryQty">Date of last delivery</th>
+                                                <th data-key="DRemg">Days remaining</th>
+                                                <!-- <th data-key="Status">Status</th> -->
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr *ngIf="(isLoadingSubject | async)"
+                                                class='pa bg-white top0 left0 z-index5 loading-wrapper'>
+                                                <span class='spinner-dashboard pa'></span>
+                                            </tr>
+                                            <tr *ngFor="let row of SalesData">
+                                                <!-- <td>{{row.CompanyName}}</td>
+                                                <td>{{row.SiteId}}</td> -->
+                                                <td>{{row.TankName}}</td>
+                                                <td>{{row.AvgSale}}</td>
+                                                <td>{{row.PrevSale}}</td>
+                                                <td>{{row.WeekAgoSale}}</td>
+                                                <td>{{row.Inventory}}</td>
+                                                <td>{{row.LastReadingTime}}</td>
+                                                <td>{{row.Ullage}}</td>
+                                                <td>{{row.LastDeliveredQuantity}}</td>
+                                                <td>{{row.LastDeliveryDate}}</td>
+                                                <td>{{row.DaysRemaining}}</td>
+                                                <!-- <td>{{row.Status}}</td> -->
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <div class="row mt-2">
+                    <div class="col-sm-2 text-left">
+                        <button type="button" class="btn btn-default btn-lg" *ngIf='selectedLocation.length>0 && isTankExists' (click)="onCaculateRetainWindow()">Calculate</button>
+                    </div>
+                    <div class="col-sm-7">
+                        <div *ngIf="FormValidationMessage.length != 0" class="text-left alert alert-info fs12 radius-5 pa10 mtm2">
+                            <span> <i class="fas fa-info-circle mr5"></i> {{FormValidationMessage}}</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-3 text-right">
+                        <button type="button" class="btn" onclick="closeSlidePanel();" (click)="clearForm()">Cancel</button>
+                        <button *ngIf='selectedLocation.length>0' [disabled]="isUserSubmit" (click)="onSubmit()" type="button" class="btn btn-primary btn-lg">Submit</button>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="pt10 pb10 pl20 pr20">
+
+
+            </div> -->
+        </div>
+    </div>
+    <div class="side-panel" id="tbddr">
+        <div class="side-panel-wrapper">
+            <div class="header">
+                <a class="ml10 close-panel" onclick="closeSlidePanel();" (click)="clearForm();"><i class="fa fa-close fs18"></i></a>
+                <h3 class="dib mt0 mb0 ml15">Create TBD Delivery Request</h3>
+            </div>
+            <div class="body-panel" [formGroup]="fmTBDGroup">
+                <div *ngIf="TBDdipTestLoader" class="pa top0 bg-white left0 z-index5 loading-wrapper"><span class="spinner-dashboard pa"></span></div>
+                <ng-container *ngFor="let product of fmTBDGroup.get('ScheduleTBDForm')['controls']; let j = index">
+                    <ng-container formArrayName="ScheduleTBDForm">
+                        <ng-container [formGroupName]="j">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="card mb-3">
+                                        <div class="card-header shadow-sm bg-light">
+                                            <div class="row mb-2">
+                                                <div class="col-sm-10">
+                                                    <div class="row">
+                                                        <div class="col-sm-4">
+                                                            <ng-multiselect-dropdown formControlName="SelectedFuelType"
+                                                                                     [placeholder]="'Select Fuel Type'" [settings]="FuelTypeDdlSettings" [data]="FuelTypeDetails"
+                                                                                     (onSelect)="onFuelTypeSelect($event,product, false)" (onDeSelect)="onFuelTypeDeSelect($event,product, false)"
+                                                                                     (onSelectAll)="onFuelTypeSelectAll($event,product, false)"
+                                                                                     (onDeSelectAll)="onFuelTypeDeSelectAll(product, false)">
+                                                            </ng-multiselect-dropdown>
+                                                        </div>
+                                                        <div class="col-sm-4">
+                                                            <ng-multiselect-dropdown formControlName="SelectedOtherFuelType"
+                                                                                     [placeholder]="'Select Other Fuel Type'" [settings]="FuelTypeDdlSettings" [data]="OtherFuelTypeDetails"
+                                                                                     (onSelect)="onFuelTypeSelect($event,product, true)" (onDeSelect)="onFuelTypeDeSelect($event,product, true)"
+                                                                                     (onSelectAll)="onFuelTypeSelectAll($event,product, true)"
+                                                                                     (onDeSelectAll)="onFuelTypeDeSelectAll(product, true)">
+                                                            </ng-multiselect-dropdown>
+                                                        </div>
+                                                        <div class="col-sm-4">
+                                                            <div class="dib border pa5 radius-capsule shadow-b float-left mb10">
+                                                                <div class="btn-group btn-filter">
+                                                                    <div class="form-check form-check-inline mr-0">
+                                                                        <input id="rdo-mustgo{{j}}" class="hide-element" type="radio" [value]="1" formControlName="Priority" [checked]="product.get('Priority').value==1">
+                                                                        <label class="btn ml-0" for="rdo-mustgo{{j}}" > Must Go</label>
+                                                                    </div>
+                                                                    <div class="form-check form-check-inline  mr-0">
+                                                                        <input class="hide-element" type="radio" formControlName="Priority" id="rdo-shouldgo{{j}}" [value]="2" [checked]="product.get('Priority').value==2">
+                                                                        <label class="btn" for="rdo-shouldgo{{j}}">Should Go</label>
+                                                                    </div>
+                                                                    <div class="form-check form-check-inline mr-0">
+                                                                        <input class="hide-element" type="radio" [value]="3" formControlName="Priority" id="rdo-couldgo{{j}}" [checked]="product.get('Priority').value==3">
+                                                                        <label class="btn" for="rdo-couldgo{{j}}">Could Go</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div> 
+                                                        <div class="col-sm-4 mt-2">
+                                                            <div class="clearfix color-lightgrey col-sm-12 pa0">
+                                                                <!--<div class="pull-left">
+                                                                    <i class="fas fa-map-marker-alt"></i>&nbsp; Pickup :
+                                                                    <span class="pr5" *ngIf="product.controls['PickupLocationType']?.value!=2; else location;">
+                                                                        Terminal
+                                                                    </span>
+                                                                    <ng-template #location>
+                                                                        <span class="pr5">
+                                                                            Location
+                                                                        </span>
+                                                                    </ng-template>
+                                                                </div>-->
+                                                                <div class="pr5" *ngIf="product.controls['PickupLocationType']?.value!=2; else bulkPlant;">
+                                                                    <strong>Terminal - </strong>{{product.controls['Terminal']?.controls['Name']?.value}}
+                                                                </div>
+                                                                <ng-template #bulkPlant class="pull-left pr5">
+                                                                    <span class="pull-left pl5 pr5">
+                                                                        <strong>Location - </strong>
+                                                                        {{product.controls['BulkPlant']?.controls['SiteName'].value}}, {{product.controls['BulkPlant']?.controls['City'].value}},
+                                                                        {{product.controls['BulkPlant']?.controls['State']?.controls['Code'].value}} {{product.controls['BulkPlant']?.controls['ZipCode'].value}}
+                                                                    </span>
+                                                                </ng-template>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-2 text-right mt-2">
+                                                    <a placement="bottom" ngbTooltip="Add/Edit Pickup Location" (click)="editTBDPickupLocation_(product, j)" data-toggle="modal" data-target="#dr-tbd-pickup-location"><i class="fa fa-map-marker-alt fs18 ml5 mt2"></i></a>
+                                                    <a (click)="removeTBDDR(product,j)" class="ml-2" placement="bottom" ngbTooltip="Remove DR"><i class="fas fa-trash-alt text-danger"></i></a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <ng-container *ngFor="let drProduct of product.get('DeliveryRequests')['controls']; let dr = index">
+                                            <ng-container formArrayName="DeliveryRequests">
+                                                <ng-container [formGroupName]="dr">
+                                                    <div class="card-body pb-0">
+                                                        <div class="row mb-2">
+                                                            <div class="col-1">
+                                                                <label>{{drProduct.get('FuelTypeName').value}}</label>
+                                                            </div>
+                                                            <div class="col-2" style="max-width:15% !important;">
+                                                                <select formControlName="DRScheduleQuantityType" class="form-control">
+                                                                    <option *ngFor="let sqType of ScheduleQuantityTypeDetails" [value]="sqType.Id">
+                                                                        {{sqType.Name}}
+                                                                    </option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-2" style="max-width:15% !important;" *ngIf="drProduct.controls['DRScheduleQuantityType'].value==1">
+                                                                <div class="input-group">
+                                                                    <input type="text" formControlName="RequiredQty" class="form-control" placeholder="Quantity">
+                                                                    <div class="input-group-append">
+                                                                        <span class="input-group-text fs11">{{companyUoM == 1 ? 'G' : 'L'}}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-1">
+                                                                <input type="text" formControlName="BadgeNo1" class="form-control" placeholder="Badge#" />
+                                                            </div>
+                                                            <div class="col-1">
+                                                                <input type="text" formControlName="BadgeNo2" class="form-control" placeholder="Badge#" />
+                                                            </div>
+                                                            <div class="col-1">
+                                                                <input type="text" formControlName="BadgeNo3" class="form-control" placeholder="Badge#" />
+                                                            </div>
+                                                            <div class="col-2" style="max-width:15% !important;">
+                                                                <div class="input-group">
+                                                                    <input type="text"  formControlName="DeliveryLevelPO" class="form-control" placeholder="Delivery-Level PO#" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-2 pr-0" style="max-width:15% !important;">
+                                                                <textarea formControlName="Notes" class="form-control add-note-tarea" placeholder="Note (optional)" rows="2"></textarea>
+                                                            </div>
+                                                            <div class="col pt-2 text-right">
+                                                                <a (click)="removeSubTBDDR(product, dr,drProduct.get('FuelTypeId').value,drProduct.get('ProductTypeId').value)" class="ml-2" placement="top" ngbTooltip="Remove Product"><i class="fas fa-trash-alt text-danger"></i></a>
+                                                            </div>
+                                                        </div>
+
+                                                    </div>
+                                                </ng-container>
+                                            </ng-container>
+                                        </ng-container>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </ng-container>
+                    </ng-container>
+                </ng-container>
+
+
+            </div>
+            <div class="footer px-3">
+                <div class="row mt-2">
+                    <div class="col-sm-2 text-left">
+                        <a class="fs18 pull-left mt-1" (click)="addTBDDR();"><i class="fa fa-plus-circle fs18 mt3 pull-left"></i><span class="fs14 mt1 pull-left">Add DR</span></a>
+                    </div>
+                    <div class="col-sm-10 text-right">
+                        <button class="btn" onclick="closeSlidePanel();" type="button">Cancel</button>
+                        <button class="btn btn-primary mr-1" type="submit" [disabled]="isTBDUserSubmit" (click)="SubmitTBDData();">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="dr-pickup-location" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" style="z-index: 1051!important;">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" [formGroup]="PickupForm">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <div class="dib border pa5 radius-capsule">
+                        <!--<div class="btn-group btn-filter" data-toggle="buttons">
+                            <input type="radio" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="1">
+                            Terminal &nbsp;
+                            <input type="radio" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="2">
+                            Bulk Plant
+                        </div>-->
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="inlinePickup" id="inlineTerminal1" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="1">
+                            <label class="form-check-label" for="inlineTerminal1">Terminal</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="inlinePickup" id="inlineBulkplant2" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="2">
+                            <label class="form-check-label" for="inlineBlukplant2">Bulk Plant</label>
+                        </div>
+                    </div>
+                    <button type="button" (click)="updatePickupLocation_()" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mt10 mb10">
+                    <!-- terminal start -->
+                    <div class="row" [formGroup]="PickupForm.controls['Terminal']" *ngIf="LocationType==1">
+                        <div class="col-sm-10">
+                            <div class="form-group">
+                                <input type="text" formControlName="Name" class="form-control" (input)="onTerminalSearched_($event);PickupForm.controls['Terminal']['controls'].Id.patchValue(0)" (focus)="onTerminalSearched_($event);" (blur)="validateTerminal_(PickupForm.controls['Terminal'],$event)" placeholder="Terminal Name" />
+                                <ul class="auto-select border-dash">
+                                    <li class="form-text" *ngIf="minCharRequired"><small>Enter minimum 3 characters to search.</small></li>
+                                    <li class="form-text" *ngIf="searchError"><small>Something went wrong.</small></li>
+                                    <li class="form-text" *ngIf="_loadingTerminals"><small>Loading...</small></li>
+                                    <li class="form-text" *ngIf="noTerminalFound && !minCharRequired && !searchError && !_loadingTerminals "><small>{{SearchTerminalKey.length > 0 ? "Matching terminal" : "Terminal"}} not found for Fuel Type : {{SearchTerminalFuelType}}</small></li>
+                                    <li *ngFor="let terminal of Terminals;" (click)="onTerminalSelected_(terminal)"
+                                        [attr.selected]="terminal.Id==PickupForm.controls['Terminal']['controls'].Id.value">{{terminal.Name}}</li>
+                                </ul>
+                                <ng-container *ngIf="PickupForm.controls['Terminal']['controls'].Name.invalid
+                                      && (PickupForm.controls['Terminal']['controls'].Name.touched || PickupForm.controls['Terminal']['controls'].Name.dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.controls['Terminal']['controls'].Name.errors.required">
+                                        Required
+                                    </label>
+                                </ng-container>
+                            </div>
+                            <!--<div class="ng-autocomplete">
+                                <ng-autocomplete [data]="Terminals"
+                                                 [searchKeyword]="keyword"
+                                                 placeholder="Terminal Name"
+                                                 (inputChanged)="onTerminalSearched_($event)"
+                                                 (selected)='onTerminalSelected_($event)'
+                                                 [itemTemplate]="itemTemplate"
+                                                 [notFoundTemplate]="notFoundTemplate">
+                                </ng-autocomplete>
+
+                                <ng-template #itemTemplate let-item>
+                                    <a [innerHTML]="item.Name"></a>
+                                </ng-template>
+
+                                <ng-template #notFoundTemplate let-notFound>
+                                    <div [innerHTML]="notFound"></div>
+                                </ng-template>
+                            </div>-->
+                        </div>
+                        <div style="padding-left: 10px;padding-top:7px;">
+                            <a (click)="deletePickupInfo(PickupForm.controls['Terminal'])" title="Remove" class="color-maroon"><i class="fa fa-close"></i></a>
+                        </div>
+                    </div>
+                    <!-- terminal ends -->
+                    <!-- bulk plant starts -->
+                    <div class="row pr" [formGroup]="PickupForm.controls['BulkPlant']" *ngIf="LocationType==2">
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Bulk Plant</label>
+                                        <input type="text" formControlName="SiteName" class="form-control" (input)="onBulkPlantSearched_($event)" placeholder="Bulk Plant Name" (blur)="onBulkPlantBlur_($event)" />
+                                        <ul class="auto-select border-dash">
+                                            <li *ngFor="let plant of BulkPlants;" (click)="onBulkPlantSelected_(plant)"
+                                                [attr.selected]="plant.Name==PickupForm.controls['BulkPlant']['controls'].SiteName.value">{{plant.Name}}</li>
+                                        </ul>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].SiteName.touched || PickupForm.controls['BulkPlant']['controls'].SiteName.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Address</label>
+                                        <input type="text" class="form-control" formControlName="Address" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Address.touched || PickupForm.controls['BulkPlant']['controls'].Address.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>{{ CountryBasedZipcodeLabel }}</label>
+                                        <input type="text" class="form-control zip-code" formControlName="ZipCode" (input)="getAddressByZip_($event)" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].ZipCode.touched || PickupForm.controls['BulkPlant']['controls'].ZipCode.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.pattern">
+                                                Invalid {{ CountryBasedZipcodeLabel }}
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>City</label>
+                                        <input type="text" class="form-control" formControlName="City" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].City.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].City.touched || PickupForm.controls['BulkPlant']['controls'].City.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].State">
+                                        <label>State</label>
+                                        <select *ngIf="isReadOnly" formControlName="Id" class="form-control" placeholder="Select State" (change)="setStateCode_($event)" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select State</option>
+                                            <option *ngFor="let st of StateList" [value]="st.Id">
+                                                {{st.Code}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Id" class="form-control" placeholder="Select State" (change)="setStateCode_($event)">
+                                            <option [value]="null">Select State</option>
+                                            <option *ngFor="let st of StatesListByCountry" [value]="st.Id">
+                                                {{st.Code}}
+                                            </option>
+                                        </select>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.touched || PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].Country">
+                                        <label>Country/Group</label>
+                                        <select *ngIf="isReadOnly" formControlName="Code" class="form-control" placeholder="Select Country" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select</option>
+                                            <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                {{ct.Code}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Code" class="form-control" placeholder="Select Country" (change)="OnCountryChanged($event)">
+                                            <option [value]="null">Select</option>
+                                            <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                {{ct.Code}}
+                                            </option>
+                                        </select>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.touched || PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].CountryGroup" *ngIf="PickupForm.controls['BulkPlant']['controls'].Country.get('Code').value=='CAR'">
+                                        <label>Country</label>
+                                        <select *ngIf="isReadOnly" formControlName="Id" class="form-control" placeholder="Select Country Group" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select Country</option>
+                                            <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                                {{ct.Name}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Id" class="form-control" placeholder="Select Country Group">
+                                            <option [value]="null">Select Country Group</option>
+                                            <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                                {{ct.Name}}
+                                            </option>
+                                        </select>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>County</label>
+                                        <input type="text" class="form-control" formControlName="CountyName" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].CountyName.touched || PickupForm.controls['BulkPlant']['controls'].CountyName.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Latitude</label>
+                                        <input type="text" class="form-control" formControlName="Latitude" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Latitude.touched || PickupForm.controls['BulkPlant']['controls'].Latitude.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.pattern">
+                                                Invalid
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Longitude</label>
+                                        <input type="text" class="form-control" formControlName="Longitude" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Longitude.touched || PickupForm.controls['BulkPlant']['controls'].Longitude.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.pattern">
+                                                Invalid
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingAddress">
+                            <span class='spinner-dashboard pa'></span>
+                        </div>
+                    </div>
+                    <!-- bulk plant ends -->
+                </div>
+                <div class="text-right">
+                    <button type="button" class="btn" data-dismiss="modal" id="btnDrPickupClose">Cancel</button>
+                    <button type="button" *ngIf="IsPickupForBlendRequest;" [disabled]="!PickupForm.valid" (click)="updatePickupLocationForBlend()" class="btn btn-primary">Add</button>
+                    <button type="button" *ngIf="!IsPickupForBlendRequest;" [disabled]="!PickupForm.valid" (click)="updatePickupLocation_()" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="dr-tbd-pickup-location" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" [formGroup]="PickupForm">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <div class="dib border pa5 radius-capsule">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="inlineTerminal1" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="1">
+                            <label class="form-check-label" for="inlineTerminal1">Terminal</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="inlineBlukplant2" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="2">
+                            <label class="form-check-label" for="inlineBlukplant2">Bulk Plant</label>
+                        </div>
+                    </div>
+                    <button type="button" (click)="updatePickupLocation_()" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mt10 mb10">
+                    <!-- terminal start -->
+                    <div class="row" [formGroup]="PickupForm.controls['Terminal']" *ngIf="LocationType==1">
+                        <div class="col-sm-10">
+                            <div class="form-group">
+                                <input type="text" formControlName="Name" class="form-control" (input)="onTBDTerminalSearched_($event);PickupForm.controls['Terminal']['controls'].Id.patchValue(0)" (focus)="onTBDTerminalSearched_($event);" (blur)="validateTerminal_(PickupForm.controls['Terminal'],$event)" placeholder="Terminal Name" />
+                                <ul class="auto-select border-dash">
+                                    <li *ngFor="let terminal of TBDTerminals;" (click)="onTerminalSelected_(terminal)"
+                                        [attr.selected]="terminal.Id==PickupForm.controls['Terminal']['controls'].Id.value">{{terminal.Name}}</li>
+                                </ul>
+                                <ng-container *ngIf="PickupForm.controls['Terminal']['controls'].Name.invalid
+                                      && (PickupForm.controls['Terminal']['controls'].Name.touched || PickupForm.controls['Terminal']['controls'].Name.dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.controls['Terminal']['controls'].Name.errors.required">
+                                        Required
+                                    </label>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div style="padding-left: 10px;padding-top:7px;">
+                            <a (click)="deleteTBDPickupInfo(PickupForm.controls['Terminal'])" title="Remove" class="color-maroon"><i class="fa fa-close"></i></a>
+                        </div>
+                    </div>
+                    <!-- terminal ends -->
+                    <!-- bulk plant starts -->
+                    <div class="row pr" [formGroup]="PickupForm.controls['BulkPlant']" *ngIf="LocationType==2">
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Bulk Plant</label>
+                                        <input type="text" formControlName="SiteName" class="form-control" (input)="onBulkPlantSearched_($event)" placeholder="Bulk Plant Name" (blur)="onBulkPlantBlur_($event)" />
+                                        <ul class="auto-select border-dash">
+                                            <li *ngFor="let plant of BulkPlants;" (click)="onBulkPlantSelected_(plant)"
+                                                [attr.selected]="plant.Name==PickupForm.controls['BulkPlant']['controls'].SiteName.value">{{plant.Name}}</li>
+                                        </ul>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].SiteName.touched || PickupForm.controls['BulkPlant']['controls'].SiteName.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Address</label>
+                                        <input type="text" class="form-control" formControlName="Address" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Address.touched || PickupForm.controls['BulkPlant']['controls'].Address.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>{{ CountryBasedZipcodeLabel }}</label>
+                                        <input type="text" class="form-control zip-code" formControlName="ZipCode" (input)="getAddressByZip_($event)" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].ZipCode.touched || PickupForm.controls['BulkPlant']['controls'].ZipCode.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.pattern">
+                                                Invalid {{ CountryBasedZipcodeLabel }}
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>City</label>
+                                        <input type="text" class="form-control" formControlName="City" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].City.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].City.touched || PickupForm.controls['BulkPlant']['controls'].City.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].State">
+                                        <label>State</label>
+                                        <select *ngIf="isReadOnly" formControlName="Id" class="form-control" placeholder="Select State" (change)="setStateCode_($event)" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select State</option>
+                                            <option *ngFor="let st of StatesListByCountry" [value]="st.Id">
+                                                {{st.Code}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Id" class="form-control" placeholder="Select State" (change)="setStateCode_($event)">
+                                            <option [value]="null">Select State</option>
+                                            <option *ngFor="let st of StatesListByCountry" [value]="st.Id">
+                                                {{st.Code}}
+                                            </option>
+                                        </select>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.touched || PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].Country">
+                                        <label>Country</label>
+                                        <select *ngIf="isReadOnly" formControlName="Code" class="form-control" placeholder="Select Country" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select Country</option>
+                                            <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                {{ct.Code}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Code" class="form-control" placeholder="Select Country">
+                                            <option [value]="null">Select Country</option>
+                                            <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                {{ct.Code}}
+                                            </option>
+                                        </select>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.touched || PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].CountryGroup" *ngIf="PickupForm.controls['BulkPlant']['controls'].Country.get('Code').value=='CAR'">
+                                        <label>Country Group</label>
+                                        <select *ngIf="isReadOnly" formControlName="Id" class="form-control" placeholder="Select Country Group" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select Country Group</option>
+                                            <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                                {{ct.Name}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Id" class="form-control" placeholder="Select Country Group">
+                                            <option [value]="null">Select Country Group</option>
+                                            <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                                {{ct.Name}}
+                                            </option>
+                                        </select>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>County</label>
+                                        <input type="text" class="form-control" formControlName="CountyName" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].CountyName.touched || PickupForm.controls['BulkPlant']['controls'].CountyName.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Latitude</label>
+                                        <input type="text" class="form-control" formControlName="Latitude" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Latitude.touched || PickupForm.controls['BulkPlant']['controls'].Latitude.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.pattern">
+                                                Invalid
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Longitude</label>
+                                        <input type="text" class="form-control" formControlName="Longitude" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Longitude.touched || PickupForm.controls['BulkPlant']['controls'].Longitude.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.pattern">
+                                                Invalid
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingAddress">
+                            <span class='spinner-dashboard pa'></span>
+                        </div>
+                    </div>
+                    <!-- bulk plant ends -->
+                </div>
+                <div class="text-right">
+                    <button type="button" class="btn" data-dismiss="modal" id="btnTBDDrPickupClose">Cancel</button>
+                    <button type="button" [disabled]="!PickupForm.valid" (click)="updateTBDPickupLocation_()" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- blend dr modal -->
+<div id="openBlendModalButton" [hidden]="true" data-toggle="modal" data-target="#blendModal"></div>
+<div class="modal fade" id="blendModal" data-backdrop="static" tabindex="-1" role="dialog"
+     aria-labelledby="blendModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header py-1">
+                <h4 class="modal-title">Blend Details</h4>
+                <button type="button" class="close mt-n2" data-dismiss="modal" (click)="IsPickupForBlendRequest=false">&times;</button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body" *ngIf="fmGroup?.get('DeliveryRequests')['controls'][DrForEditBlendedRequestIndex]">
+
+                <div>
+                    <label class="form-check-label  fs18">Products</label>
+                    <a type="button" title="Add" class="fa fa-plus-circle mt9 mr10 fs15 ml10" (click)="addRemoveBlendedProduct(true, 0)"></a>
+                </div>
+
+                <form [formGroup]="blendRequestForm">
+                    <ng-container *ngFor="let blendedRequest of blendRequestForm.get('BlendedRequests')['controls']; let x = index;let first = first;let last = last;">
+
+                        <ng-container formArrayName="BlendedRequests">
+                            <ng-container [formGroupName]="x">
+
+                                <!-- additive label -->
+                                <ng-container *ngIf="blendedRequest.get('IsAdditive').value && (first || !blendRequestForm.get('BlendedRequests')['controls'][+x - 1].get('IsAdditive').value)">
+
+                                    <!-- validations -->
+                                    <div class="mt10" *ngIf="blendRequestForm.valid">
+                                        <div *ngIf="blendRequestForm.get('BlendedRequests')['controls'].length>0 && !isBlendedRequestQuantityValid()" class="alert alert-danger mb-2 p-2">Sum of entered quantity should match with {{fmGroup.get('DeliveryRequests')['controls'][DrForEditBlendedRequestIndex].get('RequiredQuantity').value}}.</div>
+                                    </div>
+
+                                    <div class="row mt-3">
+                                        <div class="col-sm-12">
+                                            <label class="form-check-label fs18">Additive</label>
+                                            <a type="button" title="Add" class="fa fa-plus-circle mt9 mr10 fs15 ml10" (click)="addRemoveBlendedProduct(true, 0, true)"></a>
+                                        </div>
+                                    </div>
+                                </ng-container>
+
+                                <div class="row mt-2">
+                                    <div class="col-sm-4">
+                                        <div>
+                                            <!-- order ddl -->
+                                            <select *ngIf="!blendedRequest.get('IsAdditive').value" class="form-control" formControlName="OrderId"
+                                                    (change)="orderChangedForBlendRequest($event.target.value, blendedRequest)">
+                                                <option disabled value="null">Select Order</option>
+                                                <option *ngFor="let order of getUnUsedOrdersForBlendedRequest(blendedRequest.get('OrderId').value)" [value]="order.OrderId">
+                                                    {{order.PoNumber}}
+                                                </option>
+                                            </select>
+                                            <!-- additive order ddl -->
+                                            <select *ngIf="blendedRequest.get('IsAdditive').value" class="form-control" formControlName="OrderId" (change)="getUoM($event.target.value, blendedRequest)">
+                                                <option disabled value="null">Select Order</option>
+                                                <ng-container *ngFor="let order of getUnUsedBlendOrders(blendedRequest.get('OrderId').value)">
+                                                    <option *ngIf="order.JobId == DipTestsForEachTank[DrForEditBlendedRequestIndex]?.JobId" [value]="order.Id">
+                                                        {{order.Name}}
+                                                    </option>
+                                                </ng-container>
+                                            </select>
+                                        </div>
+                                        <div class="color-maroon" *ngIf="blendedRequest.get('OrderId').touched && blendedRequest.get('OrderId').errors">
+                                            <div>Order is required </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-3">
+                                        <div class="form-group mb0">
+                                            <div class="input-group">
+                                                <input type="number" formControlName="RequiredQuantity"
+                                                       numberWithDecimal class="form-control pr-2" placeholder="Required Quantity" (input)="blendDrQuantityChanged($event.target.value,x);" />
+                                                <div class="input-group-addon">{{blendedRequest.get('UoM').value != null ? blendedRequest.get('UoM').value : this.DipTestsForEachTank[this.DrForEditBlendedRequestIndex]?.UoM}}</div>
+                                            </div>
+
+                                            <div class="color-maroon"
+                                                 *ngIf="((blendRequestForm.touched && blendedRequest.get('IsAdditive').value) || blendedRequest.get('RequiredQuantity').touched || blendedRequest.get('QuantityInPercent').touched) && blendedRequest.get('RequiredQuantity').errors">
+                                                <div> Quantity is required </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-3" *ngIf="!blendedRequest.get('IsAdditive').value">
+                                        <div class="form-group mb0">
+                                            <div class="input-group">
+                                                <input type="number" formControlName="QuantityInPercent"
+                                                       numberWithDecimal class="form-control"
+                                                       placeholder="Quantity In Percent" (input)="blendDrPercentChanged($event.target.value,x);" />
+                                                <div class="input-group-addon">%</div>
+                                            </div>
+
+                                            <div class="color-maroon"
+                                                 *ngIf="(blendedRequest.get('QuantityInPercent').touched || blendedRequest.get('RequiredQuantity').touched) && blendedRequest.get('QuantityInPercent').invalid">
+                                                <div>Invalid percentage</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- remove row -->
+                                    <div class="col-sm-2 input-group">
+                                        <a type="button" title="Remove" class="fa fa-trash-alt mt7 color-maroon remove-partial-block tier" (click)="addRemoveBlendedProduct(false, x)"></a>
+                                    </div>
+
+                                </div>
+
+                                <!-- pickup loc -->
+                                <div class="row mt-1">
+                                    <div class="col-sm-12" *ngIf="!fmGroup.controls['IsCommonPickup']?.value && !blendedRequest.get('IsAdditive').value && !fmGroup.get('DeliveryRequests')['controls'][DrForEditBlendedRequestIndex].get('IsCommonPickupForBlend').value">
+                                        <div class="input-group">
+                                            <div class="pull-left">
+                                                <i class="fas fa-map-marker-alt"></i>&nbsp; Pickup :
+                                                <span class="pr5" *ngIf="blendedRequest.controls['PickupLocationType']?.value!=2; else location;">Terminal</span>
+                                                <ng-template #location><span class="pr5">Location</span></ng-template>
+                                            </div>
+                                            <div class="pull-left pr5" *ngIf="blendedRequest.controls['PickupLocationType']?.value!=2; else bulkPlant;">
+                                                {{blendedRequest.controls['Terminal']?.controls['Name']?.value}}
+                                                <div *ngIf="blendedRequest.controls['Terminal']?.invalid && (blendedRequest.controls['Terminal']?.dirty || blendedRequest.controls['Terminal']?.touched)">
+                                                    <label class="fs12" style="color:red" *ngIf="blendedRequest.controls['Terminal']?.controls['Name'].errors.required">Required</label>
+                                                </div>
+                                            </div>
+                                            <ng-template #bulkPlant class="pull-left pr5">
+                                                <span class="pull-left pl5 pr5">
+                                                    {{blendedRequest.controls['BulkPlant']?.controls['SiteName'].value}}, {{blendedRequest.controls['BulkPlant']?.controls['City'].value}},
+                                                    {{blendedRequest.controls['BulkPlant']?.controls['State']?.controls['Code'].value}} {{blendedRequest.controls['BulkPlant']?.controls['ZipCode'].value}}
+                                                </span>
+                                                <div *ngIf="blendedRequest.controls['BulkPlant'].invalid && (blendedRequest.controls['BulkPlant'].dirty || blendedRequest.controls['BulkPlant'].touched)">
+                                                    <label class="fs12" style="color:red" *ngIf="blendedRequest.controls['BulkPlant'].invalid">Required</label>
+                                                </div>
+                                            </ng-template>
+                                            <span *ngIf="(blendedRequest.controls['PostLoadedFor']==null || blendedRequest.controls['PostLoadedFor']==undefined)">
+                                                <a class="float-left" (click)="IsPickupForBlendRequest=true;editPickupLocationForBlend(x);" data-toggle="modal" data-target="#dr-pickup-location" placement="bottom" ngbTooltip="Edit Pickup Location"><i class="fa fa-edit fs18 ml-3 mt2"></i></a>
+                                            </span>
+                                            <span *ngIf="(blendedRequest.controls['PostLoadedFor']==null || blendedRequest.controls['PostLoadedFor']==undefined)">
+                                                <a (click)="RemovePickupLocation(blendedRequest, x)" placement="bottom" ngbTooltip="Remove Pickup Location" class="float-left color-maroon"><i class="fa fa-close fs18 ml-2 mt2"></i></a>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- additive label -->
+                                <ng-container *ngIf="(last && !blendedRequest.get('IsAdditive').value)">
+
+                                    <!-- validations -->
+                                    <div class="mt10" *ngIf="blendRequestForm.valid">
+                                        <div *ngIf="blendRequestForm.get('BlendedRequests')['controls'].length>0 && !isBlendedRequestQuantityValid()" class="alert alert-danger mb-2 p-2">Sum of entered quantity should match with {{fmGroup.get('DeliveryRequests')['controls'][DrForEditBlendedRequestIndex].get('RequiredQuantity').value}}.</div>
+                                    </div>
+
+                                    <div class="row mt-3">
+                                        <div class="col-sm-12">
+                                            <label class="form-check-label fs18">Additive</label>
+                                            <a type="button" title="Add" class="fa fa-plus-circle mt9 mr10 fs15 ml10" (click)="addRemoveBlendedProduct(true, 0, true)"></a>
+                                        </div>
+                                    </div>
+                                </ng-container>
+
+                            </ng-container>
+                        </ng-container>
+                    </ng-container>
+
+                    <!-- validations -->
+                    <ng-container *ngIf="blendRequestForm.valid">
+                        <div class="mt10">
+                            <div *ngIf="blendRequestForm.get('BlendedRequests')['controls'].length<2" class="alert alert-danger mb-2 p-2">Please add at least two rows.</div>
+                        </div>
+                    </ng-container>
+
+                    <div class="text-right">
+                        <!-- buttons -->
+                        <button type="button" data-dismiss="modal" class="btn btn-lg" (click)="IsPickupForBlendRequest=false">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-lg" [disabled]="blendRequestForm.invalid || blendRequestForm.get('BlendedRequests')['controls'].length<2 || !isBlendedRequestQuantityValid()" (click)="submitBlendedForm()" data-dismiss="modal">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

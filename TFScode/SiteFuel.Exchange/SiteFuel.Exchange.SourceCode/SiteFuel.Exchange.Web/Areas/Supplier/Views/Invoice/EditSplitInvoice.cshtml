@@ -1,0 +1,915 @@
+﻿@model ManualInvoiceViewModel
+@{
+    ViewBag.Title = (Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp) ? Resource.lblEditSplitLoadDropTicket : Resource.lblEditSplitLoadInvoice;
+}
+<div id="invoiceLinks" class="col-sm-12">
+    <div class="row mb10">
+        @if (Model.SplitLoadInvoices != null && !Model.IsConvertFromDDT)
+        {
+            foreach (var splitLoadInvoice in Model.SplitLoadInvoices)
+            {
+                var isCurrentInvoice = splitLoadInvoice.Id == Model.InvoiceId;
+                <a data-invoiceId="@splitLoadInvoice.Id" data-splitLoadSequence="@splitLoadInvoice.Sequence" class="well mr10 pt5 dib mb5 pb5 pr15 pl15 @(isCurrentInvoice ? "btn-primary pntr-none active-invoice" : "")" onclick="loadPartialSplitInvoice(this)">
+                    <span>@splitLoadInvoice.Number</span>
+                </a>
+            }
+        }
+    </div>
+</div>
+<div>
+    @using (Html.BeginForm("EditSplitLoadInvoice", "Invoice", new { area = "Supplier" }, FormMethod.Post, new { role = "form", @class = "edit-invoice", id = "split-invoiceedit-form", enctype = "multipart/form-data" }))
+    {
+        @Html.AntiForgeryToken()
+        <div class="col-sm-12">
+            <div id="split-invoiceedit-details" class="row mb15">
+                <div id="invite-user-section" class="row partial-section">
+                    <div class="col-sm-12">
+                        @Html.HiddenFor(m => m.JobId)
+                        @Html.HiddenFor(m => m.PoNumber)
+                        @Html.HiddenFor(m => m.OrderId)
+                        @Html.HiddenFor(m => m.IsFTL)
+                        @Html.HiddenFor(m => m.AssetTracked)
+                        @Html.HiddenFor(m => m.TypeofFuel)
+                        @Html.HiddenFor(m => m.OrderTypeId)
+                        @Html.HiddenFor(m => m.QuantityTypeId)
+                        @Html.HiddenFor(m => m.FuelRequestId)
+                        @Html.HiddenFor(m => m.CsvFilePath)
+                        @Html.HiddenFor(m => m.IsVariousFobOrigin)
+                        @Html.HiddenFor(m => m.IsQuanityOrDateChanged)
+						@Html.HiddenFor(m => m.TerminalName)
+						@Html.HiddenFor(m => m.QuantityIndicatorTypeId)
+						@Html.HiddenFor(m => m.ActualDropQuantity)
+                        <div id="invoice-common-details">
+                            <div class="col-sm-12">
+								@if (!Model.IsBolEditAllowed)
+								{
+									<div class="row split-common-details hide-element">
+											<div class="alert alert-warning dib mb10 fs13 pt10 pb10">
+												<span class="f-bold">@Resource.lblNote:</span> @Resource.warningMessageBolCannotBeEdited
+											</div>
+									</div>
+								}
+                                @if (Model.InvoiceId > 0)
+                                {
+                                    <div class="row well mb15">
+                                        <div class="col-md-2 col-xs-6 col-sm-3">
+                                            @if (Model.TypeofFuel == (int)ProductDisplayGroups.OtherFuelType && Model.IsConvertFromDDT == true)
+                                            {
+                                                <label class="f-normal">@Resource.lblDropTicketNumber</label>
+                                            }
+                                            else
+                                            {
+                                                if (Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                                {
+                                                    <label class="f-normal">@Resource.lblDropTicketNumber</label>
+                                                }
+                                                else
+                                                {
+                                                    <label class="f-normal">@Resource.lblInvoiceNumber</label>
+                                                }
+                                            }
+                                            <div>
+                                                @Html.DisplayFor(m => m.InvoiceNumber.Number)
+                                                @if (Model.InvoiceTypeId == (int)InvoiceType.DryRun)
+                                                {
+                                                    <label>
+                                                        @Resource.lblDryRunInvoice
+                                                    </label>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-3 mb10">
+                                            <label class="f-normal">@Resource.lblAmount</label>
+                                            @if (Model.StatusId == (int)InvoiceStatus.Draft || Model.StatusId == (int)InvoiceStatus.Canceled || (Model.TypeofFuel == (int)ProductDisplayGroups.OtherFuelType && Model.IsConvertFromDDT == true))
+                                            {
+                                                <div>@Resource.lblHyphen</div>
+                                            }
+                                            else
+                                            {
+                                                <div><span class="label label-success fs14 f-normal">@Resource.constSymbolCurrency@Model.TotalInvoiceAmount.ToString(ApplicationConstants.DecimalFormat2)</span></div>
+                                            }
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-3">
+                                            <label class="f-normal">@Resource.lblDate</label>
+                                            @if (Model.StatusId == (int)InvoiceStatus.Draft || Model.StatusId == (int)InvoiceStatus.Canceled)
+                                            {
+                                                <div>@Resource.lblHyphen</div>
+                                            }
+                                            else
+                                            {
+                                                <div>@Model.CreatedDate.ToString(Resource.constFormatDate)</div>
+                                            }
+                                        </div>
+                                        @if (Model.InvoiceId > 0 && Model.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp)
+                                        {
+                                            <div class="col-md-2 col-xs-6 col-sm-3">
+                                                <label class="f-normal">@Resource.lblPaymentDueDate</label>
+                                                <div>@Model.PaymentDueDate</div>
+                                            </div>
+                                        }
+
+                                        @if (Model.TypeofFuel != (int)ProductDisplayGroups.OtherFuelType)
+                                        {
+                                            <div class="col-sm-2 col-xs-4 col-sm-3 mb10">
+                                                <label class="f-normal">@Resource.lblStatus</label>
+                                                <div>
+
+                                                    @if (Model.StatusId == (int)InvoiceStatus.Received)
+                                                    {
+                                                        <label class="label label-primary">@(CommonHelperMethods.GetName<InvoiceStatus>(Model.StatusId))</label>
+                                                    }
+                                                    else if (Model.StatusId == (int)InvoiceStatus.Draft)
+                                                    {
+                                                        <label class="label label-warning">@(CommonHelperMethods.GetName<InvoiceStatus>(Model.StatusId))</label>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="row well mb15">
+                                    <div class="col-md-12">
+                                        <h4>@Resource.lblPaymentDetails</h4>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <label class="f-normal">@Resource.lblTerm</label>
+                                                <div class="row split-common-details">
+                                                    <div class="col-sm-12">
+                                                        <div class="form-check form-check-inline radio">
+                                                            @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.NetDays, new { @id = "radio-termnet", @class = "form-check-input", onclick = "radioChange(this,'netdays',null);", onchange = "focusOnFirst(this, 'netdays');" })                                                        <label class="form-check-label" for="radio-termnet">
+                                                            <label class="form-check-label" for="radio-termnet">
+                                                                @Resource.lblNet
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline radio">
+                                                            @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.DueOnReceipt, new { @id = "radio-termduereceipt", @class = "form-check-input", onclick = "radioChange(this,null,'netdays')" })
+                                                            <label class="form-check-label" for="radio-termduereceipt">
+                                                                @Resource.lblDueOnReceipt
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline radio">
+                                                            @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.PrePaidInFull, new { @id = "radio-termprepaid", @class = "form-check-input", onclick = "radioChange(this,null,'netdays')" })
+                                                            <label class="form-check-label" for="radio-termprepaid">
+                                                                @Resource.lblPrePaidInFull
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-3 netdays defaultDisabled mt10">
+                                                        @Html.TextBoxFor(m => m.NetDays, new { @class = "form-control always datatype-decimal" })
+                                                        @Html.ValidationMessageFor(m => m.NetDays)
+                                                    </div>
+                                                    <div class="col-sm-8 pl0 pt8 fs12 mt10">
+                                                        @Resource.lblDaysOfReceipt
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="f-normal">@Resource.lblPaymentMethod</label>
+                                                @Html.EnumDropDownListFor(m => m.PaymentMethod, new { @class = "form-control", @disabled = "disabled" })
+                                                @Html.HiddenFor(m => m.PaymentMethod)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- po starts -->
+                            <div class="col-sm-12">
+                                <div class="row well mb15">
+                                    <div class="col-sm-12">
+                                        <h4>@Resource.headingPO</h4>
+                                        <div class="row">
+                                            <div class="col-sm-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblPoNumber</label>
+                                                <div class="break-word"><a href="@Url.Action("Details","Order",new { area="Supplier" , id=Model.OrderId })">@Html.DisplayFor(m => m.PoNumber)</a></div>
+                                            </div>
+                                            <div class="col-md-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblGallonsOrdered</label>
+                                                @if (Model.QuantityTypeId != (int)QuantityType.NotSpecified)
+                                                {
+                                                    <div>@Model.OrderTotal.GetPreciseValue(2).GetCommaSeperatedValue() @Model.UoM</div>
+                                                }
+                                                else
+                                                {
+                                                    <div>@Resource.lblNotSpecified</div>
+                                                }
+                                                @Html.HiddenFor(m => m.OrderTotal, new { @class = "total-gallons-required" })
+                                            </div>
+                                            <div class="col-md-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblGallonsRemaining</label>
+                                                @if (Model.QuantityTypeId != (int)QuantityType.NotSpecified)
+                                                {
+                                                    <div>@(Model.FuelRemaining <= 0 ? Convert.ToDecimal("0").GetPreciseValue(2).GetCommaSeperatedValue() : Model.FuelRemaining.GetPreciseValue(2).GetCommaSeperatedValue()) @Model.UoM</div>
+                                                }
+                                                else
+                                                {
+                                                    <div>@Resource.lblHyphen</div>
+                                                }
+                                            </div>
+                                            <div class="col-sm-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblOrderType</label>
+                                                <div>@(CommonHelperMethods.GetName<OrderType>(Model.OrderTypeId))</div>
+                                            </div>
+                                            <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblRequestType</label>
+                                                <div>@(Model.IsPublicRequest ? BroadcastType.Public : BroadcastType.Private)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- po ends -->
+                            <!-- customer starts -->
+                            <div class="col-sm-12">
+                                <div class="row well mb15">
+                                    <div class="col-sm-12">
+                                        <h4>@Resource.headingCustomer</h4>
+                                        <div class="row">
+                                            <div class="col-sm-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblCustomer</label>
+                                                <div class="break-word">
+                                                    @Html.DisplayFor(m => m.SupplierName)<br />
+                                                    @Html.DisplayFor(m => m.SupplierEmail)<br />
+                                                    <span class="phone">@Html.DisplayFor(m => m.SupplierPhone)</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblCustomerCompany</label>
+                                                <div>@Model.BuyerCompanyName</div>
+                                            </div>
+                                            @if (Model.SupplierQualifications.Count > 0)
+                                            {
+                                                <div class="col-sm-3 col-xs-6 mb10">
+                                                    <label class="f-normal">@Resource.lblDBE <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDBE"></i></label>
+                                                    <div class="break-word">
+                                                        @Html.Raw(string.Join("<br />", CommonHelperMethods.GetQualificationNamesById(Model.SupplierQualifications)))
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- customer ends -->
+                            <!-- fuel starts -->
+                            <div class="col-sm-12">
+                                <div class="row well mb15">
+                                    <div class="col-sm-12">
+                                        <h4>@Resource.headingFuel</h4>
+                                        <div class="row">
+                                            <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                                                <label class="f-normal">@(string.Format(Resource.lblRackPP, Model.Currency == Currency.USD ? "PPG" : "PPL"))</label>
+                                                @if (Model.InvoiceId > 0)
+                                                {
+                                                    if (Model.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp)
+                                                    {
+                                                        <div class="break-word">@CommonHelperMethods.GetInvoicePricePerGallon(Model.InvoiceId) @Model.Currency</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="break-word">@Resource.lblHyphen</div>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <div class="break-word">@CommonHelperMethods.GetPricePerGallon(Model.FuelRequestId) @Model.Currency</div>
+                                                }
+                                            </div>
+                                            <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblProductName</label>
+                                                <div class="break-word">@Model.FuelType</div>
+                                            </div>
+                                            @if (Model.TypeofFuel == (int)ProductDisplayGroups.OtherFuelType)
+                                            {
+                                                <div class="col-sm-3 col-md-2 mb10">
+                                                    <label class="f-normal">@Resource.lblProductDescription</label>
+                                                    <div class="break-word">@(!string.IsNullOrWhiteSpace(Model.ProductDescription) ? Model.ProductDescription : Resource.lblHyphen)</div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="col-sm-3 col-md-3 col-xs-6 mb10">
+                                                    @if (Model.IsBolEditAllowed && (Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp))
+                                                    {
+                                                        @Html.PartialFor("_PartialTerminal", m => m)
+                                                    }
+                                                    else
+                                                    {
+                                                        <label class="f-normal">@Resource.lblTerminal</label>
+                                                        <div class="break-word"><span id="spnTerminalName">@Model.TerminalName</span></div>
+                                                    }
+                                                </div>if (Model.CityGroupTerminalId > 0)
+                                                {
+                                                    <div class="col-sm-3 col-md-3 col-xs-6 mb10">
+                                                        <label class="f-normal">@Resource.lblCityGroupTerminal</label>
+                                                        <div class="break-word">@Model.CityGroupTerminalName</div>
+                                                    </div>
+                                                }
+                                                @Html.HiddenFor(m => m.TerminalId)
+                                                @Html.HiddenFor(m => m.CityGroupTerminalId)
+                                                <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                                                    <div class="pa bg-white subSectionOpacity top0 left0 z-index5 loading-wrapper terminal-loader"><span class='spinner-dashboard pa'></span></div>
+                                                    <label class="f-normal">@Resource.lblTerminalPrice</label>
+                                                    <div class="form-group">
+                                                        @Html.TextBoxFor(m => m.TerminalPrice, new { @id = "terminalPrice", @readonly = "readonly", @class = "form-control" })
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- fuel ends -->
+                            <!-- Bol detail Start-->
+                            <div class="col-sm-12">
+                                <div class="row well mb15">
+                                    <div class="col-sm-12">
+                                        <h4>@Resource.headingBOLDetails</h4>
+                                        <div class="row">
+                                            <div class="col-sm-12">
+                                                <div class="ftl-section split-common-details">
+                                                    @Html.PartialFor("~/Views/Shared/_PartialBolInfo.cshtml", m => m.BolDetails)
+                                                </div>
+                                            </div>
+                                        </div>
+										@Html.PartialFor("_PartialPickupAddress", m => m.PickUpAddress)
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Bol detail end-->
+                            <!-- FSC detail Start-->
+                            @if (Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee != null && Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.IsSurchargeApplicable)
+                            {
+                                <div class="col-sm-12">
+                                    <div class="row well mb15">
+                                        <div class="col-sm-12">
+                                            <h4>@Resource.lblFuelSurcharge</h4>
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <div class="ftl-section">
+                                                        @Html.PartialFor("~/Views/Shared/_PartialInvoiceFuelSurcharge.cshtml", m => m.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            <!-- FSC end -->
+                        </div>
+                        <!-- Taxes starts -->
+                        @Html.HiddenFor(m => m.WaitingForAction)
+                        @Html.HiddenFor(m => m.PricingType)
+                        <div class="col-sm-12">
+                            <div id="split-invoice-details" class="row">
+                                @Html.PartialFor("_PartialSplitInvoiceDetails", m => m)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row text-right">
+                <div class="col-sm-2"></div>
+                <div class="col-sm-10 text-right form-buttons">
+                    @if (!Model.IsConvertFromDDT)
+                    {
+                        <input class="btn btn-lg btn-primary form-submit" type="button" value="Save & Add New" onclick="editSplitLoadInvoice(true);" />
+                    }
+                    <input class="btn btn-lg btn-primary form-submit" data-button="save" type="button" value="@Resource.btnLabelSave" onclick="isDroppedCrossBolQuantity(this);" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/address-goecoder")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Invoice")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/quantityrange-validate")
+
+    <script type="text/javascript">
+		var mapsApiKey = '@SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleApiKey';
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = @(Model.DropAddress != null ? @Model.DropAddress.State.Id : 0); // for state autofill
+		var isSubmit = false;
+        var CollectionName = "Assets";
+		var assetsFromModel =  @Html.Raw(Json.Encode(Model.Assets));
+		var isAddNewSplitInvoice = false;
+		var isSave = false;
+        var prevelment;
+		var nextelement;
+		isSplitInvoice = true;
+		var isFtl = '@Model.IsFTL' == 'True';
+		var isBolRequired = '@Model.IsBolRequired' == 'True';
+		var pickupStateId = @(Model.PickUpAddress != null ? @Model.PickUpAddress.State.Id : 0);
+		var $form = $("#split-invoiceedit-form");
+		var demmurageFeeArray = [17, 18, 19, 22];
+        var isExistingChkChange = false;
+        var originalFuelDropped = $("#@Html.IdFor(m => m.FuelDropped)").val();
+		var originalDropDate = $("#DeliveryDate").val();
+		var getTerminalDetailsUrl = '@Url.Action("GetTerminalDetails", "Invoice", new { area = "Supplier" })';
+
+		$(document).ready(function () {
+			if ('@Model.IsBolEditAllowed' == 'False') {
+				DisableCommonDetails();
+			}
+			 var currentSelectedInvoice = $("#invoiceLinks div").find("a.active-invoice");
+			 if ($(currentSelectedInvoice).attr("data-splitloadsequence") == 1 || '@Model.IsConvertFromDDT' == 'True') {
+                 $(".split-common-details").show();
+                 $("#invoice-common-details").show();
+			 }
+			 else {
+                 $(".split-common-details").hide();
+                 $("#invoice-common-details").hide();
+			 }
+
+			 $('#@Html.IdFor(m=>m.FuelDropped)').on("input, change", function () {
+				 if (parseFloat('@Model.FuelRemaining') < parseFloat($('#@Html.IdFor(m=>m.FuelDropped)').val())) {
+					 $("#valFuelDropped").addClass('show-element').removeClass('hide-element');
+				 }
+				 else {
+					 $("#valFuelDropped").addClass('hide-element').removeClass('show-element');
+                 }
+
+                 calculateSurcharge();
+			 });
+
+            $('.standard-tax-type-warning').hide();
+
+            if ('@(Model.IsMulitpleDelivery)' == 'False') {
+                $('.weekend-fee-types').hide();
+            }
+
+			SetDateLimits();
+			 $('#btn-logo, #bolbtn-logo').change(function (e) {
+				if (e.target.files && e.target.files[0]) {
+				    $("#btn-save").removeAttr("disabled");
+				}
+            });
+			 $(document).on('change', '#@Html.IdFor(m => m.DropAddress.IsAddressAvailable)', function () {
+				 if ($(this).is(':checked') == false && isExistingChkChange == false && $('#@Html.NameFor(m=>m.IsExistingDropLocation)').val() == 'False') {
+					 $('#@Html.IdFor(m => m.DropAddress.Address)').val('');
+					 $('#@Html.IdFor(m => m.DropAddress.ZipCode)').val('');
+					 $('#@Html.IdFor(m => m.DropAddress.City)').val('');
+				 }
+				 isExistingChkChange = false;
+			 });
+			$("#remove-file").click(function () {
+				var image = $('#btn-logo');
+				var imageId = parseInt($('#@Html.IdFor(m => m.InvoiceImage.Id)').val());
+				if ((image.files && image.files[0]) || imageId > 0) {
+				     $("#btn-save").removeAttr("disabled");
+				}
+				else {
+				     $("#btn-save").attr("disabled", "disabled");
+				}
+            });
+            $("#bolremove-file").click(function () {
+				var image = $('#bolbtn-logo');
+				var imageId = parseInt($('#@Html.IdFor(m => m.BolImage.Id)').val());
+				if ((image.files && image.files[0]) || imageId > 0) {
+				     $("#btn-save").removeAttr("disabled");
+				}
+				else {
+				     $("#btn-save").attr("disabled", "disabled");
+				}
+             });
+             originalDropDate = $("#DeliveryDate").val();
+			 onDateChange();
+            // apply the decimal place format behaviour to elements with 'decimal-place-format' as their class
+            $.each($('.decimal-place-format'), function () {
+                $(this).decimalPlaceFormat(4);
+                var gallons = parseFloat($(this).val());
+                gallons = isNaN(gallons) ? 0 : gallons;
+                if (gallons > 0) {
+                    $(this).val(gallons.toFixed(4));
+                }
+			 });
+			var formJson = $("#split-invoiceedit-form").serializeArray();
+			formJson = formJson.filter(function (el) { return el.name != 'TerminalPrice'; });
+            formStr = JSON.stringify(formJson);
+
+            var typeOfFuel = @Model.TypeofFuel;
+			if (typeOfFuel != @((int)ProductDisplayGroups.OtherFuelType) && '@Model.IsBolEditAllowed' == 'True' && '@(Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)' == 'True')
+            {
+                terminalUrl = "@Url.Action("GetTerminals", "Invoice", new { @area = "Supplier"})";
+                autoCompleteGetClosestTerminals("#txtTerminalName", @Model.OrderId);
+            }
+		});
+
+	    function UpdateOtherProductTaxesUoM() {
+            if ('@Model.UoM' == '@Resource.lblLitres') {
+                $('.ddl-other-product-tax').find('option').each(function () {
+                    $(this).text($(this).text().replace('@Resource.lblPerGallon', '@Resource.lblPerLitre'));
+                });
+            }
+		 }
+
+        $(document).on("change", ".ftl-drop-input, #FuelDropped", function () {
+            setStandartTax();
+        });
+
+        $('.surchargePercentage').on("input, change", function () {
+            calculateSurcharge();
+        });
+
+        $('.surchargeDistance').on("input, change", function () {
+            calculateSurcharge();
+		});
+
+		function DisableCommonDetails()
+		{
+			disableElement('.split-common-details');
+			$('.split-common-details :input').attr('readonly', true);
+			$('.split-common-details input[type="radio"]').addClass('subSectionOpacity');
+			$('.split-common-details .bol-buttons').addClass('subSectionOpacity');
+		}
+
+        function calculateSurcharge() {
+            var isbyDistance = '@Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.IsFeeByDistance';
+            if (isbyDistance == 'True') {
+                var distance = parseFloat($('.surchargeDistance').val());
+                if (distance > 0)
+                    SetDistanceBasedFreightCost(distance);
+            }
+            var surchargePartial = (parseFloat($('.surchargePercentage').val()) / 100) * parseFloat($('.surchargeFreightCost').val());
+            var surchargeQty = parseFloat($('#FuelDropped').val());
+            var surchargeFee = surchargePartial.toFixed(4) * surchargeQty;
+            if (surchargeFee > 0)
+                $('.totalFuelSurchargeFee').val(surchargeFee.toFixed(4));
+        }
+
+        var surchargeFeeByQty;
+         $(document).ready(function () {
+             surchargeFeeByQty = JSON.parse('@Html.Raw(Json.Encode(Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.DeliveryFeeByQuantity.ToList()))');
+             var isDDT = '@(Model.IsBolEditAllowed && (Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp))';
+             if (isDDT == 'False') {
+                 $('.edit-terminal').addClass('hide');
+             }
+        });
+
+        function SetDistanceBasedFreightCost(distance) {
+            var exactFee = surchargeFeeByQty.find(function (x) { return x.MinQuantity <= distance && x.MaxQuantity >= distance; });
+            if (exactFee != undefined)
+                $('.surchargeFreightCost').val(exactFee.Fee);
+            else {
+                exactFee = surchargeFeeByQty[surchargeFeeByQty.length - 1];
+                if (exactFee != undefined)
+                    $('.surchargeFreightCost').val(exactFee.Fee);
+                else
+                    $('.surchargeFreightCost').val(0);
+                //set message as cost not available for this distance
+            }
+        }
+
+		function GetSplitLoadAddresses() {
+			var trackableScheduleId = $("#TrackableScheduleId").val();
+			var target = $("#@Html.IdFor(m => m.ExistingDropLocationId)");
+            if (trackableScheduleId != "") {
+                var url = '@Url.Action("GetExistingSplitLoadAddresses", "Invoice", new { area = "Supplier"})?orderId=@Model.OrderId&trackableScheduleId=' + trackableScheduleId;
+				$.get(url, function (response) {
+					target.empty();
+					$.each(response, function (i, element) {
+						target.append($('<option></option>').val(element.Id).html(element.Address));
+					});
+											target.prepend("<option value selected='selected'>@string.Format(Resource.valMessageSelect, Resource.lblFuelDropAddress)</option>");
+                });
+            }
+            else {
+				target.empty();
+				target.prepend("<option value selected='selected'>@string.Format(Resource.valMessageSelect, Resource.lblFuelDropAddress)</option>");
+            }
+        }
+
+		function updateIsDropLocationChk(element)
+		{
+			if ($(element).is(':checked') == true) {
+				if ($('#@Html.IdFor(m => m.DropAddress.IsAddressAvailable)').is(':checked'))
+				{
+					isExistingChkChange = true;
+					$('#@Html.IdFor(m => m.DropAddress.IsAddressAvailable)').click();
+				}
+			}
+		}
+
+        function SetDateLimits() {
+            $('#@Html.IdFor(m => m.DeliveryDate)').data("DateTimePicker").minDate(getMinDate());
+			if ('@Model.MaxDropDate' != '') {
+                $('#@Html.IdFor(m => m.DeliveryDate)').data("DateTimePicker").maxDate('@Model.MaxDropDate');
+			}
+            $('#@Html.IdFor(m => m.DeliveryDate)').on("dp.change", function (e) {
+				onDateChange();
+			});
+        }
+
+        function getMinDate() {
+            var momentDeliveryStartDate = new moment('@Model.FuelRequestDeliveryStartDate.Date').startOf('day');
+            var momentOrderAcceptDate = new moment('@Model.OrderAcceptDate.Date').startOf('day');
+            return momentDeliveryStartDate < momentOrderAcceptDate ? momentDeliveryStartDate : momentOrderAcceptDate;
+        }
+
+		function getDefaultImage() {
+			return '@Url.Content("~/Content/images/no-image.png", true)';
+		};
+
+		function getImageFileError() {
+			return '@Resource.errMessageImageFileError';
+		};
+
+		function getImageFileWarning() {
+			return '@Resource.errMessageImageFileWarning';
+		};
+
+        function GetDriver() {
+            var trackableScheduleId = $("#TrackableScheduleId").val();
+            if (trackableScheduleId != "") {
+                var url = '@Url.Action("GetDriverByDeliverySchedule", "Invoice", new { area = "Supplier" })?id=' + trackableScheduleId;
+                $.get(url, function (data) {
+                    if (data != 0) {
+                        $("#DriverId").val(data);
+                    }
+                    else {
+                        $("#DriverId").val("");
+                    }
+                });
+            }
+            else {
+                $("#DriverId").val("");
+            }
+        }
+
+        function onDateChange() {
+                var date = $("#DeliveryDate").val();
+                var orderId = @Model.OrderId;
+                if (date != undefined && date != null && date != '' && date.length ==10) {
+                    $('.terminal-loader').show();
+                    var data = {
+                        orderId: orderId,
+                        deliveryDate: date,
+                    }
+                    var url = '@Url.Action("GetTerminalPrice", "Invoice", new { area = "Supplier" })';
+                    $.post(url, data, function (data) {
+                        if (!isNaN(parseFloat(data))) $('#terminalPrice').val(data);
+                    }).done(function () {
+                        $('.terminal-loader').hide();
+                        });
+
+                        setEIAPriceOnDateChange(date);
+            }
+            setStandartTax();
+        }
+
+		function setStandartTax() {
+            if ('@Model.TypeofFuel' != '@((int)ProductDisplayGroups.OtherFuelType)' && @Model.InvoiceId > 0 && @Model.InvoiceTypeId != @((int)InvoiceType.DigitalDropTicketManual)) {
+                var currentFuelDropped = $("#@Html.IdFor(m => m.FuelDropped)").val();
+                var currentDropDate = $("#DeliveryDate").val()
+                if (originalFuelDropped != currentFuelDropped || originalDropDate != currentDropDate) {
+                    $("input[type='radio'][value='Standard']").click();
+                    $('.tax-type-radio').attr('readonly', 'readonly').addClass('subSectionOpacity');
+                }
+                else {
+                    $('.tax-type-radio').removeAttr('readonly', 'readonly').removeClass('subSectionOpacity');
+                }
+
+                if (originalDropDate != currentDropDate) {
+                    $("#@Html.IdFor(m => m.IsQuanityOrDateChanged)").val(true);
+                }
+                else {
+                    $("#@Html.IdFor(m => m.IsQuanityOrDateChanged)").val(false);
+                }
+            }
+		}
+
+        function setEIAPriceOnDateChange(date) {
+            //EIA PRICE
+            var surchargePricing = @((int)Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.SurchargePricingType);
+            var surchargeProduct = @((int)Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.SurchargeProductType);
+            var buyerCompId = @Model.BuyerCompanyId;
+            var EIAdata = {
+                buyerCompanyId: buyerCompId,
+                pricingType: surchargePricing,
+                productType: surchargeProduct,
+                deliveryDate: date
+            }
+            var url = '@Url.Action("GetEIAPrice", "Invoice", new { area = "Supplier" })';
+            $.post(url, EIAdata, function (data) {
+                if (!isNaN(parseFloat(data.eiaResponse))) {
+                    $('.surchargeEaiPrice').val(data.eiaResponse);
+                    $('.surchargePercentage').val(data.percent);
+                    $('.surchargeTableRangeStart').val(data.start);
+                    $('.surchargeTableRangeEnd').val(data.end);
+                }
+            }).done(function () {
+            });
+        }
+
+        function splitDropSuccess(result) {
+            if (result.StatusCode == @((int)Status.Failed)) {
+                $(".form-submit").removeAttr("disabled");
+                $(".loader").hide();
+                msgerror(result.StatusMessage);
+                return false;
+            }
+            else {
+                msgsuccess(result.StatusMessage);
+            }
+
+			if (isSave) {
+				window.location.href = '@Url.Action("Details", "Order",new { area = "Supplier" })/' + @Model.OrderId;
+				return;
+			}
+            else {
+                $(prevelment).attr('data-invoiceid', result.InvoiceId);
+				if (result.DisplayMode =='@((int)PageDisplayMode.Create)') {
+					$("#invoiceLinks div").append(`<a data-invoiceId="` + result.InvoiceId + `" data-splitLoadSequence="` + result.SplitLoadSequence + `" class="well mr10 pt5 dib mb5 pb5 pr15 pl15" onclick="loadPartialSplitInvoice(this)">
+                                            <span>` + result.InvoiceNumber + `</span>
+                                            </a>`);
+					$("#invoiceLinks").show();
+				}
+			}
+			if (isAddNewSplitInvoice) {
+				AddNewSplitInvoice(result.SplitLoadChainId);
+                removeActiveLabel();
+            }
+            else if (nextelement != undefined) {
+                var invoiceId = $(nextelement).attr("data-invoiceid");
+                getEditSplitLoadDDTDetails(invoiceId);
+            }
+        }
+
+        function AddNewSplitInvoice(splitLoadChainId) {
+            $("#invoice-common-details").hide();
+            var partialSplitInvoiceUrl = "@Url.Action("AddNewSplitInvoice", "Invoice", new { area = "Supplier" })";
+            $.get(partialSplitInvoiceUrl, { orderId: @Model.OrderId, splitLoadChainId: splitLoadChainId }, function (response) {
+                $("#split-invoice-details").html(response);
+                parseForm();
+                showHideonCheckbox('#@Html.IdFor(m=> m.DropAddress.IsAddressAvailable)', 'various-required-fields');
+                initDateTimePicker();
+            }).always(function () {
+                $(".form-submit").removeAttr("disabled");
+                wrapperHeight();
+                $(".loader").hide();
+            });
+        }
+
+        function getEditSplitLoadDDTDetails(invoiceId) {
+            $("#invoice-common-details").hide();
+            var partialEditSplitInvoiceUrl = "@Url.Action("GetSplitLoadInvoiceDetailsToEdit", "Invoice", new { area = "Supplier" })";
+            $.get(partialEditSplitInvoiceUrl, { invoiceId : invoiceId }, function (response) {
+				$("#split-invoice-details").html(response);
+				parseForm();
+                showHideonCheckbox('#@Html.IdFor(m => m.DropAddress.IsAddressAvailable)', 'various-required-fields');
+                initDateTimePicker();
+                if (nextelement != undefined && $(nextelement).attr("data-splitloadsequence") == 1) {
+					$(".split-common-details").show();
+					if ('@Model.IsBolEditAllowed' == 'False') {
+						DisableCommonDetails();
+					}
+                    $("#invoice-common-details").show();
+                }
+                removeActiveLabel();
+				$(nextelement).addClass("btn-primary pntr-none active-invoice");
+            }).always(function () {
+                $(".form-submit").removeAttr("disabled");
+                wrapperHeight();
+                $(".loader").hide();
+            });
+        }
+
+		function splitDropFailed() {
+			$(".form-submit").removeAttr("disabled");
+			$(".loader").hide();
+			msgerror("Failed to Add Drop");
+		}
+
+        function editSplitLoadInvoice(isNewSplitInvoice, isSaveForm) {
+			var $form = $("#split-invoiceedit-form");
+            isAddNewSplitInvoice = isNewSplitInvoice;
+			var isValidForm = $form.valid();
+			isValidForm = validateBolControls(isValidForm);
+			var formJson = $("#split-invoiceedit-form").serializeArray();
+			formJson = formJson.filter(function (el) { return el.name != 'TerminalPrice'; });
+			var formStr1 = JSON.stringify(formJson);
+			if (isValidForm) {
+				if (formStr1 == formStr) {
+					prevelment = $("#invoiceLinks div").find("a.active-invoice");
+					if (isAddNewSplitInvoice) {
+						var splitLoadChainId = $('#SplitLoadChainId').val();
+						AddNewSplitInvoice(splitLoadChainId);
+						removeActiveLabel();
+					}
+					if (isSaveForm)
+					{
+						window.location.href = "@Url.Action("Details","Order",new { area="Supplier" , id=Model.OrderId })";
+					}
+					return;
+				}
+                var submitUrl = $form.attr("action");
+                $(".loader").show();
+				isSave = isSaveForm || $(this).data("button") == "save";
+				prevelment = $("#invoiceLinks div").find("a.active-invoice");
+                var dataString = new FormData($form.get(0));
+                var action = submitUrl;
+                contentType = false;
+                processData = false;
+                $.ajax({
+                    type: "POST",
+                    url: action,
+                    data: dataString,
+                    dataType: "json",
+                    contentType: contentType,
+                    processData: processData,
+                    success: function (data) {
+                        splitDropSuccess(data);
+                    },
+                    error: function () {
+                        splitDropFailed();
+                    }
+                });
+            }
+            else {
+                fixedButtons(".form-submit", isValidForm);
+                focusonErrorControl();
+                return false;
+            }
+		}
+
+		function loadPartialSplitInvoice(element) {
+			var formJson = $("#split-invoiceedit-form").serializeArray();
+			formJson = formJson.filter(function (el) { return el.name != 'TerminalPrice'; });
+			var formStr1 = JSON.stringify(formJson);
+			var $form = $("#split-invoiceedit-form");
+			var isValidForm = $form.valid();
+			isValidForm = validateBolControls(isValidForm);
+			if (!isValidForm || $(element).hasClass("active-invoice")) {
+				return;
+			}
+			nextelement = element;
+			if (formStr1 != formStr)
+			{
+				editSplitLoadInvoice(false);
+			}
+			else
+			{
+				if (nextelement != undefined) {
+					var invoiceId = $(nextelement).attr("data-invoiceid");
+					getEditSplitLoadDDTDetails(invoiceId);
+				}
+			}
+		}
+
+		function removeActiveLabel() {
+            $("#invoiceLinks div > a").removeClass("btn-primary pntr-none active-invoice");
+        }
+
+        function submitSplitInvoices() {
+            editSplitLoadInvoice(false, true);
+        }
+
+        function isDroppedCrossBolQuantity(element) {
+            var splitDroppedGallons = parseFloat($("#@Html.IdFor(m => m.TotalSplitDroppedGallons)").val());
+            var lastDroppedGallons = parseFloat(getCurrentFuelDroppedGallons()) - parseFloat($("#@Html.IdFor(m => m.FuelDropped)").val());
+            var quantityIndicatorType = $("#@Html.IdFor(m => m.QuantityIndicatorTypeId)").val();
+            var BolDropped = quantityIndicatorType == @((int)QuantityIndicatorTypes.Net) ? $("#@Html.IdFor(m => m.BolDetails.NetQuantity)").val() : $("#@Html.IdFor(m => m.BolDetails.GrossQuantity)").val();
+			if ($('#PickUpAddress_IsAddressAvailable').is(":checked") == true) {
+				BolDropped = $("#@Html.IdFor(m => m.BolDetails.LiftQuantity)").val();
+			}
+			var isGreater = (splitDroppedGallons - lastDroppedGallons) > parseFloat(BolDropped);
+            var isLess = (splitDroppedGallons - lastDroppedGallons) < parseFloat(BolDropped);
+            var bolQuantityType = quantityIndicatorType == @((int)QuantityIndicatorTypes.Net) ? '@(QuantityIndicatorTypes.Net)' : '@(QuantityIndicatorTypes.Gross)';
+            if (isGreater || isLess) {
+                $(element).attr('data-toggle', 'confirmation');
+                $(element).attr('data-popout', 'true');
+                $(element).attr('data-singleton', 'true');
+                $(element).attr('data-confirmation-event', 'submitSplitInvoices');
+                if (isGreater) {
+                    $(element).attr('data-content', 'Fuel dropped is Exceeding the '+ bolQuantityType +' Quantity');
+                }
+                else {
+                    $(element).attr('data-content', 'Fuel dropped is less than the ' + bolQuantityType + ' Quantity');
+                }
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]'
+                });
+
+                $(element).confirmation('show');
+            }
+            else {
+                if ($(element).attr("data-toggle") == "confirmation") {
+                    $(element).confirmation('destroy');
+                    $(element).removeAttr('data-toggle');
+                }
+                editSplitLoadInvoice(false, true);
+            }
+            return ;
+        }
+           $(document).off('submitSplitInvoices'); 
+           $(document).on('submitSplitInvoices', function (e) {
+             submitSplitInvoices();
+        });
+    </script>
+}
+

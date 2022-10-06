@@ -1,0 +1,219 @@
+﻿<div class="row">
+    <div class="col-sm-12">
+        @Html.TextBox("Jobs", "", new { @placeholder = "Select Jobs", @class = "form-control searchbox"})
+        <div id="jobtxtboxloader"></div>
+    </div>
+</div>
+<div class="row">
+    <div id="header"></div>
+    <div class="col-sm-12">
+        <div id="createDR" class="buyer-drpanel">
+        </div>
+    </div>
+</div>
+<div class="text-right mt10">
+    <button type="button" id="btnCancelDRPanel" class="btn hide-element" onclick="clearPopup()">@Resource.btnLabelCancel</button>
+    <button type="button" id="btnSaveDeliveryRequest" class="btn btn-lg btn-primary hide-element"
+            onclick="createDeliveryRequest()">
+        @Resource.btnLabelSave
+    </button>
+</div>
+<script src="~/Content/js/common-supplier.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#btnCancelDRPanel').hide();
+        $('#btnSaveDeliveryRequest').hide();
+    });
+
+    @*function getJobsWithTanks() {
+        // $('#jobtxtboxloader').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+        var jobsWithTanksurl = "@Url.Action("GetJobsWithTanks", "Freight", new { area= "Carrier" })";
+        var element = "#@Html.Id("Jobs")";
+        autoCompleteTextBoxforJobNames(element, jobsWithTanksurl);
+    }*@
+
+    var element = "#@Html.Id("Jobs")";
+    var jobsWithTanksurl = '@Url.Action("GetJobsWithTanks", "Freight", new { area= "Carrier" })';
+    autoCompleteTextBoxforJobNames(element, jobsWithTanksurl);
+    function autoCompleteTextBoxforJobNames(element, jobswithtanksurl) {
+            var target = $(element);
+            target.focus(function () {
+                $(this).autocomplete("search", $(this).val());
+            });
+            target.autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: jobswithtanksurl,
+                        type: "GET",
+                        dataType: "json",
+                        data: { Prefix: request.term },
+                        success: function (data) {
+
+                            $("#jobtxtboxloader").find('.loading-wrapper').remove();
+                            var item = data.Result;
+                            response($.map(item, function (item) {
+                                return {
+                                    label: item.Name,
+                                    Id: item.Id
+                                }
+                            }));
+                        }
+                    });
+                },
+                messages: {
+                    noResults: '',
+                    results: function () { }
+                },
+                minLength: 0,
+                maxShowItems: 5,
+                scroll: true,
+                select: function (event, ui) {
+                    var jobName = ui.item.label;
+                    var JobId = ui.item.Id;
+                    $("#@Html.Id("Jobs")").val(jobName);
+                    getTankDetails(jobName, JobId); // JobName = SiteID in demand capture table
+                }
+
+                // select end
+            });// autocomplete end
+            $.ui.autocomplete.prototype._resizeMenu = function () {
+                var ul = this.menu.element;
+                ul.outerWidth(this.element.outerWidth());
+            }
+    }
+
+    function getTankDetails(JobName, JobId) {
+        $('#createDR').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+        var tankDetailsUrl = '@Url.Action("GetJobTankDetails", "Freight", new { area= "Carrier"})';
+        var regionId = "";
+
+        tankDetailsUrl += '?jobId=' + JobId;
+        $.ajax({
+            url: tankDetailsUrl,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                  $('#header').html('');
+                var tankInfo = data[0];
+                   var buyerCompanyName = tankInfo.BuyerCompanyName;
+                   var jobname = tankInfo.JobName;
+                   var jobSiteId = tankInfo.SiteId;
+                   div = $('<div>');
+                    div.append("<div class='col-sm-12 mb10 mt5'>"+
+                                 "<div class='dib float-left mr15 badge mb5'>"+
+                                 "<div class='fs12 pa5'>"+
+                                 "<i class='fa far fa-building mr5'>"+
+                                  "</i>" +buyerCompanyName+ "</div>"+
+                                "</div>" +
+                                "<div class='dib float-left mr15 badge mb5'>" +
+                                "<div class='fs12 pa5'>" +
+                                "<i class='fa fa-map-marker mr5'>" +
+                                "</i>Job Name: " + jobname + "</div>" +
+                                "</div>" +
+                                  "<div class='dib float-left badge mb5'>"+
+                                   "<div class='fs12 pa5'>"+
+                                   "<i class='fa fa-map-marker mr5'>"+
+                                   "</i>Job ID: " +jobSiteId+ "</div></div></div>");
+                $('#header').append(div);
+                $('#createDR').html('');
+                for (var i = 0; i < data.length; i++) {
+                    div = $('<div class="mb15">');
+                    div.append("<div><div class='well mt0 pt10 pb15 values'>" +
+                        "<div class= 'row mb5'>" +
+                        "<div class= 'col-sm-6'>" +
+                        "<input type='hidden' name='tankId' class='tankId' value=" + data[i].TankId + ">" +
+                        "<input type='hidden' name='SiteId' class='SiteId' value='" + data[i].SiteId +"'>"+
+                        "<input type='hidden' name='StorageId' class='StorageId' value=" + data[i].StorageId + ">" +
+                        "<input type='hidden' value=" + JobId + " class='JobId'>" +
+                        "<input type='hidden' value="+data[i].ProductTypeId+" class='productTypeId' name='ProductTypeId'>"+
+                        "<div class='mb5'><small class='db'>Tank ID</small><span class='f-bold'>" + data[i].TankId + "</span></div></div> " +
+                        "<div class='col-sm-6 text-right'>" +
+                        "<input type='text' name='requiredQuantity' class='form-control requiredQuantity' placeholder='Quantity Required'>"+
+                        "</div> "+
+                        "</div>" +
+                        "<div class='row'><div class='col-sm-12 text-right'>" +
+                        "<label class='radio-inline'>" +
+                        "<input id='mustgo' type='radio' value='1' class='priority' name='priority" + data[i].TankId + "" + data[i].StorageId + "" + data[i].SiteId + "'/>Must Go </label>" +
+                        "<label class='radio-inline'>" +
+                        "<input id='shouldgo' type='radio' value= '2' class='priority' name='priority" + data[i].TankId + "" + data[i].StorageId + "" + data[i].SiteId + "'/> Should Go </label>" +
+                        "<label class='radio-inline'>" +
+                        "<input id='couldgo' type='radio' value='3' class='priority' name='priority" + data[i].TankId + "" + data[i].StorageId + "" + data[i].SiteId + "'/>Could Go </label>" +
+                        "</div></div>"+
+                        "<div class='row'>" +
+                        "</div></div>"
+                    );
+                    $('#createDR').append(div);
+                    $("#createDR").find('.loading-wrapper').remove();
+                    $('#btnCancelDRPanel').show();
+                    $('#btnSaveDeliveryRequest').show();
+                }
+                parseForm();
+            },
+            error: function (data) {
+                console.log(data);
+            }
+        });
+    }
+
+
+
+    function createDeliveryRequest() {
+        var createdeliveryRequestUrl = '@Url.Action("createBuyerDeliveryRequest", "Freight", new { area = "Carrier" })';
+        var drDetailsArray = new Array();
+        var msgSuccess = "Success";
+        var msgError = "Failed";
+        var errInvalidSupplierCompanyId ="Invalid SupplierCompanyId";
+        var msgInvalidSupplierCompanyId = '@Resource.warningMessageNoOrdersFoundForGivenProductType';
+        $('.values').each(function (ele, i) {
+            var tankid = $(this).find('.tankId').val();
+            var siteId = $(this).find('.SiteId').val();
+            var storageId = $(this).find('.StorageId').val();
+            var requiredQuantity = $(this).find('.requiredQuantity').val();
+            var ProductTypeId = $(this).find('.productTypeId').val();
+            var jobId = $(this).find('.JobId').val();
+            var priority = $(this).find('input[type=radio]:checked').val();
+            var drdetails = {};
+            drdetails.SiteId = siteId;
+            drdetails.TankId = tankid;
+            drdetails.StorageId = storageId;
+            drdetails.RequiredQuantity = requiredQuantity;
+            drdetails.JobId = jobId;
+            drdetails.FuelTypeId = ProductTypeId;
+            drdetails.Priority = priority;
+            if (requiredQuantity > 0 && priority != undefined){
+                drDetailsArray.push(drdetails);
+             }
+        })
+        if (drDetailsArray.length > 0) {
+            $(".loader").show();
+            $.post(createdeliveryRequestUrl, { inputData: drDetailsArray }, function (response) {
+                $(".loader").hide();
+                if (response.StatusCode == 0 && response.StatusMessage==msgSuccess) {
+                    if (drDetailsArray.length > 0) {
+                        drDetailsArray.forEach(function (drdetails) {
+                            msgsuccess("Delivery Request(s) created Successfully for Tank(s) With Id :" + drdetails.TankId);
+                        });
+                    }
+                    closeSlidePanel();
+                }
+                else if (response.StatusCode == 0) {
+                    var msg = response.StatusMessage;
+
+                    if (msg == errInvalidSupplierCompanyId) {
+                        msgerror(msgInvalidSupplierCompanyId);
+                    }
+                }
+                else if (response.StatusCode == 1) {
+                    msgerror(response.StatusMessage);
+                }
+                else {
+                    msgerror(msgError);
+                }
+            });
+        }
+        else if (drDetailsArray.length == 0) {
+            msgerror("Invalid Details: Priority or Required quantity is missing");
+        }
+    }
+</script>
+

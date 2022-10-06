@@ -1,0 +1,572 @@
+﻿@model ThirdPartyOrderViewModel
+
+<div class="row mt10">
+    <div id="divPricingSection" class="col-sm-12">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group mb0 d-inline">
+                    @if (Model.AddressDetails.IsMarineLocation)
+                    {
+                    <div class="opacity-half d-inline">
+                        <div class="radio wrapper-rackprice dib mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.PricingDetails.PricingTypeId, "false", new { disabled = "disabled" })
+                                @Resource.lblMarketBased
+                            </label>
+                        </div>
+                        <div class="radio dib wrapper-suppliercost mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.PricingDetails.PricingTypeId, "false", new { disabled = "disabled" })
+                                @Resource.lblFuelCost
+                                <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@(CurrentUser.CompanySubTypeId == CompanyType.Buyer || CurrentUser.CompanyTypeId == CompanyType.Buyer ? Resource.msgFuelCostInBuyer : Resource.msgFuelCostInSupplier)"></i>
+                            </label>
+                        </div>
+                    </div>
+                    }
+                    else
+                    {
+                        <div class="radio wrapper-rackprice dib mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.PricingDetails.PricingTypeId, (int)PricingType.RackAverage,
+                                new { onclick = "showHideControls(this,'market-control,indices,cityrack-wrapper,div-selectpricingcode','cost-control,fixed-control,different-fuelprices,product-source');radioChange(this,'terminal-price','different-fuelprices,fixed-price,supplier-cost,dd-cityrack');ddCityRackToggle();", onchange = "focusOnFirst(this, 'terminal-price');clearPricingCode();", @class = "revalidate radio-rack-price" })
+                                @Resource.lblMarketBased
+                            </label>
+                        </div>
+                        <div class="radio dib wrapper-suppliercost mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.PricingDetails.PricingTypeId, (int)PricingType.Suppliercost,
+                                new { onclick = "showHideControls(this,'cost-control,product-source','market-control,fixed-control,different-fuelprices,indices,cityrack-wrapper,div-selectpricingcode');radioChange(this,'supplier-cost','different-fuelprices,fixed-price,terminal-price');ddCityRackToggle()", onchange = "focusOnFirst(this, 'supplier-cost');clearPricingCode();", @class = "revalidate" })
+                                @Resource.lblFuelCost
+                                <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@(CurrentUser.CompanySubTypeId == CompanyType.Buyer || CurrentUser.CompanyTypeId == CompanyType.Buyer ? Resource.msgFuelCostInBuyer : Resource.msgFuelCostInSupplier)"></i>
+                            </label>
+                        </div>
+                    }
+                    <div class="radio dib mr20 d-inline">
+                        <label>
+                            @Html.RadioButtonFor(m => m.PricingDetails.PricingTypeId, (int)PricingType.PricePerGallon,
+                            new { onclick = "showHideControls(this,'fixed-control,product-source','market-control,cost-control,different-fuelprices,indices,cityrack-wrapper,div-selectpricingcode');radioChange(this,'fixed-price','different-fuelprices,terminal-price,supplier-cost');ddCityRackToggle()", onchange = "focusOnFirst(this, 'fixed-price');clearPricingCode();", @class = "revalidate fixed-pricing" })
+                            @Resource.lblFixed
+                        </label>
+                    </div>
+                    @Html.HiddenFor(m => m.PricingDetails.IsTierPricingRequired)
+                    @if (Model.PricingDetails.IsTierPricingRequired)
+                    {
+                        <div class="radio dib mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.PricingDetails.PricingTypeId, (int)PricingType.Tier,
+                                new { onclick = "showHideControls(this,'different-fuelprices,div-selectpricingcode','fixed-control,market-control,cost-control,cityrack-wrapper');radioChange(this,'different-fuelprices','fixed-price,terminal-price,supplier-cost');ddCityRackToggle()", onchange = "focusOnFirst(this, 'different-fuelprices');clearPricingCode();", @class = "revalidate fixed-pricing" })
+                                @Resource.lblTier
+                            </label>
+                        </div>
+                    }
+                </div>
+                    </div>
+        </div>
+        <div class="row">
+            <div class="disable-in-tpo-edit col-sm-12">
+                <div class="row">
+                    @Html.HiddenFor(m => m.PricingDetails.FuelPricingDetails.PricingSourceId, new { @class = "ddl-pricing-source" })
+                    <div class="pricing-code hide-element  col-sm-6">
+                        <div class="row">
+                            @Html.PartialFor("_PartialPricingCodes", m => m.PricingDetails.FuelPricingDetails.PricingCode)
+                            <div class="col-sm-6 div-selectpricingcode">
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modal-pricing-codes" onclick="reloadPricingData()">@Resource.lblSelectPricingCode</button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div id="pricing-code-info" class="hide-element v-middle">
+                                    <label></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="pa bg-white subSectionOpacity mt10 top0 left0 z-index5 loading-wrapper calculate-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                <div class="market-control">
+                    <div class="row">
+                        <div class="col-sm-3 terminal-price market-control">
+                            <div class="form-group">
+                                @Html.DropDownListFor(m => m.PricingDetails.RackAvgTypeId, new SelectList(CommonHelperMethods.GetRackAvgPricingTypes(), "Id", "Name", Model.PricingDetails.RackAvgTypeId), new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.PricingDetails.RackAvgTypeId)
+                            </div>
+                        </div>
+                        <div class="col-sm-3 terminal-price market-control">
+                            <div class="form-group">
+                                <div class="mtm1">
+                                    @Html.TextBoxFor(m => m.PricingDetails.RackPrice, new { @class = "form-control datatype-decimal always", @placeholder = "Rack Price" })
+                                </div>
+                                <div>
+                                    @Html.ValidationMessageFor(m => m.PricingDetails.RackPrice)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="cost-control cont-control-wrapper">
+                    <div class="row">
+                        <div class="col-sm-3 supplier-cost defaultDisabled cost-control hide-element">
+                            @Html.DropDownListFor(m => m.PricingDetails.SupplierCostMarkupTypeId, new SelectList(CommonHelperMethods.GetRackAvgPricingTypes(), "Id", "Name", Model.PricingDetails.SupplierCostMarkupTypeId), new { @class = "form-control" })
+                        </div>
+                        <div class="col-sm-3 supplier-cost defaultDisabled cost-control hide-element">
+                            <div class="form-group">
+                                <div class="mtm1 defaultDisabled">
+                                    @Html.TextBoxFor(m => m.PricingDetails.SupplierCostMarkupValue, new { @class = "form-control datatype-decimal always" })
+                                </div>
+                                <div class="supplier-cost defaultDisabled">
+                                    @Html.ValidationMessageFor(m => m.PricingDetails.SupplierCostMarkupValue)
+                                    @Html.ValidationMessageFor(m => m.PricingDetails.SupplierCostMarkupTypeId)
+                                    @Html.ValidationMessageFor(m => m.PricingDetails.PricingTypeId)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 fixed-price defaultDisabled fixed-control hide-element">
+                        <div class="form-group">
+                            <div class="input-group mtm1">
+                                <span class="input-group-addon currency-symbol">@Model.PricingDetails.Currency</span>
+                                @Html.TextBoxFor(m => m.PricingDetails.PricePerGallon, new { @class = "form-control datatype-decimal always" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.PricingDetails.PricePerGallon)
+                        </div>
+                    </div>
+                </div>
+                @if (Model.PricingDetails.IsTierPricingRequired)
+                {
+                    <div class="different-fuelprices row">
+                        <div id="different-fuelprice-section" class="partial-section quantity-range">
+                            <div class="partial-block-collection-section">
+                                @if (Model.PricingDetails.DifferentFuelPrices != null && Model.PricingDetails.DifferentFuelPrices.Count() > 0)
+                                {
+                                foreach (var fuelprice in Model.PricingDetails.DifferentFuelPrices)
+                                {
+                                    Html.RenderPartial("~/Views/Shared/_PartialDifferentFuelPrice.cshtml", fuelprice);
+                                }
+                            }
+                            </div>
+                            <div class="form-group col-md-12">
+                                <a href="javascript:void(0)" onclick="AjaxStart(this)" class="add-partial-block" data-url="@Url.Action("DifferentFuelPrice", "FuelRequest")"><span class="fa fa-plus-circle"></span>@Resource.btnLabelAddNewTierPrice</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row cityrack-wrapper">
+    <div class="col-sm-12">
+        <div class="row">
+            <div class="col-sm-3 terminal-price-check">
+                <div class="form-group mb5">
+                    <div class="dib terminal-price">
+                        <div class="dib mr10 pr pull-left">
+                            <div class="checkbox chk-cityrack mb10 mt0">
+                                <div class="form-check form-check-inline chk-cityrack">
+                                    <input type="checkbox" onclick="checkBoxChange(this,'dd-cityrack');" class="enablecityrack form-check-input" id="chk-enable-cityrack" />
+                                    <label class="form-check-label" for="chk-enable-cityrack">@Resource.lblSelectCityTerminal</label>
+                                </div>
+                            </div>
+                            <div class="@(Model.PricingDetails.CityGroupTerminalId.HasValue ? " dd-cityrack pr" : "pr defaultDisabled subSectionOpacity dd-cityrack hide-element" )" id="cityrack-div">
+                                <div class="pa bg-white top0 left0 z-index5 loading-wrapper cityrack-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+                                <select id="@Html.IdFor(m => m.PricingDetails.CityGroupTerminalId)" name="@Html.NameFor(m => m.PricingDetails.CityGroupTerminalId)" class="cityrackterminallist singleselect">
+                                    <option selected disabled class="hidden" value="noneselected">@Resource.lblSelectCityTerminal</option>
+                                    <optgroup label="@Resource.lblWithinState"> </optgroup>
+                                    <optgroup label="@Resource.lblOtherStates"> </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        @Html.ValidationMessageFor(m => m.PricingDetails.CityGroupTerminalId, string.Empty, new { @class = "dib cityrack-validation pull-left" })
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3 terminal-price city-groupterminal hidden mb25" id="terminalContainer">
+                <div class="form-group">
+                    <div>
+                        <div class="pr row">
+                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper ddterminal-loader mtm10 hide"><span class='spinner-dashboard pa'></span></div>
+                            <div class="col-md-12">
+                                @Html.TextBoxFor(m => m.PricingDetails.TerminalName, new { @class = "form-control", @placeholder = Resource.lblTerminal })
+                                @Html.HiddenFor(m => m.PricingDetails.TerminalId)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @*<div class="alert alert-warning cityrack-validation f-bold dib hide-element">@Html.ValidationMessageFor(m => m.PricingDetails.CityGroupTerminalId, string.Empty)</div>*@
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 pr0 hide-element show-in-frandcounteroffer">
+        <div class="checkbox mt0 fs12 terminal-price">
+            <label>
+                @Html.CheckBoxFor(m => m.PricingDetails.IncludeTaxes)
+                @Resource.lblIncludeTaxes
+            </label>
+        </div>
+    </div>
+</div>
+<div class="row terminal-price defaultDisabled">
+    <div class="hide-element show-in-fr">
+        <div class="col-xs-2 pr0">
+            <input type="button" class="btn btn-info btn-sm" id="btnCalculate" value="@Resource.lblCalculate @(Model.PricingDetails.Currency == Currency.CAD ? Resource.lblPricePerLitre : Resource.gridColumnPPG)" data-url="@Url.Action("CalculateTerminalPrice", "FuelRequest" )" />
+        </div>
+        <div class="col-xs-8">
+            <label id="EstimatedPPG" class="mt5 ml10"></label>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+       function GetCityRackTerminalList(selectedStateId, allstates, initialload, selectedForCounterOffer)
+       {
+           var source = getPricingSource();
+            if (selectedStateId > 0) {
+                $.get("@Url.Action("GetCityGroupTerminals", "Order")", { stateId: selectedStateId, allStates: allstates, sourceId: source }, function (response) {
+                    var optionGroups = $("#@Html.IdFor(m => m.PricingDetails.CityGroupTerminalId) optgroup");
+                    $(optionGroups[0]).empty();
+                    $(optionGroups[1]).empty();
+                    $.each(response, function (i, element) {
+                        if (element.IsWithinState) {
+                            $(optionGroups[0]).append($('<option></option>').val(element.Id).html(element.Name));
+                        }
+                        else {
+                            $(optionGroups[1]).append($('<option></option>').val(element.Id).html(element.Name));
+                        }
+                    });
+                    if (selectedForCounterOffer > 0) {
+                        $("#@Html.IdFor(m => m.PricingDetails.CityGroupTerminalId)").val(selectedForCounterOffer);
+                    }
+                }).done(function () {
+                   $('#@Html.IdFor(m => m.PricingDetails.CityGroupTerminalId)').multiselect({
+                        enableFiltering: true,
+                        enableCaseInsensitiveFiltering: true,
+                    });
+                    $('#@Html.IdFor(m => m.PricingDetails.CityGroupTerminalId)').multiselect('rebuild');
+                });
+            }
+        }
+
+        function fillCityGroupTerminals(stateid, currentCityGroupTerminalId) {
+            if (typeof currentCityGroupTerminalId === 'undefined' || currentCityGroupTerminalId == '') {
+                currentCityGroupTerminalId = 0;
+            }
+            else {
+                $(".enablecityrack").prop("checked", true);
+                $(".dd-cityrack").removeClass("subSectionOpacity").removeClass("pntr-none");
+            }
+            $(".cityrackterminalinput").val("");
+            $(".cityrackterminallist ul").empty();
+            $(".showallcityterminals").hide();
+            GetCityRackTerminalList(stateid, false, true, currentCityGroupTerminalId);
+        }
+
+        $("#@Html.IdFor(m=>m.PricingDetails.CityGroupTerminalId)").change(function () {
+            assignNewCityGroupTerminal();
+        });
+
+        $(document).ready(function () {
+             $(".enablecityrack").on('change', function () {
+                 $('#@Html.IdFor(m => m.PricingDetails.CityGroupTerminalId)').multiselect('select', ['noneselected']);
+                 if ($(this).prop("checked") == false) {
+                     $(".dd-cityrack").css("pointer-events", "none");
+                     $(".dd-cityrack,.cityrackterminallist").css("pointer-events", "none");
+                     $(".multiselect").addClass("pntr-none");
+                     $(".dd-cityrack").removeClass("show-element").addClass("hide-element");
+                     $(".cityrack-validation").addClass("hide-element");
+                }
+                else {
+                     $(".dd-cityrack").css("pointer-events", "visible");
+                     $(".dd-cityrack").removeClass("subSectionOpacity").removeClass("pntr-none");
+                     $(".dd-cityrack").removeClass("hide-element").addClass("show-element");
+                     $(".cityrack-validation").removeClass("hide-element");
+                 }
+            });
+
+            setDefaultPricingTypeFromPrefSetting();
+
+            var pricingTypeId = parseInt($('input[name="@Html.NameFor(m => m.PricingDetails.PricingTypeId)"]:checked').val());
+            if (pricingTypeId != 1 && !isNaN(pricingTypeId)) {
+                var pricingSourceId = parseInt($("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingSourceId)").val());
+                pricingTypeId = (pricingTypeId == 0 || isNaN(pricingTypeId)) ? 2 : pricingTypeId;
+                pricingSourceId = (pricingSourceId == 0 || isNaN(pricingSourceId)) ? 1 : pricingSourceId;
+                setPricingCodeForFixedAndFC(pricingTypeId, pricingSourceId);
+            }
+        });
+
+        var isCityRackEnabled = false;
+        function setDefaultPricingTypeFromPrefSetting() {
+            if ('@Model.IsOnboardingPreferenceExists' == 'False')
+                return;
+
+            var id = '@(Model.PreferencesSetting != null ? (int)Model.PreferencesSetting.PreferencePricingMethod : (int)OnboardingPreferencePricingMethod.Multiple)'
+            var onboardingPrefPricingTypeId = parseInt(id);
+            if (onboardingPrefPricingTypeId == '@((int)OnboardingPreferencePricingMethod.Multiple)')
+                return;
+
+            var defaultPricingTypeId = parseInt('@((int)PricingType.PricePerGallon)');
+            if (onboardingPrefPricingTypeId == '@((int)OnboardingPreferencePricingMethod.Rack)' || onboardingPrefPricingTypeId == '@((int)OnboardingPreferencePricingMethod.City)')
+                defaultPricingTypeId = parseInt('@((int)PricingType.RackAverage)');
+            else if (onboardingPrefPricingTypeId == '@((int)OnboardingPreferencePricingMethod.FuelCost)')
+                defaultPricingTypeId = parseInt('@((int)PricingType.Suppliercost)');
+            else if (onboardingPrefPricingTypeId == '@((int)OnboardingPreferencePricingMethod.Fixed)')
+                defaultPricingTypeId = parseInt('@((int)PricingType.PricePerGallon)');
+            else
+                defaultPricingTypeId = parseInt('@((int)PricingType.RackAverage)');
+
+            $('input:radio[name="@Html.NameFor(m => m.PricingDetails.PricingTypeId)"][value=' + defaultPricingTypeId +']').prop('checked', true).trigger('click');
+            if (onboardingPrefPricingTypeId == '@((int)OnboardingPreferencePricingMethod.City)') {
+                $('.enablecityrack').prop('checked', true).trigger('change');
+                isCityRackEnabled = true;
+            }
+        }
+
+        function hideOtherProductControls(ele) {
+            var isSupressOrderLevelPricingEnabled = $('#IsSupressOrderPricing').prop('checked');
+            if (isSupressOrderLevelPricingEnabled) {
+                $('.taxForOtherFuel').removeAttr("style").addClass("hide-element");
+                $("#@Html.IdFor(m => m.PricingDetails.PricePerGallon)").val(0);
+            }
+            else if (getProductDisplayGroupId() == 3 || getProductDisplayGroupId() == 7) {
+                $('.taxForOtherFuel').removeAttr("style").removeClass("hide-element");
+            }
+        }
+
+        function ShowHideIndicesControls() {
+            var pricingTypeId = parseInt($('input[name="@Html.NameFor(m => m.PricingDetails.PricingTypeId)"]:checked').val());
+            var pricingSourceId = $("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingSourceId)").val();
+            $('#@Html.IdFor(m => m.PricingDetails.TerminalName)').val('');
+            @*if ((pricingSourceId == '@((int)PricingSource.OPIS)' || pricingSourceId == '@((int)PricingSource.PLATTS)') && $(".otherfueltype").is(":checked")) {
+                $("#FuelDetails_FuelDisplayGroupId").trigger("click");
+            }*@
+            //$('.pricing-code').addClass('hide-element');
+            $(".cont-control-wrapper,.standard-fuels").removeClass("mt25");
+
+            $('.pricing-code').addClass('hide-element');
+            if (pricingTypeId == 1) {
+                 $('.pricing-code').removeClass('hide-element');
+            }
+            if (pricingSourceId == '@((int)PricingSource.Axxis)' && !isCityRackEnabled) {
+                $(".chk-cityrack").removeClass("pntr-none subSectionOpacity").css("pointer-events", "visible");
+                $("#chk-enable-cityrack").removeClass("pntr-none subSectionOpacity");
+                showHideCityRack($("#@Html.IdFor(m => m.AddressDetails.Country.Id)").val(), '@((int)Country.CAN)');
+                if ($(".enablecityrack").prop('checked', true)) {
+                    $(".enablecityrack").prop('checked', false);
+                    $(".dd-cityrack").addClass("hide-element");
+                }
+            }
+            else if (pricingSourceId == '@((int)PricingSource.OPIS)' && pricingTypeId == 1) {
+                showHideCityRack($("#@Html.IdFor(m => m.AddressDetails.Country.Id)").val(), 0);
+                if ($(".enablecityrack").prop('checked', false)) {
+                    $(".enablecityrack").trigger("click");
+                    $(".chk-cityrack").addClass("pntr-none subSectionOpacity").css("pointer-events", "none");
+                }
+                $(".dd-cityrack").show();
+            }
+            else if (pricingSourceId == '@((int)PricingSource.PLATTS)' && pricingTypeId == 1) {
+                showHideCityRack($("#@Html.IdFor(m => m.AddressDetails.Country.Id)").val(), 0);
+                if ($(".enablecityrack").prop('checked', false)) {
+                    $(".enablecityrack").trigger("click");
+                    $(".chk-cityrack").addClass("pntr-none subSectionOpacity").css("pointer-events", "none");
+                }
+                $(".dd-cityrack").show();
+            }
+            else {
+                $(".cont-control-wrapper,.standard-fuels").addClass("mt25");
+            }
+
+            if (pricingTypeId != 1) {
+                setPricingCodeForFixedAndFC(pricingTypeId, pricingSourceId);
+            }
+        }
+
+        function setPricingCodeForFixedAndFC(pricingTypeId, pricingSourceId) {
+            var pricingCode = getPricingCode(pricingTypeId, pricingSourceId);
+            if (pricingCode != null) {
+                $("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingCode.Code)").val(pricingCode.Code);
+                $("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingCode.Id)").val(pricingCode.Id);
+            }
+        }
+
+        $('input[name="@Html.NameFor(m => m.PricingDetails.PricingTypeId)"]').change(function () {
+            clearPricingCode();
+            ShowHideIndicesControls();
+            var stateId = $('.addressInput.state').val();
+            //fillCityGroupTerminals(stateId, 0);
+        });
+
+        $("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingSourceId)").change(function () {
+            //clearPricingCode();
+            ShowHideIndicesControls();
+            var stateId = $('.addressInput.state').val();
+            fillCityGroupTerminals(stateId, 0);
+        });
+
+        function GetNearestFuels(jobId, targetUrl, zipCode)
+        {
+            var groupId = parseInt($('input[name="@Html.NameFor(m => m.FuelDetails.FuelDisplayGroupId)"]:checked').val(),10);
+            var target = $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)");
+            $(".spinner-xsmall").show();
+
+            var source = '@((int)(PricingSource.Axxis))';
+            if ($("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingSourceId)").length > 0) {
+                source = parseInt($("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingSourceId)").val(), 10);
+            }
+
+            $.get(targetUrl, { displayGroupId: groupId, jobId: jobId, zipCode: zipCode, source: source }, function (response) {
+				target.empty();
+				$(".nearest-fuellist ul").empty();
+				showHideFavoriteErrorMessage(groupId, response.length);
+				$.each(response, function (i, element) {
+                      target.append($('<option></option>').val(element.Id).html(element.Name));
+					  if (groupId == @((int)(ProductDisplayGroups.FuelTypesInYourArea))) {
+                          $(".nearest-fuellist ul").append($('<li></li>').val(element.Id).html(element.Name));
+                      }
+                });
+                $(".loading-wrapper.loader-fueltype").addClass("hide-element");
+                target.prepend("<option value @(Model.FuelDetails.FuelTypeId.HasValue? "" : "selected='selected'") >@Resource.lblSelectFuel</option>");
+				if (groupId == @((int)(ProductDisplayGroups.FuelTypesInYourArea))) {
+					$(".nearest-fuellist ul").prepend("<li>@Resource.lblSelectFuel</li>");
+					$('.nearest-fuellist li:first-child').click();
+                }
+                target.find("option[value='@Model.FuelDetails.FuelTypeId']").attr("selected", "selected");
+                $(".spinner-xsmall").hide();
+			});
+			if (groupId == @((int)(ProductDisplayGroups.OtherFuelType)) && $('input[name="@Html.NameFor(m => m.PricingDetails.PricingTypeId)"]:checked').val() != '@((int)PricingType.PricePerGallon)')
+			{
+				$('input:radio[name="@Html.NameFor(m => m.PricingDetails.PricingTypeId)"][value=' +@((int)PricingType.PricePerGallon)+']').prop('checked', true).trigger('click');
+			}
+        }
+
+        function showHideFavoriteErrorMessage(groupId, dataLen)
+		{
+			if (groupId == @((int)(ProductDisplayGroups.FavoriteFuelType)) && dataLen == 0) {
+				$('#allOtherFuelTypes').hide();
+				$('#noFavoriteFuelMsg').removeClass('hide-element');
+			}
+			else {
+				if (groupId == '@((int)ProductDisplayGroups.FuelTypesInYourArea)') {
+					$('#allOtherFuelTypes').hide();
+					$('#fuelTypeNearYourArea').removeClass('hide-element');
+				}
+				else {
+					$('#allOtherFuelTypes').show();
+					$('#fuelTypeNearYourArea').addClass('hide-element');
+				}
+				$('#noFavoriteFuelMsg').addClass('hide-element');
+			}
+        }
+
+        $(".more-nearestfuel").click(function () {
+            $(".spinner-xsmall").show();
+            $("#hdnRadius").val(parseInt($("#hdnRadius").val(), 10) + 100);
+            var radius = $("#hdnRadius").val();
+            if (typeof isExistingJob == 'undefined' || isExistingJob == true) {
+                var groupId = $('input[name="@Html.NameFor(m => m.FuelDetails.FuelDisplayGroupId)"]:checked').val(), target = $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)");
+                $.get("@Url.Action("GetProductList","FuelRequest")", { displayGroupId: groupId, jobId: jobId, radius: radius }, function (response) {
+                    $.each(response, function (i, element) {
+                        $(".nearest-fuellist ul").append($('<li></li>').val(element.Id).html(element.Name));
+                        $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").append($('<option></option>').val(element.Id).html(element.Name));
+                    });
+                    $(".spinner-xsmall").hide();
+                });
+            }
+            else {
+                $.get("@Url.Action("GetProductListByZip")", { zipCode: zipCode, radius:radius }, function (response) {
+                     $.each(response, function (i, element) {
+                         $(".nearest-fuellist ul").append($('<li></li>').val(element.Id).html(element.Name));
+                         $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").append($('<option></option>').val(element.Id).html(element.Name));
+                    });
+                    $(".spinner-xsmall").hide();
+                });
+            }
+        });
+
+        function checkOtherFuelType(favRadio) {
+            var IsOtherFuelType = '@Model.FuelDetails.IsOtherFuelTypeInFavorite';
+            if (IsOtherFuelType.toLowerCase() == 'true') {
+                radioChange(favRadio, null, 'wrapper-rackprice,wrapper-suppliercost,city-groupterminal,chkcity-groupterminal');
+                triggerEvent('.fixed-pricing', 'click');
+            }
+        }
+
+        $(document).click(function (e) {
+            if (!$(e.target).is('.nearest-fuellist, .nearest-fuellist *,.nearest-fueltype')) {
+                $(".nearest-fuellist").hide();
+            }
+        });
+
+        //Put the text of clicked list item to text box
+        $('.nearest-fuellist ul').on('click', 'li', function () {
+            $(".nearest-fueltype").val($(this).text());
+            $(".nearest-fuellist").hide();
+            $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").val($(this).val());
+        });
+
+        //takes first value and adds to text box
+        $(".nearest-fueltype").val($(".nearest-fuellist ul li:first-child").text());
+
+        $(".nearest-fueltype").click(function () {
+            if ($(".nearest-fuellist").is(':visible')) {
+                $(".nearest-fuellist").hide();
+            }
+            else {
+                $(".nearest-fuellist").show();
+            }
+        });
+
+        $('input[name="@Html.NameFor(m => m.FuelDetails.FuelDisplayGroupId)"]').change(function () {
+            $(".loading-wrapper.loader-fueltype").removeClass("hide-element");
+           var isFuelNearYou = $('input[name="@Html.NameFor(m => m.FuelDetails.FuelDisplayGroupId)"]:checked').val() == '@((int)ProductDisplayGroups.FuelTypesInYourArea)' ? true : false;
+           if (typeof isExistingJob == 'undefined' || isExistingJob || !isFuelNearYou) {
+               GetNearestFuels(jobId, productListUrl, zipCode);
+            }
+            else {
+                if (isFuelNearYou) {
+                    $(".nearest-fuellist ul").empty();
+                    GetFuelTypesByZipCode(zipCode);
+                }
+            }
+        });
+
+         function GetFuelTypesByZipCode(zipCode)
+         {
+             $(".spinner-xsmall").show();
+             $("#FuelTypeNearYou").val("");
+             $(".nearest-fuellist ul").empty();
+             $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").empty();
+
+             if (zipCode != "") {
+               $("#hdnRadius").val(parseInt($("#hdnRadius").val()));
+               var radius = $("#hdnRadius").val();
+               $.get("@Url.Action("GetProductListByZip")", { zipCode: zipCode, radius: radius }, function (response) {
+                   $.each(response, function (i, element) {
+                       $(".nearest-fuellist ul").append($('<li></li>').val(element.Id).html(element.Name));
+                       $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").append($('<option></option>').val(element.Id).html(element.Name));
+                   });
+                   $('.nearest-fuellist li:first-child').click();
+                   $("span[data-valmsg-for='FuelTypeInYourAreaId']").hide();
+
+               }).done(function () { $(".spinner-xsmall").hide(); $(".loading-wrapper.loader-fueltype").addClass("hide-element"); });
+           }
+        }
+
+        function getPricingFilter() {
+            return {
+                "PricingSourceId": $("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingSourceId)").val(),
+                "PricingTypeId": $("#@Html.IdFor(m=> m.PricingDetails.PricingTypeId):checked").val(),
+                "tfxProdId": $("#@Html.IdFor(m=> m.FuelDetails.FuelTypeId)").val()
+            };
+        }
+
+    </script>
+}

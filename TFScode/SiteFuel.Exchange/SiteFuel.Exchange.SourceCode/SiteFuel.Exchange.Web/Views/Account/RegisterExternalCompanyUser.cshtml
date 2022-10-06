@@ -1,0 +1,161 @@
+﻿@using SiteFuel.Exchange.Web.Common
+@model RegisterAdditionalUserViewModel
+
+@{
+    ViewBag.FaviconPath = Model.FaviconImagePath;
+    ViewBag.Title = "Register";
+    Layout = "~/Views/Shared/_LayoutEmpty.cshtml";
+}
+@using (Html.BeginForm("RegisterExternalCompanyUser", "Account", FormMethod.Post, new { role = "form" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.AdditionalUserId)
+    @Html.HiddenFor(m => m.SupplierURL)
+    @Html.HiddenFor(m => m.SupplierLogoPath)
+    @Html.HiddenFor(m => m.BackgroundImagePath)
+    @Html.HiddenFor(m => m.ButtonColor)
+    <h1 class="mt0 fs18 mb20">@Resource.headingRegisterCompanyUser</h1>
+    <div class="row">
+        <div class="col-sm-12">
+            <div id="display-custom-message">
+                @Html.Partial("_DisplayCustomMessage")
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <h2 class="fs15 mt0 f-normal">@Resource.headingCompanyDetails</h2>
+        </div>
+        <div class="col-sm-6 mb10">
+            <div class="form-group mb0">
+                @Html.HiddenFor(m => m.Company.Id)
+                @Html.HiddenFor(m => m.Company.Name)
+                @Html.TextBoxFor(m => m.Company.Name, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.Company.Name), autofocus = "autofocus", @disabled = "disabled" })
+                @Html.ValidationMessageFor(m => m.Company.Name)
+            </div>
+        </div>
+        <div class="col-sm-6 mb10">
+            <div class="form-group mb0">
+                @Html.HiddenFor(m => m.Company.CompanyTypeId)
+                @Html.DropDownListFor(m => m.Company.CompanyTypeId, new SelectList(CommonHelperMethods.GetCompanyTypes(), "Id", "Name", 0), Resource.lblType, new { @class = "form-control onchange-select-showhide disable-control", @disabled = "disabled" })
+                @Html.ValidationMessageFor(m => m.Company.CompanyTypeId)
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <h2 class="fs15 mt15 f-normal">@Resource.headingYourDetails</h2>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.TextBoxFor(m => m.FirstName, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.FirstName) })
+                @Html.ValidationMessageFor(m => m.FirstName)
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.TextBoxFor(m => m.LastName, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.LastName) })
+                @Html.ValidationMessageFor(m => m.LastName)
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.Email), @readonly = "readonly" })
+                @Html.ValidationMessageFor(m => m.Email)
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.TextBoxFor(m => m.MobileNumber, new { @class = "form-control input-phoneformat phone", onchange = "IsPhoneNumberValid(this.value)", placeholder = @Html.DisplayNameFor(m => m.MobileNumber) })
+                @Html.ValidationMessageFor(m => m.MobileNumber)
+                <div class="color-orange fs12 pt5" id="mobile-validation-msg"></div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6 mb15">
+            <div class="form-group mb0">
+                <div class="input-group">
+                    @Html.PasswordFor(m => m.Password, new { @class = "form-control pwstrength", placeholder = @Html.DisplayNameFor(m => m.Password), data_indicator = "pwindicator" })
+                    <span class="input-group-btn">
+                        <button class="btn show-password" type="button">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </span>
+                </div>
+                @Html.ValidationMessageFor(m => m.Password)
+            </div>
+        </div>
+        <div class="col-sm-6 mb15">
+            <div class="form-group mb0">
+                @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.ConfirmPassword) })
+                @Html.ValidationMessageFor(m => m.ConfirmPassword)
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 fs12">
+            @(string.Format(Resource.lblAutoAgreeTerms, Resource.lblRegister))
+            <a href="@Url.Action("UserAgreement", "Account", new { area = ""})" target="_blank" rel="nofollow">@Resource.headerTermsAndConditions</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="form-group mb0">
+                <div id="pwindicator">
+                    <div class="strength-bar"></div>
+                    <div class="strength-label"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row text-center">
+        <div class="col-12">
+            <button type="submit" class="btn">@Resource.lblRegister</button>
+        </div>
+    </div>
+
+}
+@section Scripts {
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/jquery-pwstrength")
+}
+
+<script type="text/javascript">
+    function IsPhoneNumberValid(phoneNumber) {
+        var new_phoneNumber = phoneNumber.replace(/-|\s/g, "");
+        if (new_phoneNumber != "" && new_phoneNumber.length == 10) {
+            var isPhoneNumberValid = '@Url.Action("IsPhoneNumberValid", "Validation", new { area = "" })' + '?phoneNumber=' + phoneNumber;
+            $.get(isPhoneNumberValid, function (result) {
+                if (!result) {
+                    validationMessageFor("@Html.NameFor(m => m.MobileNumber)", '');
+                    $("#mobile-validation-msg").html('@Resource.valMessagePhoneNotValid');
+                    $('#@Html.IdFor(m=>m.IsPhoneNumberConfirmed)').val(false);
+                } else {
+                    $("#mobile-validation-msg").html('');
+                    $('#@Html.IdFor(m=>m.IsPhoneNumberConfirmed)').val(true);
+                }
+            });
+        }
+        else {
+            $("#mobile-validation-msg").html('');
+        }
+    }
+    $(document).ready(function () {
+        $("#supplierBrandText").hide();
+        var SupplierLogoPath = '@Model.SupplierLogoPath';
+        var SupplierURL = '@Model.SupplierURL';
+        var backgroundImagePath = '@Model.BackgroundImagePath';
+        if (SupplierLogoPath != '' && SupplierURL != '' && backgroundImagePath != '') {
+            $("#mainLogo").attr("src", SupplierLogoPath.replace(/&amp;/g, '&'));
+            //$("#supplierBrandText").show();
+            var imageURL = backgroundImagePath.replace(/&amp;/g, '&');
+            $('.authbg').css("background", "url(" + imageURL + ")");
+            $('.btn').css("background", '@Model.ButtonColor');
+            $('.app-features').css("background", '@Model.ButtonColor');
+            $('.tabs-login .active').css({ "border-bottom": '4px solid @Model.ButtonColor',"color":"@Model.ButtonColor"});
+        }
+    });
+</script>
+

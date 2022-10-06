@@ -1,0 +1,149 @@
+﻿@model FuelRequestFilterType
+@{
+    ViewBag.Title = "Fuel Requests";
+}
+
+<div class="row mb10">
+    <div class="col-sm-3 col-md-2 col-xs-12 pr0">
+        <h3 class="mt0 f-light fs21 pt5">@Resource.headingFuelRequestSummary</h3>
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb5">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                    <input type="button" class="btn btn-default ml5" value="@Resource.btnLabelClearFilter" onclick="ClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div id="90DaysDataWarning" class="col-md-12">
+        <div class="alert alert-info fs12 mb15"><strong>@Resource.lblInfo</strong>@Resource.lbl90DaysDataWarning</div>
+    </div>
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="ibox mb0">
+                        <div class="ibox-content no-border no-padding">
+                            <div class="table-responsive">
+                                <table id="sa-fuelrequest-datatable" class="table table-striped table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>@Resource.lblRequestNumber</th>
+                                            <th>@Resource.gridColumnZipcode</th>
+                                            <th>@Resource.gridColumnQuantity</th>
+                                            <th>@Resource.gridColumnFuelType</th>
+                                            <th>@Resource.gridColumnCreatedDate</th>
+                                            <th>@Resource.lblCompanyName</th>
+                                            <th>@Resource.lblAccountType</th>
+                                            <th>@Resource.lblRackPPG</th>
+                                            <th>@Resource.gridColumnStatus</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var ClearFilter;
+    var saFuelRequestGrid;
+    $(document).ready(function () {
+        saFuelRequestGrid = $('#sa-fuelrequest-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetAllFuelRequests", "SuperAdmin", new { area = "SuperAdmin" })",
+                "type": "GET",
+                "datatype": "json",
+                "dataSrc": "",
+                "data": function (d) {
+                    d.startDate = $('#txtFromDate').val();
+                    d.endDate = $('#txtToDate').val();
+                    d.filter = @Model;
+                },
+            },
+            "columns": [
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<a href="@Url.Action("FuelRequestDetails", "SuperAdmin", new { area = "SuperAdmin" })?id=' + data.FuelRequestId + '">' + data.RequestNumber + '</a>';
+                    }, "autoWidth": true
+                },
+                { "data": "ZipCode", "autoWidth": true },
+                { "data": "Quantity", "autoWidth": true },
+                { "data": "FuelType", "autoWidth": true },
+                { "data": "DateCreated", "autoWidth": true, "sType": "date" },
+                { "data": "CompanyName", "autoWidth": true },
+                { "data": "AccountType", "autoWidth": true },
+                { "data": "PricePerGallon", "autoWidth": true },
+                { "data": "Status", "autoWidth": true }
+            ],
+            pageLength: 10,
+            responsive: true,
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'copy' },
+                { extend: 'csv', title: '@Resource.headingFuelRequestSummary' },
+                { extend: 'excel', title: '@Resource.headingFuelRequestSummary' },
+                { extend: 'pdf', title: '@Resource.headingFuelRequestSummary', orientation: 'landscape' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+
+        ClearFilter = function () {
+            $('#txtFromDate').val('');
+            $('#txtToDate').val('');
+            $('#txtToDate').data("DateTimePicker").minDate($("#txtFromDate").datetimepicker("minDate"));
+            ReloadDataTable();
+        }
+
+        if ($('#txtFromDate').length > 0 && $('#txtToDate').length > 0) {
+            $("#txtFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtToDate').data("DateTimePicker").minDate($("#txtFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtToDate').data("DateTimePicker").minDate(moment($('#txtFromDate').val()));
+            });
+
+            $('#txtFromDate').data("DateTimePicker").date(moment().subtract(moment.duration(90, 'days')));
+            $('#txtToDate').data("DateTimePicker").date(moment());
+        }
+    });
+
+    function ReloadDataTable() {
+        if ($('#txtFromDate').val() != '' || $('#txtToDate').val() != '') {
+            $('#90DaysDataWarning').hide();
+        }
+        saFuelRequestGrid.ajax.reload();
+        frToggle();
+    }
+</script>
+
+
+

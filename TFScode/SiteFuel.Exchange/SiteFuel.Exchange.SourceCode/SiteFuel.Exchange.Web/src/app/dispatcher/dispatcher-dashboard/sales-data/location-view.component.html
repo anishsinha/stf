@@ -1,0 +1,252 @@
+<div class="row">
+    <div class="col-sm-12" id="grid-view">
+        <div>
+            <h4 class="mustgo mb5" style="color: #fd7668 !important "><strong>Location View</strong></h4>
+            <div class="well bg-white shadow-b pr">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-padding no-border">
+                        <div class="table-responsive">
+                            <!--Enum - GridName.DispatherMustGoGrid => 19-->
+                            <table id="table-Locationmustgo" class="table table-bordered table-hover" datatable
+                                   [dtOptions]="dtOptions" [dtTrigger]="dtTrigger">
+                                <thead>
+                                    <tr>
+                                        <th data-key="Cust">Customer</th>
+                                        <th data-key="LocName">Location Name</th>
+                                        <th data-key="Loc">Location</th>
+                                        <th data-key="Loc">Inventory Capture Method</th>
+                                        <th data-key="TName">Tank/Asset Name</th>
+                                        <th data-key="WaterLevel">WaterLevel</th>
+                                        <th data-key="Avg7Day">Trailing 7 Day Average</th>
+                                        <th data-key="PDS">Previous Day Sale</th>
+                                        <th data-key="SaleWeek">Week Ago Sale</th>
+                                        <th data-key="CI">Last Inventory Reading</th>
+                                        <th data-key="LastReadingTime">Last Reading Time</th>
+                                        <th data-key="Ullg">Ullage</th>
+                                        <th data-key="lastDeliveryQty">Last Delivered Qty</th>
+                                        <th data-key="lastDelivery">Last Delivered On</th>                                       
+                                        <th data-key="DRemg">Days Remaining</th>
+                                        <th data-key="Status">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngIf="IsLoading" class='pa bg-white top0 left0 z-index5 loading-wrapper'>
+                                        <span class='spinner-dashboard pa'></span>
+                                    </tr>
+                                    <tr *ngFor="let row of LocationSchedules">
+                                        <td>{{row.CompanyName}}</td>
+                                        <td>{{row.LocationName}}</td>
+                                        <td>{{row.Location}}</td>
+                                        <td>{{row.InventoryDataCaptureTypeName}}</td>
+                                        <td>
+                                            {{row.TankName}} <span *ngIf="row?.IsUnknownOrMissing"
+                                                                   class="active-dot"></span>
+                                                                     <span title="Tank Inventory Alert" class="activediff-dot"  *ngIf="(row?.TankInventoryDiffinHrs>2 || row?.TankInventoryDiffinHrs==0 && this.IsShowRetailJobs)"></span>
+                                        </td>
+                                        <td>{{row.WaterLevel =='--'?'Not Available':row.WaterLevel}}</td>
+                                        <td>
+                                            {{row.AvgSale =='--'?'Not Available':row.AvgSale}}
+                                            <span *ngIf="row.UOM==3 && row.AvgSale !='--'"> G</span>
+                                            <span *ngIf="row.UOM==4 && row.AvgSale !='--'"> L</span>
+                                        </td>
+                                        <td>
+                                            <div *ngIf="row.PrevSale == 'NA*'">
+                                                Not Available <span placement="top" ngbTooltip="Deliveries are missing!">*</span>
+                                            </div>
+                                            <div *ngIf="row.PrevSale != 'NA*'">
+                                                {{row.PrevSale =='--'?'Not Available':row.PrevSale}}
+                                                <span *ngIf="row.UOM==3 && row.PrevSale !='--'"> G</span>
+                                                <span *ngIf="row.UOM==4 && row.PrevSale !='--'"> L</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div *ngIf="row.WeekAgoSale == 'NA*'">
+                                                Not Available <span placement="top" ngbTooltip="Deliveries are missing!">*</span>
+                                            </div>
+                                            <div *ngIf="row.WeekAgoSale != 'NA*'">
+                                                {{row.WeekAgoSale =='--'?'Not Available':row.WeekAgoSale}}
+                                                <span *ngIf="row.UOM==3 && row.WeekAgoSale !='--'"> G</span>
+                                                <span *ngIf="row.UOM==4 && row.WeekAgoSale !='--'"> L</span>
+                                            </div>
+                                        </td>
+                                        <td>{{row.Inventory =='--'?'Not Available':row.Inventory | number:'1.0-2' }}
+                                            <span *ngIf="row.UOM==3 && row.Inventory !='--'"> G</span>
+                                            <span *ngIf="row.UOM==4 && row.Inventory !='--'"> L</span>
+                                        </td>
+                                        <td>{{(row.LastReadingTime ==null ||row.LastReadingTime=='--')?'Not Available':row.LastReadingTime}}</td>
+                                        <td>{{row.Ullage=='--'?'Not Available':row.Ullage}}
+                                            <span *ngIf="row.UOM==3 && row.Ullage !='--'"> G</span>
+                                            <span *ngIf="row.UOM==4 && row.Ullage !='--'"> L</span>
+                                        </td>
+                                        <td>{{row.LastDeliveredQuantity =='--'?'Not Available':row.LastDeliveredQuantity}}
+                                            <span *ngIf="row.UOM==3 && row.LastDeliveredQuantity !='--'"> G</span>
+                                            <span *ngIf="row.UOM==4 && row.LastDeliveredQuantity !='--'"> L</span>
+                                        </td>
+                                        <td>{{row.LastDeliveryDate =='--'?'Not Available':row.LastDeliveryDate}}</td>                                     
+                                       
+                                        <td>{{row.DaysRemaining =='--'?'NA':row.DaysRemaining}}</td>
+                                        <td>
+                                            <a *ngIf="row?.Status == 'Scheduled'; else notSceduledBlock" (click)="openModal(row)" data-toggle="modal" data-target="#schedulesModal">{{row.Status}}</a>
+                                            <ng-template #notSceduledBlock><a (click)="showTanks(row)" data-target="raisedr" onclick="slidePanel('#raisedr','60%')">{{row.Status}}</a></ng-template>
+                                        </td>
+
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ng-container *ngTemplateOutlet="schedulesModal;context:dsModal">
+</ng-container>
+
+<ng-template #schedulesModal let-modalDetails="modalDetails">
+    <div [ngClass]="{'modal':true,'fade':true,'show': modalDetails.display==='block'}"
+         [ngStyle]="{'display':modalDetails.display}" id="schedulesModal" tabindex="-1" role="dialog"
+         aria-labelledby="schedulesModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header pt10 pb5 no-border">
+                    <h3 class="modal-title" id="assetDetailsModal">
+                        {{modalDetails.title}}
+                    </h3>
+                    <a data-dismiss="modal" class="float-right mt5" (click)="closeModal()" aria-label="Close">
+                        <i class="fa fa-close fa-lg"></i>
+                    </a>
+                </div>
+                <div class="modal-body">
+                    <div class="assets-header" *ngIf="modalDetails.display==='block'">
+                        <div class="well bg-white no-shadow border border pr" *ngIf="!modalDetails.IsScheduled">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <h3 class="fs14 font-bold">Create DR</h3>
+                                </div>
+                                <div class="row col-sm-12">
+                                    <div class="col-sm-3 input-group">
+                                        <div class="form-group mb0">
+                                            <label>Quantity Type</label>
+                                            <select [(ngModel)]="ScheduleQuantityType" class="form-control" (change)="RequiredQuantity=null;validateMsg='';">
+                                                <option *ngFor="let sqType of ScheduleQuantityTypes" [value]="sqType.Id">
+                                                    {{sqType.Name}}
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3" *ngIf="ScheduleQuantityType==1;">
+                                        <div class="form-group mb0">
+                                            <label>Quantity</label>
+                                            <div class="input-group">
+                                                <input type="text" name="RequiredQuantity"
+                                                       [disabled]="ScheduleQuantityType>1 ? true : null"
+                                                       [(ngModel)]="RequiredQuantity" numberWithDecimal
+                                                       (change)="validateMsg='';"
+                                                       class="form-control" required />
+                                                <div class="invalid-feedback"
+                                                     [ngClass]="{'show-element': !isValid}">
+                                                    {{validateMsg}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 mt5">
+                                        <label>Priority</label>
+                                        <div class="col-sm-12 pa0 mt5">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" id="mustgo-dr" type="radio"
+                                                       [(ngModel)]="DrPriority" [value]="1">
+                                                <label class="form-check-label" for="mustgo-dr"> Must Go</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" id="shouldgo-dr" type="radio"
+                                                       [(ngModel)]="DrPriority" [value]="2">
+                                                <label class="form-check-label" for="shouldgo-dr">
+                                                    Should
+                                                    Go
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" id="couldgo-dr" type="radio"
+                                                       [(ngModel)]="DrPriority" [value]="3">
+                                                <label class="form-check-label" for="couldgo-dr">
+                                                    Could
+                                                    Go
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <div class="col-sm-12 text-right mt10 ">
+                                    <button (click)="onDrSubmit()" type="button"
+                                            class="btn btn-primary btn-lg">
+                                        Create
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div *ngIf="DRLoader" class='pa bg-white top0 left0 z-index5 loading-wrapper'>
+                            <span class='spinner-dashboard pa'></span>
+                        </div>
+                        <div *ngIf="ExistingDeliveries.length">
+                            <div class="accordionExitingDrReq mt10 mb10" id="accordionExitingDrReq">
+                                <div class="card">
+                                    <div class="card-header pt5 pb5 pl10 pr10" id="headingOne">
+                                        <h2 class="mb-0">
+                                            <button class="d-flex align-items-center justify-content-between btn btn-link collapsed"
+                                                    type="button" data-toggle="collapse" data-target="#collapseOne"
+                                                    aria-expanded="true" aria-controls="collapseOne">
+                                                Existing Delivery Request(s)
+                                                <span class="fa-stack fa-sm icon-color-b">
+                                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                                    <i class="fas fa-angle-down fa-stack-1x fa-inverse"></i>
+                                                </span>
+                                            </button>
+                                        </h2>
+
+                                    </div>
+                                    <div id="collapseOne" class="collapse"
+                                         [ngClass]="{'show':modalDetails.IsScheduled}"
+                                         aria-labelledby="headingOne" data-parent="#accordionExitingDrReq">
+                                        <div class="card-body pa5">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover margin bottom details-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Quantity</th>
+                                                            <th>Schedule Date</th>
+                                                            <th>Schedule Time</th>
+                                                            <th>Driver</th>
+                                                            <th>Carrier</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr *ngFor="let del of ExistingDeliveries">
+                                                            <td>{{del.QuantityTypeId==0||del.QuantityTypeId==1?del.Quantity:del.QuantityTypeName}}</td>
+                                                            <td>{{del.ScheduleDate}}</td>
+                                                            <td>{{del.ScheduleTime}}</td>
+                                                            <td>{{del.Driver}}</td>
+                                                            <td>{{del.Carrier}}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</ng-template>
+<div id="create-dip-test">
+    <app-dip-test [isDisableControl]="false" (onRaiseDR)="closeSidePanel();" [IsSalesPage]="true" [SelectedRegionId]="SelectedTankRegionId" [IsThisFromDrDisplay]="false"></app-dip-test>
+</div>

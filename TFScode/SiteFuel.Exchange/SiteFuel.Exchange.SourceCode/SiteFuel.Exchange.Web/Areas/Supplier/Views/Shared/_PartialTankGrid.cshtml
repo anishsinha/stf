@@ -1,0 +1,378 @@
+﻿@model JobStepsViewModelForSuperAdmin
+
+@{
+    ViewBag.Title = "Add Tanks";
+}
+
+<div class="row">
+    <div class="col-12 col-md-12">
+        <h4 class="f-light pb5 mb5 pull-left pt-1">@Resource.headingTanks</h4>
+        @if ((Model.IsCreatedByMe == true) && (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsDispatcher || CurrentUser.IsCarrierAdmin || CurrentUser.IsCarrier))
+        {
+            <a onclick='LoadTank();' class="fs18 float-left ml-4 mt-1">
+                <i class="fa fa-plus-circle fs18 mt2 mr-2 float-left"></i><span class="fs14 float-left f-light">@Resource.btnLabelCreateNew</span>
+            </a>
+            <a class="btn btn-primary btn-xs dropdown-toggle uploadInBulkBtn pull-right"
+               onclick="openTankMakeGrid(@Model.Job.Id);">
+                <i class="fa fa fa-th-list mr-1"></i>
+                @Resource.btnTankDipCharts
+
+            </a>
+        }
+    </div>
+</div>
+<div class="row mt-2">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b pr">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="tpo-tank-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>@Resource.gridColumnTankName</th>
+                                    <th>@Resource.gridColumnTankID</th>
+                                    <th>@Resource.gridColumnStorageId</th>
+                                    <th>@Resource.gridColumnFuelCapacity</th>
+                                    <th>@Resource.gridColumnProductType</th>
+                                    <th>@Resource.gridColumnTankMakeModel</th>
+                                    <th>@Resource.gridColumnDipTestMethod</th>
+                                    <th>@Resource.gridColumnFuelType</th>
+                                    @*<th>@Resource.gridColumnThreshold</th>*@
+                                    <th>@Resource.gridColumnTanksConnected</th>
+                                    <th>@Resource.gridColumnATGPolling</th>
+                                    <th>@Resource.lblTankSequence</th>
+                                    <th>@Resource.gridColumnDelete<input type="checkbox" class="ml-2" id="select-alltankdelete" /></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 text-right mb25 btn-wrapper">
+            @if (Model.IsCreatedByMe == true)
+            {
+                <div class="row">
+                    <div class="form-group col-sm-12">
+                        <input type="button" data-toggle="confirmation" data-popout="true" data-singleton="true" data-content="All history for this asset will be removed, are you sure you want to delete?" class="btn btn-danger" value="@Resource.btnLabelDelete" id="btnTankDelete" disabled="disabled" />
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+        var tankDataTable;
+    var exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] };
+
+        $(document).ready(function () {
+
+            //var visible = '@Model.IsCreatedByMe' == 'True';
+            var visible =  false;
+            var url = "@Url.Action("AssetGrid", "Asset", new { area = "Supplier" })";
+             if ('@Model.IsCreatedByMe' == 'True'){
+                url = "@Url.Action("AssignAssetsTanksToJob", "Job", new { area = "Supplier" })";
+            }
+            tankDataTable = $('#tpo-tank-datatable').dataTable({
+                "ajax": {
+                    "url": url,
+                    "type": "GET",
+                    "datatype": "json",
+                     "data": function () {
+                        var assetFilter = {
+                            JobId: '@Model.Job.Id',
+                            Type: '@((int)@AssetType.Tank)'
+                        };
+                        return assetFilter;
+                    },
+                    "dataSrc": ""
+                },
+                "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            var allowEdit = (('@Model.IsCreatedByMe' == 'True')&& ('@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True' || '@CurrentUser.IsDispatcher' == 'True'));
+                            var checked = (data.IsAssetAssigned == true) ? "checked=\"checked\"" : "";
+                            if (allowEdit) { return '<input type="checkbox" class = "chk-tank" id="' + data.Id + '"  value = "' + data.Name + '" ' + checked + '/>'; }
+                            else { return '<input type="checkbox" class = "chk-tank" id="' + data.Id + '"  value = "' + data.Name + '" ' + checked + 'disabled />';}
+
+                        }, "autoWidth": true, "bSortable": false
+                    },
+                    {
+						"data": function (data, type, row, meta) {
+							var allowEdit = (('@Model.IsCreatedByMe' == 'True')&& ('@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True' || '@CurrentUser.IsDispatcher' == 'True'));
+							if (data.IsActive && allowEdit) {
+                                return '<a onclick="showAssetTankDetails(' + data.Id + ',2,' + allowEdit + ','+@Model.Job.Id+')">' + data.Name + '</a>';
+                            }
+                            else {
+                                return data.Name;
+                            }
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+							return data.AssetAdditionalDetail.TankId == null ? '@Resource.lblHyphen' : data.AssetAdditionalDetail.TankId;
+                                }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return data.AssetAdditionalDetail.Vendor == null ? '@Resource.lblHyphen' : data.AssetAdditionalDetail.Vendor;
+                                }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return data.AssetAdditionalDetail.FuelCapacity == null ? '@Resource.lblHyphen' : data.AssetAdditionalDetail.FuelCapacity;
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return data.FuelType.Name == null ? '@Resource.lblHyphen' : data.FuelType.Name;
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="' + data.AssetAdditionalDetail.TankChart + '" target="_blank">' + data.AssetAdditionalDetail.TankTypeName + '</a>';
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return data.AssetAdditionalDetail.DipTestMethodName == null ? '@Resource.lblHyphen' : data.AssetAdditionalDetail.DipTestMethodName;
+                        }, "autoWidth": true
+                    },
+                     {
+                        "data": function (data, type, row, meta) {
+                            return data.TFXFuelType == null ? '@Resource.lblHyphen' : data.TFXFuelType;
+                        }, "autoWidth": true
+                    },
+                    @*{
+                        "data": function (data, type, row, meta) {
+                            return data.AssetAdditionalDetail.Threshold == null ? '@Resource.lblHyphen' : data.AssetAdditionalDetail.Threshold;
+                        }, "autoWidth": true
+                    },*@
+                     {
+                        "data": function (data, type, row, meta) {
+                            return data.AssetAdditionalDetail.TanksConnectedNames == null ? '@Resource.lblHyphen' : data.AssetAdditionalDetail.TanksConnectedNames;
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return data.AssetAdditionalDetail.IsStopATGPolling == false ? '@Resource.lblDisabled' : '@Resource.lblEnabled';
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+					    var allowEdit = (('@Model.IsCreatedByMe' == 'True')&& ('@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True' || '@CurrentUser.IsDispatcher' == 'True'));
+                            if (allowEdit) {
+                                if (data.AssetAdditionalDetail.TankSequence == null) {
+                                    return '<span id="spntank' + data.Id + '">--</span>&nbsp;' +
+                                        '<a onclick="setTankIdToChange(' + data.Id + ',' + data.AssetAdditionalDetail.TankSequence + ');" class="ml5 " data-toggle="modal" data-target="#edit-tankSequence"><i class="fas fa-edit"></i></a>';
+                                } else {
+                                    return '<span id="spntank' + data.Id + '">' + data.AssetAdditionalDetail.TankSequence + '</span>&nbsp;' +
+                                        '<a onclick="setTankIdToChange(' + data.Id + ',' + data.AssetAdditionalDetail.TankSequence + ');" class="ml5 " data-toggle="modal" data-target="#edit-tankSequence"><i class="fas fa-edit"></i></a>';
+                                }
+                            } else {
+                                if (data.AssetAdditionalDetail.TankSequence == null) {
+                                    return '<span id="spntank' + data.Id + '">--</span>&nbsp;'
+                                } else {
+                                    return '<span id="spntank' + data.Id + '">' + data.AssetAdditionalDetail.TankSequence + '</span>&nbsp;'
+                                }
+                            }
+
+                        }, "autoWidth": true
+                    },
+                    @*{
+                        "data": function (data, type, row, meta) {
+                            if (data.Image.Id > 0) {
+                                var imgUrl = data.Image.FilePath;
+                                return "<img id='image-" + data.Image.Id + "' class='img-max50' src='" + imgUrl + "'/>";
+                            }
+                            else {
+                                return '@Resource.lblHyphen';
+                            }
+                        }, "autoWidth": true
+                    },*@
+                    {
+                        "data": function (data, type, row, meta) {
+                             var disabled = ('@Model.IsCreatedByMe' == 'True') ?"":"disabled=\"disabled";
+                            return '<input type="checkbox" class = "chk-tankdelete" id="' + data.Id + '" value = "' + data.IsActive + '" ' + disabled + '/>';
+                        }, "autoWidth": true, "bSortable": false
+                    }
+
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    allPages = tankDataTable.fnGetNodes();
+                    updateSelectAllTankCheckboxStatus(json);
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingAssignTanks', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] } },
+                    { extend: 'excel', title: '@Resource.headingAssignTanks', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] } },
+                    { extend: 'pdf', title: '@Resource.headingAssignTanks', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] } },
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                "columnDefs": [
+                    { "targets": [0], "visible": visible, "searchable": visible },
+                    { "name": "Name", "targets": 1, "regex": false },
+                    { "name": "VehicleId", "targets": 2 },
+                    { "name": "FuelCapacity", "targets": 3 },
+                    { "name": "FuelType", "targets": 4 },
+                    { "name": "TankType", "targets": 5 },
+                    { "name": "DipTestMethod", "targets": 6 },
+                    { "name": "Threshold", "targets": 7 }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+
+            $("#btnSaveTank").click(function () {
+
+                var data = [], url = '@Url.Action("AssignAssets", "Job", new { area = "Supplier" })?jobId=@Model.Job.Id';
+                var jobId = '@Model.Job.Id';
+
+
+                $("input:checkbox", tankDataTable.fnGetNodes()).each(function () {
+                    if ($(this).is(':checked')) {
+                        data.push($(this).attr('id'));
+                    }
+                })
+
+                var model = {
+                    assets: data,
+                    jobId: jobId
+                };
+
+                $.post(url, model, function (response) {
+                    if (response == 0) {
+
+                        window.location.href = '@Url.Action("Details", "Job", new { area = "Supplier", id = Model.Job.Id,IsTPO = "1" })';
+                    }
+                }, 'json');
+            })
+			$("#btnTankDelete").click(function () {
+                var data = [], url = '@Url.Action("DeleteAssets", "Asset", new { area="Supplier"})';
+				var anNodes = $("#tpo-tank-datatable tbody tr");
+
+				for (var i = 0; i < anNodes.length; ++i) {
+					if ($(anNodes[i]).find('.chk-tankdelete').is(':checked')) {
+                        data.push($(anNodes[i]).find('.chk-tankdelete').attr('id'));
+					}
+				}
+                var model = {
+                     assets: data,
+                     jobId: '@Model.Job.Id'
+                };
+
+                $.post(url, model, function (response) {
+                    if (response == 0) {
+                        //window.location.href = '@Url.Action("Details", "Job", new { area = "Supplier", id = Model.Job.Id})';
+                        window.location.reload(true);
+                    }
+                }, 'json');
+            })  
+        });
+
+        function LoadTank() {
+
+             var url = '@Url.Action("CreateAsset", "Job", new { area = "Supplier" })?jobId=' +@Model.Job.Id+'&type='+@((int)AssetType.Tank)+'';
+            $.get(url, function (response) {
+                if (response != null || response != "") {
+                    $("#slider-heading").text('Create New Tank');
+                    $("#slider-content").html(response);
+                    parseForm();
+                    slidePanel("#sliderpanel");
+                    $(".lblforcastingNote").text('');
+                    $(".lblforcastingNote").hide();
+                }
+            })
+            .done(function () {
+                getSupplierPreferenceSetting();
+             })
+            .always(function () {
+                    $("#slider-loader").hide();
+                });
+        }
+        function updateSelectAllTankCheckboxStatus(json) {
+
+            var checkAll = $.grep(json, function (data) { return data.CurrentJob== null || data.CurrentJob.Id != jobId; }).length == 0 ? true : false;
+            $('#select-all').prop('checked', checkAll);
+
+            $('#select-all').click(function () {
+                var status = $(this).prop('checked');
+                $(".chk-tank", allPages).each(function () {
+                    $(this).prop("checked", status);
+                });
+            });
+
+            $(".chk-tank", allPages).change(function () {
+                if ($('.chk-tank', allPages).length == $(".chk-tank:checked", allPages).length) {
+                    $('#select-all').prop("checked", true);
+                }
+                else {
+                    $('#select-all').prop("checked", false);
+                }
+            });
+
+            $('#select-alltankdelete').click(function () {
+                if ($(this).prop("checked") == true) {
+                    $("#btnTankDelete").attr("disabled", false);
+                }
+                else if ($(this).prop("checked") == false) {
+                    $("#btnTankDelete").attr("disabled", true);
+                }
+                var status = $(this).prop('checked');
+                $(".chk-tankdelete").each(function () {
+                    $(this).not(":disabled").prop("checked", status);
+                });
+            });
+            $('.chk-tankdelete').closest('td').addClass('d-flex justify-content-center')
+            $(".chk-tankdelete").change(function () {
+                if ($(".chk-tankdelete:checked").length > 0) {
+                    $("#btnTankDelete").attr("disabled", false)
+                }
+                else {
+                    $("#btnTankDelete").attr("disabled", true)
+                }
+
+                if ($('.chk-tankdelete').not(":disabled").length == $(".chk-tankdelete:checked").length) {
+                    $('#select-alltankdelete').prop("checked", true);
+                }
+                else {
+                    $('#select-alltankdelete').prop("checked", false);
+                }
+            });
+    }
+</script>
+@Html.Partial("_PartialTankSequenceUpdate",Model.Job.Id)
+<div class="modal fade" id="duplicateSequenceForTankDetails" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+        <div class="modal-content">
+            <div class="modal-body">
+                <label>@Resource.warningDuplicateTankSequence</label>
+                <div class="text-right">
+                    <button type="button" class="btn btn-lg btn-success" onclick="ConfirmYesForTankDetails()">Yes</button>
+                    <button type="button" class="btn btn-lg btn-danger" onclick="ConfirmNoForTankDetails()">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

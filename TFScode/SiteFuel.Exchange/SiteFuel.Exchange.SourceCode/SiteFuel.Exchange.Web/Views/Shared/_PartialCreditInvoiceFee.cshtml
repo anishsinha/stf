@@ -1,0 +1,67 @@
+﻿@model FeesViewModel
+@{
+    var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+    var randomNum099 = (new Random()).Next(0, 99);
+}
+@Html.HiddenFor(m => m.Currency)
+@Html.HiddenFor(t => t.TruckLoadType)
+@Html.HiddenFor(t => t.TruckLoadCategoryId)
+@Html.HiddenFor(t => t.FeeSubTypeId)
+@Html.HiddenFor(t => t.MinimumGallons)
+@Html.HiddenFor(t => t.WaiveOffTime)
+@Html.HiddenFor(t => t.TimeInMinutes)
+<div class="fee-type-row">
+    <div class="fee-types">
+        <div class="hidden-value-common-fee">
+            @Html.HiddenFor(t => t.CommonFee)
+        </div>
+        @if (Model.FeeConstraintTypeId.HasValue)
+        {
+            <div class="col-sm-2">
+                <div class="form-group">
+                    @Html.HiddenFor(m => m.FeeConstraintTypeId)
+                </div>
+            </div>
+            <div class="col-sm-2 special-date-div @(Model.FeeConstraintTypeId.Value == (int)FeeConstraintType.Weekend ? "hide-element" : "")">
+                <div class="form-group">
+                    @Html.HiddenFor(m => m.SpecialDate)
+                </div>
+            </div>
+        }
+        @if (Model.CommonFee)
+        {
+            <div class="col-sm-2 fee-type-ddl">
+                <div class="form-group">
+                    @(((FeeType)Convert.ToInt32(Model.FeeTypeId)).GetDisplayName())
+                    @Html.HiddenFor(m => m.FeeTypeId)
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="col-sm-2 fee-type-name">
+                <div class="form-group">
+                    @Html.HiddenFor(m => m.FeeTypeId)
+                    @Html.HiddenFor(m => m.OtherFeeDescription)
+                    <label>@Model.OtherFeeDescription</label>
+                </div>
+            </div>
+        }
+        <div class="regular-fee col-sm-2 fee">
+            @if (Model.DeliveryFeeByQuantity != null && Model.DeliveryFeeByQuantity.Count() > 0)
+            {
+                Model.Fee = Model.TotalFee.GetPreciseValue(6);
+            }
+                <div class="form-group">
+                    <div class="input-group">
+                        <span class="input-group-addon">@Model.Currency</span>
+                        @Html.TextBoxFor(m => m.Fee, new { @class = "form-control datatype-decimal credit-amount" })
+                    </div>
+                    @Html.ValidationMessageFor(m => m.Fee)
+                </div>
+        </div>
+        <div class="fs18 col-xs-1">
+            <a href="javascript:void(0)" class="fa fa-trash-alt color-maroon mt7 delete-record" title="Remove"></a>
+        </div>
+    </div>
+</div>

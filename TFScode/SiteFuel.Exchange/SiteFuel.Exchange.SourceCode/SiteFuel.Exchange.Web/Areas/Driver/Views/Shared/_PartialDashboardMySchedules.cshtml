@@ -1,0 +1,154 @@
+﻿<div class="well bg-white shadow-b">
+    <h2 class="mt0 pt0  f-normal">
+        <span class="fa fa-truck mr5"></span> @Resource.headingMySchedules
+    </h2>
+    <div class="row mt15 btn-flat">
+        <div class="col-sm-3 col-xs-12" >
+            <div class="btn-group" role="group">
+                <button type="button" onclick="GetNextPrevSchedules('prev')" class="btn btn-sm"><i class="fc-icon fc-icon-left-single-arrow"></i></button>
+                <button type="button" onclick="GetNextPrevSchedules('next')" class="btn btn-sm"><i class="fc-icon fc-icon-right-single-arrow"></i></button>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xs-6 mt5-xs">
+            <h2 class="fs21 text-center mt4" id="schedulesDateSelected"></h2>
+        </div>
+        <div class="col-sm-3 col-xs-6 mt5-xs text-right">
+            <button type="button" onclick="GetNextPrevSchedules('today')" class="btn btn-sm">@Resource.lblToday</button>
+        </div>
+    </div>
+    <div class="row mt8">
+        <div class="col-sm-12">
+            @Html.Partial("_PartialMySchedulesMapView")
+        </div>
+    </div>
+    <div class="table-responsive grid-loader driver-schedulegrid">
+        <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+        <table class="table table-hover margin bottom fs12" id="table-my-schedules">
+            <thead>
+                <tr>
+                    <th>@Resource.gridColumnPoNumber</th>
+                    <th>@Resource.gridColumnDeliveryWindow</th>
+                    <th class="text-center">@Resource.gridColumnQuantity</th>
+                    <th>@Resource.gridColumnFuelType</th>
+                    <th>@Resource.gridColumnCustomer</th>
+                    <th>@Resource.gridColumnLocation</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script>
+        $(document).ready(function () {
+            $("#schedulesDateSelected").html(moment().format('DD MMMM YYYY'));
+            GetMySchedules($("#schedulesDateSelected").html());
+
+            $("[data-toggle=popover]").popover({
+                html: true,
+                content: function () {
+                    return $('#special-instructions').html();
+                }
+            });
+        });
+
+        function GetMySchedules(selectedDate){
+            $.ajax({
+                type: "get",
+                url: "@Url.Action("GetMySchedulesAsync", "Dashboard", new { area = "Driver"})",
+                dataType: "json",
+                data: { dtSelected: selectedDate },
+                success: function (data) {
+                    $("#table-my-schedules tbody").html("");
+                    if (data.deliveryScheduleViewModel.length > 0) {
+                        DisplayDriverCustomerLocation(data);
+                        for (i = 0; i < data.deliveryScheduleViewModel.length; i++) {
+                            var specialInstructions = "";
+
+                            if (data.deliveryScheduleViewModel[i].SpecialInstructions.length > 0) {
+
+                                var ulSpclInstruction = '<ul class="ml0 pl20 mb0 inst" id="test' + i + '">';
+                                for (j = 0; j < data.deliveryScheduleViewModel[i].SpecialInstructions.length; j++) {
+                                    ulSpclInstruction += '<li>' + data.deliveryScheduleViewModel[i].SpecialInstructions[j].Instruction+'</li>';
+                                }
+                                ulSpclInstruction += '</ul>';
+                                 specialInstructions = '<div class="row">'
+                                    + '        <div class="col-md-12">' + ulSpclInstruction
+                                    + '        </div>'
+                                     + '    </div>'
+                                    +'</div>';
+                            }
+                            else {
+                                specialInstructions = "<span>There are no special instructions</span>";
+                            }
+
+                            var ScheduleQuantity;
+                            if (data.deliveryScheduleViewModel[i].QuantityTypeId != '@((int)QuantityType.NotSpecified)') {
+                                ScheduleQuantity = data.deliveryScheduleViewModel[i].ScheduleQuantity + " " + data.deliveryScheduleViewModel[i].DisplayUoM;
+                            }
+                            else {
+                                ScheduleQuantity = '@Resource.lblNotSpecified';
+                            }
+
+                            var url = '@Url.Action("Details", "Order", new { area = "Driver" })' + "/" + data.deliveryScheduleViewModel[i].OrderId;
+                            $("#table-my-schedules tbody").append("<tr>" +
+                                "<td><a id='driverSchedulePO_" + i + "' href='"+url+"'>" + data.deliveryScheduleViewModel[i].PONumber + "</a></td>" +
+                                "<td><span id='driverScheduleDeliveryWindow_" + i + "'>" + data.deliveryScheduleViewModel[i].DeliveryWindow + "</span></td>" +
+                                "<td><span id='driverScheduleQuantity_" + i + "'>" + ScheduleQuantity +"</span></td>" +
+                                "<td><span id='driverScheduleFuelType_" + i + "'>" + data.deliveryScheduleViewModel[i].FuelType + "</span></td>" +
+                                "<td><span id='driverScheduleCustomer_" + i + "'>" + data.deliveryScheduleViewModel[i].CustomerName + "</span></td>" +
+                                "<td><span id='driverScheduleLocation_" + i + "'>" + data.deliveryScheduleViewModel[i].Location + "</span></td>" +
+                                "<td>" + (data.deliveryScheduleViewModel[i].SpecialInstructions.length > 0 ? "<a href='javascript:void(0)' data-content='" + specialInstructions + "' data-trigger='focus'  data-placement='top' data-toggle='popover' data-title='@Resource.headingSpecialInstructions' data-container='body'><span class='fa fa-file-text'></span></a></td>" : '') +
+                                "</td></tr>");
+
+                            $("#table-my-schedules").closest(".grid-loader").find('.loading-wrapper').hide();
+                        }
+                        wrapperHeight();
+
+                        $("[data-toggle=popover]").popover({
+                            html: true,
+                            trigger:'focus'
+                        });
+                    }
+                    else {
+                        clearDriverCustomerMarkers();
+                        $("#table-my-schedules tbody").append("<tr><td colspan='7' class='text-center'>There are no items to display</td ></tr >");
+                        $("#table-my-schedules").closest(".grid-loader").find('.loading-wrapper').hide();
+                    }
+                }
+            });
+        }
+
+        function ShowSpecialInstructions(btn, spcInstrId) {
+            $(btn).popover({ title: "Special Instructions", content: $("#special-instructions" + spcInstrId).html() });
+        }
+
+        function GetNextPrevSchedules(next_prev) {
+            $("#table-my-schedules").closest(".grid-loader").find('.loading-wrapper').show();
+            var addDays = next_prev == 'next' ? 1 : next_prev == 'prev' ? -1 : 0;
+            var currentDate = $("#schedulesDateSelected").html();
+            var today = new Date();
+            if (addDays != 0) {
+                today = new Date(currentDate);
+            }
+            var dd = today.getDate() + (addDays);
+            var mm = today.getMonth();
+
+            var yyyy = today.getFullYear();
+            if (dd < 10) {
+                dd = '0' + dd;
+            }
+            if (mm < 10) {
+                mm = '0' + mm;
+            }
+            var today = dd + ' ' + mm + ' ' + yyyy;
+            var todaysDate = new Date(yyyy, mm, dd);
+            var selectedDate =moment(todaysDate).format('DD MMMM YYYY');
+            $("#schedulesDateSelected").html(selectedDate);
+            GetMySchedules(selectedDate);
+            return selectedDate;
+        }
+    </script>
+}

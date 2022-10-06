@@ -1,0 +1,269 @@
+﻿@model FuelPricingViewModel
+<div class="row">
+    <div class="col-sm-6">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group mb0">
+                    <div class="radio wrapper-rackprice dib mr20">
+                        <label>
+                            @Html.RadioButtonFor(m => m.PricingTypeId, (int)PricingType.RackAverage,
+                            new { onclick = "showHideControls(this,'market-control','cost-control,fixed-control,different-fuelprices');radioChange(this,'terminal-price','different-fuelprices,fixed-price,supplier-cost,dd-cityrack');ddCityRackToggle();ShowHideFTLPricingControls();", onchange = "focusOnFirst(this, 'terminal-price');", @class = "revalidate radio-rack-price" })
+                            @Resource.lblMarketBased
+                        </label>
+                        @*<div class="alert alert-info fs12 pt5 pb5 dib mtm5 ml15 mb0 show-in-tpo hide-element">@Resource.msgMarketBasedPrice</div>*@
+                    </div>
+                    <div class="radio dib wrapper-suppliercost mr20">
+                        <label>
+                            @Html.RadioButtonFor(m => m.PricingTypeId, (int)PricingType.Suppliercost,
+                            new { onclick = "showHideControls(this,'cost-control','market-control,fixed-control,different-fuelprices');radioChange(this,'supplier-cost','different-fuelprices,fixed-price,terminal-price');ddCityRackToggle()", onchange = "focusOnFirst(this, 'supplier-cost');", @class = "revalidate" })
+                            @Resource.lblFuelCost
+                            <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@(CurrentUser.CompanySubTypeId == CompanyType.Buyer || CurrentUser.CompanyTypeId == CompanyType.Buyer ? Resource.msgFuelCostInBuyer : Resource.msgFuelCostInSupplier)"></i>
+                        </label>
+                    </div>
+                    <div class="radio dib mr20">
+                        <label>
+                            @Html.RadioButtonFor(m => m.PricingTypeId, (int)PricingType.PricePerGallon,
+                            new { onclick = "showHideControls(this,'fixed-control','market-control,cost-control,different-fuelprices');radioChange(this,'fixed-price','different-fuelprices,terminal-price,supplier-cost');ddCityRackToggle()", onchange = "focusOnFirst(this, 'fixed-price');", @class = "revalidate fixed-pricing" })
+                            @Resource.lblFixed
+                        </label>
+                    </div>
+                    @Html.HiddenFor(m => m.IsTierPricingRequired)
+                    @if (Model.IsTierPricingRequired)
+                    {
+                        <div class="radio dib mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.PricingTypeId, (int)PricingType.Tier,
+                                new { onclick = "showHideControls(this,'different-fuelprices','fixed-control,market-control,cost-control');radioChange(this,'different-fuelprices','fixed-price,terminal-price,supplier-cost');ddCityRackToggle()", onchange = "focusOnFirst(this, 'different-fuelprices');", @class = "revalidate fixed-pricing" })
+                                @Resource.lblTier
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="pa bg-white subSectionOpacity mt10 top0 left0 z-index5 loading-wrapper calculate-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+            <div class="col-sm-12 clearboth">
+                <div class="market-control">
+                    <div class="row">
+                        <div class="col-xs-4 terminal-price">
+                            <div class="form-group">
+                                @Html.DropDownListFor(m => m.MarkertBasedPricingTypeId, new SelectList(CommonHelperMethods.GetMarketBasedPricingTypes(), "Id", "Name", Model.MarkertBasedPricingTypeId), new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.MarkertBasedPricingTypeId)
+                            </div>
+                        </div>
+                        <div class="col-sm-3 col-xs-4 terminal-price market-control">
+                            <div class="form-group">
+                                @Html.DropDownListFor(m => m.RackAvgTypeId, new SelectList(CommonHelperMethods.GetRackAvgPricingTypes(), "Id", "Name", Model.RackAvgTypeId), new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.RackAvgTypeId)
+                            </div>
+                        </div>
+                        <div class="col-sm-3 col-xs-4 terminal-price market-control">
+                            <div class="form-group">
+                                <div class="mtm1">
+                                    @Html.TextBoxFor(m => m.RackPrice, new { @class = "form-control datatype-decimal always", @placeholder = "Rack Price" })
+                                </div>
+                                <div>
+                                    @Html.ValidationMessageFor(m => m.RackPrice)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-8 terminal-price-check">
+                            <div class="form-group mb5">
+                                <div class="dib terminal-price">
+                                    <div class="dib mr10 pr pull-left">
+                                        <div class="checkbox pull-left chk-cityrack mb0">
+                                            <label><input type="checkbox" onclick="checkBoxChange(this,'dd-cityrack');" class="enablecityrack" id="chk-enable-cityrack" />@Resource.lblSelectCityTerminal</label>
+                                        </div>
+                                        <div class="@(Model.CityGroupTerminalId.HasValue ? " dd-cityrack pull-left ml10 pr" : "pull-left pr ml10 defaultDisabled subSectionOpacity dd-cityrack hide-element" )" id="cityrack-div">
+                                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper cityrack-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+                                            <select id="@Html.IdFor(m => m.CityGroupTerminalId)" name="@Html.NameFor(m => m.CityGroupTerminalId)" class="cityrackterminallist singleselect">
+                                                <option selected disabled class="hidden" value="noneselected">@Resource.lblSelectCityTerminal</option>
+                                                <optgroup label="@Resource.lblWithinState"> </optgroup>
+                                                <optgroup label="@Resource.lblOtherStates"> </optgroup>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    @Html.ValidationMessageFor(m => m.CityGroupTerminalId, string.Empty, new { @class = "dib cityrack-validation pull-left" })
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4 col-xs-6 terminal-price city-groupterminal hidden mb25" id="terminalContainer">
+                            <div class="form-group">
+                                <div class="pr">
+                                    <div class="pa bg-white top0 left0 loading-wrapper ddterminal-loader hide-element mt5"><span class='spinner-dashboard pa'></span></div>
+                                    @Html.DropDownListFor(m => m.TerminalId, Enumerable.Empty<SelectListItem>(), new { @class = "form-control ddterminallist pa" })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12 pr0 hide-element show-in-frandcounteroffer">
+                            <div class="checkbox mt0 fs12 terminal-price">
+                                <label>
+                                    @Html.CheckBoxFor(m => m.IncludeTaxes)
+                                    @Resource.lblIncludeTaxes
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row terminal-price defaultDisabled">
+                        <div class="hide-element show-in-fr">
+                            <div class="col-xs-2 pr0">
+                                <input type="button" class="btn btn-info btn-sm" id="btnCalculate" value="@Resource.lblCalculate @(Model.Currency == Currency.CAD ? Resource.lblPricePerLitre : Resource.gridColumnPPG)" data-url="@Url.Action("CalculateTerminalPrice", "FuelRequest" )" />
+                            </div>
+                            <div class="col-xs-8">
+                                <label id="EstimatedPPG" class="mt5 ml10"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="cost-control">
+                    <div class="row">
+                        <div class="col-sm-3 col-xs-4 supplier-cost defaultDisabled cost-control hide-element">
+                            @Html.DropDownListFor(m => m.SupplierCostMarkupTypeId, new SelectList(CommonHelperMethods.GetRackAvgPricingTypes(), "Id", "Name", Model.SupplierCostMarkupTypeId), new { @class = "form-control" })
+                        </div>
+                        <div class="col-sm-3 col-xs-4 supplier-cost defaultDisabled cost-control hide-element">
+                            <div class="form-group">
+                                <div class="mtm1 defaultDisabled">
+                                    @Html.TextBoxFor(m => m.SupplierCostMarkupValue, new { @class = "form-control datatype-decimal always" })
+                                </div>
+                                <div class="supplier-cost defaultDisabled">
+                                    @Html.ValidationMessageFor(m => m.SupplierCostMarkupValue)
+                                    @Html.ValidationMessageFor(m => m.SupplierCostMarkupTypeId)
+                                    @Html.ValidationMessageFor(m => m.PricingTypeId)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 col-xs-4 fixed-price defaultDisabled fixed-control hide-element">
+                        <div class="form-group">
+                            <div class="input-group mtm1">
+                                <span class="input-group-addon currency-symbol">@Model.Currency</span>
+                                @Html.TextBoxFor(m => m.PricePerGallon, new { @class = "form-control datatype-decimal always" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.PricePerGallon)
+                        </div>
+                    </div>
+                </div>
+                @if (Model.IsTierPricingRequired)
+                {
+                    <div class="different-fuelprices row">
+                        <div id="different-fuelprice-section" class="partial-section quantity-range">
+                            <div class="partial-block-collection-section">
+                                @if (Model.DifferentFuelPrices != null && Model.DifferentFuelPrices.Count() > 0)
+                                {
+                                    foreach (var fuelprice in Model.DifferentFuelPrices)
+                                    {
+                                        Html.RenderPartial("~/Views/Shared/_PartialDifferentFuelPrice.cshtml", fuelprice);
+                                    }
+                                }
+                            </div>
+                            <div class="form-group col-md-12">
+                                <a href="javascript:void(0)" onclick="AjaxStart(this)" class="add-partial-block" data-url="@Url.Action("DifferentFuelPrice", "FuelRequest")"><span class="fa fa-plus-circle"></span> @Resource.btnLabelAddNewTierPrice</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 mt10">
+        <div class="row">
+            <div class="col-sm-6 hide-element tpo-broker-markup">
+                @Html.LabelFor(m => m.BrokerMarkUp)
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="input-group mtm1">
+                            <span class="input-group-addon currency-symbol">@Model.Currency</span>
+                            @Html.TextBoxFor(m => m.BrokerMarkUp, new { @class = "form-control datatype-decimal always" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 hide-element tpo-broker-markup">
+                @Html.LabelFor(m => m.SupplierMarkUp)
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="input-group mtm1">
+                            <span class="input-group-addon currency-symbol">@Model.Currency</span>
+                            @Html.TextBoxFor(m => m.SupplierMarkUp, new { @class = "form-control datatype-decimal always" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script>
+       function GetCityRackTerminalList(selectedStateId, allstates, initialload, selectedForCounterOffer)
+        {
+            if (selectedStateId > 0) {
+                $.get("@Url.Action("GetCityGroupTerminals", "Order")", { stateId: selectedStateId, allStates: allstates }, function (response) {
+                    var optionGroups = $("#@Html.IdFor(m => m.CityGroupTerminalId) optgroup");
+                    $(optionGroups[0]).empty();
+                    $(optionGroups[1]).empty();
+                    $.each(response, function (i, element) {
+                        if (element.IsWithinState) {
+                            $(optionGroups[0]).append($('<option></option>').val(element.Id).html(element.Name));
+                        }
+                        else {
+                            $(optionGroups[1]).append($('<option></option>').val(element.Id).html(element.Name));
+                        }
+                    });
+                    if (selectedForCounterOffer > 0) {
+                        $("#@Html.IdFor(m => m.CityGroupTerminalId)").val(selectedForCounterOffer);
+                    }
+                }).done(function () {
+                   $('#@Html.IdFor(m => m.CityGroupTerminalId)').multiselect({
+                        enableFiltering: true,
+                        enableCaseInsensitiveFiltering: true,
+                    });
+                    $('#@Html.IdFor(m => m.CityGroupTerminalId)').multiselect('rebuild');
+                });
+            }
+        }
+
+        function fillCityGroupTerminals(stateid, currentCityGroupTerminalId) {
+            if (typeof currentCityGroupTerminalId === 'undefined' || currentCityGroupTerminalId == '') {
+                currentCityGroupTerminalId = 0;
+            }
+            else {
+                $(".enablecityrack").prop("checked", true);
+                $(".dd-cityrack").removeClass("subSectionOpacity").removeClass("pntr-none");
+            }
+            $(".cityrackterminalinput").val("");
+            $(".cityrackterminallist ul").empty();
+            $(".showallcityterminals").hide();
+            GetCityRackTerminalList(stateid, false, true, currentCityGroupTerminalId);
+        }
+
+        $("#@Html.IdFor(m=>m.CityGroupTerminalId)").change(function () {
+            assignNewCityGroupTerminal();
+        });
+
+        $(document).ready(function () {
+             $(".enablecityrack").on('change', function () {
+                 $('#@Html.IdFor(m => m.CityGroupTerminalId)').multiselect('select', ['noneselected']);
+                 if ($(this).prop("checked") == false) {
+                     $(".dd-cityrack").css("pointer-events", "none");
+                     $(".dd-cityrack,.cityrackterminallist").css("pointer-events", "none");
+                     $(".multiselect").addClass("pntr-none");
+                     $(".dd-cityrack").removeClass("show-element").addClass("hide-element");
+                     $(".cityrack-validation").addClass("hide-element");
+                }
+                else {
+                     $(".dd-cityrack").css("pointer-events", "visible");
+                     $(".dd-cityrack").removeClass("hide-element").addClass("show-element");
+                 }
+            });
+        });
+    </script>
+}

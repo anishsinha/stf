@@ -1,0 +1,879 @@
+﻿@model OrderDetailsViewModel
+<!-- order details starts -->
+<div class="col-sm-12">
+    <div class="row well mb15">
+        <div class="col-sm-12 pb15">
+            <div class="overflow-h">
+                <h4 class="dib pb10">@Resource.headingOrder</h4>
+                <div class="dib pull-right">
+                    <div class="dib mt3">
+                        @if (Model.StatusId == (int)OrderStatus.Open)
+                        {
+                            <label class="label label-warning">@Model.StatusName</label>
+                        }
+                        else if (Model.StatusId == (int)OrderStatus.Closed)
+                        {
+                            <label class="label label-danger">@Model.StatusName</label>
+                        }
+                        else if (Model.StatusId == (int)OrderStatus.Canceled)
+                        {
+                            <label class="label label-danger">@Model.StatusName</label>
+                        }
+                    </div>
+                    @if (!Model.IsProFormaPo && Model.FuelDetails.FuelQuantity.QuantityTypeId != (int)QuantityType.NotSpecified)
+                    {
+                        <span>@Model.FuelDeliveredPercentage@Resource.constSymbolPercent @Resource.lblCompleted</span>
+                    }
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 col-6 col-sm-4 mb10">
+                    <label class="f-normal">@Resource.lblPoNumber</label>
+                    @if (CurrentUser.IsBuyer || CurrentUser.IsBuyerAdmin || CurrentUser.IsAccountingPerson)
+                    {
+                        <div>
+                            <span id="lblPoNumber" class="break-word">@Model.PoNumber</span>&nbsp;
+                            @if (Model.AllowPoEdit)
+                            {
+                                <a href="javascript:void(0)" onclick="toggleEditWindow('po-edit')"><span class="fa fa-pencil-square-o"></span></a>
+                            }
+                        </div>
+                        <!-- edit po starts -->
+                        <div class="border hide-element z-index5 pa pl15 pr15 ml15 bg-white po-edit shadow-b" id="po-edit-modal">
+                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                            <i class="fa fa-times pull-right mt5 mb10" aria-hidden="true" onclick="toggleEditWindow('po-edit')"></i>
+                            <div class="form-group">
+                                @Html.TextBoxFor(m => m.PoNumber, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.PoNumber)
+                            </div>
+                            <div class="form-group text-right">
+                                <input type="button" value="@Resource.btnLabelCancel" id="btnCancel" class="btn btn-sm" onclick="toggleEditWindow('po-edit')" />
+                                @*data-toggle='confirmation' data-html='true' data-popout='true' data-singleton='true'
+                                    data-placement='top' id="btnsavePoNumber" data-title="Are you sure you want to update the PO#?"*@
+                                <button class="btn btn-primary btn-sm" type="button" onclick="CallConfirmBootBox('Are you sure you want to update the PO#?',savePoNumber,'')">
+                                    @Resource.btnLabelSave
+                                </button>
+                            </div>
+                        </div>
+                        <!-- edit po ends -->
+                    }
+                    else
+                    {
+                        <div><span id="lblPoNumber" class="break-word">@Model.PoNumber</span></div>
+                    }
+                </div>
+
+                <div class="col-6 col-sm-4 mb10">
+                    <label class="f-normal">@Resource.lblSupplier</label>
+                    <div class="break-word">
+                        @Model.Supplier.Name<br />
+                        @Model.Supplier.Email<br />
+                        <span class="phone">@Model.Supplier.PhoneNumber</span>
+                    </div>
+                </div>
+                <div class="col-3 mb10">
+                    <label class="f-normal">@Resource.lblSupplierCompany</label>
+                    <div id="lblSupplierCompany">@Model.SupplierCompanyName</div>
+                </div>
+                <div>
+                    <label class="f-normal">@Resource.lblAccountingCompanyId</label>
+                    @if((Model.AccountingCompanyId != null) && (Model.AccountingCompanyId != string.Empty))
+                    {
+                        <div class="break-word">
+                            @Model.AccountingCompanyId
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="break-word">
+                            @Resource.lblHyphen
+                        </div>
+                    }
+                </div>
+                @if (Model.OrderClosingThreshold != null)
+                {
+                    <div class="col-3 col-sm-2 mb10">
+                        <label class="f-normal">@Resource.lblAutomaticallyCloseOrder</label>
+                        <div id="lblSupplierCompany">@Model.OrderClosingThreshold@Resource.constSymbolPercent @Resource.lblCompleted</div>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12 pb5">
+            <h4 class="pb10">@Resource.headingJob</h4>
+            <div class="row">
+                <div class="col-md-3 col-sm-4 col-6 mb10">
+                    <label class="f-normal">@Resource.lblJob</label>
+                    <div>
+                        <a class="break-word" href="@Url.Action("Details", "Job", new { area = "Buyer", id = Model.JobId })">
+                            @Model.JobName
+                            @if (!string.IsNullOrWhiteSpace(Model.DisplayJobID))
+                            {
+                                <span>(@Resource.lblKiewitJobID:</span>
+                                <span>@Model.DisplayJobID)</span>
+                            }
+                        </a>
+                    </div>
+                </div>
+                <div class="col-sm-3 col-6 mb10">
+                    <label class="f-normal">@Resource.lblLocation</label>
+                    @if (@Model.JobLocation.LocationType != (int)JobLocationTypes.Various)
+                    {
+                        <div>
+                            @Model.JobLocation.Address <br> @Model.JobLocation.City, @Model.JobLocation.StateCode @Model.JobLocation.ZipCode
+                        </div>
+                    }
+                    else
+                    {
+                        <div>
+                            @Model.JobLocation.StateCode
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-3 col-6 ">
+                    <label class="f-normal">@Resource.lblAssetsAllocated</label>
+                    <div>@Model.AssetsAssigned</div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.SiteInstructions))
+                {
+                    <div class="col-sm-3 col-6 ">
+                        <label class="f-normal">@Resource.lblSiteInstructions</label>
+                        <div>@Model.SiteInstructions</div>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12 pb15">
+            <h4 class="pb10">@Resource.headingFuel</h4>
+            <div class="row">
+                <div class="col-md-3 col-sm-4 col-12 mb10">
+                    <label class="f-normal">@Resource.lblFuelType</label>
+                    <div class="break-word">@Model.FuelType</div>
+                </div>
+                @if (Model.TypeOfFuel != (int)ProductDisplayGroups.OtherFuelType)
+                {
+                    <div class="col-sm-4 col-6 mb10">
+                        <label class="f-normal">@Resource.lblTerminal</label>
+                        <div class="break-word" id="auto-lblterminal">@Model.TerminalName</div>
+                    </div>
+                    <div class="col-sm-4 col-md-2 col-6 mb10">
+                        <label class="f-normal">@Resource.lblDistance</label>
+                        <div id="auto-lbldistance">
+                            @if (Model.Distance > 0)
+                            {
+                                @Model.Distance.ToString(ApplicationConstants.DecimalFormat2) @(Model.CompanyCountryId == (int)Country.CAN ? Resource.lblKiloMeters: Resource.lblMiles.ToLower())
+                            }
+                            else
+                            {
+                                @Resource.lblHyphen
+                            }
+                        </div>
+                    </div>
+
+                }
+                else
+                {
+                    <div class="col-md-3 col-sm-3 col-6 mb10">
+                        <label class="f-normal">@Resource.lblProductDescription</label>
+                        <div class="break-word">@(!string.IsNullOrWhiteSpace(Model.ProductDescription) ? Model.ProductDescription : Resource.lblHyphen)</div>
+                    </div>
+                }
+
+                <div class="wbs-details col-sm-3">
+                    <div class='pa text-center bg-white wbs-loader loading-wrapper hide-element'>
+                        <span class='spinner-small pa col-1'></span>
+                    </div>
+                    <div class="col-sm-12 mb10">
+                        <label class="f-normal">@Resource.lblWBSNumber</label>
+                        <a id="edit-wbs-icon" href="javascript:void(0)" class="ftl-controls" onclick="editOrderAddditionalDetails(this, 'wbs-details', 'wbs-buttons');focusOnFirst(this,'wbs-text');"><i class="fa fa-edit"></i></a>
+                        <div class="ftl-controls wbs-text disable-controls">
+                            <div class="form-group mb0 disable-controls">
+                                @Html.TextBoxFor(m => m.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber, new { @class = "form-control", @disabled = "disabled" })
+                                @Html.ValidationMessageFor(m => m.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-12 text-right wbs-buttons hide-element">
+                        <input type="button" value="@Resource.btnLabelCancel" class="btn btn-sm actions"
+                               onclick="cancelEditOrderAdditionalDetails('edit-wbs-icon','wbs-details','wbs-buttons')" />
+                        @*onclick="updateWbsNumber()"*@
+                        <button class="btn btn-sm btn-primary"  onclick="CallConfirmBootBox('Are you sure you want to update the WBS#?',updateWbsNumber,'')">
+                            @Resource.btnLabelSave
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                @if (Model.FuelDetails.IsFTLEnabled)
+                {
+                    <div class="col-md-3 col-sm-3 col-6 mb10">
+                        <label class="f-normal">@Resource.lblOrderType</label>
+                        <div class="">
+                            <label>
+                                @Resource.lblFullTruckLoad
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-3 col-6 mb10">
+                        <label class="f-normal">@Resource.lblFreightOnBoard</label>
+                        <div class="">
+                            <label>
+                                @(((FreightOnBoardTypes)@Model.FuelDetails.FreightOnBoard.Value).GetDisplayName())
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-sm-3 col-6 mb10">
+                        <label class="f-normal">@Resource.lblBillableQuantity</label>
+                        <div>
+                            @(((QuantityIndicatorTypes)@Model.FuelDetails.FuelQuantity.QuantityIndicatorTypes).GetDisplayName())
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="col-md-3 col-sm-3 col-6 mb10">
+                        <label class="f-normal">@Resource.lblOrderType</label>
+                        <div class="">
+                            <label>
+                                @Resource.lblLessTruckLoad
+                            </label>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12 pb15">
+            <h4 class="pb10">@Resource.headingInvoicesDropTicket</h4>
+            <div class="row">
+                <div class="col-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.lblDDT</label>
+                    <div class="checkbox mt0">
+                        <label>
+                            @Html.CheckBoxFor(m => m.IsHidePricingEnabled) @Resource.lblHidePricing
+                        </label>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.lblInvoicedAmount</label>
+                    <div>
+                        @Resource.constSymbolCurrency@Model.InvoicedAmount.GetPreciseValue(2).ToString(ApplicationConstants.DecimalFormat2) <span class="currency-symbol">@Model.FuelDetails.FuelPricing.Currency</span>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.lblDropTicketAmount</label>
+                    <div>
+                        @Resource.constSymbolCurrency@Model.DropTicketAmount.ToString(ApplicationConstants.DecimalFormat2) <span class="currency-symbol">@Model.FuelDetails.FuelPricing.Currency</span>
+                    </div>
+                </div>
+                @if (Model.OrderAdditionalDetails != null && !string.IsNullOrWhiteSpace(Model.OrderAdditionalDetails.Notes))
+                {
+                    <div class="col-6 col-sm-3 mb10">
+                        <label class="f-normal">@Resource.lblSupplierNotes</label>
+                        <div>
+                            @Html.Raw(Model.OrderAdditionalDetails.Notes)
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="row">
+                <div class="col-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.lblInvoiceCreationPreference</label>
+                    <div>
+                        @{
+                            OrderEnforcement OrderEnforcementName = (OrderEnforcement)Model.FuelDeliveryDetails.OrderEnforcementId;
+                            var orderEnforcementName = OrderEnforcementName.GetDisplayName();
+                        }
+                        @orderEnforcementName
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3 mb10">
+                    <label class="f-normal">@Resource.lblRequiredPrePostDipTestDataForEachTankAsset</label>
+                    <div>
+                        @{
+                            var IsPrePostDipRequired = Model.FuelDeliveryDetails.IsPrePostDipRequired ? @Resource.lblYes : @Resource.lblNo;
+                        }
+                        @IsPrePostDipRequired
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if (Model.TaxDetailsViewModel != null && Model.TaxDetailsViewModel.Count > 0)
+        {
+            <div class="border-b-dash ma15 clearboth"></div>
+            <div class="col-sm-12 pb15">
+                <h4 class="pb10">@Resource.headingTaxesOtherProducts</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-hover mb0">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.lblType</th>
+                                    <th>@Resource.lblAmount</th>
+                                    <th>@Resource.lblDescription</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var tax in Model.TaxDetailsViewModel)
+                                {
+                                    <tr>
+                                        <td class="other-product-tax-desc">
+                                            @(CommonHelperMethods.GetName<OtherProductTaxPricingType>(tax.TaxPricingTypeId))
+                                        </td>
+                                        <td>
+                                            @Model.FuelDetails.FuelPricing.Currency @tax.TaxRate
+                                        </td>
+                                        <td>
+                                            @tax.TaxDescription
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12 pb15">
+            <h4 class="pb10">@Resource.headingDelivery</h4>
+            <div class="row">
+                <div class="col-6 col-sm-2 mb10">
+                    <label class="f-normal">@Resource.lblDateNeeded</label>
+                    <div>
+                        @Model.FuelDeliveryDetails.StartDate.ToString(Resource.constFormatDate)
+                        @if (Model.FuelDeliveryDetails.EndDate != null)
+                        {
+                            @($" - {Model.FuelDeliveryDetails.EndDate.Value.ToString(Resource.constFormatDate)}")
+                        }
+                    </div>
+                </div>
+                <div class="col-6 col-sm-2 mb10">
+                    <label class="f-normal">@Resource.lblFrom</label>
+                    <div>
+                        <span>@Model.FuelDeliveryDetails.StartTime</span>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-2 mb10">
+                    <label class="f-normal">@Resource.lblTo</label>
+                    <div>
+                        <span>@Model.FuelDeliveryDetails.EndTime</span>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6 col-sm-3">
+                    <label class="f-normal">@Resource.lblType</label>
+                    <div>@(Model.FuelDeliveryDetails.DeliveryTypeId == ((Int16)DeliveryType.OneTimeDelivery) ? @Resource.lblSingle : @Resource.lblMultiple)</div>
+                </div>
+                @if (Model.FuelDeliveryDetails.DeliveryTypeId == (int)DeliveryType.MultipleDeliveries)
+                {
+                    <div class="col-md-4 col-6 col-sm-3">
+                        <label class="f-normal">@Resource.lblEstimatedQuantityPerDelivery</label>
+                        <div>@(Model.EstimatedGallonsPerDelivery)</div>
+                    </div>
+                }
+            </div>
+            @if (Model.FuelDeliveryDetails.DeliveryTypeId == (int)DeliveryType.MultipleDeliveries)
+            {
+                <div class="row">
+                    <div class="col-sm-12 mb10">
+                        <a href="javascript:void(0)" onclick="triggerEvent('.schedule-tab','click')" class="mr20">
+                            @Resource.lblViewDeliverySchedules
+                        </a>
+                    </div>
+                </div>}
+        </div>
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12 pb15">
+            <h4 class="pb10">@Resource.headingDriver</h4>
+            <div class="row">
+                <div class="col-4 col-sm-3 col-md-2">
+                    <div class="assign-driver" id="assign-driver-modal">
+                        <label class="f-normal">@Resource.lblAssignedDriver</label>
+                        <div id="driver-name">@Model.DriverName</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-2">
+                    <label class="f-normal">@Resource.lblSpecialInstruction</label>
+                    <ol class="pl15">
+                        @if (Model.FuelDeliveryDetails.SpecialInstructions.Count == 0)
+                        {
+                            @Resource.lblHyphen
+                        }
+                        else
+                        {
+                            foreach (var specialInstruction in Model.FuelDeliveryDetails.SpecialInstructions)
+                            {
+                                <li class="break-word">
+                                    @specialInstruction.Instruction
+                                </li>
+                            }
+                        }
+                    </ol>
+                </div>
+                <div class="col-sm-8">
+                    @Html.PartialFor("~/Views/Shared/_PartialSpecialInstructionAttachment.cshtml", m => m.FuelDeliveryDetails.SpecialInstructionFiles)
+                </div>
+            </div>
+        </div>
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12">
+            <h4 class="pb10">@Resource.headingPricing</h4>
+            <div class="row">
+                <div class="col-6 col-sm-4 mb10">
+                    @if (!Model.FuelDetails.IsTierPricing)
+                    {
+                        <label class="f-normal">@(string.Format(Resource.lblRackPP, Model.FuelDetails.FuelPricing.Currency == Currency.USD ? "PPU" : "PPU"))</label>
+                    }
+                    @*<label class="f-normal">@(string.Format(Resource.lblRackPP, Model.FuelDetails.FuelPricing.Currency == Currency.USD ? "PPG" : "PPL"))</label>*@
+                    @if (Model.FuelDetails.IsTierPricing)
+                    {
+                        <div>@Model.PricePerGallon </div>
+                    }
+                    @if (!Model.FuelDetails.IsTierPricing)
+                    {
+                        <div>@Model.PricePerGallon @Model.FuelDetails.FuelPricing.Currency</div>
+                    }
+                    @*<div>@Model.PricePerGallon @Model.FuelDetails.FuelPricing.Currency</div>*@
+                    @if (Model.FuelDetails.IsTierPricing)
+                    {
+                        <div class="row mt10">
+                            <div class="col-sm-12 col-12 mb10">
+                                @*<label class="f-normal">@Resource.lblTier</label>*@
+                                <div>
+                                    <table class="table table-hover mb0 details-table">
+                                        <thead>
+                                            <tr>
+                                                <th>@Resource.lblFrom</th>
+                                                <th>@Resource.lblUpto</th>
+                                                @*<th>@Resource.lblPriceType</th>*@
+                                                @*<th>@Resource.lblPricePerGallon</th>*@
+                                                <th>@(string.Format(Resource.lblRackPP, Model.FuelDetails.FuelPricing.Currency == Currency.USD ? "PPU" : "PPU")) </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @if (Model.FuelDetails.FuelPricing.TierPricing.Pricings.Count > 0)
+                                            {
+                                                foreach (var fuelPrice in Model.FuelDetails.FuelPricing.TierPricing.Pricings)
+                                                {
+                                                    <tr>
+                                                        <td>@fuelPrice.FromQuantity.GetPreciseValue(4)</td>
+                                                        <td>@(fuelPrice.ToQuantity == 0 ? Resource.lblHyphen : fuelPrice.ToQuantity.GetCommaSeperatedValue())</td>
+                                                        <td>@(fuelPrice.DisplayPrice)</td>
+                                                    </tr>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <tr>
+                                                    <td colspan="2"> @Resource.lblNoDifferentFuelPrice</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="cumulation-frequency">
+                            @if (!string.IsNullOrWhiteSpace(Model.FuelDetails.FuelPricing.TierPricing.DisplayCumulationFrequency))
+                            {
+                                <lable class="d-block">@Resource.lblCumulationFrequency  </lable>
+                                <lable class="d-block"> @Model.FuelDetails.FuelPricing.TierPricing.DisplayCumulationFrequency</lable> 
+                            }
+                        </div>
+                    }
+                </div>
+                   
+                    @*<div class="col-6 col-sm-2 mb10">
+
+            <label class="f-normal">@(string.Format(Resource.lblRackPP, Model.FuelDetails.FuelPricing.Currency == Currency.USD ? "PPG" : "PPL"))</label>
+            <div>@Model.PricePerGallon @Model.FuelDetails.FuelPricing.Currency</div>
+        </div>*@
+                    @if (Model.FuelDetails.FuelPricing.CityGroupTerminalId.HasValue && Model.FuelDetails.FuelPricing.CityGroupTerminalId.Value > 0)
+                    {
+                        <div class="col-sm-2 col-6 mb10">
+                            <label class="f-normal">@Resource.lblCityGroupTerminal</label>
+                            <div class="break-word" id="auto-lblterminal">@Model.FuelDetails.FuelPricing.CityGroupTerminalName</div>
+                        </div>
+                    }
+                    @Html.Partial("_PartialFuelFeeDetails", Model.FuelDeliveryDetails)
+                    <div class="col-sm-2 col-6 mb10">
+                        <label class="f-normal">@Resource.lblSalesTaxExempt</label>
+                        <div>
+                            @((Model.IsTaxExempted).ToYesNo())
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-6 mb10 hide-element">
+                        <label class="f-normal">@Resource.lblDiscountForEarlyPayment</label>
+                        <div>
+                            @if (Model.DiscountEarlyPayment.Count > 0)
+                            {
+                                foreach (var discount in Model.DiscountEarlyPayment)
+                                {
+                                    @($"{discount.DiscountPercent}{Resource.constSymbolPercent} {Resource.lblDiscountPercentage} {discount.WithinDays} {Resource.lblDaysAfterInvoice}")
+                                }
+                            }
+                            else
+                            {
+                                @Resource.lblNoDiscount
+                            }
+                        </div>
+                    </div>
+                </div>
+            <div class="row mt10">
+                @if (Model.DifferentFuelPrices.Count > 0)
+                {
+                    <div class="col-sm-6 col-12 mb10">
+                        <label class="f-normal">@Resource.lblTier</label>
+                        <div>
+                            <table class="table table-hover mb0">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.lblFrom</th>
+                                        <th>@Resource.lblUpto</th>
+                                        <th>@Resource.lblPriceType</th>
+                                        <th>@Resource.lblPricePerGallon</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var fuelPrice in Model.DifferentFuelPrices)
+                                    {
+                                        <tr>
+                                            <td>@fuelPrice.MinQuantity.GetCommaSeperatedValue()</td>
+                                            <td>@(fuelPrice.MaxQuantity == null ? Resource.lblHyphen : fuelPrice.MaxQuantity.Value.GetCommaSeperatedValue())</td>
+                                            @if (fuelPrice.PricingTypeId == (int)PricingType.PricePerGallon)
+                                            {
+                                                <td>
+                                                    @Resource.lblPricePerGallon
+                                                </td>
+                                                <td>
+                                                    @(fuelPrice.PricePerGallon == null ? Resource.lblHyphen : fuelPrice.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td>@Resource.lblRackPrice</td>
+                                                <td>
+                                                    @if (fuelPrice.RackAvgTypeId == (int)RackPricingType.PlusPercent)
+                                                    {
+                                                        @($"{Resource.lblRackPlus} {fuelPrice.PricePerGallon}{Resource.constSymbolPercent}")
+                                                    }
+                                                    else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.MinusPercent)
+                                                    {
+                                                        @($"{Resource.lblRackMinus} {fuelPrice.PricePerGallon}{Resource.constSymbolPercent}")
+                                                    }
+                                                    else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.PlusDollar)
+                                                    {
+                                                        @($"{Resource.lblRackPlus} {Resource.constSymbolCurrency}{fuelPrice.PricePerGallon} {Model.FuelDetails.FuelPricing.Currency}")
+                                                    }
+                                                    else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.MinusDollar)
+                                                    {
+                                                        @($"{Resource.lblRackMinus} {Resource.constSymbolCurrency}{fuelPrice.PricePerGallon} {Model.FuelDetails.FuelPricing.Currency}")
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="row">
+                @*<div class="col-6 col-sm-2 mb10">
+                        <label class="f-normal">@Resource.lblIndices</label>
+                        <div>
+                            <div>@(((PricingSource)@Model.FuelDetails.FuelPricing.FuelPricingDetails.PricingSourceId).GetDisplayName())</div>
+                        </div>
+                    </div>*@
+                @if (Model.PricingCodeId > 0)
+                {
+                    @*<div class="col-6 col-sm-2 mb10">
+                            <label class="f-normal">@Resource.lblPricingCode</label>
+                            <div>
+                                @(Model.PricingCode)
+                            </div>
+                        </div>*@
+                    if (!string.IsNullOrWhiteSpace(Model.PricingCodeDescription))
+                    {
+                        <div class="col-6 col-sm-2 mb10">
+                            <label class="f-normal">@Resource.lblDescription</label>
+                            <div>
+                                @(Model.PricingCodeDescription)
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+        <div class="border-b-dash ma15 clearboth"></div>
+        <div class="col-sm-12">
+            <h4 class="pb10">@Resource.headingOnsiteContact</h4>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>@Resource.gridColumnName</th>
+                        <th>@Resource.gridColumnEmail</th>
+                        <th>@Resource.gridColumnContact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ContactPersons.Count > 0)
+                    {
+                        foreach (var contactPerson in Model.ContactPersons)
+                        {
+                            <tr>
+                                <td>@contactPerson.Name</td>
+                                <td>@contactPerson.Email</td>
+                                <td>@contactPerson.PhoneNumber</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="2"> @Resource.lblNoContacts </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="border-b-dash ma15 clearboth"></div>
+        @if (Model.IsJobResaleEnabled)
+        {
+            <div class="col-sm-12">
+                <h4 class="pb10">@Resource.headingResale</h4>
+                <div class="row">
+                    <div class="col-md-2 col-6 col-sm-2 mb10">
+                        <label class="f-normal">@Resource.headingRetailPrice</label>
+                        <div>@CommonHelperMethods.GetResalePricePerGallon(Model.FuelRequestId)</div>
+                    </div>
+                    <div class="col-md-3 col-6 col-sm-3 mb10">
+                        <label class="f-normal">@Resource.lblDDT</label>
+                        @if (Model.FuelRequestResale.IsDropTicketEnabled)
+                        {
+                            <div>@Resource.lblEnabled</div>
+                        }
+                        else
+                        {
+                            <div>@Resource.lblDisabled</div>
+                        }
+                    </div>
+                </div>
+                <div class="row mt10">
+                    @if (Model.FuelRequestResale.FuelPricing.PricingTypeId == (int)PricingType.Tier)
+                    {
+
+                        <div class="col-sm-6 mb10">
+                            <label class="f-normal">@Resource.lblTier</label>
+                            <div>
+                                <table class="table table-hover mb0 details-table">
+                                    <thead>
+                                        <tr>
+                                            <th>@Resource.lblFrom</th>
+                                            <th>@Resource.lblUpto</th>
+                                            <th>@Resource.lblPriceType</th>
+                                            <th>@Resource.lblPricePerGallon</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.FuelRequestResale.DifferentFuelPrices.Count > 0)
+                                        {
+                                            foreach (var resalePrice in Model.FuelRequestResale.DifferentFuelPrices)
+                                            {
+                                                <tr>
+                                                    <td>@resalePrice.MinQuantity.GetCommaSeperatedValue()</td>
+                                                    <td>@(resalePrice.MaxQuantity == null ? Resource.lblHyphen : resalePrice.MaxQuantity.Value.GetCommaSeperatedValue())</td>
+                                                    @if (resalePrice.PricingTypeId == (int)PricingType.PricePerGallon)
+                                                    {
+                                                        <td>
+                                                            @Resource.lblPricePerGallon
+                                                        </td>
+                                                        <td>
+                                                            @(resalePrice.PricePerGallon == null ? Resource.lblHyphen : resalePrice.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                        </td>
+                                                    }
+                                                    else
+                                                    {
+                                                        <td>@Resource.lblRackPrice</td>
+                                                        <td>
+                                                            @if (resalePrice.RackAvgTypeId == (int)RackPricingType.PlusPercent)
+                                                            {
+                                                                @($"{Resource.lblRackPlus} {resalePrice.PricePerGallon}{Resource.constSymbolPercent}")
+                                                            }
+                                                            else if (resalePrice.RackAvgTypeId == (int)RackPricingType.MinusPercent)
+                                                            {
+                                                                @($"{Resource.lblRackMinus} {resalePrice.PricePerGallon}{Resource.constSymbolPercent}")
+                                                            }
+                                                            else if (resalePrice.RackAvgTypeId == (int)RackPricingType.PlusDollar)
+                                                            {
+                                                                @($"{Resource.lblRackPlus} {Resource.constSymbolCurrency}{resalePrice.PricePerGallon} {Model.FuelDetails.FuelPricing.Currency}")
+                                                            }
+                                                            else if (resalePrice.RackAvgTypeId == (int)RackPricingType.MinusDollar)
+                                                            {
+                                                                @($"{Resource.lblRackMinus} {Resource.constSymbolCurrency}{resalePrice.PricePerGallon} {Model.FuelDetails.FuelPricing.Currency}")
+                                                            }
+                                                        </td>
+                                                    }
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="2"> @Resource.lblNoDifferentFuelPrice </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    }
+                    <div class="col-sm-6 mb10">
+                        <label class="f-normal">@Resource.lblFee</label>
+                        <div>
+                            <table class="table table-hover mb0 details-table">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.lblType</th>
+                                        <th>@Resource.lblFee</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.ResaleFee.Count > 0)
+                                    {
+                                        foreach (var fee in Model.ResaleFee)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @fee.FeeSubTypeName
+                                                </td>
+                                                <td>
+                                                    @Resource.constSymbolCurrency@fee.Fee.ToString(ApplicationConstants.DecimalFormat2) <span class="currency-symbol">@Model.FuelDetails.FuelPricing.Currency</span>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="2"> @Resource.lblNoFee </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 mb10">
+                        <label class="f-normal">@Resource.lblCustomer</label>
+                        <div>
+                            <table class="table table-hover mb0 details-table">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.lblName</th>
+                                        <th>@Resource.lblEmail</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.FuelRequestResale.ResaleCustomer.Count > 0)
+                                    {
+                                        foreach (var customer in Model.FuelRequestResale.ResaleCustomer)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @customer.Name
+                                                </td>
+                                                <td>
+                                                    @customer.Email
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="2"> @Resource.lblNoCustomer </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 text-right pb30">
+        <input type="button" onclick="window.history.go(-1);" class="btn btn-default" value="@Resource.btnLabelBack" />
+    </div>
+</div>
+
+<script>
+    //$('[data-toggle=confirmation]').confirmation({
+    //    rootSelector: '[data-toggle=confirmation]',
+    //    html: true
+    //});
+
+
+
+    $('.other-product-tax-desc').each(function () {
+        if ('@Model.FuelDetails.FuelQuantity.UoM' == '@Resource.lblLitres') {
+            $(this).text($(this).text().replace('@Resource.lblPerGallon', '@Resource.lblPerLitre'));
+        }
+    });
+
+    $('#@Html.IdFor(m => m.IsHidePricingEnabled)').change(function () {
+		$(this).attr('disabled', 'disabled');
+		var url = '@Url.Action("UpdateTogglePricingDetails", "Order")';
+		var data = $(this).is(':checked');
+		$.post(url, {'OrderId':'@Model.Id' , 'IsHidePricingEnabled': data }, function (response) {
+			$('#@Html.IdFor(m=>m.IsHidePricingEnabled)').removeAttr('disabled');
+		});
+	});
+
+	function toggleEditWindow(elementClassName) {
+		$('.' + elementClassName).toggle();
+		var isVisible = $('.' + elementClassName).is(':visible');
+
+		if (isVisible === true) {
+			// element is Visible
+			validationMessageFor("@Html.NameFor(m => m.PoNumber)", '');
+			$('#@Html.IdFor(m => m.PoNumber)').val($('#lblPoNumber').text());
+		}
+    }
+
+    function editOrderAddditionalDetails(element, displaySection, actionButtons) {
+        $(element).hide();
+        $("." + displaySection).find("input").attr("disabled", false);
+        $("." + actionButtons).show();
+    }
+
+    function cancelEditOrderAdditionalDetails(editButton, displaySection, actionButtons) {
+        validationMessageFor("@Html.NameFor(m => m.OrderAdditionalDetails.Allowance)", "");
+        $("#" + editButton).show();
+        $("." + displaySection).find("input").attr("disabled", true);
+        $("." + actionButtons).hide();
+    }
+
+    function updateWbsNumber() {
+        var wbsNumber = $('#@Html.IdFor(m => m.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber)').val();
+        var data = {
+            fuelRequestId: @Model.FuelRequestId,
+            wbsNumber: wbsNumber
+        }
+        var targetUrl = '@Url.Action("UpdateWbsNumber", "Order", new { area = "Buyer" })';
+        $.post(targetUrl, data, function (response) {
+            if (response.StatusCode == 0) {
+                cancelEditOrderAdditionalDetails('edit-wbs-icon', 'wbs-details', 'wbs-buttons');
+                msgsuccess(response.StatusMessage);
+            }
+        }).always(function () { $(".wbs-details").find('.loading-wrapper').hide(); });
+    }
+</script>

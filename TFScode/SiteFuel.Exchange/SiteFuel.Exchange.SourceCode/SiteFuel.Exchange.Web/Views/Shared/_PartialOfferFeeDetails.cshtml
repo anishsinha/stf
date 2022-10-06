@@ -1,0 +1,113 @@
+﻿@model FuelDeliveryDetailsViewModel
+@foreach (var fee in Model.FuelFees.FuelRequestFees.Where(t => (Model.IsOrderView || !t.IncludeInPPG) && t.FeeSubTypeId != (int)FeeSubType.NoFee && t.FeeSubTypeId != (int)FeeSubType.ByQuantity))
+{
+    <div class="col-md-4 col-sm-3 col-xs-6 mb20">
+        <label class="f-normal">@(fee.OtherFeeDescription ?? fee.FeeTypeName)</label>
+        @if (fee.FeeConstraintTypeId.HasValue)
+        {
+            if (fee.FeeConstraintTypeId.Value == (int)FeeConstraintType.Weekend)
+            {
+                <label class="f-normal">
+                    ( @Resource.lblWeekend )
+                </label>
+            }
+            else
+            {
+                <label class="f-normal">
+                    ( @fee.SpecialDate.Value.Date.ToString(Resource.constFormatDate) )
+                </label>
+            }
+        }
+        <div>
+            @if (fee.FeeTypeId == ((int)FeeType.UnderGallonFee).ToString())
+            {
+                @($"{Resource.lblUnder} {(fee.MinimumGallons ?? 0).ToString(ApplicationConstants.DecimalFormat2)} ") @(fee.Currency == Currency.CAD ? Resource.lblLitres : Resource.lblGallons)<br />
+                @($"{fee.FeeSubTypeName} {Resource.constSymbolCurrency}{(fee.Fee ?? 0).ToString(ApplicationConstants.DecimalFormat2)} {fee.Currency}")
+            }
+            else
+            {
+                @($"{fee.FeeSubTypeName} {Resource.constSymbolCurrency}{fee.Fee.Value.ToString(ApplicationConstants.DecimalFormat2)} {fee.Currency}")
+            }
+        </div>
+    </div>
+}
+@foreach (var fee in Model.FuelFees.FuelRequestFees.Where(t => !t.FeeConstraintTypeId.HasValue && (Model.IsOrderView || !t.IncludeInPPG) && t.FeeSubTypeId == (int)FeeSubType.ByQuantity))
+{
+    <div class="col-sm-12 clearboth">
+        <div class="row">
+            <div class="col-sm-4 col-xs-6 mb20">
+                <label class="f-normal">@(fee.OtherFeeDescription ?? fee.FeeTypeName): </label> <span id="auto-delivery-feesubtype">@fee.FeeSubTypeName</span>
+                @if (fee.FeeSubTypeId == (int)FeeSubType.ByQuantity)
+                {
+                    <table class="table table-hover margin bottom details-table">
+                        <thead>
+                            <tr>
+                                <th>@Resource.lblFrom</th>
+                                <th>@Resource.lblUpto</th>
+                                <th>@Resource.lblFee</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var feeByQuantity in fee.DeliveryFeeByQuantity)
+                            {
+                                <tr>
+                                    <td>@feeByQuantity.MinQuantity.GetCommaSeperatedValue()</td>
+                                    <td>@(feeByQuantity.MaxQuantity == null ? Resource.lblHyphen : feeByQuantity.MaxQuantity.Value.GetCommaSeperatedValue())</td>
+                                    <td>@Resource.constSymbolCurrency@feeByQuantity.Fee.ToString(ApplicationConstants.DecimalFormat2) @feeByQuantity.Currency</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+}
+@foreach (var fee in Model.FuelFees.FuelRequestFees.Where(t => t.FeeConstraintTypeId.HasValue && (Model.IsOrderView || !t.IncludeInPPG) && t.FeeSubTypeId == (int)FeeSubType.ByQuantity))
+{
+    <div class="col-sm-12 clearboth">
+        <div class="row">
+            <div class="col-sm-4 col-xs-6 mb20">
+                <label class="f-normal">@(fee.OtherFeeDescription ?? fee.FeeTypeName): </label>
+                <span id="auto-delivery-feesubtype">
+                    @fee.FeeSubTypeName
+                    @if (fee.FeeConstraintTypeId.Value == (int)FeeConstraintType.Weekend)
+                    {
+                        <label class="f-normal">
+                            ( @Resource.lblWeekend )
+                        </label>
+                    }
+                    else
+                    {
+                        <label class="f-normal">
+                            ( @fee.SpecialDate.Value.Date.ToString(Resource.constFormatDate) )
+                        </label>
+                    }
+                </span>
+                <table class="table table-hover margin bottom details-table">
+                    <thead>
+                        <tr>
+                            <th>@Resource.lblFrom</th>
+                            <th>@Resource.lblUpto</th>
+                            <th>@Resource.lblFee</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var feeByQuantity in fee.DeliveryFeeByQuantity)
+                        {
+                            <tr>
+                                <td>@feeByQuantity.MinQuantity.GetCommaSeperatedValue()</td>
+                                <td>@(feeByQuantity.MaxQuantity == null ? Resource.lblHyphen : feeByQuantity.MaxQuantity.Value.GetCommaSeperatedValue())</td>
+                                <td>@Resource.constSymbolCurrency@feeByQuantity.Fee.ToString(ApplicationConstants.DecimalFormat2) @feeByQuantity.Currency</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+

@@ -1,0 +1,131 @@
+﻿   <div class="row ">
+       <div class="col-sm-12">
+           <div class="row ">
+               <div class="col-sm-12">
+                   <div class="btn-group btn-toggle btn-group-toggle float-left mb15" data-toggle="buttons">
+                       <label class="btn active">
+                           <input type="radio" class="pricing-feedfilter" name="feed-options" id="0"> @Resource.lblAll
+                       </label>
+                       <label class="btn">
+                           <input type="radio" class="pricing-feedfilter" name="feed-options" id="@((int)PricingSourceFeedTypes.Contract_10AM_EST)"> @PricingSourceFeedTypes.Contract_10AM_EST.GetDisplayName()
+                       </label>
+                       <label class="btn">
+                           <input type="radio" class="pricing-feedfilter" name="feed-options" id="@((int)PricingSourceFeedTypes.EOD_5PM_EST)"> @PricingSourceFeedTypes.EOD_5PM_EST.GetDisplayName()
+                       </label>
+                       <label class="btn">
+                           <input type="radio" class="pricing-feedfilter" name="feed-options" id="@((int)PricingSourceFeedTypes.PreviousDay_10AM_EST)"> @PricingSourceFeedTypes.PreviousDay_10AM_EST.GetDisplayName()
+                       </label>
+                       <label class="btn">
+                           <input type="radio" class="pricing-feedfilter" name="feed-options" id="@((int)PricingSourceFeedTypes.PreviousDay_5PM_EST)"> @PricingSourceFeedTypes.PreviousDay_5PM_EST.GetDisplayName()
+                       </label>
+                   </div>
+               </div>
+           </div>
+           <div class="row">
+               <div class="col-sm-12">
+                   <div class="btn-group btn-toggle btn-group-toggle float-left mb15" data-toggle="buttons">
+                       <label class="btn active">
+                           <input type="radio" class="pricing-fuelClassfilter" name="fuelClass-options" id="0"> @Resource.lblAll
+                       </label>
+                       <label class="btn">
+                           <input type="radio" class="pricing-fuelClassfilter" name="fuelClass-options" id="@((int)FuelClassTypes.Branded)"> @FuelClassTypes.Branded
+                       </label>
+                       <label class="btn">
+                           <input type="radio" class="pricing-fuelClassfilter" name="fuelClass-options" id="@((int)FuelClassTypes.Unbranded)"> @FuelClassTypes.Unbranded
+                       </label>
+                       <label class="btn">
+                           <input type="radio" class="pricing-fuelClassfilter" name="fuelClass-options" id="@((int)FuelClassTypes.Both)"> @FuelClassTypes.Both
+                       </label>
+                   </div>
+               </div>
+           </div>
+       </div>
+     </div>
+   <div class="row">
+       <div class="col-sm-12">
+           <div class="hide-element pricing-spinner">
+               <div class="pa bg-white top0 left0 z-index5 loading-wrapper mtm10"><span class='spinner-dashboard pa'></span></div>
+           </div>
+
+           <div id="pricing-code-tiles" class="modal-pricingcodescroll row">
+
+           </div>
+       </div>
+              
+           </div>
+           <script>
+    $(document).ready(function () {
+        $('.pricing-feedfilter, .pricing-fuelClassfilter').on('change', function () {
+            reloadPricingData();
+        });
+    });
+
+    function reloadPricingData() {
+        $('.modal').parent().on('show.bs.modal', function (e) { $(e.relatedTarget.attributes['data-target'].value).appendTo('body'); })
+        $('.pricing-spinner').show();
+        getPricingCodes();
+    }
+
+    function getPricingCodes() {
+        var filterData = getPricingFilter();
+        filterData["feedTypeId"] = $(".pricing-feedfilter:checked").attr('id');
+        filterData["fuelClassTypeId"] = $(".pricing-fuelClassfilter:checked").attr('id');
+        var pricingUrl = "@Url.Action("GetPricingCodes", "Profile", new { area = "Settings" })";
+        $.ajax({
+            url: pricingUrl,
+            type: "GET",
+            dataType: "json",
+            data: filterData,
+            success: function (result) {
+                $('.pricing-spinner').hide();
+                updatePricingCode(result.PricingCodes);
+            }
+        });
+    }
+
+    function updatePricingCode(result) {
+        var appendData = '';
+        if (result != '' && result != undefined && result != null) {
+            for (var i = 0; i < result.length; i++) {
+                var item = result[i];
+                var displayData = getPricingDisplayData(item);
+                appendData += '<div class="col-sm-4"><div class="well code-tile" onclick="updatePricingCodeDetails(' + item.Id + ', \'' + item.Code + '\', \'' + displayData + '\',\'' + item.PricingSourceId + '\')">'
+                +'<label id="' + item.Id + '" class="text-center">' + item.Code + '</label>';
+                if (item.PricingTypeId == @((int)PricingType.RackAverage)) {
+                    appendData += '<div><div>' + item.PricingSource + '</div><div>' + item.RackAvgPricingType + '</div>';
+                    if (item.PricingSourceId == @((int)PricingSource.OPIS) || item.PricingSourceId == @((int)PricingSource.PLATTS)) {
+                        appendData += '<div>' + item.FeedType + '</div><div>' + item.WeekendPricingDay + '</div>';
+                    }
+                    if (item.PricingSourceId == @((int)PricingSource.OPIS)) {
+                        appendData += '<div>' + item.FuelClassType + '</div><div>' + item.QuantityIndicator + '</div>';
+                    }
+                    appendData += '</div></div>';
+                }
+                appendData += '</div>';
+            }
+        }
+        $("#pricing-code-tiles").html(appendData);
+    }
+
+    function getPricingDisplayData(item) {
+        var displayData = '';
+        if (item != undefined || item != null) {
+            if (item.PricingTypeId == @((int)PricingType.PricePerGallon)) {
+                displayData += item.PricingSource + ', ' + "Fixed";
+            }
+            else if (item.PricingTypeId == @((int)PricingType.Suppliercost)) {
+                displayData += item.PricingSource + ', ' + "Fuel Cost";
+            }
+            else if (item.PricingTypeId == @((int)PricingType.RackAverage)) {
+                displayData += item.PricingSource + ', ' + item.RackAvgPricingType;
+                if (item.PricingSourceId == @((int)PricingSource.OPIS) || item.PricingSourceId == @((int)PricingSource.PLATTS)) {
+                    displayData += ', ' + item.FeedType + ', ' + item.WeekendPricingDay;
+                }
+                if (item.PricingSourceId == @((int)PricingSource.OPIS)) {
+                    displayData += ', ' + item.FuelClassType + ', ' + item.QuantityIndicator;
+                }
+            }
+        }
+        return displayData;
+    }
+           </script>

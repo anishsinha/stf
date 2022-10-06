@@ -1,0 +1,376 @@
+
+<div class="row">
+    <div class="col-sm-12 text-right"></div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="container-fluid" [formGroup]="SbForm">
+            <div class="row" *ngIf="this.changeDeteaction">
+                <div class="col-sm-12">
+                    <div class="alert alert-warning fs12 radius-10">
+                        <p>Due to region/window mode change session data removed.Close the current window and reopen it again from schedule builder.</p>
+                        <p>Otherwise, window closed after 10 seconds.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb10">
+                <div class="col-sm-6">
+                    <h1 class="dib fs16 mr10 mt0">Delivery Request</h1>
+                    <div class="dib"><input type="text" placeholder="Search" class="form-control radius-10" formControlName="searchField"></div>
+                </div>
+                <div class="col-sm-6">
+                    <app-dip-test (OnRaiseDRFromMultiWindow)="GetDrsForMultiWindow()" [IsThisFromDrDisplay]="true" [SelectedRegionId]="regionId"></app-dip-test>
+                </div>
+            </div>
+            <div class="pr">
+                <div *ngIf="_loadingDrRequests" class="pa bg-white z-index5 loading-wrapper">
+                    <span class='spinner-dashboard pa'></span>
+                </div>
+                <div class="radius-5 border shadowb shadow-b" *ngIf="missedRequests.length > 0">
+                    <h2 class="fs11 mt5 mb5 ml10 dib missed-status pt5 pb5 pl10 pr10 radius-10">Missed</h2>
+                    <div class="missed-wrapper">
+                        <div class="row" *ngIf="missedRequests.length>0">
+                            <div class="col-sm-3 mb10" *ngFor="let drMissed of missedRequests">
+                                <div *ngIf="!drMissed.IsTBD" class="dr-queue" [ngClass]="checkItemsExists(drMissed.JobId,drMissed.DeliveryRequestType, drMissed.IsTBD)" (click)="pushItem(drMissed,drMissed.JobId)" style="cursor:pointer;" id="missed-{{drMissed.JobId}}">
+                                    <div class="row">
+                                        <div class="col-10 dr-info">
+                                            <div class="custom_setting" *ngIf="drMissed.DRQueueAttributes.CustomerName==true">
+                                                <div class="brand-name">
+                                                    <div *ngIf="drMissed.CustomerBrandId;else customerCompany">
+                                                        {{drMissed.CustomerBrandId}}
+                                                    </div>
+                                                    <ng-template #customerCompany>
+                                                        <div class="brand-name">
+                                                            {{ (drMissed.CustomerCompany.length>6)? (drMissed.CustomerCompany | slice:0:6)+'..':(drMissed.CustomerCompany) }} -&nbsp;
+                                                        </div>
+                                                    </ng-template>
+                                                </div>
+                                            </div>
+
+                                            <div class="job-location">
+                                                {{drMissed.JobName}}&nbsp;
+                                            </div>
+                                            <div class="job-city">
+                                                {{drMissed.JobCity}}&nbsp;
+                                            </div>
+                                            <div class="custom_setting">
+                                                <div class="compability-type" *ngIf="drMissed.DRQueueAttributes.TrailerCompatibility == true">
+                                                    {{drMissed.TrailerCompatibility}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!--<span class="duration" *ngIf="drMissed.DeliveryWindow && drMissed.DeliveryWindow != ''">
+                                            {{drMissed.DeliveryWindow}} hrs
+                                        </span>-->
+                                        <div class="custom_settings" *ngIf="drMissed.DRQueueAttributes && drMissed.DRQueueAttributes.HoursToCoverDistance == true">
+                                            <span class="duration" *ngIf="drMissed.HoursToCoverDistance">
+                                                {{drMissed.HoursToCoverDistance}} hrs
+                                            </span>
+                                        </div>
+                                        <span class="click-icon">
+                                            <span class="mr5">
+                                                <span *ngIf="drMissed.DRQueueAttributes.DeliveryShift == true">
+                                                    <i class="fas fa-moon fs12" *ngIf="drMissed.IsOnlyNightDelivery == true"></i>
+                                                </span>
+                                            </span>
+                                            <a type="button" placement="right" (click)="bindDeliveryRequests(drMissed,$event)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div *ngIf="drMissed.IsTBD" class="dr-queue" [ngClass]="checkItemsExists(drMissed.TBDGroupId,drMissed.DeliveryRequestType, drMissed.IsTBD)" (click)="pushItem(drMissed,drMissed.TBDGroupId)" style="cursor:pointer;" id="missed-{{drMissed.TBDGroupId}}">
+                                    <div class="col-10 dr-info" placement="bottom-left" container="body" ngbTooltip=" TBD- {{drMissed.ProductType +' -'}} {{ drMissed.RequiredQuantity==0?drMissed.ScheduleQuantityTypeText:drMissed.RequiredQuantity + (( drMissed.UoM == 1 ? ' G' : ' L'))}}">
+                                        <div class="brand-name" *ngIf="drMissed.RequiredQuantity > 0;else ScheduleQuantityTypeText">
+                                            TBD - {{ (drMissed.ProductType.length>10)? (drMissed.ProductType | slice:0:10)+'..':(drMissed.ProductType)}} {{'(' +drMissed.RequiredQuantity + ( drMissed.UoM == 1 ? ' G' : ' L' ) +')'  }} {{ (drMissed.DeliveryRequests.length >1)?': (+'+ (drMissed.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                        </div>
+                                        <ng-template #ScheduleQuantityTypeText>
+                                            <div class="brand-name">
+                                                TBD - {{ (drMissed.ProductType.length>10)? (drMissed.ProductType | slice:0:10)+'..':(drMissed.ProductType)}} {{'(' +drMissed.ScheduleQuantityTypeText+')' }} {{ (drMissed.DeliveryRequests.length >1)?': (+'+ (drMissed.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                            </div>
+                                        </ng-template>
+                                    </div>
+                                    <span class="click-icon">
+                                        <a type="button" placement="right" (click)="bindDeliveryRequests(drMissed,$event)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb10" *ngIf="missedRequests.length==0">
+                            <div class="col-sm-2 mb10">
+                                No request available
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="radius-5 border shadowb shadow-b mb20">
+                    <h2 class="fs11 mt5 mb5 ml10 dib mustgo-status pt5 pb5 pl10 pr10 radius-10">Must Go</h2>
+                    <div class="mustgo-wrapper">
+                        <div class="row" *ngIf="mustGoRequests.length>0">
+                            <div class="col-sm-3 mb10" *ngFor="let drmustGo of mustGoRequests">
+                                <div *ngIf="!drmustGo.IsTBD" class="dr-queue" [ngClass]="checkItemsExists(drmustGo.JobId,drmustGo.DeliveryRequestType,drmustGo.IsTBD)" (click)="pushItem(drmustGo,drmustGo.JobId)" style="cursor:pointer;" id="mustgo-{{drmustGo.JobId}}">
+                                    <div class="row">
+                                        <div class="col-10 dr-info">
+                                            <div class="custom_setting" *ngIf="drmustGo.DRQueueAttributes.CustomerName==true">
+                                                <div class="brand-name">
+                                                    <div *ngIf="drmustGo.CustomerBrandId;else customerCompany">
+                                                        {{drmustGo.CustomerBrandId}}
+                                                    </div>
+                                                    <ng-template #customerCompany>
+                                                        <div class="brand-name">
+                                                            {{ (drmustGo.CustomerCompany.length>6)? (drmustGo.CustomerCompany | slice:0:6)+'..':(drmustGo.CustomerCompany) }} -&nbsp;
+                                                        </div>
+                                                    </ng-template>
+                                                </div>
+                                            </div>
+                                            <div class="job-location">
+                                                {{drmustGo.JobName}}&nbsp;
+                                            </div>
+                                            <div class="job-city">
+                                                {{drmustGo.JobCity}}&nbsp;
+                                            </div>
+                                            <div class="custom_setting">
+                                                <div *ngIf="drmustGo.DRQueueAttributes.TrailerCompatibility == true">
+                                                    <div class="compability-type">
+                                                        {{drmustGo.TrailerCompatibility}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span class="duration" *ngIf="drmustGo.DRQueueAttributes.HoursToCoverDistance == true && drmustGo.HoursToCoverDistance">
+                                            {{drmustGo.HoursToCoverDistance}} hrs
+                                        </span>
+                                        <span class="click-icon">
+                                            <span class="mr5">
+                                                <span *ngIf="drmustGo.DRQueueAttributes.DeliveryShift == true">
+                                                    <i class="fas fa-moon fs12" *ngIf="drmustGo.IsOnlyNightDelivery == true"></i>
+                                                </span>
+                                            </span>
+                                            <a type="button" placement="right" (click)="bindDeliveryRequests(drmustGo,$event)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div *ngIf="drmustGo.IsTBD" class="dr-queue" [ngClass]="checkItemsExists(drmustGo.TBDGroupId,drmustGo.DeliveryRequestType,drmustGo.IsTBD)" (click)="pushItem(drmustGo,drmustGo.TBDGroupId)" style="cursor:pointer;" id="mustgo-{{drmustGo.TBDGroupId}}">
+                                    <div class="row">
+                                        <div class="col-10 dr-info" placement="bottom-left" container="body" ngbTooltip="TBD- {{drmustGo.ProductType +' -'}} {{ drmustGo.RequiredQuantity==0?drmustGo.ScheduleQuantityTypeText:drmustGo.RequiredQuantity + (( drmustGo.UoM == 1 ? ' G' : ' L'))}}">
+                                            <div class="custom_setting">
+                                                <div class="brand-name" *ngIf="drmustGo.RequiredQuantity > 0;else ScheduleQuantityTypeText">
+                                                    TBD - {{ (drmustGo.ProductType.length>10)? (drmustGo.ProductType | slice:0:10)+'..':(drmustGo.ProductType)}} {{'(' +drmustGo.RequiredQuantity + ( drmustGo.UoM == 1 ? ' G' : ' L' ) +')'  }} {{ (drmustGo.DeliveryRequests.length >1)?': (+'+ (drmustGo.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                                </div>
+                                                <ng-template #ScheduleQuantityTypeText>
+                                                    <div class="brand-name">
+                                                        TBD - {{ (drmustGo.ProductType.length>10)? (drmustGo.ProductType | slice:0:10)+'..':(drmustGo.ProductType)}} {{'(' +drmustGo.ScheduleQuantityTypeText+')' }} {{ (drmustGo.DeliveryRequests.length >1)?': (+'+ (drmustGo.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                                    </div>
+                                                </ng-template>
+                                            </div>
+                                        </div>
+                                        <span class="click-icon">
+                                            <a type="button" placement="right" (click)="bindDeliveryRequests(drmustGo,$event)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" *ngIf="mustGoRequests.length==0">
+                            <div class="col-sm-2 mb10">
+                                No request available
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="radius-5 border shadowb shadow-b mb20">
+                    <h2 class="fs11 mt5 mb5 ml10 dib shouldgo-status pt5 pb5 pl10 pr10 radius-10">Should Go</h2>
+                    <div class="shouldgo-wrapper">
+                        <div class="row" *ngIf="shouldGoRequests.length>0">
+                            <div class="col-sm-3 mb10" *ngFor="let drshouldGo of shouldGoRequests">
+                                <div *ngIf="!drshouldGo.IsTBD" class="dr-queue" [ngClass]="checkItemsExists(drshouldGo.JobId,drshouldGo.DeliveryRequestType,drshouldGo.IsTBD)" (click)="pushItem(drshouldGo,drshouldGo.JobId)" style="cursor:pointer;" id="shouldgo-{{drshouldGo.JobId}}">
+                                    <div class="row">
+                                        <div class="col-10 dr-info">
+                                            <div class="custom_setting" *ngIf="drshouldGo.DRQueueAttributes.CustomerName==true">
+                                                <div class="brand-name">
+                                                    <div *ngIf="drshouldGo.CustomerBrandId;else customerCompany">
+                                                        {{drshouldGo.CustomerBrandId}}
+                                                    </div>
+                                                    <ng-template #customerCompany>
+                                                        <div class="brand-name">
+                                                            {{ (drshouldGo.CustomerCompany.length>6)? (drshouldGo.CustomerCompany | slice:0:6)+'..':(drshouldGo.CustomerCompany) }} -&nbsp;
+                                                        </div>
+                                                    </ng-template>
+                                                </div>
+                                            </div>
+                                            <div class="job-location">
+                                                {{drshouldGo.JobName}}&nbsp;
+                                            </div>
+                                            <div class="job-city">
+                                                {{drshouldGo.JobCity}} &nbsp;
+                                            </div>
+                                            <div class="custom_setting">
+                                                <div class="compability-type" *ngIf="drshouldGo.DRQueueAttributes.TrailerCompatibility == true">
+                                                    {{drshouldGo.TrailerCompatibility}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="custom_setting" *ngIf="drshouldGo.DRQueueAttributes.HoursToCoverDistance == true">
+                                            <span class="duration" *ngIf="drshouldGo.HoursToCoverDistance && drshouldGo.HoursToCoverDistance != ''">
+                                                {{drshouldGo.HoursToCoverDistance}} hrs
+                                            </span>
+                                        </div>
+                                        <span class="click-icon">
+                                            <span class="mr5">
+                                                <span *ngIf="drshouldGo.DRQueueAttributes.DeliveryShift == true">
+                                                    <i class="fas fa-moon fs12" *ngIf="drshouldGo.IsOnlyNightDelivery == true"></i>
+                                                </span>
+                                            </span>
+                                            <a type="button" placement="right" (click)="bindDeliveryRequests(drshouldGo,$event)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div *ngIf="drshouldGo.IsTBD" class="dr-queue" [ngClass]="checkItemsExists(drshouldGo.TBDGroupId,drshouldGo.DeliveryRequestType,drshouldGo.IsTBD)" (click)="pushItem(drshouldGo,drshouldGo.TBDGroupId)" style="cursor:pointer;" id="shouldgo-{{drshouldGo.TBDGroupId}}">
+                                    <div class="row">
+                                        <div class="col-10 dr-info" placement="bottom-left" container="body" ngbTooltip=" TBD- {{drshouldGo.ProductType +' -'}} {{ drshouldGo.RequiredQuantity==0?drshouldGo.ScheduleQuantityTypeText:drshouldGo.RequiredQuantity + (( drshouldGo.UoM == 1 ? ' G' : ' L'))}}">
+                                            <div class="custom_setting">
+                                                <div class="brand-name" *ngIf="drshouldGo.RequiredQuantity > 0;else ScheduleQuantityTypeText">
+                                                    TBD - {{ (drshouldGo.ProductType.length>10)? (drshouldGo.ProductType | slice:0:10)+'..':(drshouldGo.ProductType)}} {{'(' +drshouldGo.RequiredQuantity + ( drshouldGo.UoM == 1 ? ' G' : ' L' ) +')'  }} {{ (drshouldGo.DeliveryRequests.length >1)?': (+'+ (drshouldGo.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                                </div>
+                                                <ng-template #ScheduleQuantityTypeText>
+                                                    <div class="brand-name">
+                                                        TBD - {{ (drshouldGo.ProductType.length>10)? (drshouldGo.ProductType | slice:0:10)+'..':(drshouldGo.ProductType)}} {{'(' +drshouldGo.ScheduleQuantityTypeText+')' }} {{ (drshouldGo.DeliveryRequests.length >1)?': (+'+ (drshouldGo.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                                    </div>
+                                                </ng-template>
+                                            </div>
+                                        </div>
+                                        <span class="click-icon">
+                                            <a type="button" placement="right" (click)="bindDeliveryRequests(drshouldGo,$event)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" *ngIf="shouldGoRequests.length==0">
+                            <div class="col-sm-2 mb10">
+                                No request available
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="radius-5 border shadowb shadow-b">
+                    <h2 class="fs11 mt5 mb5 ml10 dib couldgo-status pt5 pb5 pl10 pr10 radius-10">Could Go</h2>
+                    <div class="couldgo-wrapper">
+                        <div class="row" *ngIf="couldGoRequests.length>0">
+                            <div class="col-sm-3 mb10" *ngFor="let drcouldGo of couldGoRequests">
+                                <div *ngIf="!drcouldGo.IsTBD" class="dr-queue" [ngClass]="checkItemsExists(drcouldGo.JobId,drcouldGo.DeliveryRequestType,drcouldGo.IsTBD)" (click)="pushItem(drcouldGo,drcouldGo.JobId)" style="cursor:pointer;" id="couldgo-{{drcouldGo.JobId}}">
+                                    <div class="row">
+                                        <div class="col-10 dr-info">
+                                            <div class="custom_setting" *ngIf="drcouldGo.DRQueueAttributes.CustomerName==true">
+                                                <div class="brand-name">
+                                                    <div *ngIf="drcouldGo.CustomerBrandId;else customerCompany">
+                                                        {{drcouldGo.CustomerBrandId}}
+                                                    </div>
+                                                    <ng-template #customerCompany>
+                                                        <div class="brand-name">
+                                                            {{ (drcouldGo.CustomerCompany.length>6)? (drcouldGo.CustomerCompany | slice:0:6)+'..':(drcouldGo.CustomerCompany) }} -&nbsp;
+                                                        </div>
+                                                    </ng-template>
+                                                </div>
+                                            </div>
+                                            <div class="job-location">
+                                                {{drcouldGo.JobName}}&nbsp;
+                                            </div>
+                                            <div class="job-city">
+                                                {{drcouldGo.JobCity}} &nbsp;
+                                            </div>
+                                            <div class="custom_setting">
+                                                <div class="compability-type" *ngIf="drcouldGo.DRQueueAttributes.TrailerCompatibility == true">
+                                                    {{drcouldGo.TrailerCompatibility}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="custom_setting" *ngIf="drcouldGo.DRQueueAttributes.HoursToCoverDistance == true">
+                                            <span class="duration" *ngIf="drcouldGo.HoursToCoverDistance && drcouldGo.HoursToCoverDistance != ''">
+                                                {{drcouldGo.HoursToCoverDistance}} hrs
+                                            </span>
+                                        </div>
+                                        <span class="click-icon">
+                                            <span class="mr5">
+                                                <span *ngIf="drcouldGo.DRQueueAttributes.DeliveryShift == true">
+                                                    <i class="fas fa-moon fs12" *ngIf="drcouldGo.IsOnlyNightDelivery == true"></i>
+                                                </span>
+                                            </span>
+                                            <a type="button" placement="right" (click)="bindDeliveryRequests(drcouldGo,$event)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div *ngIf="drcouldGo.IsTBD" class="dr-queue" [ngClass]="checkItemsExists(drcouldGo.TBDGroupId,drcouldGo.DeliveryRequestType,drcouldGo.IsTBD)" (click)="pushItem(drcouldGo,drcouldGo.TBDGroupId)" style="cursor:pointer;" id="couldgo-{{drcouldGo.TBDGroupId}}">
+                                    <div class="row">
+                                        <div class="col-10 dr-info" placement="bottom-left" container="body" ngbTooltip=" TBD- {{drcouldGo.ProductType +' -'}} {{ drcouldGo.RequiredQuantity==0?drcouldGo.ScheduleQuantityTypeText:drcouldGo.RequiredQuantity + (( drcouldGo.UoM == 1 ? ' G' : ' L'))}}">
+                                            <div class="custom_setting">
+                                                <div class="brand-name" *ngIf="drcouldGo.RequiredQuantity > 0;else ScheduleQuantityTypeText">
+                                                    TBD - {{ (drcouldGo.ProductType.length>10)? (drcouldGo.ProductType | slice:0:10)+'..':(drcouldGo.ProductType)}} {{'(' +drcouldGo.RequiredQuantity + ( drcouldGo.UoM == 1 ? ' G' : ' L' ) +')'  }} {{ (drcouldGo.DeliveryRequests.length >1)?': (+'+ (drcouldGo.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                                </div>
+                                                <ng-template #ScheduleQuantityTypeText>
+                                                    <div class="brand-name">
+                                                        TBD - {{ (drcouldGo.ProductType.length>10)? (drcouldGo.ProductType | slice:0:10)+'..':(drcouldGo.ProductType)}} {{'(' +drcouldGo.ScheduleQuantityTypeText+')' }} {{ (drcouldGo.DeliveryRequests.length >1)?': (+'+ (drcouldGo.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                                    </div>
+                                                </ng-template>
+                                            </div>
+                                        </div>
+                                        <span class="click-icon">
+                                            <a type="button" placement="right" (click)="bindDeliveryRequests(drcouldGo,$event)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="row mb10" *ngIf="couldGoRequests.length==0">
+                            <div class="col-sm-2 mb10">
+                                No request available
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ng-template #popContent>
+    <div class="popover-details">
+        <div class="row">
+            <ng-container *ngFor="let dr of selectedJobRequests; let i = index;">
+                <div id="dr_{{i+1}}" *ngIf="!dr.IsBlendedRequest || dr.IsBlendedDrParent" class="col-12 product-details" [ngClass]="{'must-go': (dr.Priority==1) , 'should-go': (dr.Priority==2) ,'could-go': (dr.Priority==3) }">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="product-name">
+                                <span *ngIf="dr.IsBlendedRequest === true"><span class="text-muted">{{dr.AdditiveProductName}}</span>, {{dr.BlendedProductName}}</span>
+                                <span *ngIf="dr.IsBlendedRequest != true">{{dr.ProductType}}</span>
+                                <span *ngIf="dr.IsAutoCreatedDR">
+                                    <i class="fas fa-magic ml10" title="Auto-Generated"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <span class="product-qty" *ngIf="dr.RequiredQuantity > 0 && !dr.IsBlendedRequest">{{dr.RequiredQuantity | number:'1.0-2'}}{{dr.UoM == 1 ? 'G' : 'L'}}</span>
+                            <span class="product-qty" *ngIf="dr.RequiredQuantity > 0 && dr.IsBlendedRequest">{{dr.TotalBlendedQuantity | number:'1.0-2'}}{{dr.UoM == 1 ? 'G' : 'L'}}</span>
+                            <span class="product-qty" *ngIf="dr.RequiredQuantity == 0">{{dr.ScheduleQuantityTypeText}}</span>
+                        </div>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+    </div>
+</ng-template>

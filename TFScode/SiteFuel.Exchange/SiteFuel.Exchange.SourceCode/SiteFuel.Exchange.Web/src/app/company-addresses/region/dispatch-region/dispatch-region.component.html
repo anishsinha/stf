@@ -1,0 +1,370 @@
+<div>
+    <ng-sidebar-container>
+        <ng-sidebar [(opened)]="_opened"
+                    [animate]="_animate"
+                    [position]="_POSITIONS[_positionNum]"
+                    style="height: 100vh">
+            <a (click)="_toggleOpened(false)"><i class="fa fa-close fs18"></i></a>
+            <h3 *ngIf="IsUpdate; else editTitle" class="dib ml10 mt10 mb10">Edit Dispatch Region</h3>
+            <ng-template #editTitle><h3 class="dib ml10 mt10 mb10">Create Dispatch Region</h3></ng-template>
+            <content class="pr30">
+                <form [formGroup]="rcForm" (ngSubmit)="validateAndSubmitForm()">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="Name">Name<span class="color-maroon">*</span></label>
+                                <input formControlName="Id" type="hidden" class="hide-element">
+                                <input formControlName="Name" class="form-control" required>
+                                <div *ngIf="rcForm.get('Name').invalid && (rcForm.get('Name').dirty || rcForm.get('Name').touched)" class="color-maroon">
+                                    <div *ngIf="rcForm.get('Name').errors.required">
+                                        Name is required.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="Name">Default Load Time (Hrs)<span class="color-maroon">*</span></label>
+                                <input formControlName="SlotPeriod" placeholder="Hours" class="form-control" required>
+                                <div *ngIf="rcForm.get('SlotPeriod').invalid && rcForm.get('SlotPeriod').touched" class="color-maroon">
+                                    <div *ngIf="rcForm.get('SlotPeriod').errors.required">
+                                        Default Load Time is required.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="Jobs">Locations</label>
+                                <ng-multiselect-dropdown formControlName="Jobs"
+                                                         [placeholder]="'Select Location(s)'"
+                                                         [settings]="multiselectSettingsById" [data]="JobList"
+                                                         [(ngModel)]="Jobs">
+                                </ng-multiselect-dropdown>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="Drivers">Drivers</label>
+                                <ng-multiselect-dropdown formControlName="Drivers"
+                                                         [placeholder]="'Select Driver(s)'"
+                                                         [settings]="multiselectSettingsById" [data]="DriverList"
+                                                         [(ngModel)]="Drivers">
+                                </ng-multiselect-dropdown>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="Dispatchers">Dispatchers<span class="color-maroon">*</span></label>
+                                <ng-multiselect-dropdown formControlName="Dispatchers"
+                                                         [placeholder]="'Select Dispatcher(s)'"
+                                                         [settings]="multiselectSettingsById" [data]="DispatcherList"
+                                                         [(ngModel)]="Dispatchers">
+                                </ng-multiselect-dropdown>
+                                <div *ngIf="rcForm.get('Dispatchers').invalid && rcForm.get('Dispatchers').touched" class="color-maroon">
+                                    <div *ngIf="rcForm.get('Dispatchers').errors.required">
+                                        Dispatcher is required.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="Trailers">Trailers</label>
+                                <ng-multiselect-dropdown formControlName="Trailers"
+                                                         [placeholder]="'Select Trailer(s)'"
+                                                         [settings]="multiselectSettingsByCode" [data]="TrailerList"
+                                                         [(ngModel)]="Trailers">
+                                </ng-multiselect-dropdown>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="Description">States<span class="color-maroon">*</span></label>
+                                <ng-multiselect-dropdown formControlName="States"
+                                                         [placeholder]="'Select State(s)'"
+                                                         [settings]="multiselectSettingsByCode" [data]="StateList"
+                                                         [(ngModel)]="States">
+                                </ng-multiselect-dropdown>
+                                <div *ngIf="rcForm.get('States').invalid && rcForm.get('States').touched" class="color-maroon">
+                                    <div *ngIf="rcForm.get('States').errors.required">
+                                        State is required.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="Description">Description</label>
+                                <textarea formControlName="Description" class="form-control"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- <div class="row">
+        <div class="col-sm-6">
+            <div class="form-group">
+                <label for="Carrier">Assign Carrier</label>
+                <ng-multiselect-dropdown formControlName="Carriers"
+                                         [placeholder]="'Select Carrier(s)'"
+                                         [data]="CarrierList"
+                                         [settings]="multiselectSettingsById"
+                                         [(ngModel)]="Carriers">
+                </ng-multiselect-dropdown>
+            </div>
+        </div>
+    </div> -->
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div>
+                                <label>Select Carriers</label>
+                                <div class="form-group">
+                                    <ng-multiselect-dropdown #multiSelect3
+                                                             [settings]="carrierDdlSetting" [data]="CarrierRegions"
+                                                             [formControl]="rcForm.controls['SelectedCarrier']"
+                                                             (onSelect)="onCarrierSelect($event, true)"
+                                                             (onDeSelect)="onCarrierSelect($event, false)"
+                                                             (onSelectAll)="onCarrierSelectAll($event, true)"
+                                                             (onDeSelectAll)="onCarrierSelectAll($event, false)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row ">
+                        <div class="col-sm-12">
+                            <div class="form-group form-check">
+                                <input type="checkbox" class="form-check-input" (click)="toggleFavProducts($event)" formControlName="IsAddFavoriteProduct" id="ProductTypechk">
+                                <label class="form-check-label" for="ProductTypechk">Add Favorite Products</label>
+                            </div>
+                            <div *ngIf="rcForm.controls['IsAddFavoriteProduct'].value" class="mb-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="radio-producttype" formControlName="FavProductTypeId" 
+                                           [name]="'FavProductTypeId'" value="1" (change)="clearAllProducts()">
+                                    <label class="form-check-label" for="radio-producttype">Product Family/Group</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="radio-product" formControlName="FavProductTypeId"
+                                           [name]="'FavProductTypeId'" value="2" (change)="clearAllProducts()">
+                                    <label class="form-check-label" for="radio-product">Specific Products</label>
+                                </div>
+                            </div>
+                        </div>
+                       
+                    </div>
+                    <div class="row" *ngIf="rcForm.controls['IsAddFavoriteProduct'].value">
+                        <div class="col-sm-6">
+                            <div class="form-group" *ngIf="rcForm.controls['FavProductTypeId'].value == 1">
+                                <ng-multiselect-dropdown formControlName="FormProductTypeIds"
+                                                         [placeholder]="'Select ProductFamily'" [settings]="multiselectSettingsById"
+                                                         [data]="ProductTypeList">
+                                </ng-multiselect-dropdown>
+                            </div>
+                            <div class="form-group" *ngIf="rcForm.controls['FavProductTypeId'].value == 2">
+                                <ng-multiselect-dropdown formControlName="FuelTypeIds"
+                                                         [placeholder]="'Select Product(s)'" [settings]="multiselectSettingsById"
+                                                         [data]="FuelTypeList">
+                                </ng-multiselect-dropdown>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2"><label>Carrier Regions</label></div>
+                    <div formArrayName="Carriers">
+                        <div class="dragable-pane col-12" id="sortableRegionCarriers">
+                            <div class="row mb-2 border-muted rounded py-1" *ngFor="let carr of rcForm.get('Carriers')['controls']; let j = index;" [formGroupName]="j" id="{{carr.get('Id').value}}">
+                                <div class="col-sm-1 d-flex align-items-center">
+                                    <i class="fas fa-grip-vertical text-muted"></i>
+                                </div>
+                                <div class="col-sm-5 list-drag carr-seq-sortable-cursor mb-0 border-0 d-flex align-items-center">
+                                    <span class="float-left">{{carr.get('Name').value}}</span>
+                                </div>
+                                <div class="col-sm-5">
+                                    <select class="custom-select" formControlName="RegionId">
+                                        <option [value]="null" hidden>Select Region</option>
+                                        <option *ngFor="let rgn of getRegionsByCarrierId(carr.get('Id').value)" [value]="rgn.Id" [selected]="rgn.Id == carr.get('RegionId').value">
+                                            {{rgn.Name}}
+                                        </option>
+                                    </select>   
+                                    <div>
+                                        <label class="fs12" style="color:red" *ngIf="(formSubmitted || carr.get('RegionId')?.touched) && carr.get('RegionId')?.errors?.required">
+                                            Required
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-1 float-left">
+                                    <a>
+                                        <i class="fa fa-trash-alt color-maroon mt10" data-toggle="tooltip" data-placement="right" title="Remove" (click)="removeCarrier(carr.get('Id').value)"></i>
+                                    </a>
+                                </div>
+                               
+                                
+                            </div>
+                        </div>
+                    </div>
+
+                    <div><label for="Shifts" class="mt-3">Shifts</label></div>
+                    <div formArrayName="Shifts">
+                        <ng-container *ngFor="let shift of rcForm.get('Shifts')['controls']; let i = index;">
+                            <div class="row" [formGroupName]="i">
+                                <div class="col-5 col-sm-5 form-group">
+                                    <input type="hidden" placeholder="Id" formControlName="Id">
+                                    <input placeholder="Shift Name" formControlName="Name" class="form-control">
+                                    <div *ngIf="isInvalid('Name', i)" class="color-maroon">
+                                        <div *ngIf="isRequired('Name', i)">
+                                            Required.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3 col-sm-3 form-group pl0">
+                                    <input type="text" placeholder="Start Time" formControlName="StartTime" class="form-control" myTimePicker [format]="'hh:mm A'" (onTimeChange)="shift.get('StartTime').setValue($event)" />
+                                    <div *ngIf="isInvalid('StartTime', i)" class="color-maroon">
+                                        <div *ngIf="isRequired('StartTime', i)">
+                                            Required.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3 col-sm-3 form-group pl0">
+                                    <input type="text" placeholder="End Time" formControlName="EndTime" class="form-control" myTimePicker [format]="'hh:mm A'" (onTimeChange)="shift.get('EndTime').setValue($event)" />
+                                    <div *ngIf="isInvalid('EndTime', i)" class="color-maroon">
+                                        <div *ngIf="isRequired('EndTime', i)">
+                                            Required.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-1 col-sm-1 form-group pl0">
+                                    <a class="fa fa-trash-alt color-maroon mt10" (click)="removeShift(i)"></a>
+                                </div>
+                            </div>
+                        </ng-container>
+                    </div>
+                    <div class="mb15" id="add-shift">
+                        <a (click)="addShift()"><i class="fa fa-plus-circle"></i> Add Shift</a>
+                    </div>
+                    <div class="text-right">
+                        <button (click)="_toggleOpened(false)" class="btn btn-lg" type="reset" *ngIf="!isSalesUser">Cancel</button>
+                        <button class="ml15 btn btn-primary btn-lg" type="submit" *ngIf="!isSalesUser" data-toggle="modal" data-target="#myModal1">Save</button>
+                    </div>
+                </form>
+            </content>
+        </ng-sidebar>
+    </ng-sidebar-container>
+    <!--sidebar for region creation-->
+    <div class="row" *ngIf="regions?.length > 0">
+        <div class="col-sm-12 pt10 pb10" *ngIf="!isSalesUser">
+            <!--<h4 class="pt0 pull-left">Regions</h4>-->
+            <a id="createnewregion" (click)="_toggleOpened(true); _getJobsForRegion(true)" class="fs18 pull-left">
+                <i class="fa fa-plus-circle fs18 mt3 pull-left"></i><span class="fs14 mt1 pull-left">Create New</span>
+            </a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="text-center wrapper-nodata" *ngIf="!IsLoading && (!regions||regions?.length == 0)">
+            <i class="fas fa-map-marked-alt"></i>
+            <h1 class="mb20 mt10 f-normal"> No Region Available </h1>
+            <a id="createnewregion" (click)="_toggleOpened(true);_getJobsForRegion(true)" class="btn btn-primary" *ngIf="!isSalesUser">
+                <i class="fa fa-plus fs14 mt5 pull-left mr5"></i><span class="fs14 mt2 ml5 pull-left">Create New</span>
+            </a>
+        </div>
+        <div class="col-sm-12">
+            <div class="row d-flex align-items-stretch" id="regionDetails">
+                <div class="col-sm-3" *ngFor="let region of regions">
+                    <div class="well box-shadow tile-xs animated zoomIn">
+                        <div class="row">
+                            <div class="col-sm-8 fs18">{{region.Name}}</div>
+                            <div class="col-sm-4 text-right">
+                                <div class="pull-right" [title]="!isSalesUser ? 'edit region':'view region'">
+                                    <a (click)="editRegion(region);_getJobsForRegion(false)" *ngIf="!isSalesUser"><i class="fa fa-edit fs14"></i></a>
+                                    <a (click)="editRegion(region);_getJobsForRegion(false)" *ngIf="isSalesUser"><i class="fa fa-eye fs14"></i></a>
+                                </div>
+                                <div class="pull-right mr15" title="delete region" *ngIf="!isSalesUser">
+                                    <a (click)="setRegionIdToDelete(region.Id)" data-toggle="modal" data-target="#myModal"><i class="fa fa-trash-alt color-maroon"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="region-data">
+                                    <div><small class="db mt10 color-lightgrey f-bold fs13">Description</small>{{region.Description}}</div>
+                                    <div>
+                                        <small class="db mt10 color-lightgrey f-bold fs13">States</small>
+                                        <span *ngFor="let state of region.States; let isLast=last">
+                                            {{state.Name}}{{isLast ? '' : ', '}}
+                                        </span>
+                                    </div>
+                                    <div *ngIf="region.Carriers!=null && region.Carriers.length>0">
+                                        <small class="db mt10 color-lightgrey f-bold fs13">Carriers</small>
+                                        <span *ngFor="let carrier of region.Carriers; let isLast=last">
+                                            {{carrier.Name}}{{isLast ? '' : ', '}}
+                                        </span>
+                                    </div>
+                                    <div class="mt10">
+                                        <small class="db mt10 color-lightgrey f-bold fs13">Shifts</small>
+                                        <span *ngFor="let shift of region.Shifts">
+                                            <span>{{shift.Name}} {{shift.StartTime}} - {{shift.EndTime}}</span><br />
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--modal-->
+    <div class="modal fade" id="myModal" role="dialog" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog" style="width:200px">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-body">
+                    Are you sure to delete?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" data-dismiss="modal" class="btn btn-danger" (click)="deleteRegion();">Yes</button>
+                    <button type="button" data-dismiss="modal" class="btn btn-success" (click)="setRegionIdToDelete(null);">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="loader" *ngIf="IsLoading">
+        <div class="loading-content text-center">
+            <div class="spinner"></div>
+            <div class="font-bold">Please Wait...</div>
+        </div>
+    </div>
+
+    <div id="openConfirmationModel01" data-toggle="modal" data-target="#ConfirmationModel01"></div>
+    <div class="modal fade" id="ConfirmationModel01" role="dialog" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog" style="min-width:180px">
+            <!-- Modal content-->
+            <div class="modal-content" *ngIf="!IsPublishedDR">
+                <div class="modal-body">
+                    Are you sure you want to remove <strong>{{removedProductNameString}} </strong>from the list?<br />
+                    Orders and DR's for <strong>Above </strong>will not be visible
+                </div>
+                <div class="modal-footer">
+                    <button type="button" data-dismiss="modal" class="btn btn-danger" (click)="onSubmit()">Yes</button>
+                    <button type="button" data-dismiss="modal" class="btn btn-success" (click)="resetProductType()">No</button>
+                </div>
+            </div>
+            <div class="modal-content" *ngIf="IsPublishedDR">
+                <div class="modal-body">
+                    DR's for this product are already scheduled in load queue so product can't be removed.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" data-dismiss="modal" class="btn btn-success" (click)="resetProductType()">Ok</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+

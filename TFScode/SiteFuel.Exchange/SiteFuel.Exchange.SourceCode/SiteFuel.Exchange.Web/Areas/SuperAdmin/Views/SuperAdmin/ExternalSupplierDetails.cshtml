@@ -1,0 +1,239 @@
+﻿@model ExternalSupplierDetailsModel
+
+@{
+    ViewBag.Title = "External Supplier Details";
+    string checkedstr = Model.InPipedrive ? "checked=\"checked\"" : "";
+    string statusClass = Model.Status == ExternalSupplierStatuses.New.ToString() ? "warning" : Model.Status == ExternalSupplierStatuses.InProgress.ToString() ? "default" : "primary";
+}
+<div class="row">
+    <div class="col-sm-12">
+        <div class="row">
+            <div class="col-sm-5 mb10 tab-headers dib">
+                <a id="tab-details" href="javascript:void(0)" onclick="showsection('supplier-details'), activelink(this)" class="active mr20">
+                    <div class="step-inprogress fs18">
+                        <span class="f-light step-text float-left">@Resource.tabheadingDetails</span>
+                    </div>
+                </a>
+                <a id="tab-po" href="javascript:void(0)" onclick="showsection('supplier-notes'), activelink(this)">
+                    <div class="step-inprogress fs18">
+                        <span class="f-light step-text float-left">
+                            @Resource.tabHeadingNotes
+                        </span>
+                    </div>
+                </a>
+            </div>
+            <div class="col-sm-7 col-xs-12 text-right xs-left">
+                <div class="btn-group">
+                    <label class="label mb0 label-@statusClass">@Model.Status</label>
+                </div>
+                <div class="btn-group">
+                    <button id="auto-btnorderaction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                    <ul class="dropdown-menu dropdown-menu-right medium-menu">
+                        <li class="dropdown-item"><a id="btnEdit" href="@Url.Action("EditExternalSupplier", "SuperAdmin", new { area = "SuperAdmin", Id = Model.Id})">@Resource.btnLabelEdit <i class="fa fas fa-edit float-left mt5 mr5"></i></a></li>
+						<li role="separator" class="divider"></li>
+						<li class="dropdown-item"><a id="btnConvert" href="@Url.Action("ConvertToInternal", "SuperAdmin", new { area = "SuperAdmin", Id = Model.Id })">@Resource.btnLabelConvertoInternal <i class="fa fas fa-undo float-left mt5 mr5"></i></a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="tab-container">
+            <div id="supplier-details">
+                <div class="well overflow-h">
+                    <!-- supplier details starts -->
+                    <div class="col-sm-12 pb15">
+                            <h4 class="f-light fs18 dib">@Resource.headingSupplierInformation</h4>
+                        <div class="row">
+                            <div class="col-sm-3 col-xs-6 mb10">
+                                <label class="f-normal">@Resource.lblCompanyName</label>
+                                <div class="break-word">@Model.Name</div>
+                            </div>
+                            <div class="col-xs-6 col-sm-3 mb10">
+                                <label class="f-normal">@Resource.lblCompanyType</label>
+                                <div class="break-word">@Model.CompanyType</div>
+                            </div>
+                            <div class="col-xs-6 col-sm-3 mb10">
+                                <label class="f-normal">@Resource.lblWebsite </label>
+                                <div class="break-word">
+                                    @Model.Website
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-xs-6 col-sm-2">
+                                <label class="f-normal">@Resource.lblInPipedrive</label>
+                                <div>
+                                    <input type="checkbox" disabled="disabled" @checkedstr />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- supplier details ends -->
+                    <div class="border-b-dash ma15 clearboth"></div>
+                    <!-- contact person details starts -->
+                        <div class="col-sm-12 pb15">
+                            <h4>@Resource.headingContactPerson</h4>
+                            <div class="row">
+                                <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblContactPerson</label>
+                                    <div class="break-word">@Model.ContactPersonName</div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblPhoneNumber</label>
+                                    <div class="break-word phone">@Model.ContactPersonPhoneNumber</div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblEmail</label>
+                                    <div class="break-word">@Model.ContactPersonEmail</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-b-dash ma15 clearboth"></div>
+                    <!--  contact person details ends-->
+                    <!-- address & services starts -->
+
+                        <div class="col-sm-12 pb15">
+                            <h4>@Resource.headingAddressAndServices</h4>
+                            @if (Model.CompanyAddress != null)
+                            {
+                                <div class="row">
+                                    <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblMainAddress</label>
+                                        <div class="break-word">
+                                            @Model.CompanyAddress.Address<br />
+                                            @Model.CompanyAddress.City @Model.CompanyAddress.ZipCode<br />
+                                            <span class="phone">@Model.CompanyAddress.PhoneNumber</span><br />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblFuelType</label>
+                                        <div class="break-word">
+                                            @Model.CompanyAddress.SupplierProductTypes
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblServingStates</label>
+                                        <div class="break-word">
+                                            @Model.CompanyAddress.SupplierServingStates
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblDBE</label>
+                                        <div class="break-word">
+                                            @if (Model.CompanyAddress.SupplierDBE != null && Model.CompanyAddress.SupplierDBE.Count > 0)
+                                            {
+                                                foreach (var qualifications in Model.CompanyAddress.SupplierDBE)
+                                                {
+                                                    @qualifications<br />
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-3 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblBobtailTransportTankWagon</label>
+                                        <div class="break-word">
+                                            @if (Model.CompanyAddress.SupplierTrucks != null && Model.CompanyAddress.SupplierTrucks.Count > 0)
+                                            {
+                                                foreach (var truck in Model.CompanyAddress.SupplierTrucks)
+                                                {
+                                                    @(Enum.GetName(typeof(Trucks), truck))<br />
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblTrucksInFleet</label>
+                                        <div class="break-word">
+                                            @Model.CompanyAddress.NumberOfTrucks
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    @if (Model.OtherLocationsAndServices.Count > 0)
+                    {
+                        <div class="border-b-dash ma15 clearboth"></div>
+                            <div class="col-sm-12 pb15">
+                                <h4>@Resource.headingOtherCompanyLocationsAndServices</h4>
+                                @foreach (var item in Model.OtherLocationsAndServices)
+                                {
+                                    <div class="row">
+                                        <div class="col-sm-3 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblLocation</label>
+                                            <div class="break-word">
+                                                @item.Address<br />
+                                                @item.City @item.ZipCode<br />
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblFuelType</label>
+                                            <div class="break-word">
+                                                @item.SupplierProductTypes
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblServingStates</label>
+                                            <div class="break-word">
+                                                @item.SupplierServingStates
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblDBE</label>
+                                            <div class="break-word">
+                                                @if (item.SupplierDBE.Count > 0)
+                                                {
+                                                    foreach (var qualifications in item.SupplierDBE)
+                                                    {
+                                                        @qualifications<br />
+                                                    }
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-3 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblBobtailTransportTankWagon</label>
+                                            <div class="break-word">
+                                                @if (item.SupplierTrucks.Count > 0)
+                                                {
+                                                    foreach (var truck in item.SupplierTrucks)
+                                                    {
+                                                        @Enum.GetName(typeof(Trucks), truck)<br />
+                                                    }
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblTrucksInFleet</label>
+                                            <div class="break-word">
+                                                @item.NumberOfTrucks
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h4 class="f-light fs18 border-b pb10 mt10"></h4>
+                                }
+                            </div>
+                    }
+                    <!-- address & services ends -->
+                </div>
+            </div>
+            <div id="supplier-notes" class="hide-element">
+                <div class="row mb15">
+                    <div class="col-sm-12 col-12">
+                        @Html.PartialFor("_PartialExternalSupplierNotes", m => m.Id)
+                    </div>
+                </div>
+                <div class="row mb15">
+                    <div class="col-sm-12 col-12">
+                        @Html.PartialFor("_PartialExternalSupplierStatuses", m => m.Id)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row text-right pb20 btn-wrapper">
+    <div class="col-sm-12 text-right">
+        <input type="button" class="btn btn-default btn-md" value="@Resource.btnLabelBack" onclick="window.history.go(-1);" />
+    </div>
+</div>

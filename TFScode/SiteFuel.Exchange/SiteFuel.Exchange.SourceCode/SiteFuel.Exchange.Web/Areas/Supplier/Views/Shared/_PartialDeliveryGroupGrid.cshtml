@@ -1,0 +1,373 @@
+﻿<div class="row">
+    <div class="col-sm-12">
+        <h4>Delivery Groups</h4>
+    </div>
+</div>
+<div id="pagination-container-main" class="row col-sm-12 hide-element mb10">
+    <div class="col-md-1 pl0 pr0 text-left paging-size-ddl">
+        @{
+            var cardCountDdl = new List<DropdownDisplayExtended>() { new DropdownDisplayExtended() { Code = "10", Name = "10" }, new DropdownDisplayExtended() { Code = "25", Name = "25" }, new DropdownDisplayExtended() { Code = "50", Name = "50" }, new DropdownDisplayExtended() { Code = "100", Name = "100" }, new DropdownDisplayExtended() { Code = "All", Name = "All" } };
+            //var cardCountDdl = new List<DropdownDisplayExtended>() { new DropdownDisplayExtended() { Code = "2", Name = "2" }, new DropdownDisplayExtended() { Code = "4", Name = "4" }, new DropdownDisplayExtended() { Code = "8", Name = "8" }, new DropdownDisplayExtended() { Code = "16", Name = "16" }, new DropdownDisplayExtended() { Code = "All", Name = "All" } };
+        }
+        @Html.DropDownList("DeliveryGroupCardCountDdl", new SelectList(cardCountDdl, "Code", "Name", "10"), new { @class = "form-control", @onchange = "getDGs();" })
+    </div>
+    <div class="col-sm-11 pl0 pr0 text-right">
+        @Html.Hidden("TotalDeliveryGroupCount")
+        <div class="cards-pagination col-sm-8">
+        </div>
+        <div class="mt10 mb10">
+            Showing <span id="lblFrom"></span> to <span id="lblTo"></span> out of <span id="lblTotal"></span>
+        </div>
+    </div>
+</div>
+<div>
+    <div class='pa bg-white top0 left0 z-index5 loading-wrapper dg-loading-wrapper hide-element'><span class='spinner-dashboard pa'></span></div>
+    <div class="row card-container equal-container full-width">
+        <div class="col-sm-4 c_s_height">
+            <div class="well shadow-b bg-white">
+                Driver: Paul Chang <a class="fa fa-edit pull-right"></a><br />
+                Load Code: 1234<br />
+                Route Information: wert cvbnm tyui vbnm yui<br /><br />
+                <table class="table table-bordered table-condensed">
+                    <tbody>
+                        <tr>
+                            <td>
+                                SFPO0001909 | Red Dye Diesel #2 - ULS | SF Test
+                            </td>
+                            <td>
+                                10/31/2019 | 4:06 PM - 4:30 PM | 150.00
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                SFPO0001910 | Red Dye Diesel #2 - ULS | SF Test
+                            </td>
+                            <td>
+                                10/31/2019 | 8:00 AM - 8:00 PM | 1,000.00
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="well shadow-b bg-white">
+                Driver: Paul Chang <a class="fa fa-edit pull-right"></a><br />
+                Load Code: 1234<br />
+                Route Information: wert cvbnm tyui vbnm yui<br /><br />
+                <table class="table table-bordered table-condensed">
+                    <tbody>
+                        <tr>
+                            <td>
+                                SFPO0001909 | Red Dye Diesel #2 - ULS | SF Test
+                            </td>
+                            <td>
+                                10/31/2019 | 4:06 PM - 4:30 PM | 150.00
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                SFPO0001910 | Red Dye Diesel #2 - ULS | SF Test
+                            </td>
+                            <td>
+                                10/31/2019 | 8:00 AM - 8:00 PM | 1,000.00
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="well shadow-b bg-white">
+                Driver: Paul Chang <a class="fa fa-edit pull-right"></a><br />
+                Load Code: 1234<br />
+                Route Information: wert cvbnm tyui vbnm yui<br /><br />
+                <table class="table table-bordered table-condensed">
+                    <tbody>
+                        <tr>
+                            <td>
+                                SFPO0001909 | Red Dye Diesel #2 - ULS | SF Test
+                            </td>
+                            <td>
+                                10/31/2019 | 4:06 PM - 4:30 PM | 150.00
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                SFPO0001910 | Red Dye Diesel #2 - ULS | SF Test
+                            </td>
+                            <td>
+                                10/31/2019 | 8:00 AM - 8:00 PM | 1,000.00
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .card-container {
+        font-size: 13px !important;
+    }
+</style>
+<script>
+    var deliverySchedules = [];
+    var deliveryGroupStatus = [];
+    var currentPageNumber = 1;
+        $(document).ready(function () {
+            $('#TotalDeliveryGroupCount').val(0);
+            $(".cards-pagination").pxpaginate({
+                currentpage: 1,
+                align: 'center',
+                nextPrevBtnShow: true,
+                firstLastBtnShow: false,
+                prevPageName: '<',
+                nextPageName: '>',
+                lastPageName: '<<',
+                firstPageName: '>>',
+                callback: function (pageNumber) {
+                    var totalDeliveryGrpCount = parseInt($('#TotalDeliveryGroupCount').val());
+                    var pageSize = $('#DeliveryGroupCardCountDdl').val() == "All" ? -1 : parseInt($('#DeliveryGroupCardCountDdl').val());
+                    if (totalDeliveryGrpCount < pageSize || pageSize == -1)
+                        return;
+
+                    currentPageNumber = parseInt(pageNumber);
+                    refreshDeliveryGroups();
+                }
+            });
+
+            refreshDeliveryGroups();
+        });
+
+        function refreshDeliveryGroups() {
+            deliverySchedules.length = 0;
+            deliveryGroupStatus.length = 0;
+
+            var filterStartDate = $('#txtSchedulesFromDate').val();
+			var filterEndDate = $('#txtSchedulesToDate').val();
+			if (filterStartDate == '') {
+                filterStartDate = moment().add(1, 'days').format('MM/DD/YYYY');
+			}
+			if (filterEndDate == '') {
+                filterEndDate = moment().add(1, 'days').format('MM/DD/YYYY');
+			}
+            var urlDG = '@Url.Action("GetDeliveryGroupsAsync", "DeliveryGroup", new { area = "Supplier" })';
+            var pageSize = $('#DeliveryGroupCardCountDdl').val() == "All" ? -1 : parseInt($('#DeliveryGroupCardCountDdl').val());
+            var params = {
+                "searchText": searchText,
+                "pageSize": pageSize,
+                "pageNumber": currentPageNumber,
+                "startDate": filterStartDate,
+				"endDate": filterEndDate
+            };
+            $('.dg-loading-wrapper').removeClass('hide-element');
+
+            $.get({
+                url: urlDG,
+                data: params,
+                traditional: true,
+                success: function (response) {
+                    $('.dg-loading-wrapper').addClass('hide-element');
+                    var dgGrid = $('#deliveryGroupGrid');
+                    var totalCount = 0;
+                    if (response.length > 0) {
+                        for (var i = 0; i < response.length; i++) {
+                            deliverySchedules.push({
+                                DeliveryGroupId: response[i].DeliveryGroupId,
+                                TrackableSchedules: response[i].TrackableSchedules
+                            });
+                        }
+                        dgGrid.show();
+                        confirmDGstatus();
+                        var cardsHtml = '';
+                        for (var idx = 0; idx < response.length; idx++) {
+                            cardsHtml += getCard(response[idx]);
+                            totalCount = response[idx].TotalCount;
+                        }
+                        dgGrid.find('.card-container').html(cardsHtml);
+                        $('#TotalDeliveryGroupCount').val(totalCount);
+                        setDeliveryGroupsPaging(totalCount, pageSize);
+                    }
+                    else if (dgGrid.length > 0) {
+                        dgGrid.hide();
+                    }
+                }
+            });
+        }
+
+        function getCard(cardObject) {
+            var cardHtml = "";
+            if (cardObject && cardObject.TrackableSchedules && cardObject.TrackableSchedules.length > 0) {
+                var ackClass, acktitle;
+                if (deliveryGroupStatus.length > 0) {
+                    deliveryGroupStatus.find(function (ele) {
+                        if (ele.DeliveryGroupId == cardObject.DeliveryGroupId) {
+                            if (ele.GroupStatus == @((int)DriverAcknowledgementStatus.Read)) {
+                                ackClass = 'order-read',
+                                    acktitle = 'Read'
+                            }
+                            else if (ele.GroupStatus == @((int)DriverAcknowledgementStatus.Acknowledged)) {
+                                ackClass = 'order-acknowledged',
+                                    acktitle = 'Acknowledged'
+                            }
+                            else if (ele.GroupStatus == @((int)DriverAcknowledgementStatus.ReAcknowledgementNeeded)) {
+                                ackClass = 'order-reacknowledment',
+                                    acktitle = 'Re-acknowledgement Needed'
+                            }
+                            else {
+                                ackClass = 'order-unread',
+                                    acktitle = 'Unread'
+                            }
+                        }
+
+                    });
+                }
+
+
+                cardHtml  = '<div class="col-sm-4 equal-column"><div class="well shadow-b bg-white break-word">' +
+                    '<span class="fs11 f-bold">Driver: </span><span> ' + cardObject.DriverName + '</span>'
+                    + '<i data-toggle="tooltip" data - placement="top" title = " ' + acktitle + '" class="fas fa-check-double ml10 pull-right ' + ackClass + '"></i>'
+                    + '<a data-groupid="' + cardObject.DeliveryGroupId
+                    + '"class="fa fa-edit pull-right" onclick="slidePanel(\'#edit-dg-modal\')" data-target="edit-dg-modal"></a><br/>'
+                    + '<span class="fs11 f-bold">Load Code: </span>' + cardObject.LoadCode + '<br/>'
+                    + '<span class="db fs11 f-bold mt2">Pickup Location:</span> ' + getGroupPickupLocation(cardObject) + '<br/>'
+                    + '<span class="db fs11 f-bold mt2">Route Information:</span> <div style="max-height:80px; overflow: auto;" class="mb5">' + cardObject.RouteNote + '</div>'
+                    + getDeilveryTable(cardObject)
+                    + '</div></div>';
+
+            }
+            return cardHtml;
+        }
+
+        function confirmDGstatus() {
+            currObject = this;
+            var scheduleCount = 0;
+            if (deliverySchedules.length > 0) {
+                deliverySchedules.forEach(function (delSchedule) {
+                    scheduleCount = delSchedule.TrackableSchedules.length;
+                    var readStatusCount = 0, acknowledgedStatusCount = 0, newdeliveryScheduleCount = 0; reacknowledgementNeededStatusCount = 0;
+                    delSchedule.TrackableSchedules.forEach(function (trackdelschd) {
+                        if (trackdelschd.deliverystatus == @((int)DriverAcknowledgementStatus.Acknowledged)) {
+                            acknowledgedStatusCount++;
+                        }
+                        else if (trackdelschd.deliverystatus == @((int)DriverAcknowledgementStatus.Read) ) {
+                            readStatusCount++;
+                        }
+                        else if (trackdelschd.deliverystatus == @((int)DriverAcknowledgementStatus.ReAcknowledgementNeeded)) {
+                            reacknowledgementNeededStatusCount++;
+                        }
+                        else if (trackdelschd.deliverystatus == null || (trackdelschd.deliverystatus != @((int)DriverAcknowledgementStatus.Read) && trackdelschd.deliverystatus != @((int)DriverAcknowledgementStatus.Acknowledged) && trackdelschd.deliverystatus != @((int)DriverAcknowledgementStatus.ReAcknowledgementNeeded))) {
+                            newdeliveryScheduleCount++;
+                        }
+                    });
+                    // implies all ds are in read state hence, set the grp status as read
+                    if (scheduleCount == readStatusCount) {
+                        currObject.deliveryGroupStatus.push({
+                            DeliveryGroupId: delSchedule.DeliveryGroupId,
+                            GroupStatus:@((int)DriverAcknowledgementStatus.Read)
+                    })
+                    }
+                    // Implies all ds are in acknowleged state hence, set the grp status as acknowledged
+                    else if (scheduleCount == acknowledgedStatusCount) {
+                        currObject.deliveryGroupStatus.push({
+                            DeliveryGroupId: delSchedule.DeliveryGroupId,
+                            GroupStatus:@((int)DriverAcknowledgementStatus.Acknowledged)
+                    })
+                    }
+                    // Implies all ds are in ReacknowlegedmentNeeded state hence, set the grp status as Reacknowledgedmentneeded
+                    else if (scheduleCount == reacknowledgementNeededStatusCount) {
+                        currObject.deliveryGroupStatus.push({
+                            DeliveryGroupId: delSchedule.DeliveryGroupId,
+                            GroupStatus:@((int)DriverAcknowledgementStatus.ReAcknowledgementNeeded)
+                    })
+                    }
+                    // Implies atleast one new ds is added hence set the delgrp status as not read
+                    else if (newdeliveryScheduleCount > 0) {
+                        currObject.deliveryGroupStatus.push({
+                            DeliveryGroupId: delSchedule.DeliveryGroupId,
+                            GroupStatus: "Unread"
+                        })
+                    }
+                    // Implies all ds inside current dg are not in consistent status hence, mark the status as not read.
+                    else {
+                        currObject.deliveryGroupStatus.push({
+                            DeliveryGroupId: delSchedule.DeliveryGroupId,
+                            GroupStatus: "Unread"
+                        })
+                    }
+                });
+            }
+        }
+
+        function getGroupPickupLocation(cardObject) {
+            if (cardObject.IsCommonForGroup && cardObject.PickupLocation != null && cardObject.PickupLocation != undefined) {
+                var groupTerminal = cardObject.PickupLocation.TerminalId > 0 ? cardObject.PickupLocation.TerminalName + ' - ' : '';
+                var bulkplantname = cardObject.PickupLocation.SiteName != null ? cardObject.PickupLocation.SiteName + ' -' : '';
+                var groupPickupLocation = bulkplantname + groupTerminal + cardObject.PickupLocation.PickupAddress + ', '
+                    + cardObject.PickupLocation.PickupCity + ', ' + cardObject.PickupLocation.PickupStateCode + ', ' + cardObject.PickupLocation.PickupZipCode;
+                return groupPickupLocation;
+            }
+            else
+                return '--';
+        }
+
+        function getDeilveryTable(cardObject) {
+            var tableHtml = '';
+            if (cardObject.TrackableSchedules.length > 0) {
+                tableHtml = '<div class="table-responsive" style="max-height: 250px;overflow:auto"> <span class="f-bold">Schedules</span>'
+                for (var idx = 0; idx < cardObject.TrackableSchedules.length; idx++) {
+                    tableHtml += '<div style="background:#E9E9E9" class="pa10 fs12 radius-5 mb10"><div>' + cardObject.TrackableSchedules[idx].Code + '</div>'
+                        + '<div>' + '<span class="f-bold">' + cardObject.TrackableSchedules[idx].Name + '</span>' + ' ' + getSchedulePikupLocation(cardObject.TrackableSchedules[idx].PickupLocation) + '</div></div>';
+                }
+                tableHtml += '</div>';
+            }
+            else {
+                tableHtml = '<div id="message" class="text-center color-maroon">No schedules available in this group</div>';
+            }
+            return tableHtml;
+        }
+
+        function getSchedulePikupLocation(pickupLocation) {
+            if (pickupLocation != null && pickupLocation != undefined) {
+                var scheduleTerminal = pickupLocation.TerminalId > 0 ? pickupLocation.TerminalName + ' - ' : '';
+                var bulkplantname = pickupLocation.SiteName != null ? pickupLocation.SiteName + ' - ' : '';
+                var schedulePickupLocation = '<br/>' + bulkplantname + scheduleTerminal + pickupLocation.PickupAddress + ', '
+                    + pickupLocation.PickupCity + ', ' + pickupLocation.PickupStateCode + ', ' + pickupLocation.PickupZipCode;
+                return schedulePickupLocation;
+            }
+            else
+                return '';
+        }
+
+        function setDeliveryGroupsPaging(totalDeliveryGroups, pageSize) {
+            pageSize = pageSize == -1 ? totalDeliveryGroups : pageSize;
+            var maxBtnCount = 5;
+            var totalPageCount = Math.ceil(totalDeliveryGroups / pageSize);
+
+            if (totalPageCount <= maxBtnCount)
+                maxBtnCount = totalPageCount - 1;
+
+            var showingFrom = ((currentPageNumber - 1) * pageSize) + 1;
+            $('#lblFrom').text(showingFrom);
+
+            var showingTo = currentPageNumber * pageSize;
+            var last = totalDeliveryGroups < showingTo ? totalDeliveryGroups : showingTo;
+            $('#lblTo').text(last);
+
+            $('#lblTotal').text(totalDeliveryGroups);
+
+            $(".cards-pagination").pxpaginate({
+                totalPageCount: totalPageCount,
+                currentpage: currentPageNumber,
+                maxBtnCount: maxBtnCount
+            });
+
+            $('#pagination-container-main').removeClass('hide-element');
+        }
+
+        function getDGs() {
+            //var dgPagesize = $(dgSizeDdl).val();
+            refreshDeliveryGroups();
+        }
+</script>

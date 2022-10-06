@@ -1,0 +1,145 @@
+<div class="side-panel-wrapper col-sm-12">
+    <div class="row">
+        <div class="col-sm-8 pt10">
+            <a class="close-panel" onclick="closeSlidePanel();"><i class="fa fa-close fs18"></i></a>
+            <h3 class="dib mt0 mb0 ml15">Route Information</h3>
+            <div class="dib" *ngIf="PanelStatus==1">
+                <a class="btn btn-default btn-sm mtm5 ml10" (click)="newRouteClicked();">
+                    <i class="fa fa-plus fs14"></i> Create Route
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="pt10 pb10 col-sm-12">
+            <div *ngIf="PanelStatus==1" class="">
+                <div class="row">
+                    <div class="col-sm-6" *ngFor="let route of RouteList">
+                        <div class="card mb20">
+                            <div class="card-body pt10">
+                                <small>Route Name</small>
+                                <h4 class="card-title pt0">{{route.Name}}</h4>
+                                <div class="row">
+                                    <div class="col-sm-8">
+                                        <a title="View Locations" (click)="getRouteInfo(route);">
+                                            <i class="fa fa-map-marker mr5 fs14"></i>Locations
+                                        </a>
+                                    </div>
+                                    <div class="col-sm-4 text-right">
+                                        <a class="mr10" title="Edit" (click)="editRouteClicked(route);">
+                                            <i class="fa fa-pencil-square-o fs14"></i>
+                                        </a>
+                                        <a title="Delete" (click)="deleteRouteClicked(route);">
+                                            <i class="fa fa-trash-alt mt14 color-maroon"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div *ngIf="PanelStatus==2">
+                <form name="RouteForm" [formGroup]="RouteForm" (ngSubmit)="onSubmit()">
+                    <div class="row">
+                        <div class="col-sm-6" *ngIf="RouteForm.get('ShiftInfoDetails') && RouteForm.get('ShiftInfoDetails').value">
+                            <div class="form-group mb5">
+                                <label>Shift</label>
+                                <input type="text" class="form-control" disabled value="{{RouteForm.get('ShiftInfoDetails').value}}" required />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group mb5">
+                                <label for="Name">Name</label>
+                                <input type="text" class="form-control form-control-lg" formControlName="Name" required />
+                                <div *ngIf="RouteForm.get('Name').touched && RouteForm.get('Name').invalid">
+                                    <div class="mt5 color-red f-normal">Route name is required</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="location-wrapper mb15">
+                        <div class="row mt10">
+                            <div class="col-sm-12">
+                                <label for="Name"><b>Locations</b></label>
+                                <table class="table mb0">
+                                    <thead>
+                                    <td width="10%" class="pl0">Sequence</td>
+                                    <td>Location</td>
+                                    <td></td>
+                                    </thead>
+                                    <tbody>
+                                        <tr formArrayName="TfxJobs" *ngFor="let tfxJob of RouteForm.get('TfxJobs')['controls'];  let j = index;">
+                                            <td class="pl0"> <span class="btn btn-primary img-circle ml0">{{(j+1)}}</span> </td>
+                                            <td>
+                                                <div class="form-group mb5">
+                                                    <div [formGroupName]="j">
+
+                                                        <ng-multiselect-dropdown [ngClass]="{'is-invalid':RouteForm.get('TfxJobs').touched && RouteForm.get('TfxJobs').invalid}"
+                                                                                 formControlName="JobDetails" [placeholder]="'Select Locations'"
+                                                                                 [settings]="multiDropdownSettings" [data]="JobList">
+                                                        </ng-multiselect-dropdown>
+
+                                                        <!-- <div *ngIf="RouteForm.get('Name').touched && RouteForm.get('TfxJobs').invalid">
+                                            <div class="mt5 color-red f-normal">Location is required</div>
+                                        </div> -->
+
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-right pr0">
+                                                <a class="ml20" (click)="removeLocation(j);">
+                                                    <i class="fa fa-trash-alt mt14 color-maroon mt8"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <table width="100%">
+                                    <tr>
+                                        <td width="11%">&nbsp;</td>
+                                        <td colspan="2">
+                                            <div class="form-group">
+                                                <a (click)="addLocation(null);">
+                                                    <i class="fa fa-plus-circle fs14"></i> Add Location
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group text-right col-sm-12">
+                            <button type="button" class="btn btn-lg" (click)="PanelStatus=1">Cancel</button>
+                            <button class="btn btn-primary btn-lg" [disabled]="!RouteForm.valid">Save</button>
+                        </div>
+                    </div>
+                    <!-- <div class="col-sm-6">
+        <div class="form-group mb5">
+            <label for="TfxJobs">Locations</label>
+            <ng-multiselect-dropdown [ngClass]="{'is-invalid':RouteForm.get('TfxJobs').touched && RouteForm.get('TfxJobs').invalid}"
+                                     [formControl]="RouteForm.controls['TfxJobs']" [placeholder]="'Select Locations'"
+                                     [data]="JobList" [settings]="multiDropdownSettings">
+            </ng-multiselect-dropdown>
+            <div *ngIf="RouteForm.get('Name').touched && RouteForm.get('TfxJobs').invalid">
+                <div class="mt5 color-red f-normal">Location is required</div>
+            </div>
+        </div>
+    </div> -->
+                    
+                </form>
+            </div>
+        </div>
+        <div *ngIf="IsLoading" class="pa top0 bg-white left0 z-index5 loading-wrapper">
+            <span class="spinner-dashboard pa"></span>
+        </div>
+    </div>
+</div>

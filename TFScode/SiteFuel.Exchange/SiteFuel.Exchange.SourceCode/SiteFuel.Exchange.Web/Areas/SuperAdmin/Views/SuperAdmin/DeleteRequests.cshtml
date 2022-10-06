@@ -1,0 +1,66 @@
+﻿@model InvoiceFilterViewModel
+
+@{
+    ViewBag.Title = "Delete Requests";
+}
+<div class="row mb10">
+    <div class="col-sm-4 col-md-3 col-xs-12">      
+     <h3 class="mt0 f-light pb5 fs21 mb5 float-left">@Resource.lblDeleteRequests</h3>  
+    </div>    
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb5">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                    <input type="button" class="btn btn-default ml5" value="@Resource.btnLabelClearFilter" onclick="ClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div id="90DaysDataWarning" class="col-md-12">
+        <div class="alert alert-info fs12 mb15"><strong>@Resource.lblInfo</strong>@Resource.lbl90DaysDataWarning</div>
+    </div>
+    <div class="col-md-12">      
+            @Html.Partial("_PartialDeleteRequestsInvoiceGrid", Model)      
+    </div>
+</div>
+<script type="text/javascript">
+
+    var ClearFilter;
+    $(document).ready(function () {
+            ClearFilter = function () {
+                $('#txtFromDate').val('');
+                $('#txtToDate').val('');
+                $('#txtToDate').data("DateTimePicker").minDate($("#txtFromDate").datetimepicker("minDate"));
+                ReloadDataTable();
+            }
+
+            if ($('#txtFromDate').length > 0 && $('#txtToDate').length > 0) {
+                $("#txtFromDate").on('dp.change dp.show', function (e) {
+                    if (e.date == false)
+                        $('#txtToDate').data("DateTimePicker").minDate($("#txtFromDate").datetimepicker("minDate"));
+                    else
+                        $('#txtToDate').data("DateTimePicker").minDate(moment($('#txtFromDate').val()));
+                });
+
+                $('#txtFromDate').data("DateTimePicker").date(moment().subtract(moment.duration(90, 'days')));
+                $('#txtToDate').data("DateTimePicker").date(moment());
+            }
+    });
+
+    function ReloadDataTable() {
+        if ($('#txtFromDate').val() != '' || $('#txtToDate').val() != '') {
+            $('#90DaysDataWarning').hide();
+        }
+        deleterequestsinvoice.ajax.reload();      
+    }
+
+</script>
+

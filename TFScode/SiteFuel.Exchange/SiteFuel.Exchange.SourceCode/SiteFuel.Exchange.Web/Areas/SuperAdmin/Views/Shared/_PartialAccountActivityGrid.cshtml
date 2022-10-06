@@ -1,0 +1,107 @@
+﻿<div class="col-sm-12">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="well bg-white shadow-b">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-border no-padding">
+                        <div id="accountactivity-div" class="table-responsive">
+                            <table id="accountactivity-datatable" class="table table-striped table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.gridColumnAccountName</th>
+                                        <th>@Resource.gridColumnAccountPhoneNumber</th>
+                                        <th>@Resource.gridColumnCompanyName</th>
+                                        <th>@Resource.gridColumnCompanyLocation</th>
+                                        <th>@Resource.gridColumnAccountType</th>
+                                        <th>@Resource.gridColumnAccountActivityDateTime</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var accountactivityDataTable;
+
+        $(document).ready(function () {
+
+            accountactivityDataTable = $('#accountactivity-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetAccountActivity", "SuperAdmin", new { area ="SuperAdmin"})",
+                    "type": "GET",
+                    "datatype": "json",
+                    "data": function (d) {
+                        d.startDate = $('#txtSuperadminAccountActivityFromDate').val(),
+                        d.endDate = $('#txtSuperadminAccountActivityToDate').val(),
+                        $('#accountactivity-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                    },
+                    "dataSrc": "",
+                },
+                "columns":
+                [
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            var viewUserUrl = '@Url.Action("UserDetails", "Profile", new { area = "Settings" })';
+                            return '<a href=' + viewUserUrl + '/' + data.AccountId + '>' + data.AccountName + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "AccountPhoneNumber", "autoWidth": true, "className": "phone" },
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            var viewCompanyUrl = '@Url.Action("CompanyDetails", "Profile", new { area = "Settings" })';
+                            return '<a href=' + viewCompanyUrl + '/' + data.CompanyId + '>' + data.CompanyName + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "CompanyLocation", "autoWidth": true },
+                    { "data": "AccountType", "autoWidth": true },
+                    { "data": "AccountActivityDateTime", "autoWidth": true, "sType": "date" },
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json)
+                {
+                    wrapperHeight();
+                },
+                "fnDrawCallback": function (settings) {
+                    changePhoneFormat();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingAccountActivity' },
+                    { extend: 'excel', title: '@Resource.headingAccountActivity' },
+                    { extend: 'pdf', title: '@Resource.headingAccountActivity' },
+
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        });
+
+        $(document).ajaxComplete(function () {
+            $("#accountactivity-div").find('.loading-wrapper').remove();
+        });
+    </script>
+}

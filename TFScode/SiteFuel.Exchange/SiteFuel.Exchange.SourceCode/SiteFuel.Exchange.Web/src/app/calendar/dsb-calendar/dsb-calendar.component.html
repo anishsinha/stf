@@ -1,0 +1,580 @@
+
+<ng-template #filterPopContent>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" name="locationType" [(ngModel)]="locationType" (click)="toggleLocationType(false)"
+               id="radio-location" type="radio" [value]="false">
+        <label class="form-check-label" for="radio-location">Land</label>
+    </div>
+    <div class="form-check form-check-inline mr-3 mt-2">
+        <input class="form-check-input" name="locationType" [(ngModel)]="locationType" (click)="toggleLocationType(true)"
+               id="radio-port" type="radio" [value]="true">
+        <label class="form-check-label" for="radio-port">Marine</label>
+    </div>
+
+    <div class="row border-bottom-2 mt-3">
+        <div class="col-6 pr-0">
+
+            <div class="form-group">
+                <label class="font-bold">Customer</label>
+                <ng-multiselect-dropdown [(ngModel)]="SelectedCustomerList" [settings]="CustomerDdlSettings"
+                                         [placeholder]="'Select Customer'" [data]="customerList"
+                                         (onSelect)="onCustomerChanged()" (onDeSelect)="onCustomerChanged()">
+
+                </ng-multiselect-dropdown>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="form-group">
+                <label class="font-bold" *ngIf="locationType">Port</label>
+                <label class="font-bold" *ngIf="!locationType">Location</label>
+                <ng-multiselect-dropdown [(ngModel)]="SelectedlocationList" [settings]="multiselectSettingsById"
+                                         [placeholder]="locationType ? 'Select Port' : 'Select Location'" [data]="locationList"
+                                         (onSelect)="onLocationChange()" (onDeSelect)="onLocationChange()">
+                </ng-multiselect-dropdown>
+            </div>
+        </div>
+    </div>
+
+    <div class="row border-bottom-2 mt10">
+        <div class="col-6 pr-0">
+            <div class="form-group">
+                <label class="font-bold">Priority</label>
+                <ng-multiselect-dropdown [(ngModel)]="SelectedPriorityList" [placeholder]="'Select Priority'"
+                                         [settings]="multiselectSettingsById" [data]="priorityList" #selectedPriority>
+                </ng-multiselect-dropdown>
+            </div>
+        </div>
+        <div class="col-6 mt-2" *ngIf="locationType">
+            <div class="form-group">
+                <label class="font-bold">Vessel</label>
+                <ng-multiselect-dropdown [(ngModel)]="SelectedVesselList" [placeholder]="'Select Vessel'"
+                                         [settings]="multiselectSettingsById" [data]="vesselList">
+                </ng-multiselect-dropdown>
+            </div>
+        </div>
+    </div>
+
+    <div class="row border-bottom-2 mt10">
+        <div class="col-6 pr-0">
+            <div class="form-group">
+                <label class="font-bold mr-3">From</label>
+                <input name="date" [(ngModel)]="FromDate" type="date" class="form-control datepicker ng-pristine ng-valid ng-touched" (change)="validateDate(FromDate,isFromDate)" required>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="form-group">
+                <label class="font-bold mr-3">To</label>
+                <input name="date" [(ngModel)]="ToDate" type="date" class="form-control datepicker ng-pristine ng-valid ng-touched" (change)="validateDate(ToDate,!isFromDate)" required>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt10">
+        <div class="col-12 text-right">
+            <button type="button" (click)="ResetFilters(); p.close();" class="btn btn-default">
+                Reset
+            </button>
+            <button type="button" [disabled]="!isValidDate" (click)="ApplyFilters('set'); p.close();" class="btn btn-primary">
+                Save
+            </button>
+        </div>
+    </div>
+</ng-template>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadowb-b">
+            <div class="ibox mb0">
+                <div class="row ibox-content no-padding no-border">
+                    <div class="col-md-4 text-left">
+                        <div>
+                            <div class="btn btn-default btn-xs" mwlCalendarPreviousView [view]="view"
+                                 [(viewDate)]="viewDate"
+                                 (click)="setNextMonthEvents(viewDate,'Previous')">
+                                <i class="fas fa-arrow-left"></i>
+                            </div>
+                            <div class="btn	btn-default btn-xs" id="idToday" mwlCalendarToday
+                                 [(viewDate)]="viewDate" (click)="setNextMonthEvents(viewDate,'Today')">
+                                Today
+                            </div>
+                            <div class="btn	btn-default btn-xs" mwlCalendarNextView [view]="view"
+                                 [(viewDate)]="viewDate"
+                                 (click)="setNextMonthEvents(viewDate,'Next')">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <h3 class="mt5">{{ viewDate | calendarDate:(view + 'ViewTitle'):'en' }}</h3>
+                    </div>
+                    <div class="col-2 pl0 text-right pt8 pr-0">
+                        <a class="fs14 mr10" [ngbPopover]="filterPopContent" placement="auto" [autoClose]="'outside'" container="body" triggers="manual" #p="ngbPopover" (click)="p.open()"
+                           popoverClass="master-filter popoverWidth-500 pb-2"><i class="fas fa-filter pr-0"><span class="circle-badge" *ngIf="count > 0">{{count}}</span></i> Filters</a>
+                    </div>
+                    <div class="col-md-2 text-left pl-0">
+                        <div class="view-btn">
+                            <a class="btn btn-outline-primary" (click)="setView(CalendarView.Month)" [class.active]="view === CalendarView.Month" id="idMonth">Month</a>
+                            <a class="btn btn-outline-primary" (click)="setView(CalendarView.Week)" [class.active]="view === CalendarView.Week" id="idWeek">Week</a>
+                            <a class="btn btn-outline-primary" (click)="setView(CalendarView.Day)" [class.active]="view === CalendarView.Day" id="idDay">Day</a>
+                        </div>
+                    </div>
+                </div>
+                <br />
+                <div [ngSwitch]="view">
+                    <div *ngIf="_loadingDrRequests" class="pa bg-white z-index10 loading-wrapper">
+                        <span class='spinner-dashboard pa'></span>
+                    </div>
+                    <mwl-calendar-month-view *ngSwitchCase="CalendarView.Month" [viewDate]="viewDate" (beforeViewRender)="beforeViewRender($event)"
+                                             [events]="Events" [cellTemplate]="customCellTemplate" [refresh]="refresh">
+                    </mwl-calendar-month-view>
+                    <mwl-calendar-week-view class="my-week-view" *ngSwitchCase="CalendarView.Week" [viewDate]="viewDate" [hourSegments]="0" (beforeViewRender)="beforeViewRender($event)"
+                                            [events]="Events" [refresh]="refresh" [eventTemplate]="customEventTemplate">
+                    </mwl-calendar-week-view>
+                    <mwl-calendar-day-view *ngSwitchCase="CalendarView.Day" [viewDate]="viewDate" [events]="DayEvents" (beforeViewRender)="beforeViewRender($event)"
+                                           [refresh]="refresh" [eventTemplate]="customDayEventTemplate">
+                    </mwl-calendar-day-view>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<ng-template #customEventTemplate let-day="weekEvent" let-locale="locale">
+    <div class="cal-cell-top">
+        <div class="label calender-grid mnth-events">
+            <span [ngStyle]="{'background-color': day.event.color.primary}" style="color:black">
+                <a class="row py-2" (click)="bindDeliveryRequests(day.event.JobId, day.event.start)" type="button" [autoClose]="'outside'" placement="bottom" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                    <strong class="text-dark col-10">{{day.event.title }} </strong><i class="fas fa-arrow-right col-1 mt-2"></i>
+                </a>
+            </span>
+        </div>
+    </div>
+</ng-template>
+<ng-template #customDayEventTemplate let-day="weekEvent" let-locale="locale">
+    <div class="cal-cell-top">
+        <table class="table table-hover">
+            <tr *ngFor="let item of day.event.drs; let i = index;">
+                <td *ngIf="i < day.event.timeLimit" style="color: black" [ngStyle]="{'background-color': colors[item.Priority].primary }" class="label calender-grid mnth-events">
+                    <!---->
+                    <span>
+                        <a class="row py" [ngStyle]="{'background-color': colors[item.Priority].primary }" style="color:black;border-radius:10px" id="d-dr-{{i}}" (click)="bindDayDeliveryRequests(item.JobId,day.event.start, day.event.end)" type="button" [autoClose]="'outside'" placement="bottom" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                            <div class="col-sm-12">
+                                <strong class="font-weight-bold text-dark float-left">{{item.CustomerCompany + " - " + item.JobName }} </strong> <i class="fas fa-arrow-right float-right"></i>
+                            </div>
+                            <!--<div class="col-1 align-self-center">
+                                <i class="fas fa-arrow-right float-right"></i>
+                            </div>-->
+                        </a>
+                    </span>
+                </td>
+            </tr>
+        </table>
+        <div *ngIf="day.event.drs.length > day.event.timeLimit">
+            <a class="col-sm-11" type="button" data-container="body" data-toggle="popover" data-placement="top" data-content="Top popover" (click)="SelectedDayEvent=day.event" [autoClose]="'outside'" placement="bottom" [ngbPopover]="dayViewMoreContent" container="body" popoverClass="dr-popover view-more-popover-day">View more <i class="ml-2 fas fa-chevron-circle-down"></i></a>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #customCellTemplate let-day="day" let-locale="locale">
+    <div class="cal-cell-top">
+        <div>
+            <table class="table table-hover">
+                <tr *ngFor="let item of day.events let i = index;">
+                    <td [ngStyle]="{'background-color': item.color.primary}" style="color:black"
+                        class="label  calender-grid mnth-events" *ngIf="i<3">
+                        <span>
+                            <a class="row" id="dr-{{i}}" (click)="bindDeliveryRequests(item.JobId,day.date)" type="button" [autoClose]="'outside'" placement="bottom" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                <strong class="font-weight-bold text-dark float-left col-sm-10">{{item.title }} </strong><i class="fas fa-arrow-right float-right col-sm-1 mt-2"></i>
+                            </a>
+                        </span>
+                    </td>
+                </tr>
+            </table>
+            <div>
+                <a class="col-sm-11" type="button" data-container="body" data-toggle="popover" data-placement="top" data-content="Top popover" *ngIf="day.events.length>3" (click)="SelectedDay=day" [autoClose]="'outside'" placement="bottom" [ngbPopover]="requestPopContent" container="body" popoverClass="dr-popover view-more-popover-month">View more <i class="ml-2 fas fa-chevron-circle-down"></i></a>
+                <span class="col-sm-1 cal-day-number mt-0"><strong class="ml-1">{{ day.date | calendarDate:'monthViewDayNumber':locale }}</strong> </span>
+            </div>
+        </div>
+    </div>
+</ng-template>
+<ng-template #requestPopContent>
+    <table class="table table-hover">
+        <tr *ngFor="let item of SelectedDay.events ; let i = index;">
+            <td *ngIf="i>=3" [ngStyle]="{'background-color': item.color.primary}" style="color:black"
+                class="label  calender-grid mnth-events">
+                <span>
+                    <a class="row" id="dr-{{i}}" (click)="bindDeliveryRequests(item.JobId,SelectedDay.date)" type="button" [autoClose]="'outside'" placement="bottom" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                        <strong class="small font-weight-bold text-dark float-left col-sm-10">{{item.title }} </strong> <i class="fas fa-arrow-right float-right col-sm-1 mt-2"></i>
+                    </a>
+                </span>
+            </td>
+        </tr>
+
+    </table>
+</ng-template>
+<ng-template #dayViewMoreContent>
+    <table class="table table-hover">
+        <tr *ngFor="let item of SelectedDayEvent.drs; let i = index;">
+            <td *ngIf="i >= SelectedDayEvent.timeLimit" [ngStyle]="{'background-color': colors[item.Priority].primary }" style="color:black" class="label  calender-grid mnth-events">
+                <!---->
+                <span>
+                    <a class="row" id="d-dr-{{i}}" (click)="bindDayDeliveryRequests(item.JobId,SelectedDayEvent.start, SelectedDayEvent.end)" type="button" [autoClose]="'outside'" placement="bottom" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                        <strong class="small font-weight-bold text-dark float-left col-sm-10">{{item.CustomerCompany + " - " + item.JobName }} </strong><i class="fas fa-arrow-right float-right col-sm-1 mt-2"></i>
+                    </a>
+                </span>
+            </td>
+        </tr>
+    </table>
+</ng-template>
+<ng-template #popContent>
+    <div class="popover-details">
+        <div class="row">
+            <ng-container *ngFor="let dr of DrForm.controls['DeliveryRequests']['controls']; let i = index;">
+                <div *ngIf="dr.controls['IsBlendedRequest'].value==false || dr.controls['IsBlendedDrParent'].value==true" class="col-12 product-details" [ngClass]="{'mustgo-status': (dr.controls['Priority'].value==1) , 'shouldgo-status': (dr.controls['Priority'].value==2) ,'couldgo-status': (dr.controls['Priority'].value==3)}">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="product-name">
+                                <span *ngIf="dr.controls['IsBlendedRequest'].value === true">{{dr.controls['AdditiveProductName'].value}} {{dr.controls['BlendedProductName'].value}}</span>
+                                <span *ngIf="dr.controls['IsBlendedRequest'].value != true">{{dr.controls['ProductType'].value}}</span>
+                            </div>
+                            <div class="product-sub-text">
+                                <p class="deliverywindow fs10" *ngIf="dr.controls['IsMarine'].value==true">{{dr.controls['DeliveryDateStartTime'].value}}</p>
+                                <p class="recurring_dr" *ngIf="dr.controls['IsMarine'].value==true">{{dr.controls['Vessel'].value}}-{{dr.controls['Berth'].value}}</p>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <span class="product-qty" *ngIf="dr.controls['RequiredQuantity'].value > 0 && dr.controls['IsBlendedRequest'].value==false">{{dr.controls['RequiredQuantity'].value | number:'1.0-2'}}{{dr.controls['UoM'].value == 1 ? 'G' : 'L'}}</span>
+                            <span class="product-qty" *ngIf="dr.controls['TotalBlendedQuantity'].value > 0 && dr.controls['IsBlendedRequest'].value==true">{{dr.controls['TotalBlendedQuantity'].value | number:'1.0-2'}}{{dr.controls['UoM'].value == 1 ? 'G' : 'L'}}</span>
+                            <span class="product-qty" *ngIf="dr.controls['RequiredQuantity'].value == 0">{{dr.controls['ScheduleQuantityTypeText'].value}}</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6" style="font-size:11px;">
+                            <label *ngIf="dr.controls['ScheduleStartTime'].value && dr.controls['ScheduleEndTime'].value">
+                                {{dr.controls['ScheduleStartTime'].value}} - {{ dr.controls['ScheduleEndTime'].value}}
+                            </label>
+                        </div>
+                        <div class="icon-tray col-md-6 pull-right">
+                            <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Edit">
+                                <a (click)="EditDeliveryRequest(dr)"><i class="fa fa-edit fs13"></i></a>
+                            </div>
+                            <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Delete">
+                                <a (click)="DeleteDeliveryRequest(dr)"><i class="fas fa-trash-alt fs13"></i></a>
+                            </div>
+                            <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Move Load to DSB">
+                                <a (click)="MoveToDSB(dr)"><i class="fas fa-hand-point-right fs13"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div *ngIf="dr.controls['IsBlendedRequest']?.value">
+                        <span class="fs12 pull-right font-weight-bold">Blend</span>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+    </div>
+</ng-template>
+<div id="switchDSBModal" hidden="hidden" data-toggle="modal" data-target="#switchToDSBModal" data-backdrop="static"></div>
+<div class="modal fade" id="switchToDSBModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div *ngIf="_loadingScheduleData" class="pa bg-white z-index10 loading-wrapper">
+                    <span class='spinner-dashboard pa'></span>
+                </div>
+                <form novalidate>
+                    <div [formGroup]="MoveToDsbForm" class="form-group">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <h2 class="fs18 f-bold mt0">Move Load to DSB?</h2>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="pull-right form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" formControlName="IsScheduleForToday" id="chk-IsScheduleForToday" (change)="toggleScheduleData()">
+                                    <label class="form-check-label" for="chk-IsScheduleForToday">Schedule for current date</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label for="name" class="mr5">
+                                        <span>Shift</span>
+                                    </label>
+                                    <ng-multiselect-dropdown class="single-select"
+                                                             [settings]="SingleDdlSettings"
+                                                             [data]="shifts"
+                                                             formControlName="Shift"
+                                                             (onSelect)="onShiftSelect($event)"
+                                                             (onDeSelect)="onShiftDeSelect()">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                                <div class="form-group">
+                                    <label for="name" class="mr5">
+                                        <span>Column</span>
+                                    </label>
+                                    <ng-multiselect-dropdown class="single-select"
+                                                             [settings]="SingleDdlSettings"
+                                                             [data]="columns"
+                                                             formControlName="Column"
+                                                             (onSelect)="onColumnSelect($event)"
+                                                             (onDeSelect)="onColumnDeSelect()">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                                <div class="form-group">
+                                    <label for="name" class="mr5">
+                                        <span>Load</span>
+                                    </label>
+                                    <ng-multiselect-dropdown class="single-select"
+                                                             [settings]="SingleDdlSettings"
+                                                             [data]="loads"
+                                                             formControlName="Load">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <button id="modal-cancel" type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                            <button type="submit" (click)="onConfirmMoveToDSB()" class="btn btn-primary btn-lg">Confirm</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="openDeleteDeliveryRequestModal" hidden="hidden" data-toggle="modal" data-target="#deleteDeliveryRequestModal" data-backdrop="static"></div>
+<div class="modal fade" id="deleteDeliveryRequestModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <form #deleteDRform="ngForm" novalidate>
+                    <h2 class="fs18 f-bold mt0">Delete Delivery Request?</h2>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mt10 fs14 f-normal">{{requestToUpdate?.ProductType}}</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <div class="mt8 fs14 f-normal dib mr5">Required Quantity </div>
+                                <div *ngIf="requestToUpdate.ScheduleQuantityType>1; else quantity">
+                                    <div class="mt5 fs10">{{requestToUpdate?.ScheduleQuantityTypeText}}</div>
+                                </div>
+                                <ng-template #quantity>
+                                    <span *ngIf="requestToUpdate?.UoM==1; else litres">(G)</span>
+                                    <ng-template #litres>(L)</ng-template>
+                                    <div>{{requestToUpdate?.IsBlendedRequest ? requestToUpdate?.TotalBlendedQuantity: requestToUpdate?.RequiredQuantity}}</div>
+                                </ng-template>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                        <button type="submit" (click)="onDeliveryReqUpdate(2)" class="btn btn-primary btn-lg" data-dismiss="modal">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="openUpdateDrModal" hidden="hidden" data-toggle="modal" data-target="#updateDeliveryRequestModal"></div>
+<div id="updateDeliveryRequestModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body">
+                <form #form="ngForm" novalidate>
+                    <div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">Update Delivery Request</h4>
+                        <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fa fa-close fs21"></i></button>
+                    </div>
+                    <!-- #blended Dr to update -->
+                    <div *ngIf="requestToUpdate.IsBlendedRequest; else regularDRToUpdate">
+                        <div class="row mt5">
+                            <div class="col-sm-12">
+                                <div class="fs14 f-normal">{{blendedProducts}} Tank, Location: {{blendRequestsToUpdate[0]?.JobName}}</div>
+                            </div>
+                        </div>
+                        <div class="row mt5">
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label for="name" class="mr5">
+                                        <span>Total Quantity</span>
+                                        <span *ngIf="requestToUpdate?.UoM==1; else litres"> (G)</span>
+                                        <ng-template #litres> (L)</ng-template>
+                                    </label>
+                                    <input type="text" class="form-control" name="blendTotalQuantity" [(ngModel)]="blendTotalQuantity" (input)="toggleBlendTotalQuantity()" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngFor="let blendUpdateRequest of blendRequestsToUpdate; index as j" [ngModelGroup]="j">
+                            <div class="row mt5">
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <div>{{blendUpdateRequest.ProductType}} - {{blendUpdateRequest.FuelType}}</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <input type="text" numberWithDecimal class="form-control" (input)="toggleBlendQuantity(blendUpdateRequest,false)" name="RequiredQuantity" [(ngModel)]="blendUpdateRequest.RequiredQuantity" #RequiredQuantity="ngModel" required>
+                                            <div class="input-group-addon">
+                                                <span *ngIf="blendUpdateRequest?.UoM==1; else litres">G</span>
+                                                <ng-template #litres>L</ng-template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group mb0">
+                                        <div class="input-group">
+                                            <input type="number" name="QuantityInPercent" [(ngModel)]="blendUpdateRequest.QuantityInPercent" #QuantityInPercent="ngModel"
+                                                   numberWithDecimal class="form-control"
+                                                   placeholder="Quantity In Percent" (input)="toggleBlendQuantity(blendUpdateRequest,true)" />
+                                            <div class="input-group-addon">%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- additive fuel -->
+                        <div *ngIf="blendAddRequestToUpdate">
+                            <div *ngFor="let additiveReq of blendAddRequestToUpdate; index as k" [ngModelGroup]="k">
+                                <div class="row mt5">
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            <div>{{additiveReq.ProductType}} - {{additiveReq.FuelType}}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" name="AdRequiredQuantity" numberWithDecimal [(ngModel)]="additiveReq.RequiredQuantity" #AdRequiredQuantity="ngModel" required>
+                                                <div class="input-group-addon">
+                                                    <span *ngIf="additiveReq?.UoM==1; else litres">G</span>
+                                                    <ng-template #litres>L</ng-template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label for="name" class="mr5">
+                                                <span>Delivery Level PO#</span>
+                                            </label>
+                                            <input type="text" class="form-control"  name="DeliveryLevelPO" [(ngModel)]="requestToUpdate.DeliveryLevelPO" #DeliveryLevelPO="ngModel">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- #blended Dr to update end-->
+                    <!-- #Regular Dr to update -->
+                    <ng-template #regularDRToUpdate>
+                        <div class="row mt5">
+                            <div class="col-sm-12">
+                                <div class="fs14 f-normal text-muted">{{requestToUpdate?.ProductType}} Tank, Location: {{requestToUpdate?.JobName}}</div>
+                            </div>
+                        </div>
+                        <div class="row mt5">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="ScheduleQuantityType">
+                                        <span>Quantity Type</span>
+                                    </label>
+                                    <select class="form-control" [(ngModel)]="requestToUpdate.ScheduleQuantityType" name="ScheduleQuantityType" #ScheduleQuantityType="ngModel">
+                                        <option *ngFor="let sqType of ScheduleQuantityTypes" [value]="sqType.Id">
+                                            {{sqType.Name}}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6" *ngIf="requestToUpdate.ScheduleQuantityType==1 || requestToUpdate.ScheduleQuantityType==0">
+                                <div class="form-group">
+                                    <label for="name">
+                                        <span>Required Quantity</span>
+                                        <span *ngIf="requestToUpdate?.UoM==1; else litres"> (G)</span>
+                                        <ng-template #litres> (L)</ng-template>
+                                    </label>
+                                    <input type="text" class="form-control" name="RequiredQuantity" [(ngModel)]="requestToUpdate.RequiredQuantity" #RequiredQuantity="ngModel" required>
+                                </div>
+                            </div>
+                        </div>
+                    </ng-template>
+                    <!-- #Regular Dr to update end-->
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label for="name" class="form-check-label">
+                                    <span>Schedule Date</span>
+                                </label>
+                                <input type="text" placeholder="Select Date" class="form-control datepicker" name="SelectedDate" myDatePicker [format]="'MM/DD/YYYY'" [minDate]="MinDate" [maxDate]="MaxDate" [(ngModel)]="requestToUpdate.SelectedDate" #SelectedDate="ngModel" (onDateChange)="requestToUpdate.SelectedDate = ($event)" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group mb0">
+                                <label class="form-check-label">Start Time</label>
+                                <input type="text" placeholder="Start Time" name="ScheduleStartTime" class="form-control" [disableControl]="requestToUpdate.SelectedDate == null" myTimePicker [format]="'hh:mm A'" [(ngModel)]="requestToUpdate.ScheduleStartTime" #ScheduleStartTime="ngModel" (onTimeChange)="requestToUpdate.ScheduleStartTime = ($event)" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group mb0">
+                                <label class="form-check-label">End Time</label>
+                                <input type="text" placeholder="End Time" name="ScheduleEndTime" class="form-control" [disableControl]="requestToUpdate.SelectedDate == null" myTimePicker [format]="'hh:mm A'" [(ngModel)]="requestToUpdate.ScheduleEndTime" #ScheduleStartTime="ngModel" (onTimeChange)="requestToUpdate.ScheduleEndTime = ($event)" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="name" class="form-check-label">
+                                    <span>Delivery-Level PO#</span>
+                                </label>
+                                <input type="text"  class="form-control" name="DeliveryLevelPO" [(ngModel)]="requestToUpdate.DeliveryLevelPO" #DeliveryLevelPO="ngModel">
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" [(ngModel)]="requestToUpdate.Priority" [value]="1" name="Priority" id="mustgo">
+                                <label class="form-check-label" for="mustgo"> Must Go</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" [(ngModel)]="requestToUpdate.Priority" [value]="2" name="Priority" id="shouldgo">
+                                <label class="form-check-label" for="shouldgo">Should Go</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" [(ngModel)]="requestToUpdate.Priority" [value]="3" name="Priority" id="couldgo">
+                                <label class="form-check-label" for="couldgo">Could Go</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="form-group mt10">
+                                <textarea name="Notes" [(ngModel)]="requestToUpdate.Notes" class="form-control add-note-tarea" placeholder="Note (optional)" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-right ">
+                        <div *ngIf="requestToUpdate.IsBlendedRequest; else regularUpdate">
+                            <div *ngIf="blendTotalQuantity > 0 && !IsValidBlendQuantity()" class="color-maroon mb15">Sum of entered quantity should match with {{blendTotalQuantity}}.</div>
+                            <button type="button" class="btn btn-lg" data-dismiss="modal" id="closeEditDrPanel">Cancel</button>
+                            <button [disabled]="!IsValidBlendQuantity()" type="submit" (click)="onDeliveryReqUpdate(1)" class="btn btn-primary btn-lg">Update</button>
+                        </div>
+                        <ng-template #regularUpdate>
+                            <button type="button" class="btn btn-lg" data-dismiss="modal" id="closeEditDrPanel">Cancel</button>
+                            <button type="submit" (click)="onDeliveryReqUpdate(1)" class="btn btn-primary btn-lg">Update</button>
+                        </ng-template>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

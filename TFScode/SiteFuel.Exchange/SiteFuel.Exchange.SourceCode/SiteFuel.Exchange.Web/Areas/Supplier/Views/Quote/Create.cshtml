@@ -1,0 +1,400 @@
+﻿@model QuoteResponseViewModel
+@{
+     ViewBag.Title = "Create Quote";
+}
+
+@using (Html.BeginForm("Create", "Quote", new { area = "Supplier" }, FormMethod.Post, new { enctype = "multipart/form-data", id = "createquotationform" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.QuoteRequest.Id)
+    @Html.HiddenFor(m => m.QuoteRequest.QuoteNumber)
+    @Html.HiddenFor(m => m.QuoteRequest.Currency)
+    @Html.HiddenFor(m => m.QuoteRequest.UoM)
+    @Html.HiddenFor(m => m.QuotationId)
+
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingQuoteInformation</h4>
+                <div class="row">
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblQuoteNumber</label>
+                        <div class="break-word"><a href="@Url.Action("BuyerQuoteDetails", "Quote", new { area = "Supplier", id = Model.QuoteRequest.Id })">@Model.QuoteRequest.QuoteNumber</a></div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblQuoteDueDate</label>
+                        <div class="break-word" id="QuoteDueDate">
+                            @Model.QuoteRequest.QuoteDueDate
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblFuelType</label>
+                        <div id="fueltype">
+                            @Model.QuoteRequest.FuelType
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblOrderType</label>
+                        <div id="ordertype">
+                            @Model.QuoteRequest.OrderType
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt10">
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblLocation</label>
+                        <div>@Model.QuoteRequest.Address</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingQuantityDelivery</h4>
+                <div class="row">
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblQuantity</label>
+                        <div id="Quantity">@Model.QuoteRequest.Quantity.GetPreciseValue(2).GetCommaSeperatedValue() @Model.QuoteRequest.UoM</div>
+                        @Html.HiddenFor(m => m.QuoteRequest.Quantity, new { @class = "total-gallons-required" })
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblDeliveryStartDate</label>
+                        <div id="StartDate">
+                            @Model.QuoteRequest.DeliveryStartDate
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblEndDate</label>
+                        <div id="EndDate">
+                            @if (string.IsNullOrWhiteSpace(Model.QuoteRequest.EndDate))
+                            {
+                                @Resource.lblHyphen
+                            }
+                            else
+                            {
+                                @Model.QuoteRequest.EndDate
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblType</label>
+                        <div id="DeliveryType">
+                            @Model.QuoteRequest.DeliveryType
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt10">
+                    <div class="col-md-3 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblEstimatedQuantityPerDelivery</label>
+                        <div id="EstimatedGallonsPerDelivery">@Model.QuoteRequest.EstimatedGallonsPerDelivery</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.lblYourQuote</h4>
+                <div class="row">
+                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                        <label class="f-normal">@Resource.lblYourQuoteNumber</label>
+                        <div>
+                            @Html.TextBoxFor(m => m.SupplierQuoteNumber, new { @class = "form-control" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingPricing</h4>
+                <div class="row">
+                    <div class="col-sm-5">
+                        <div class="form-group mb0">
+                            <div class="radio wrapper-rackprice">
+                                <label>
+                                    @Html.RadioButtonFor(m => m.FuelPricing.PricingTypeId, (int)PricingType.RackAverage,
+                                    new { onclick = "radioChange(this,'resale-terminal-price','resale-fixed-price,resale-supplier-cost');",
+                                    onchange = "focusOnFirst(this, 'resale-terminal-price');" })
+                                    @Resource.lblMarketBased
+                                </label>
+                            </div>
+                            <div class="row mt5 resale-terminal-price defaultDisabled">
+                                <div class="col-xs-5">
+                                    @Html.DropDownListFor(m => m.FuelPricing.MarkertBasedPricingTypeId, new SelectList(CommonHelperMethods.GetMarketBasedPricingTypes(), "Id", "Name", Model.FuelPricing.MarkertBasedPricingTypeId), new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.FuelPricing.MarkertBasedPricingTypeId)
+                                </div>
+                                <div class="col-xs-4 col-md-3">
+                                    @Html.DropDownListFor(m => m.FuelPricing.RackAvgTypeId, new SelectList(CommonHelperMethods.GetRackAvgPricingTypes(), "Id", "Name", Model.FuelPricing.RackAvgTypeId), new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.FuelPricing.RackAvgTypeId)
+                                </div>
+                                <div class="col-xs-4 col-md-3">
+                                    @Html.TextBoxFor(m => m.FuelPricing.RackPrice, new { @class = "form-control datatype-decimal" })
+                                    @Html.ValidationMessageFor(m => m.FuelPricing.RackPrice)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-5 mb10">
+                        <div class="form-group mb0">
+                            <div class="radio wrapper-suppliercost">
+                                <label>
+                                    @Html.RadioButtonFor(m => m.FuelPricing.PricingTypeId, (int)PricingType.Suppliercost,
+                                    new { onclick = "radioChange(this,'resale-supplier-cost','resale-fixed-price,resale-terminal-price');",
+                                    onchange = "focusOnFirst(this, 'resale-supplier-cost');" })
+                                    @Resource.lblFuelCost
+                                </label>
+                            </div>
+                            <div class="row mt5 resale-supplier-cost defaultDisabled">
+                                <div class="col-xs-4 col-md-3 pt8 pr0">@Resource.lblFuelCost +</div>
+                                <div class="col-xs-8">
+                                    <div class="row">
+                                        <div class="col-xs-6">
+                                            @Html.HiddenFor(m => m.FuelPricing.SupplierCost)
+                                            @Html.TextBoxFor(m => m.FuelPricing.SupplierCostMarkupValue, new { @class = "form-control datatype-decimal" })
+                                            @Html.ValidationMessageFor(m => m.FuelPricing.SupplierCostMarkupValue)
+                                        </div>
+                                        <div class="col-xs-6">
+                                            @Html.DropDownListFor(m => m.FuelPricing.SupplierCostMarkupTypeId, new SelectList(CommonHelperMethods.GetRackAvgPricingTypes(), "Id", "Name", Model.FuelPricing.SupplierCostMarkupTypeId), new { @class = "form-control" })
+                                            @Html.ValidationMessageFor(m => m.FuelPricing.SupplierCostMarkupTypeId)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group mb0">
+                            <div class="radio">
+                                <label>
+                                    @Html.RadioButtonFor(m => m.FuelPricing.PricingTypeId, (int)PricingType.PricePerGallon,
+                                    new { onclick = "radioChange(this,'resale-fixed-price','resale-terminal-price,resale-supplier-cost');",
+                                    onchange = "focusOnFirst(this, 'resale-fixed-price');" })
+                                    @Resource.lblFixed
+                                </label>
+                            </div>
+                            <div class="row mt5">
+                                <div class="col-xs-5 col-sm-8">
+                                    <div class="input-group mtm1 resale-fixed-price defaultDisabled">
+                                        <span class="input-group-addon">@Model.QuoteRequest.Currency</span>
+                                        @Html.TextBoxFor(m => m.FuelPricing.PricePerGallon, new { @class = "form-control datatype-decimal" })
+                                    </div>
+                                    @Html.ValidationMessageFor(m => m.FuelPricing.PricePerGallon)
+                                </div>
+                                <div class="col-xs-5 pl0 pt8"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- retail-price ends -->
+            </div>
+        </div>
+    </div>
+    <!-- fees starts -->
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.lblFees</h4>
+                @if (Model.QuoteRequest.IncludeFees)
+                {
+                    <div class="fees-section">
+                        @Html.PartialFor("_PartialFees", m => m.FuelDeliveryDetails.FuelFees)
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <!-- fees ends -->
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.lblNotes</h4>
+                <div class="row">
+                    <div class="col-md-3 col-xs-6 col-sm-4 mb10">
+                        @Html.TextAreaFor(m => m.Notes, new { @class = "form-control" })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                    <h4>@Resource.headingAttachments</h4>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="row">
+                            <div class="col-xs-10">
+                                <input type="file" name="files" id="files" class="inputfile" data-multiple-caption="{count} files selected" accept=".csv, .pdf, .doc, .docx, .xls, .xlsx, .png" multiple />
+                                <label for="files" class="btn btn-default"><span id="btnName">@Resource.btnChooseFiles</span></label>
+                                <table>
+                                    <tbody id="selectedFiles"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="text-danger col-xs-12 fs12 mt10" id="upload-warning-message"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="alert fs12 alert-warning mb5">@Resource.lblQuoteDocumentsWarning</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 text-right">
+            <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="window.history.go(-1);" />
+            <input type="button" id="Submit" class="btn btn-lg btn-primary" value="@Resource.btnLabelSubmit" />
+        </div>
+    </div>
+}
+
+<script>
+    uploadedFileNames();
+    (function ($, window, document, undefined) {
+        $('.inputfile').each(function () {
+            var $input = $(this),
+                $label = $input.next('label'),
+                labelVal = $label.html();
+
+            $input.on('change', function (e) {
+                var fileName = '';
+
+                if (this.files && this.files.length > 1)
+                    fileName = (this.getAttribute('data-multiple-caption') || '').replace('{count}', this.files.length);
+                else if (e.target.value)
+                    fileName = e.target.value.split('\\').pop();
+
+                if (fileName)
+                    $label.find('span').html(fileName);
+                else
+                    $label.html(labelVal);
+            });
+
+            $input
+                .on('focus', function () { $input.addClass('has-focus'); })
+                .on('blur', function () { $input.removeClass('has-focus'); });
+        });
+    })(jQuery, window, document);
+</script>
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/quantityrange-validate")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/image")
+
+    <script type="text/javascript" charset="utf-8">
+        function getDefaultImage() {
+            return '@Url.Content("~/Content/images/no-image.png", true)';
+        };
+
+        function getImageFileError() {
+            return '@Resource.errMessageImageFileError';
+        };
+
+        function getImageFileWarning() {
+            return '@Resource.errMessageImageFileWarning';
+        };
+
+        $('#btn-logo').change(function (e) {
+            if (e.target.files && e.target.files[0]) {
+                $("#btn-save").removeAttr("disabled");
+            }
+        });
+
+        $("#remove-file").click(function () {
+            var image = $('#btn-logo');
+            var imageId = parseInt($('#@Html.IdFor(m=>m.Image.Id)').val());
+            if ((image.files && image.files[0]) || imageId > 0) {
+                $("#btn-save").removeAttr("disabled");
+            }
+            else {
+                $("#btn-save").attr("disabled", "disabled");
+            }
+        });
+
+        $(document).ready(function () {
+            if ('@(Model.FuelDeliveryDetails.DeliveryTypeId)' == '@((int)DeliveryType.OneTimeDelivery)') {
+                $('.weekend-fee-types').hide();
+            }
+
+            updateDefaultUrls('@((int)Model.QuoteRequest.Currency)', '@((int)Model.QuoteRequest.UoM)');
+
+            var IsOtherFuelType = '@Model.IsOtherFuelTypeInFavorite';
+
+            if (IsOtherFuelType.toLowerCase() == 'true' ) {
+                radioChange(null, null, 'wrapper-rackprice,wrapper-suppliercost,city-groupterminal,chkcity-groupterminal');
+            }
+
+            $("#Submit").click(function (e) {
+                var quantityRangMsg = '@Resource.valMessageQuantityNotInRange';
+                var specialDateVal = '@((int)FeeConstraintType.SpecialDate)';
+                var specialDateErrorMsg = '@Resource.valMessageSpecialFeesDuplicate';
+                var isvalid = $("form").valid() && ValidateRangeCoversTotalQuantity(quantityRangMsg) && validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+                if (isvalid) {
+                    var selectedPricingType = parseInt($('input[name="@Html.NameFor(m => m.FuelPricing.PricingTypeId)"]:checked').val());
+
+                    validationMessageFor($("#@Html.IdFor(m=>m.FuelPricing.PricingTypeId)").attr('name'), '');
+                    var url = "@Url.Action("Create")";
+
+                    if (selectedPricingType == '@((int)PricingType.Suppliercost)') {
+                        GetGlobalCost(e);
+                    }
+                    else {
+                        validationMessageFor($("#@Html.IdFor(m=>m.FuelPricing.PricingTypeId)").attr('name'), '');
+                        var url = "@Url.Action("Create")";
+                        $("form").attr("action", url);
+                        $("form").submit();
+                    }
+                }
+                else {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        function GetGlobalCost(e) {
+            var jobStateId = @Model.QuoteRequest.JobStateId;
+            var selectedFuelTypeId = @Model.QuoteRequest.FuelTypeId;
+            $.get("@Url.Action("GetGlobalFuelCost", "Order",new { area="Supplier" })", { fuelTypeId: selectedFuelTypeId, jobStateId: jobStateId, currency: @((int)Model.QuoteRequest.Currency) },
+                function (response) {
+                    if (response != 0) {
+                        $("#@Html.IdFor(m=> m.FuelPricing.SupplierCost)").val(response);
+                        validationMessageFor($("#@Html.IdFor(m=>m.FuelPricing.PricingTypeId)").attr('name'), '');
+                        var url = "@Url.Action("Create")";
+                        $("form").attr("action", url);
+                        $("form").submit();
+                    }
+                    else {
+                        validationMessageFor($("#@Html.IdFor( m => m.FuelPricing.SupplierCostMarkupValue)").attr('name'), '@ResourceMessages.GetMessage(Resource.errMessageGlobalCostNotProvidedForQuotation)');
+                    }
+                });
+        }
+
+        function SetSpecialMinDate(element) {
+            var requestMinDate = '@Model.FuelDeliveryDetails.StartDate';
+            $(element).closest('.fee-types').find('.special-date').data("DateTimePicker").minDate(moment(requestMinDate).startOf('d'));
+        }
+
+        function updateDefaultUrls(currency, uom) {
+            var sections = $('.add-partial-block');
+            $.each(sections, function (idx, ele) {
+                var url = $(this).attr('data-url');
+                if (url != undefined && url.split('?').length > 1) {
+                    var urlCurr = replaceUrlParam(url, 'currency', currency);
+                    var newUrl = replaceUrlParam(urlCurr, 'uoM', uom);
+                    $(this).attr('data-url', newUrl);
+                }
+            });
+        }
+    </script>
+}

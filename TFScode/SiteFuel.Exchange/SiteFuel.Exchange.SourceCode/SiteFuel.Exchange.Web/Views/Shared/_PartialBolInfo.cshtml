@@ -1,0 +1,164 @@
+﻿@model BolDetailViewModel
+<div class="row">
+    <div class="col-sm-2 terminal-pickup">
+        <div class="form-group">
+            @Html.LabelFor(m => m.BolNumber)
+            @Html.TextBoxFor(m => m.BolNumber, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.BolNumber)
+        </div>
+    </div>
+    <div class="col-sm-2 terminal-pickup">
+        <div class="form-group">
+            @Html.LabelFor(m => m.BadgeNumber)
+            @Html.TextBoxFor(m => m.BadgeNumber, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.BadgeNumber)
+        </div>
+    </div>
+    <div class="col-sm-2 bulkplant-pickup">
+        <div class="form-group">
+            @Html.LabelFor(m => m.LiftTicketNumber)
+            @Html.TextBoxFor(m => m.LiftTicketNumber, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.LiftTicketNumber)
+        </div>
+    </div>
+    <div class="col-sm-2">
+        <div class="form-group">
+            @Html.LabelFor(m => m.GrossQuantity)
+            @Html.TextBoxFor(m => m.GrossQuantity, new { @class = "form-control decimal-place-format ftlgross-drop ftl-drop-input" })
+            @Html.ValidationMessageFor(m => m.GrossQuantity)
+        </div>
+    </div>
+    <div class="col-sm-2">
+        <div class="form-group">
+            @Html.LabelFor(m => m.NetQuantity)
+            @Html.TextBoxFor(m => m.NetQuantity, new { @class = "form-control decimal-place-format ftlnet-drop ftl-drop-input" })
+            @Html.ValidationMessageFor(m => m.NetQuantity)
+        </div>
+    </div>
+    <div class="col-sm-2">
+        <div class="form-group">
+           <label>@Resource.headingDeliveredQuantity</label>
+            @Html.TextBoxFor(m => m.DeliveredQuantity, new { @class = "form-control decimal-place-format ftldeliveredqty-drop bol-drop-input" })
+            @Html.ValidationMessageFor(m => m.DeliveredQuantity)
+        </div>
+    </div>
+    <div class="col-sm-2">
+        <div class="form-group">
+            @Html.LabelFor(m => m.Carrier)
+            @Html.TextBoxFor(m => m.Carrier, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.Carrier)
+        </div>
+    </div>
+    <div class="col-sm-2">
+        <div class="form-group">
+            @Html.LabelFor(m => m.LiftDate)
+            @Html.TextBoxFor(m => m.LiftDate, new { @class = "form-control datepicker" })
+            @Html.ValidationMessageFor(m => m.LiftDate)
+        </div>
+    </div>
+    <div class="col-sm-2">
+        @Html.LabelFor(m => m.StartTime, new { @class = "form-normal" })
+        <div class="form-group mb5">
+            @Html.TextBoxFor(m => m.StartTime, new { @class = "form-control timepicker-withseconds dropstarttime" })
+            @Html.ValidationMessageFor(m => m.StartTime)
+        </div>
+    </div>
+    <div class="col-sm-2">
+        @Html.LabelFor(m => m.EndTime, new { @class = "form-normal" })
+        <div class="form-group mb5">
+            @Html.TextBoxFor(m => m.EndTime, new { @class = "form-control timepicker-withseconds dropstarttime" })
+            @Html.ValidationMessageFor(m => m.EndTime)
+        </div>
+    </div>
+</div>
+
+<script src="~/Content/js/common-supplier.js"></script>
+<script>
+    var carrierUrl = "@Url.Action("GetCarriers", "Dispatch", new { area = "Supplier" })";
+    $(document).ready(function () {
+        autoCompleteTextBox("#@Html.IdFor(m => m.Carrier)", carrierUrl);
+
+        $('#@Html.IdFor(m => m.LiftDate)').on("dp.change", function (e) {
+            validateLiftDate(this);
+        });
+
+        $('#@Html.IdFor(m => m.EndTime)').on("dp.change", function (e) {
+            validateLiftTime(this);
+        });
+        $('#@Html.IdFor(m => m.StartTime)').on("dp.change", function (e) {
+            validateLiftTime(this);
+        });
+        $.each($('.six-decimal-place-format'), function () {
+            $(this).decimalPlaceFormat(6);
+            var gallons = parseFloat($(this).val());
+            gallons = isNaN(gallons) ? 0 : gallons;
+            if (gallons > 0) {
+                $(this).val(gallons.toFixed(6));
+            }
+        });
+    });
+
+    $(document).on("keyup", ".bol-drop-input", function () {
+        var dropgrossinputs = parseFloat($(document).find(".ftlgross-drop").val());
+        var dropnetinputs = parseFloat($(document).find(".ftlnet-drop").val());
+        var dropdeliveredinputs = parseFloat($(this).val());
+
+        $("#FuelDropped").val(dropdeliveredinputs).change();
+
+        if (isFtl) {
+            if (isNaN(dropgrossinputs))
+            {
+                validationMessageFor('@Html.NameFor(m => m.GrossQuantity)', "Gross Quantity is required");
+            }
+            else
+            {
+                validationMessageFor('@Html.NameFor(m => m.GrossQuantity)', '');
+            }
+            if (isNaN(dropnetinputs) && isFtl)
+            {
+                validationMessageFor('@Html.NameFor(m => m.NetQuantity)', "Net Quantity is required");
+            }
+            else
+            {
+                validationMessageFor('@Html.NameFor(m => m.NetQuantity)', '');
+            }
+        }
+
+        if (!isNaN(dropgrossinputs) && !isNaN(dropnetinputs)) {
+            if (dropdeliveredinputs <= dropgrossinputs || dropdeliveredinputs <= dropnetinputs) {
+                validationMessageFor('@Html.NameFor(m => m.DeliveredQuantity)', '');
+            }
+            else {
+                validationMessageFor('@Html.NameFor(m => m.DeliveredQuantity)', 'Delivered Quantity should not exceed gross or net Quantity');
+            }
+        }
+        if (isNaN(dropdeliveredinputs)) {
+            $("#FuelDropped").val('');
+            validationMessageFor('@Html.NameFor(m => m.DeliveredQuantity)', "Delivered Quantity should be greater than zero");
+        }
+    });
+    function validateLiftDate(liftDateEle) {
+        var dropDate = Date.parse($('#DeliveryDate').val());
+        var liftDate = Date.parse($(liftDateEle).val());
+
+        if (liftDate > dropDate) {
+            validationMessageFor('@Html.NameFor(m => m.LiftDate)', 'Lift date should be less than or equal drop date');
+            return false;
+        }
+
+        validationMessageFor('@Html.NameFor(m => m.LiftDate)', '');
+        return true;
+    }
+
+    function validateLiftTime() {
+        var LiftStartTime =  $("#@Html.IdFor(m=>m.StartTime)").val();
+        var LiftEndTime = $("#@Html.IdFor(m=>m.EndTime)").val();
+
+        if (convertTo24Hour(LiftStartTime) > convertTo24Hour(LiftEndTime)) {
+            validationMessageFor('@Html.NameFor(m => m.EndTime)', 'Lift End Time should be greater than or equal Lift Start Time');
+            return false;
+        }
+        validationMessageFor('@Html.NameFor(m => m.EndTime)', '');
+        return true;
+    }
+</script>

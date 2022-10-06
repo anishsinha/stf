@@ -1,0 +1,568 @@
+﻿@model ManualInvoiceViewModel
+<!-- delivery starts -->
+<input id="InvoiceId" name="InvoiceId" type="hidden" value="@Model.InvoiceId">
+@Html.HiddenFor(m => m.FuelRemaining)
+@Html.HiddenFor(m => m.InvoiceTypeId)
+@Html.HiddenFor(m => m.InvoiceNumber.Id)
+@Html.HiddenFor(m => m.InvoiceNumber.Number)
+@Html.HiddenFor(m => m.StatusId)
+@Html.HiddenFor(m => m.DisplayInvoiceNumber)
+
+@Html.HiddenFor(m => m.ConversionDDTId)
+@Html.HiddenFor(m => m.IsConvertFromDDT)
+@Html.HiddenFor(m => m.IsTaxServiceFailure)
+@Html.HiddenFor(m => m.IsBuyPriceInvoice)
+@Html.HiddenFor(m => m.SplitLoadChainId)
+@Html.HiddenFor(m => m.SplitLoadSequence)
+@Html.HiddenFor(m => m.TotalSplitDroppedGallons)
+@Html.HiddenFor(m => m.BolDetails.Id)
+<div class="col-sm-12">
+    <div class="row well pb0 mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.headingDelivery</h4>
+            <div class="row">
+                <div class="col-md-2 col-xs-6 mb10">
+                    <div class="form-group">
+                        <label class="f-normal">@Resource.lblGallonsDelivered</label>
+                        @Html.TextBoxFor(m => m.FuelDropped, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.FuelDropped)
+                        @if (Model.AssetTracked == false || Model.Assets.Count == 0)
+                        {
+                            <div class="row mt10 hide-element" id="valFuelDropped">
+                                <div class="col-sm-12">
+                                    <div>
+                                        <div class="alert alert-warning fs12" role="alert">
+                                            @Resource.errMessageInvoiceWithExceedingQuantity
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-2 col-xs-6 z-index5 mb10">
+                    <label class="f-normal">@Resource.lblDropDate</label>
+                    @Html.TextBoxFor(m => m.DeliveryDate, new
+                                        {
+                                               @class = "form-control datepicker",
+                                               @id = "DeliveryDate",
+                                               @onchange = "onDateChange();"
+                                        })
+                    @Html.ValidationMessageFor(m => m.DeliveryDate)
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            @Html.LabelFor(m => m.StartTime, new { @class = "f-normal" })
+                            <div class="form-group mb5">
+                                @Html.TextBoxFor(m => m.StartTime, new { @class = "form-control timepicker-withseconds dropstarttime" })
+                                @Html.ValidationMessageFor(m => m.StartTime)
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            @Html.LabelFor(m => m.EndTime, new { @class = "f-normal" })
+                            <div class="form-group mb5">
+                                @Html.TextBoxFor(m => m.EndTime, new { @class = "form-control timepicker-withseconds dropendtime" })
+                                @Html.ValidationMessageFor(m => m.EndTime)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @if (Model.IsMulitpleDelivery)
+                {
+                    <div id="split-delivery-schedule" class="col-md-3 col-xs-6 mb10 split-common-details hide-element">
+                        <label class="f-normal">@Resource.lblDeliverySchedule</label>
+                        <div class="form-group">
+                            @Html.DropDownListFor(m => m.TrackableScheduleId, new SelectList(CommonHelperMethods.GetCurrentDeliverySchedules(Model.OrderId, Model.InvoiceId, Model.SplitLoadChainId), "Id", "Name", Model.TrackableScheduleId),
+							string.Format(Resource.valMessageSelect, Resource.lblDeliverySchedule), new { @class = "form-control", onchange = "GetDriver(" + Model.TrackableScheduleId + "); GetTerminalDetails("+ Model.TerminalId + ","+ Model.FuelId + "," + Model.PricingCodeId + "," + Model.CityGroupTerminalId + ",'" + Model.Currency+ "');UpdateBulkPlantAddress(" + Model.OrderId + "," + Html.Raw(Json.Encode(Model.PickUpAddress)) + ");GetSplitLoadAddresses()" })
+                        </div>
+                    </div>
+                }
+                <div id="split-driver" class="col-md-2 col-xs-6 mb10 split-common-details hide-element">
+                    <label class="f-normal">@Resource.lblDriver</label>
+                    <div class="form-group">
+                        @Html.DropDownListFor(m => m.DriverId, new SelectList(CommonHelperMethods.GetAllDrivers(CurrentUser.CompanyId), "Id", "Name", Model.DriverId),
+                        string.Format(Resource.valMessageSelect, Resource.lblDriver), new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.DriverId)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- delivery ends -->
+<!-- Drop Address -->
+<div class="col-sm-12">
+    <div class="row well mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.lblDropLocation</h4>
+            <div class="ftl-section">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="radio">
+                            <label class="radio-inline">
+                                @Html.RadioButtonFor(m => m.IsExistingDropLocation, false, new { @class = "jobname", onclick = "inputBoxShowHide('new-location','existing-location');" })
+                                @Resource.lblNew
+                            </label>
+                            <label class="radio-inline">
+                                @Html.RadioButtonFor(m => m.IsExistingDropLocation, true, new { @class = "jobname existingjob", onclick = "inputBoxShowHide('existing-location','new-location'); ", onchange = "updateIsDropLocationChk(this);" })
+                                @Resource.lblExisting
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="existing-location hide-element">
+                    <div class="row">
+                        <div class="col-sm-3">
+                            @Html.DropDownListFor(m => m.ExistingDropLocationId, new SelectList(CommonHelperMethods.GetExistingDropLocation(Model.OrderId, null, Model.TrackableScheduleId), "Id", "Name", Model.ExistingDropLocationId),
+                                        string.Format(Resource.valMessageSelect, Resource.lblFuelDropAddress), new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.ExistingDropLocationId)
+                        </div>
+                    </div>
+                </div>
+                <div class="new-location">
+                    @Html.PartialFor("~/Views/Shared/_PartialAddress.cshtml", m => m.DropAddress)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Drop Address ends -->
+<!-- pricing starts -->
+<div class="col-sm-12">
+    <div class="row well mb15">
+        @if (!Model.IsThirdPartyHardwareUsed)
+        {
+            <div class="col-sm-12">
+                <h4>@Resource.headingFreightCost</h4>
+            </div>
+            <div class="col-sm-12 ftl-invoice-fee">
+                @Html.PartialFor("_PartialFees", m => m.FuelDeliveryDetails.FuelFees)
+            </div>
+        }
+        else
+        {
+            @Html.HiddenFor(m => m.ExternalBrokerId)
+            @Html.HiddenFor(m => m.IsThirdPartyHardwareUsed)
+            @Html.PartialFor("_PartialBrokeredOrderFees", m => m.ExternalBrokeredOrder.BrokeredOrderFee)
+        }
+    </div>
+</div>
+<!-- pricing ends -->
+@if (Model.InvoiceId > 0 && Model.TypeofFuel != (int)ProductDisplayGroups.OtherFuelType && Model.TaxDetails.AvaTaxDetails.Count > 0)
+{
+    <div class="col-sm-12 tax-section @(Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp ? "hide-element" : "")">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingTaxes</h4>
+                <div class="row">
+                    <div class="col-sm-12 radio tax-type-radio">
+                        <label class="radio-inline">
+                            @Html.RadioButtonFor(m => m.TaxType, TaxType.Manual, new { onclick = "showHideControls(null,'tax-details', 'standard-tax-type-warning')" })
+                            @Resource.lblApplyManualTaxes
+                        </label>
+                        <label class="radio-inline">
+                            @Html.RadioButtonFor(m => m.TaxType, TaxType.Standard, new { onclick = "showHideControls(null,'standard-tax-type-warning', 'tax-details')" })
+                            @Resource.lblApplyStandardTaxes
+                        </label>
+                    </div>
+                </div>
+                <div class="row standard-tax-type-warning">
+                    <div class="col-sm-7 pt10">
+                        <div class="alert alert-warning fs12 mb5"><strong>@Resource.lblWarning</strong> @Resource.lblStandardTaxTypeWarning</div>
+                    </div>
+                </div>
+                <div class="tax-details">
+                    <div class="row">
+                        @if (Model.TaxDetails != null && Model.TaxDetails.AvaTaxDetails.Count > 0)
+                        {
+                            <div class="col-sm-6">
+                                <table class="table">
+                                    <tr>
+                                        <th class="pl0 no-top-border">@Resource.lblTaxDescription</th>
+                                        <th class="pr0 no-top-border">@Resource.lblAmount</th>
+                                    </tr>
+                                    @foreach (var item in Model.TaxDetails.AvaTaxDetails)
+                                    {
+                                        <tr>
+                                            @using (Html.BeginCollectionItem("TaxDetails.AvaTaxDetails"))
+                                            {
+                                                var RateDescription = item.RateDescription;
+                                                var TaxType = item.TaxType;
+                                                var RateSubtype = item.RateSubtype;
+                                                var TaxAmount = item.TaxAmount;
+                                                var Currency = item.Currency;
+                                                var TradingCurrency = item.TradingCurrency;
+                                                var TradingTaxAmount = item.TradingTaxAmount;
+                                                var ExchangeRate = item.ExchangeRate;
+                                                var TaxingLevel = item.TaxingLevel;
+                                                var IsModified = item.IsModified;
+
+                                                @Html.HiddenFor(m => RateDescription)
+                                                @Html.HiddenFor(m => TaxType)
+                                                @Html.HiddenFor(m => RateSubtype)
+                                                @Html.HiddenFor(m => TaxAmount)
+                                                @Html.HiddenFor(m => Currency)
+                                                @Html.HiddenFor(m => TradingCurrency)
+                                                @Html.HiddenFor(m => ExchangeRate)
+                                                @Html.HiddenFor(m => TaxingLevel)
+                                                @Html.HiddenFor(m => IsModified)
+                                                <td class="pl0"><label class="normal">@item.RateDescription</label></td>
+                                                <td class="pr0">
+                                                    @Html.TextBoxFor(m => TradingTaxAmount, new { @class = "form-control" })
+                                                    @Html.ValidationMessageFor(m => TradingTaxAmount)
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-sm-2 mt7">
+                                <label class="normal">@Resource.lblStateTax</label>
+                                @Html.TextBoxFor(m => m.StateTax, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.StateTax)
+                            </div>
+                            <div class="col-sm-2 mt7">
+                                <label class="normal">@Resource.lblFederalTax</label>
+                                @Html.TextBoxFor(m => m.FederalTax, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.FederalTax)
+                            </div>
+                            <div class="col-sm-2 mt7">
+                                <label class="normal">@Resource.lblSalesTax</label>
+                                @Html.TextBoxFor(m => m.SalesTax, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.SalesTax)
+                            </div>
+                        }
+                        <div class="col-sm-7 pt10">
+                            <div class="alert alert-warning fs12 mb5"><strong>@Resource.lblWarning</strong>@Resource.lblEditTaxWarning</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<!-- Taxes for OtherFuelType starts -->
+@if (Model.TypeofFuel == (int)ProductDisplayGroups.OtherFuelType)
+{
+    if (Model.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp)
+    {
+        <div class="col-sm-12">
+            <div class="row well mb15">
+                <div class="col-sm-12">
+                    <h4>@Resource.headingTaxes</h4>
+                    <div id="tax-section" class="partial-section">
+                        <div class="partial-block-collection-section">
+                            @if (Model.Taxes != null && Model.Taxes.Any())
+                            {
+                                foreach (var tax in Model.Taxes)
+                                {
+                                    Html.RenderPartial("_PartialTax", tax);
+                                }
+                            }
+                        </div>
+                        <div class="form-group col-md-12 pl0 mt7">
+                            <a href="javascript:void(0)" class="add-partial-block" data-url="@Url.Action("Tax", "Invoice", new { area = "Supplier" })"><i class="fas fa-plus-circle"></i> @Resource.btnLabelAddTax</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+<!-- Taxes for OtherFuelType end -->
+<!-- image starts -->
+@if (Model.InvoiceId > 0 && (Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp || Model.InvoiceTypeId == (int)InvoiceType.MobileApp) && Model.StatusId != (int)InvoiceStatus.Draft)
+{
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingImages</h4>
+                <div class="row">
+                    <div class="col-md-2 col-xs-3 mb10">
+                        <b class="db">@Resource.lblInvoice</b>
+                        @if (Model.InvoiceImage.Id == 0)
+                        {
+                            <img id="image-ctrl" class="img-responsive" src="~/Content/images/no-image.png" />
+                        }
+                        else
+                        {
+                            @Html.HiddenFor(m => m.InvoiceImage.Id)
+                            @Html.HiddenFor(m => m.InvoiceImage.IsRemoved, new { @class = "image-remove-status" })
+                            <img id="image-ctrl" class="img-responsive" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { imageId = Model.InvoiceImage.Id })" />
+                        }
+                    </div>
+                    <div class="col-md-2 col-xs-3 mb10">
+                        <b>@Resource.lblBolImage</b>
+                        @if (Model.BolImage.Id == 0)
+                        {
+                            <img id="bolimage-ctrl" class="img-responsive" src="~/Content/images/no-image.png" />
+                        }
+                        else
+                        {
+                            @Html.HiddenFor(m => m.BolImage.Id)
+                            @Html.HiddenFor(m => m.BolImage.IsRemoved, new { @class = "image-remove-status" })
+                            <img id="bolimage-ctrl" class="img-responsive" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { imageId = Model.BolImage.Id })" />
+                        }
+                    </div>
+                    @if (Model.SignatureImage.Id > 0)
+                    {
+                        <div class="col-md-2 col-xs-3 mb10">
+                            @Html.HiddenFor(m => m.SignatureImage.Id)
+                            <img id="image-ctrl" class="img-responsive" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { imageId = Model.SignatureImage.Id })" />
+                        </div>
+                    }
+                        <div class="col-md-2 col-xs-3 mb10">
+                            <b>Additional Images</b>
+                            @if (Model.AdditionalImage.Id == 0)
+                            {
+                                <img id="additional-img-ctrl" class="img-responsive" src="~/Content/images/no-image.png" />
+                            }
+                            else
+                            {
+                                @Html.HiddenFor(m => m.AdditionalImage.Id)
+                                @Html.HiddenFor(m => m.AdditionalImage.IsRemoved, new { @class = "image-remove-status" })
+                                <img id="additional-img-ctrl" class="img-responsive" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { imageId = Model.AdditionalImage.Id })" />
+                            }
+                        </div>
+                        @foreach (var image in Model.AssetDropImages)
+                        {
+                            if (image != null && !string.IsNullOrEmpty(image.FilePath))
+                            {
+                                <div class="col-md-2 col-xs-3 mb10">
+                                    <img src="@image.GetAzureFilePath(BlobContainerType.JobFilesUpload)" class="img-responsive" />
+                                </div>
+                            }
+                        }
+                    </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <div class="overflow-h">
+                    <h4 class="float-left">@Resource.headingImages</h4>
+                    <div class="alert alert-warning float-left fs12 ml15 f-bold pt10  pb10 mt5">@Resource.errorMessageFileSizeWarning1MB</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <div class="border-dash-dark overflow-h pt15 pb15 radius-5">
+                            <div class="col-sm-12">
+                                <div class="overflow-h">
+                                    <h3 class="dib float-left mt0 mr10 pt3">@Resource.lblInvoice</h3>
+                                    <input type="button" class="btn btn-default btn-xs float-left btn-choosefile mt4" id="choose-file" value="@Resource.btnChooseFile">
+                                    @*<input type="button" class="btn btn-danger btn-xs float-left mt4" id="remove-file" value="@Resource.btnLabelRemove">*@
+                                </div>
+                                <div class="text-danger fs12 f-bold" id="img-message"></div>
+                                <div id="image-block" class="text-center image-section">
+                                    @if (Model.InvoiceId > 0)
+                                    {
+                                        @Html.HiddenFor(m => m.InvoiceImage.Id)
+
+                                        @Html.HiddenFor(m => m.InvoiceImage.IsRemoved, new { @class = "image-remove-status" })
+                                    }
+
+                                    @if (Model.InvoiceImage == null || Model.InvoiceImage.Id == 0)
+                                    {
+                                        <h5 class="text-left fs14 pdf-selection hide-element"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname"></span></h5>
+                                        <img id="image-ctrl" width="100%" height="150" class="image-selection hide-element" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.InvoiceImage.Id })" />
+                                        <img id="image-ctrl" class="no-image" width="100%" height="150" src="~/Content/images/no-image.png" />
+                                    }
+                                    else
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(Model.InvoiceImage.FilePath))
+                                        {
+                                            <h5 class="text-left fs14 pdf-selection"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname">@Model.InvoiceImage.FilePath </span></h5>
+                                            <img id="image-ctrl" width="100%" height="150" class="image-selection hide-element" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.InvoiceImage.Id })" />
+                                        }
+                                        else
+                                        {
+                                            <h5 class="text-left fs14 pdf-selection hide-element"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname"></span></h5>
+                                            <img id="image-ctrl" width="100%" height="150" class="image-selection" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.InvoiceImage.Id })" />
+                                        }
+                                    }
+                                    <input type="file" class="hidden invoice-pdf-support" id="btn-logo" name="imageFile">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3 split-common-details hide-element ">
+                        <div class="border-dash-dark overflow-h pt15 pb15 radius-5">
+                            <div class="col-sm-12">
+                                <div class="overflow-h">
+                                    <h3 class="dib float-left mt0 mr10 pt3">@Resource.lblBolImage</h3>
+                                    <input type="button" class="btn btn-default btn-xs float-left btn-choosefile mt4" id="bolchoose-file" value="@Resource.btnChooseFile">
+                                    @*<input type="button" class="btn btn-danger btn-xs float-left mt4" id="bolremove-file" value="@Resource.btnLabelRemove">*@
+                                </div>
+                                <div class="text-danger fs12 f-bold" id="bolimg-message"></div>
+                                <div id="bolimage-block" class="text-center image-section">
+                                    @if (Model.InvoiceId > 0 || (Model.BolImage != null && Model.BolImage.Id > 0))
+                                    {
+                                        @Html.HiddenFor(m => m.BolImage.Id)
+
+                                        @Html.HiddenFor(m => m.BolImage.IsRemoved, new { @class = "bolimage-remove-status" })
+                                    }
+                                    @if (Model.BolImage == null || Model.BolImage.Id == 0)
+                                    {
+                                        <h5 class="text-left fs14 pdf-selection hide-element"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /></h5>
+                                        <span class="pdfname"></span>
+                                        <img id="bolimage-ctrl" width="100%" height="150" class="image-selection hide-element" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.BolImage.Id })" />
+                                        <img id="bolimage-ctrl" class="no-image" width="100%" height="150" src="~/Content/images/no-image.png" />
+                                    }
+                                    else
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(Model.BolImage.FilePath))
+                                        {
+                                            <h5 class="text-left fs14 pdf-selection"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname">@Model.BolImage.FilePath</span></h5>
+                                            <img id="bolimage-ctrl" width="100%" height="150" class="image-selection hide-element" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.BolImage.Id })" />
+                                        }
+                                        else
+                                        {
+                                            <h5 class="text-left fs14 pdf-selection hide-element"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname"></span></h5>
+                                            <img id="bolimage-ctrl" width="100%" height="150" class="image-selection" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.BolImage.Id })" />
+                                        }
+                                    }
+                                    <input type="file" class="hidden bol-pdf-support" id="bolbtn-logo" name="bolImageFiles" multiple>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @if (Model.IsDriverSignatureEnabled)
+                    {
+                        <div class="col-sm-3">
+                            <div class="border-dash-dark overflow-h pt15 pb15 radius-5">
+                                <div class="col-sm-12">
+                                    <div class="overflow-h">
+                                        <h3 class="dib float-left mt0 pt3">@Resource.headingSignature</h3>
+                                        <input type="button" class="btn btn-default btn-xs float-left btn-choosefile mt4" id="signchoose-file" value="@Resource.btnChooseFile">
+                                        @*<input type="button" class="btn btn-danger btn-xs float-left mt4" id="signremove-file" value="@Resource.btnLabelRemove">*@
+                                    </div>
+                                    <div class="text-danger fs12 f-bold" id="signimg-message"></div>
+                                    <div id="signimage-block" class="text-center">
+                                        @if (Model.InvoiceId > 0)
+                                        {
+                                            @Html.HiddenFor(m => m.SignatureImage.Id)
+
+                                            @Html.HiddenFor(m => m.SignatureImage.IsRemoved, new { @class = "signimage-remove-status" })
+                                        }
+                                        @if (Model.SignatureImage == null || Model.SignatureImage.Id == 0)
+                                        {
+                                            <img id="signimage-ctrl" width="100%" height="150" src="~/Content/images/no-image.png" />
+                                        }
+                                        else
+                                        {
+                                            @Html.HiddenFor(m => m.SignatureImage.Id)
+                                            <img id="signimage-ctrl" class="img-responsive" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.SignatureImage.Id })" />
+                                        }
+                                        <input type="file" class="hidden" id="signbtn-logo" name="signImageFile">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="col-sm-3">
+                        <div class="border-dash-dark overflow-h pt15 pb15 radius-5">
+                            <div class="col-sm-12">
+                                <div class="overflow-h">
+                                    <h3 class="dib float-left mt0 mr10 pt3">Additional</h3>
+                                    <input type="button" class="btn btn-default btn-xs float-left btn-choosefile mt4" id="additional-img-choose-file" value="@Resource.btnChooseFile">
+                                </div>
+                                <div class="text-danger fs12 f-bold" id="additional-img-message"></div>
+                                <div id="additional-img-block" class="text-center image-section">
+                                    @if (Model.InvoiceId > 0)
+                                    {
+                                        @Html.HiddenFor(m => m.AdditionalImage.Id)
+                                        @Html.HiddenFor(m => m.AdditionalImage.IsRemoved, new { @class = "additional-img-remove-status" })
+                                    }
+                                    @if (Model.AdditionalImage == null || Model.AdditionalImage.Id == 0)
+                                    {
+                                        <h5 class="text-left fs14 pdf-selection hide-element break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /></h5>
+                                        <span class="pdfname"></span>
+                                        <img id="additional-img-ctrl" width="100%" height="150" class="image-selection hide-element" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.AdditionalImage.Id })" />
+                                        <img id="additional-img-ctrl" class="no-image" width="100%" height="150" src="~/Content/images/no-image.png" />
+                                    }
+                                    else
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(Model.AdditionalImage.FilePath))
+                                        {
+                                            <h5 class="text-left fs14 pdf-selection break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname">@Model.AdditionalImage.FilePath </span></h5>
+                                            <img id="additional-img-ctrl" width="100%" height="150" class="image-selection hide-element" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.AdditionalImage.Id })" />
+                                        }
+                                        else
+                                        {
+                                            <h5 class="text-left fs14 pdf-selection hide-element break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname"></span></h5>
+                                            <img id="additional-img-ctrl" width="100%" height="150" class="image-selection" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.AdditionalImage.Id })" />
+                                        }
+                                    }
+                                    <input type="file" class="hidden additional-img-pdf-support" id="additional-img-btn-logo" name="additionalImgFiles" multiple>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<!-- image ends -->
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/image")
+<script>
+	var formStr = '';
+	var getBulkplantAddressUrl ='@Url.Action("GetBulkplantAddress", "Invoice", new { area = "Supplier" })';
+    $(document).ready(function () {
+        $(".feetype-ddl, .otherFeeDesc").each(function () {
+            if ($(this).closest("div.ftl-invoice-fee").length > 0) {
+                var invoiceFeeTypeId = parseInt($(this).val());
+                if (isNaN(invoiceFeeTypeId) || invoiceFeeTypeId == undefined) {
+                    invoiceFeeTypeId = 0;
+                }
+                var feeTypeDll = $(this);
+                if ($.inArray(invoiceFeeTypeId, demmurageFeeArray) !== -1) {
+                    feeTypeDll.closest('.fee-type-row').find(".show-in-invoice").show();
+                }
+                else {
+                    feeTypeDll.closest('.fee-type-row').find(".show-in-invoice").hide();
+                }
+            }
+        });
+
+        updateFeesUrls(@((int)TruckLoadTypes.FullTruckLoad));
+        updateFeesHeader(@((int)TruckLoadTypes.FullTruckLoad));
+
+        RemoveDryRunOptionForInvoice();
+        var formJson = $("form").serializeArray();
+        formJson = formJson.filter(function (el) { return el.name != 'TerminalPrice'; });
+        formStr = JSON.stringify(formJson);
+
+        SetDateLimits();
+        $('#@Html.IdFor(m => m.DeliveryDate)').val('');
+    });
+
+    function SetDateLimits() {
+        $('#@Html.IdFor(m => m.DeliveryDate)').data("DateTimePicker").minDate(getMinDate());
+        if ('@Model.MaxDropDate' != '') {
+            $('#@Html.IdFor(m => m.DeliveryDate)').data("DateTimePicker").maxDate('@Model.MaxDropDate');
+        }
+        $('#@Html.IdFor(m => m.DeliveryDate)').on("dp.change", function (e) {
+            onDateChange();
+        });
+    }
+
+    function getMinDate() {
+        var momentDeliveryStartDate = new moment('@Model.FuelRequestDeliveryStartDate.Date').startOf('day');
+        var momentOrderAcceptDate = new moment('@Model.OrderAcceptDate.Date').startOf('day');
+        return momentDeliveryStartDate < momentOrderAcceptDate ? momentDeliveryStartDate : momentOrderAcceptDate;
+    }
+
+    function getCurrentFuelDroppedGallons() {
+        return '@Model.FuelDropped' == undefined || '@Model.FuelDropped' == '' ? 0 : '@Model.FuelDropped';
+    }
+</script>

@@ -1,0 +1,230 @@
+﻿@model int
+@{
+    ViewBag.Title = "Company Users";
+}
+
+<div class="col-sm-12">
+    <div class="tabNavigation">
+        <div class="small-tab">
+            <ul class="nav nav-tabs" role="tablist" id="navTabs">
+                <li role="presentation" class="active">
+                    <a href="#companyUsers" id="creatediptestLink" role="tab" data-toggle="tab" class="fs16 mr15">
+                        Company Users
+                    </a>
+                </li>
+                @if (CurrentUser.IsCarrierAdmin)
+                {
+                    <li role="presentation">
+                        <a href="#userApi" id="createdrLink" role="tab" data-toggle="tab" class=" fs16" onclick="apiTabClicked()">
+                            API Users
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="tabNavigation mt20">
+        <div class="small-tab" id="tabs">
+            <div class="tab-content">
+                <div role="tabpanel" class="tab-pane active" id="companyUsers">
+                    <div class="row">
+                        @Html.Partial("_PartialInvitedUserGrid", Model)
+                    </div>
+                    <div class="row mt10">
+                        @Html.Partial("_PartialOnboardedUserGrid")
+                    </div>
+                </div>
+                @if (CurrentUser.IsCarrierAdmin)
+                {
+                <div role="tabpanel" class="tab-pane" id="userApi">
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <div class="form-group" id="ddlBuyerJobs">
+                                @Html.Label(Resource.lblUsers)
+                                @Html.DropDownList("ddlCompanyApiUsers",
+                     new SelectList(new List<DropdownDisplayItem>
+                         (), "Id", "Name", 0),
+                         Resource.lblSelectUser,
+                         new { @onchange = "onChangeCompanyUser(this.value);", @class = "select2_apiUsers" })
+                            </div>
+                        </div>
+                        <div class="col-sm-9 hide-element" id="apiUserFormDiv">
+                            <div class="col-sm-4">
+                                @Html.Label("API Username")
+                                <input type="text" id="txtUserName" class="form-control" disabled />
+                            </div>
+                            <div class="col-sm-4">
+                                @Html.Label(Resource.lblPassword)
+
+                                <input type="text" id="txtPassword" class="form-control"
+                                       onchange="validatePassword();"
+                                       onkeyup="this.onchange();"
+                                       onpaste="this.onchange();"
+                                       oninput="this.onchange();" />
+                                <div>
+                                    <div class="field-validation-error" id="pwErrors"></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <button type="submit" class="btn btn-primary mt25" onclick="submitUserApiForm();" id="btnEnableAPI" disabled>Enable API</button>
+                            </div>
+                        </div>
+                        @*<div id="apiUserFormDiv" class="col-sm-9"></div>*@
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h4> Guidelines on how to use API </h4>
+                            <div>To get the authentication Token, you have to post to the login URL with parameters; email, password URL : ​</div>
+                            <code>https://apiexchange.truefill.com/api/Account/Login</code>
+                            <pre class="mt5">
+                            Type: Post 
+                            Header:
+                            Content-Type: ​application/json
+                            Sample:
+                            {
+                                "email":"tfxcarrier@mailinator.com",
+                                "password":"Test1234",
+                                "isBuyerTPOCreated":false,
+                                "appType":4
+                            }
+                        </pre>
+                            <div>In response of this, you will get below details​ Sample:</div>
+                            <pre class="mt5">
+                            {
+                                "userId":4201,
+                                "companyId":0,
+                                "isBuyerTPOCreated":false,
+                                "token":"eVYXE0bZ6d30Q17vty7o/lyMtYWT8whBnxTyKPj9ieo=",
+                                "userName":"Jacob Peterson",
+                                "statusCode":0,
+                                "statusMessage":"Success"
+                            }
+                        </pre>
+                            <div>
+                                The Authentication Token generated is to be used in the header of the Create Invoice URL​:
+                            </div>
+                            <code>
+                                ​https://apiexchange.truefill.com/api/Invoice/Create
+                            </code>
+                        </div>
+                    </div>
+                </div>
+                }
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    var allUsers = [];
+    var selectedUser;
+
+    function submitUserApiForm() {
+        let userName = $('#txtUserName').val();
+        let password = $('#txtPassword').val();
+
+        if (selectedUser && userName && password) {
+            $('.loader').show();
+
+            selectedUser.PlainPassword = password;
+            let _fName = selectedUser.FirstName;
+            let _lName = selectedUser.LastName;
+
+            let url = '@Url.Action("SetApiUserPassword", "Profile", new { area = "Settings" })';
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: selectedUser,
+                success: function (data) {
+                    $('#txtUserName').val('');
+                    $('#txtPassword').val('');
+                    $('#ddlCompanyApiUsers').val("null").trigger('change')
+
+                    if (data.StatusCode == 0) {
+                        msgsuccess('API access password updated for ' + _fName + ' ' + _lName + '.');
+                    } else {
+                        msgerror(data.StatusMessage);
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(jqXHR, textStatus, errorThrown);
+                }
+            }).always(function () {
+                $('.loader').hide();
+            });
+        }
+    };
+
+    function apiTabClicked() {
+        setActiveApiUsers();
+    };
+    let _errors = [];
+    function validatePassword() {
+        $("#btnEnableAPI").prop("disabled", true);
+        var p = document.getElementById('txtPassword').value;
+        _errors = [];
+        var decimal = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,100}$/;
+        if (p.match(decimal)) {
+            $("#pwErrors").text('');
+            $("#btnEnableAPI").removeAttr('disabled'); return true;
+        }
+        else {
+            _errors.push("Use 8 or more characters with a mix of uppercase, lowercase, numbers and special characters.");
+            $("#pwErrors").text(_errors[0]); return false;
+        }       
+    }
+    function setActiveApiUsers() {
+        $('#apiUserFormDiv').hide();
+        $('.loader').show();
+        allUsers = [];
+        $('#ddlCompanyApiUsers').html('');
+        let tempUser = "<option value = 'null' selected> @Resource.lblSelectUser </option>";
+
+        let url = '@Url.Action("CompanyOnboardedApiUsers", "Profile", new { area = "Settings" })';
+        $.ajax({
+            type: 'GET',
+            url: url,
+            success: function (data) {
+
+                var appenddata = tempUser;
+
+                if (data && data.length > 0) {
+                    allUsers = data;
+                    $.each(data, function (key, value) {
+                        appenddata += "<option value = '" + value.UserId + "'>" + value.FirstName + " " + value.LastName + " </option>";
+                    });
+                    $('#ddlCompanyApiUsers').html(appenddata);
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(jqXHR, textStatus, errorThrown);
+            }
+        }).always(function () {
+            $('.loader').hide();
+        });
+    };
+
+    function onChangeCompanyUser(value) {
+        $("#btnEnableAPI").prop("disabled", true);
+        $('#apiUserFormDiv').show();
+       
+        $(function () {
+            $("#txtPassword").focus();
+        });
+        selectedUser = null;
+        $('#txtUserName').val('');
+        $('#txtPassword').val('');
+
+        if (value > 0) {
+            selectedUser = allUsers.find(x => x.UserId == value);
+            $('#txtUserName').val(selectedUser.Email);
+        }
+        else {
+            $('#apiUserFormDiv').hide();
+        }
+    };
+
+    $(document).ready(function () {
+        $(".select2_apiUsers").select2({});
+    });
+</script>

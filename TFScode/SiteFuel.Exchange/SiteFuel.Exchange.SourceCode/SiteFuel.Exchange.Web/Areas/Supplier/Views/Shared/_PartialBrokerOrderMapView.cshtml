@@ -1,0 +1,132 @@
+﻿<!--target url from where map data will be loaded-->
+@model dynamic
+@{
+    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+    serializer.MaxJsonLength = int.MaxValue;
+    var jsonModel = serializer.Serialize(@Model.Data);
+}
+@{ var mapId = "map_" + DateTime.Now.ToString("yyyyMMddHHmmss"); }
+<div class="row">
+    <div class="col-md-8 col-12">
+        <div class="map_canvas mapheight" id="@mapId"></div>
+    </div>
+    <div class="col-md-4 col-12">
+        <div class="row">
+            <div class="col-sm-2 col-md-12 col-xs-4">
+                <div class="supplier-name">
+                    <h5 class="f-bold mb5">@Resource.headingSupplier</h5>
+                    <p class="title"></p>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-12 col-xs-6">
+                <div class="customer-name">
+                    <h5 class="f-bold mb5">@Resource.headingCustomer</h5>
+                    <p class="title"></p>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-12 col-xs-8">
+                <div class="job-location">
+                    <h5 class="f-bold mb5">@Resource.headingLocation</h5>
+                    <p class="address1 mb0"></p>
+                    <p class="address2 mt0"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var centerlat = 38, centerlon = -98.35, zoomarea = 4;
+    var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+    var PageCountryId = selectedCountryAndCurrency.countryId;
+    if (PageCountryId == '@((int)Country.CAN)') {
+        centerlat = 56.14;
+        centerlon = -106.34;
+    }
+    else {
+        centerlat = 38;
+        centerlon = -98.35;
+    }
+
+    $(document).ready(function () {
+        google.maps.visualRefresh = true;
+        getMapObject(zoomarea, centerlat, centerlon);
+        refreshMap();
+    });
+
+    function setMapData() {
+        var data = @Html.Raw(jsonModel);
+        var statelist = [];
+        $.each(data, function (i, elem) { statelist.push(elem.State); });
+        states = statelist.filter(function (elem, index, self) { return index == self.indexOf(elem); });
+
+        if (states.length == 1)
+        {
+            if (data.length == 1) {
+                zoomarea = 12;
+            }
+            else if (data.length >= 2 && data.length <= 4) {
+                zoomarea = 9;
+            }
+            else if (data.length >= 5 && data.length <= 9) {
+                zoomarea = 6;
+            }
+            else if (data.length >= 10) {
+                zoomarea = 5;
+            }
+        }
+
+        if (states.length == 1) {
+            $.each(data, function (i, pickitem) {
+                centerlat = pickitem.Latitude;
+                centerlon = pickitem.Longitude;
+                return false;
+            });
+        }
+
+        if (data.length > 0) {
+            setContactInfo(data[0]);
+        }
+
+        var mapObj = getMapObject(zoomarea, centerlat, centerlon);
+
+        $.each(data, function (i, item) {
+            var marker = new google.maps.Marker({
+                position: new google.maps.LatLng(item.Latitude, item.Longitude),
+                map: mapObj,
+                title: "Customer :" + " " + item.Name + " \n" + "Supplier :" + " " + item.SupplierName
+            });
+
+            marker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png')
+
+            google.maps.event.addListener(marker, 'click', function () {
+                var appPath = document.location.origin + '@Url.Action("Details", "Order", new { area = "Supplier" })';
+                window.location.href = appPath + "/" + item.OrderId;
+            });
+
+            google.maps.event.addListener(marker, 'mouseover', function () {
+                setContactInfo(item);
+            });
+        });
+    }
+
+    function setContactInfo(item) {
+        $(".job-location .address1").html(item.Address);
+        $(".job-location .address2").html(item.City + ", " + item.State + " " + item.ZipCode);
+        $(".supplier-name .title").html(item.SupplierName);
+        $(".customer-name .title").html(item.Name);
+    }
+
+    function getMapObject(zoomArea, lat, long) {
+        var map = new google.maps.Map(document.getElementById('@mapId'), {
+            zoom: zoomArea,
+            center: { lat: lat, lng: long },
+            mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+        });
+        return map;
+    }
+
+    function refreshMap() {
+        setMapData();
+    }
+</script>

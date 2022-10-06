@@ -1,0 +1,278 @@
+﻿@model SiteFuel.Exchange.ViewModels.Offer.OfferQuickUpdateViewModel
+@using (Ajax.BeginForm("QuickUpdate", "Offer", new { area = "Supplier" }, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "showQuickUpdateSuccess"
+}, new { id = "createofferform", onsubmit = "return updateHistoryElem();" }))
+{
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="well">
+                <div class="form-group mb0">
+                    <div class="radio dib mr20">
+                        <label>
+                            @Html.RadioButtonFor(m => m.OfferTypeId, (int)OfferType.Exclusive,
+                            new { onclick = "showHideControls(this,'exclusiveOffer-control','nothing'); reloadOfferFueltype();" })
+                            @Resource.lblExclusiveOffer
+                        </label>
+                    </div>
+                    <div class="radio dib mr20">
+                        <label>
+                            @Html.RadioButtonFor(m => m.OfferTypeId, (int)OfferType.Market,
+                                new { onclick = "showHideControls(this,'nothing','exclusiveOffer-control'); reloadOfferFueltype();" })
+                            @Resource.lblMarketOffer
+                        </label>
+                    </div>
+                    <div class="pull-right mt7 mb10">
+                        <a href="javascript:void(0)" id="quick-update-preferences" onclick="showPricingPreferenceSettingPopup();"><i class="fas fa-cog"></i> Preference Settings</a>
+                    </div>
+                </div>
+                @Html.HiddenFor(m => m.UserId)
+                @Html.HiddenFor(m => m.CompanyId)
+                <div class="row col-sm-12 pa0">
+                        <div class="col-sm-4 col-md-2 exclusiveOffer-control">
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Tiers)
+                                @Html.ListBoxFor(m => m.Tiers, new SelectList(CommonHelperMethods.GetTiers(), "Id", "Name"), new { @class = "form-control multi-select tiers", onchange = "checkStatus('tier-check', 'tiers'); reloadOfferFueltype();" })
+                                @Html.ValidationMessageFor(m => m.Tiers)
+                            </div>
+                        </div>
+                        @if (Model.QuickUpdatePreferenceSetting.IsCustomer)
+                        {
+                            <div class="col-sm-4 col-md-2 exclusiveOffer-control">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.Customers)
+                                    @Html.ListBoxFor(m => m.Customers, new SelectList(CommonHelperMethods.GetSupplierCustomers(Model.CompanyId, Model.CountryId), "Id", "Name"), new { @id = "select-customers", @class = "multi-select customers", onchange = "reloadOfferFueltype();" })
+                                    @Html.ValidationMessageFor(m => m.Customers)
+                                </div>
+                            </div>
+                        }
+                        <div class="col-sm-4 col-md-2">
+                            @Html.LabelFor(m => m.TruckLoadType)
+                            @Html.EnumDropDownListFor(m => m.TruckLoadType, null,
+                               new
+                               {
+                                   @class = "form-control truckLoadTypes enum-ddl",
+                                   @onchange = "reloadOfferFueltype();"
+                            })
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group">
+                                <span class="indices">@Html.LabelFor(m => m.PricingSource)</span>
+                                <span class="product-source hide-element">
+                                    <label>@Resource.lblProductSource<span class="required pl4">*</span></label>
+                                </span>
+                                @Html.DropDownListFor(m => m.PricingSource, new SelectList(CommonHelperMethods.GetPricingSources(), "Id", "Name", Model.PricingSource), new { @class = "form-control ddl-pricing-source", @onchange = "reloadOfferFueltype();" })
+                                @Html.ValidationMessageFor(m => m.PricingSource)
+                            </div>
+                        </div>
+                        <div class="col-sm-4 col-md-2">
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.FuelTypeId)
+                                @Html.DropDownListFor(m => m.FuelTypeId, new SelectList(new List<DropdownDisplayItem>()), "Select Fuel Type", new { @class = "form-control", onchange = "checkStatus('tier-check', 'tiers'); reloadOfferStates();" })
+                                @Html.ValidationMessageFor(m => m.FuelTypeId)
+                            </div>
+                        </div>
+                        <div id="OfferStateCity-section" class="partial-section city-control">
+                            <div class="partial-block-collection-section">
+                                <div class="partial-block quantity-range" id="offer-location-list">
+                                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element offer-cityZipServiceCall"><span class='spinner-dashboard pa'></span></div>
+                                    <div class="col-sm-4 col-md-2 state-list">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.States)
+                                            @Html.ListBoxFor(m => m.States, new SelectList(new List<DropdownDisplayItem>()), new { @placeholder = "All States", @class = "form-control multi-select offerstate", @onchange = "reloadOfferCities();" })
+                                            @Html.ValidationMessageFor(m => m.States)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 col-md-2 city-list">
+                                        <div class="form-group">
+                                            @Html.LabelFor(model => model.Cities)
+                                            @Html.DropDownListFor(model => model.Cities, new SelectList(CommonHelperMethods.GetCities(0), "Id", "Name"),
+                                                                  new { @placeholder = "All Cities", @class = "form-control offercity multi-select", @onchange = "reloadOfferZips();" })
+                                            @Html.ValidationMessageFor(m => m.Cities)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 col-md-2 zip-list">
+                                        <div class="form-group offer-zipwrapper">
+                                            @Html.LabelFor(model => model.ZipStringList)
+                                            @Html.ListBoxFor(m => m.ZipStringList, new SelectList(Model.ZipList, "Code", "Name"),
+                                                                                new { @placeholder = "All Zip", @class = "form-control offerzip multi-select", @onchange = "loadFeesOrPicing();" })
+                                            @Html.ValidationMessageFor(model => model.ZipStringList)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                 
+                <hr class="mt5 mb5" />
+                <div class="mt15">
+                    <div class="form-group mb0">
+                        <div class="radio dib mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.QuickUpdatePreferenceSetting.QuickUpdateType, (int)OfferQuickUpdateType.Fees, new { onclick = "showHideControls(this,'feeTypeSection','pricingTypeSection');loadFeesOrPicing();" })
+                                @Resource.lblFeeType
+                            </label>
+                        </div>
+                        <div class="radio dib mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.QuickUpdatePreferenceSetting.QuickUpdateType, (int)OfferQuickUpdateType.Pricing, new { onclick = "showHideControls(this,'pricingTypeSection','feeTypeSection'); loadFeesOrPicing();" })
+                                @Resource.lblPricingType
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row mt10">
+                        <div class="col-sm-4 col-md-2 terminal-price pricingTypeSection hide-element">
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.PricingTypeId)
+                                @Html.DropDownListFor(m => m.PricingTypeId, new List<SelectListItem>
+                                                        {
+                                                            new SelectListItem{ Text= @Resource.lblMarketBased, Value = "1" },
+                                                            new SelectListItem{ Text= @Resource.lblFuelCost, Value = "4" },
+                                                            new SelectListItem{ Text= @Resource.lblPricePerGallon, Value = "2" },
+                                                            new SelectListItem{ Text= @Resource.lblTier, Value = "3" },
+                                                            }, "Select Pricing Type", new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.PricingTypeId)
+                            </div>
+                        </div>
+                        <div class="feeTypeSection col-sm-8">
+                            <div class="row">
+                                <div class="col-sm-6 col-md-4">
+                                    <div class="form-group">
+                                        @Html.LabelFor(model => model.FeeTypeId)
+                                        @Html.DropDownListFor(m => m.FeeTypeId, new SelectList(CommonHelperMethods.GetAllFeeTypes(CurrentUser.CompanyId, (Currency)Model.CurrencyId), "Code", "Name"), "Select Fee", new { @class = "form-control fee-type", @onchange = "reloadOfferFeeSubTypes();" })
+                                        @Html.ValidationMessageFor(m => m.FeeTypeId)
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-4 fee-type-name">
+                                    <div class="form-group">
+                                        <div class="form-group">
+                                           @* @Resource.lblFeeType*@
+                                            @Html.LabelFor(model => model.FeeTypeId)
+                                            @Html.DropDownListFor(m => m.FeeSubTypeId, new SelectList(CommonHelperMethods.GetAllFeeSubTypes(Model.FeeTypeId, (Currency)Model.CurrencyId), "Id", "Name"), "Select Sub Type", new { @class = "form-control" })
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                       
+                        </div>
+                    </div>
+                </div>
+                <hr class="mt5" />
+                <div class="row">
+                    <div class="col-sm-4 col-md-2 terminal-price market-control">
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.MathOptId)
+                            @Html.DropDownListFor(m => m.MathOptId, new SelectList(CommonHelperMethods.GetRackAvgPricingTypes(), "Id", "Name", Model.MathOptId), new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.MathOptId)
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-2 terminal-price market-control">
+                        <div class="form-group">
+                            <div class="mtm1">
+                                @Html.LabelFor(model => model.UpdateAmountBy)
+                                @Html.TextBoxFor(m => m.UpdateAmountBy, new { @class = "form-control datatype-decimal always", @placeholder = "Update price by" })
+                                @Html.ValidationMessageFor(m => m.UpdateAmountBy)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-2">
+                        <div class="form-group form-buttons">
+                            <input id="quick-update-submit" type="submit" value="@Resource.btnQuickUpdate" class="btn btn-primary btnSubmit mt24" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @Html.HiddenFor(m => m.TierNames, new { @class = "TierNames" })
+    @Html.HiddenFor(m => m.CustomerNames, new { @class = "CustomerNames" })
+    @Html.HiddenFor(m => m.StateNames, new { @class = "StateNames" })
+    @Html.HiddenFor(m => m.CityNames, new { @class = "CityNames" })
+    @Html.HiddenFor(m => m.FeeTypeName, new { @class = "FeeTypeName" })
+}
+<div class="modal animated" id="modal-view-pricing-table-pref-setting" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-pricing-table-pref-setting" role="document">
+        @using (Ajax.BeginForm("SavePreferenceSetting", "Offer", null, new AjaxOptions
+        {
+            HttpMethod = "POST",
+            OnSuccess = "showPricingPrefSuccessMessage",
+            OnFailure = "showPricingPrefFailedMessage"
+        }, new { id = "pricing-pref-form" })) // set new Id name for  Form
+        {
+            <div class="modal-content pa10">
+                <div class="modal-body" id="pricing-table-pref-setting">
+                    <div id="body-pricing-table-pref-settings">
+                        <div>
+                            <h4>@Resource.stepLabelOfferDetails</h4>
+                        </div>
+                        <div class="checkbox">
+                            <label>
+                                @Html.CheckBoxFor(m => m.QuickUpdatePreferenceSetting.IsCustomer) @Resource.lblExclusiveOfferCustomer
+                            </label>
+                        </div>
+                        <div class="checkbox">
+                            <label>
+                                @Html.CheckBoxFor(m => m.QuickUpdatePreferenceSetting.IsState) @Resource.lblState
+                            </label>
+                        </div>
+                        <div class="checkbox">
+                            <label>
+                                @Html.CheckBoxFor(m => m.QuickUpdatePreferenceSetting.IsCity) @Resource.lblCity
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer no-border">
+                    <a href="#." data-dismiss="modal" class="btn actions">@Resource.btnLabelCancel</a>
+                    <input id="ApplyOfferPreference" type="submit" value="@Resource.btnLabelApply" class="btn btn-lg btn-primary btnSubmit" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        reloadOfferFueltype();
+        showHideQuickUpdateControls();
+        $("#@Html.IdFor(m=>m.FeeSubTypeId)").prop('disabled', true);
+    });
+
+    function showHideQuickUpdateControls() {
+        var isState = '@Model.QuickUpdatePreferenceSetting.IsState';
+        var isCity = '@Model.QuickUpdatePreferenceSetting.IsCity';
+        var zip = $('.zip-list');
+
+        if (isState == 'False' && isCity == 'False') {
+            zip.hide();
+            $('.city-list').hide();
+            $('.state-list').hide();
+        }
+
+        if (isState == 'True' && isCity == 'False') {
+            zip.hide();
+            $('.city-list').hide();
+        }
+    }
+
+    function showPricingPreferenceSettingPopup() {
+        $("#modal-view-pricing-table-pref-setting").modal("show");
+    }
+    function updateHistoryElem() {
+        var tierNames = [], customerNames = [], stateNames = [], cityNames = [];
+        $.each($(".tiers option:selected"), function () { tierNames.push($(this).text()); });
+        $.each($(".customers option:selected"), function () { customerNames.push($(this).text()); });
+        $.each($(".offerstate option:selected"), function () { stateNames.push($(this).text()); });
+        $.each($(".offercity option:selected"), function () { cityNames.push($(this).text()); });
+
+        $(".TierNames").val(tierNames.join(", "));
+        $(".CustomerNames").val(customerNames.join(", "));
+        $(".StateNames").val(stateNames.join(", "));
+        $(".CityNames").val(cityNames.join(", "));
+
+        var feeName = $(".fee-type option:selected").text();
+        if (feeName !== "Select Fee") { $(".FeeTypeName").val(feeName); }
+        return true;
+    }
+</script>

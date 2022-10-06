@@ -1,0 +1,132 @@
+﻿<div class="col-sm-12">
+    <div class="row">
+        <div class="col-12 col-sm-12">
+            <h3 class="mt0 f-light dib pb5 fs21 mb5">@Resource.headingOnboarded</h3>
+            <div class="dib alert alert-warning fs12 pt5 pb5 ml10 mb5 pull-right f-bold">@Resource.UserInactivationWarning</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="well bg-white mt0">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-border no-padding">
+                        <div class="table-responsive">
+                            <table id="onboardedusers-datatable" class="table table-striped table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.gridColumnEmail</th>
+                                        <th>@Resource.gridColumnRoles</th>
+                                        <th>@Resource.lblIsApiAccessAllowed</th>
+                                        <th>@Resource.gridColumnActive</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+        var onboardedusersDataTable;
+
+        $(document).ready(function () {
+
+            onboardedusersDataTable = $('#onboardedusers-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("CompanyOnboardedUsersGrid", "Profile", new { area ="Settings"})",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                            {
+                                "data": function (data, type, row, meta) {
+                                    var url = '@Url.Action("CompanyAdditionalUsers", "Profile", new { area = "Settings" })?id=' + data.Id + '&isInvitedUser=false' + '';
+                                    return '<a href="' + url + '">' + data.Email + '</a>';
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+
+                                    return data.RoleNames;
+
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+
+                                    return data.IsApiAccessAllowed ? '@Resource.lblYes' : "--";
+
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    if ('@CurrentUser.IsBuyerAdmin' == 'True' || '@CurrentUser.IsSupplierAdmin' == 'True') {
+                                        var url = '@Url.Action("ChangeUserStatus", "Profile", new { area = "Settings"})/' + data.Id + '';
+                                        var checked = data.IsActive ? 'checked="checked"' : '';
+
+                                        var columnCtrl = '<input type="checkbox" data-url="' + url + '" onchange="updateUserStatus(this)" ' + checked + '></input>';
+                                        columnCtrl += '<span class="hidden">' + (data.IsActive ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';;
+
+                                        return columnCtrl;
+                                    }
+                                    else {
+                                        return data.IsActive ? '@Resource.lblYes' : '@Resource.lblNo';
+                                    }
+                                }, "width": "50px", "bSortable": false
+                            }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                "fnDrawCallback": function (settings) {
+                    changePhoneFormat();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingOnboarded' },
+                    { extend: 'excel', title: '@Resource.headingOnboarded' },
+                    { extend: 'pdf', title: '@Resource.headingOnboarded' },
+
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+        });
+
+        function updateUserStatus(element) {
+            var url = $(element).data('url') + '?isActive=' + $(element).is(':checked') + '';
+            $.get(url, function (response) {
+                if (response.StatusMessage != '@Status.Success') {
+                    msgsuccess(response.StatusMessage);
+                }
+                else {
+                    onboardedusersDataTable.ajax.url("@Url.Action("CompanyOnboardedUsersGrid", "Profile", new { area ="Settings"})");
+                    onboardedusersDataTable.ajax.reload();
+                }
+            });
+        }
+</script>
+}
+

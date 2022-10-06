@@ -1,0 +1,58 @@
+﻿@model FuelRequestViewModel
+
+<h5 class="f-bold">@Resource.lblFees</h5>
+@foreach (var feeObject in Model.FuelDeliveryDetails.FuelFees.FuelRequestFees.Where(t => t.FeeSubTypeId != (int)FeeSubType.NoFee))
+{
+    <div>
+        <label class="no-margins f-normal fs16">@(feeObject.OtherFeeDescription ?? feeObject.FeeTypeName)</label>
+        @if (feeObject.FeeConstraintTypeId.HasValue)
+        {
+            if (feeObject.FeeConstraintTypeId.Value == (int)FeeConstraintType.Weekend)
+            {
+                <label class="f-normal">
+                    ( @Resource.lblWeekend )
+                </label>
+            }
+            else
+            {
+                <label class="f-normal">
+                    ( @feeObject.SpecialDate.Value.Date.ToString(Resource.constFormatDate) )
+                </label>
+            }
+        }
+        <p class="no-margins pt0 pb10">
+            @if (feeObject.FeeTypeId == ((int)FeeType.UnderGallonFee).ToString() && feeObject.FeeSubTypeId == (int)FeeSubType.FlatFee)
+            {
+                <span>
+                    @($"{Resource.lblUnder} {(feeObject.MinimumGallons ?? 0).ToString(ApplicationConstants.DecimalFormat2)} {Model.FuelDetails.FuelQuantity.UoM}  ")<br />
+                    @($"{feeObject.FeeSubTypeName} {Resource.constSymbolCurrency}{(feeObject.Fee ?? 0).ToString(ApplicationConstants.DecimalFormat2)} {Model.FuelDetails.FuelPricing.Currency}")
+                </span>
+            }
+            else if (feeObject.FeeSubTypeId == (int)FeeSubType.ByQuantity)
+            {
+                foreach (var byQuantity in feeObject.DeliveryFeeByQuantity)
+                {
+                    <span>
+                        @string.Format("{0} {1} {2} {3}{4}{5}{6} {7}",
+                                byQuantity.MinQuantity.GetCommaSeperatedValue(),
+                                @Resource.lblSingleHyphen,
+                                (byQuantity.MaxQuantity.HasValue ? byQuantity.MaxQuantity.Value.GetCommaSeperatedValue() : " "),
+                                byQuantity.UoM,
+                                " : ",
+                                @Resource.constSymbolCurrency,
+                                byQuantity.Fee.ToString(ApplicationConstants.DecimalFormat2),
+                                Model.FuelDetails.FuelPricing.Currency
+                                )
+                    </span>
+                    <br />
+                }
+            }
+            else
+            {
+                <span>
+                    @string.Format("{0} {1}{2} {3}", feeObject.FeeSubTypeName, Resource.constSymbolCurrency, feeObject.Fee, Model.FuelDetails.FuelPricing.Currency)
+                </span>
+            }
+        </p>
+    </div>
+}

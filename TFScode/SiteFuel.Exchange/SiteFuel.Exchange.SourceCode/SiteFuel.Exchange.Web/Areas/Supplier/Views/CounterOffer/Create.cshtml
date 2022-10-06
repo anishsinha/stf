@@ -1,0 +1,523 @@
+﻿@model FuelRequestViewModel
+
+@{
+    ViewBag.Title = "Create Counter Offer";
+}
+
+@using (Html.BeginForm())
+{
+    HtmlHelper.ClientValidationEnabled = false;
+    @Html.AntiForgeryToken()
+
+    @Html.HiddenFor(m => m.FuelDetails.CreatedBy)
+    @Html.HiddenFor(m => m.IsCounterOffer)
+    @Html.HiddenFor(m => m.CounterOfferSupplierId)
+    @Html.HiddenFor(m => m.FuelDetails.StatusId)
+    @Html.HiddenFor(m => m.FuelDetails.OrderTypeId)
+    @Html.HiddenFor(m => m.Job.JobId)
+    @Html.HiddenFor(m => m.FuelDetails.FuelDisplayGroupId)
+    @Html.HiddenFor(m => m.FuelDetails.FuelTypeId)
+    @Html.HiddenFor(m => m.FuelDetails.NonStandardFuelName)
+    @Html.HiddenFor(m => m.FuelDetails.NonStandardFuelDescription)
+    @Html.HiddenFor(m => m.FuelOfferDetails.PrivateSupplierList.IsNewSupplierList)
+    @Html.HiddenFor(m => m.FuelDeliveryDetails.DeliveryTypeId)
+    @Html.HiddenFor(m => m.ExternalPoNumber)
+    @Html.HiddenFor(m => m.FuelOfferDetails.OrderClosingThreshold)
+    @Html.Hidden("hdnRadius", "100")
+    @Html.HiddenFor(m => m.Id)
+    @Html.HiddenFor(m => m.FuelDeliveryDetails.FuelRequestId)
+    @Html.HiddenFor(m => m.CompanyId)
+    @Html.HiddenFor(m => m.IsBrokeredCounterOffer)
+    @Html.HiddenFor(m => m.FuelDetails.FuelQuantity.EstimatedGallonsPerDelivery)
+    @Html.HiddenFor(m => m.FuelDetails.FuelQuantity.Quantity, new { @class = "total-gallons-required" })
+    @Html.HiddenFor(m => m.FuelDetails.FuelQuantity.QuantityTypeId, new { @class = "quantity-type-id" })
+    @Html.HiddenFor(m => m.FuelDetails.FuelQuantity.MinimumQuantity)
+    @Html.HiddenFor(m => m.FuelDetails.FuelQuantity.MaximumQuantity, new { @class = "total-gallons-required" })
+    @Html.HiddenFor(m => m.FuelDeliveryDetails.StartDate)
+    @Html.HiddenFor(m => m.FuelDeliveryDetails.EndDate)
+    @Html.HiddenFor(m => m.FuelDeliveryDetails.StartTime)
+    @Html.HiddenFor(m => m.FuelDeliveryDetails.PoContactId)
+    @Html.HiddenFor(m => m.FuelDeliveryDetails.EndTime)
+    @Html.HiddenFor(m => m.FuelDetails.IsOverageAllowed)
+    @Html.HiddenFor(m => m.FuelDetails.OverageAllowedPercent)
+
+    HtmlHelper.ClientValidationEnabled = true;
+    if (Model.FuelDetails.FuelPricing.FuelPricingDetails != null)
+    {
+        <div class="hide-element">
+            @Html.EnumDropDownListFor(m => m.FuelDetails.FuelPricing.FuelPricingDetails.TruckLoadTypes, null,
+            new
+            {
+                @class = "form-control truckLoadTypes enum-ddl disabled readonly"
+            })
+            @Html.EnumDropDownListFor(m => m.FuelDetails.FuelQuantity.QuantityIndicatorTypes,
+           new { @class = "form-control enum-ddl mt5 qty-ind" })
+            @Html.EnumDropDownListFor(m => m.FuelDetails.FuelPricing.FuelPricingDetails.FreightOnBoardTypes,
+           new { @class = "form-control freightOnBoardTypes enum-ddl" })
+        </div>
+    }
+    <div class="row">
+        <div class="col-sm-12 mb10 tab-headers">
+            <a id="tab-fr-details" href="javascript:void(0)" onclick="showsection('fr-details'), activelink(this)" class="active mr20">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.lblHeaderDetails</span>
+                </div>
+            </a>
+            <a id="tab-fr-terms" href="javascript:void(0)" onclick="showsection('fr-terms'), activelink(this)" class="mr20">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.lblHeaderTerms</span>
+                </div>
+            </a>
+        </div>
+    </div>
+    <div class="tab-container readOnlyModeFR">
+        <div id="fr-details" data-parent-tab="tab-fr-details" class="subTabs">
+            <div class="col-sm-12">
+                <div class="well row mb15">
+                    <!-- fuel request starts -->
+                    <div class="col-sm-12 pb15">
+                        <h4>@Resource.headingCounterOffer</h4>
+                        <div class="row">
+                            <div class="col-sm-2 col-xs-6">
+                                <label class="f-normal">@Resource.lblRequestNumber</label>
+                                <div>@Model.RequestNumber</div>
+                            </div>
+                            <div class="col-sm-2 col-xs-6">
+                                <label class="f-normal">@Resource.lblFuelType</label>
+                                <div class="break-word">@Html.DisplayFor(m => m.FuelDetails.FuelType)</div>
+                            </div>
+                            @if (Model.FuelDetails.FuelDisplayGroupId == (int)ProductDisplayGroups.OtherFuelType)
+                            {
+                                <div class="col-sm-2 col-xs-6">
+                                    <label class="f-normal">@Resource.lblProductDescription</label>
+                                    <div class="break-word">@(!string.IsNullOrWhiteSpace(Model.FuelDetails.NonStandardFuelDescription) ? Model.FuelDetails.NonStandardFuelDescription : Resource.lblHyphen)</div>
+                                </div>
+                            }
+                            <div class="col-md-2 col-xs-6">
+                                <label class="f-normal">@Resource.lblOrderType</label>
+                                <div>@(CommonHelperMethods.GetName<OrderType>(Model.FuelDetails.OrderTypeId))</div>
+                            </div>
+                            <div class="col-sm-2 col-xs-6 mb10">
+                                <label class="f-normal">@Resource.lblQuantity</label>
+                                <div>
+                                    @if (Model.FuelDetails.FuelQuantity.QuantityTypeId == (int)QuantityType.SpecificAmount)
+                                    {
+                                        <div>@Model.FuelDetails.FuelQuantity.Quantity.GetCommaSeperatedValue() @Model.FuelDetails.FuelQuantity.UoM</div>
+                                    }
+                                    else if (Model.FuelDetails.FuelQuantity.QuantityTypeId == (int)QuantityType.Range)
+                                    {
+                                        <div>@Model.FuelDetails.FuelQuantity.MaximumQuantity.GetCommaSeperatedValue() @Model.FuelDetails.FuelQuantity.UoM</div>
+                                    }
+                                    else if (Model.FuelDetails.FuelQuantity.QuantityTypeId == (int)QuantityType.NotSpecified)
+                                    {
+                                        <div>@Resource.lblNotSpecified</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- fuel request ends -->
+                    <div class="border-b-dash ma15 clearboth"></div>
+                    <!-- delivery starts -->
+                    <div class="col-sm-12 pb15">
+                        <h4>@Resource.headingDelivery</h4>
+                        <div class="row">
+                            <div class="col-sm-2 col-xs-6">
+                                <div class="form-group">
+                                    <label class="f-normal">@Resource.lblDeliveryDateOrRange</label>
+                                    @if (@Model.FuelDeliveryDetails.EndDate.HasValue)
+                                    {
+                                        <div>
+                                            @Model.FuelDeliveryDetails.StartDate.ToString(Resource.constFormatDate) - @Model.FuelDeliveryDetails.EndDate.Value.ToString(Resource.constFormatDate)
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div>
+                                            @Model.FuelDeliveryDetails.StartDate.ToString(Resource.constFormatDate)
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-sm-2 col-xs-6">
+                                <div class="form-group">
+                                    <label class="f-normal">@Resource.lblDeliveryWindow</label>
+                                    <div>
+                                        @Model.FuelDeliveryDetails.StartTime - @Model.FuelDeliveryDetails.EndTime
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-2 col-xs-6 pr0">
+                                <label class="f-normal">@Resource.lblDeliveryTypeSummary</label>
+                                @if (Model.FuelDeliveryDetails.DeliveryTypeId == (int)DeliveryType.OneTimeDelivery)
+                                {
+                                    <div class="pt8">@Resource.lblSingle</div>
+                                }
+                                else
+                                {
+                                    <div class="pt8">@Resource.lblMultiple</div>
+                                }
+                            </div>
+                            @if (Model.FuelDeliveryDetails.DeliveryTypeId == (int)DeliveryType.MultipleDeliveries)
+                            {
+                                <div class="col-sm-2 col-xs-6">
+                                    <div id="lblEstimatedGallonsPerDelivery-section" class="form-group delivery-schedule">
+                                        <label class="f-normal">@Resource.lblEstimatedQuantityPerDelivery</label>
+                                        <div>
+                                            @Model.FuelDetails.FuelQuantity.EstimatedGallonsPerDelivery
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 mb10">
+                                    <label class="f-normal">Schedules</label>
+                                    <div>
+                                        @if (Model.FuelDeliveryDetails.DeliverySchedules != null && Model.FuelDeliveryDetails.DeliverySchedules.Any())
+                                        {
+                                            <table class="table table-hover mb0 details-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>@Resource.lblType</th>
+                                                        <th>@Resource.lblNeeded</th>
+                                                        <th>@Resource.lblFrom</th>
+                                                        <th>@Resource.lblTo</th>
+                                                        <th>@Resource.lblQuantity</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var schedule in Model.FuelDeliveryDetails.DeliverySchedules)
+                                                    {
+                                                        <tr>
+                                                            <td>@schedule.ScheduleTypeName</td>
+                                                            <td>
+                                                                @((schedule.ScheduleType == (int)DeliveryScheduleType.Weekly || schedule.ScheduleType == (int)DeliveryScheduleType.BiWeekly) ? string.Join(", ", schedule.ScheduleDayNames) : schedule.ScheduleDate.ToString(Resource.constFormatDate))
+                                                            </td>
+                                                            <td>@schedule.ScheduleStartTime</td>
+                                                            <td>@schedule.ScheduleEndTime</td>
+                                                            <td>@schedule.ScheduleQuantity.GetCommaSeperatedValue()</td>
+                                                        </tr>
+                                                    }
+
+                                                </tbody>
+                                            </table>
+                                        }
+                                        else
+                                        {
+                                            @Resource.lblHyphen
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <!-- delivery ends -->
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="well row mb15">
+                    <div class="col-sm-12">
+                        <h4>@Resource.headingPricing</h4>
+                        @if (Model.FuelDetails.IsTierPricing)
+                        {
+                            @Html.PartialFor("~/Views/Shared/_PartialTierPricingFuelQuantity.cshtml", m => m)
+                        }
+                        <div id="pricing-section-container">
+                            @Html.PartialFor("_PartialFuelPricing", m => m)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="fr-terms" data-parent-tab="tab-fr-terms" class="hide-element subTabs">
+            <!-- fees starts -->
+            <div class="col-sm-12">
+                <div class="well row mb15">
+                    <div class="col-sm-12">
+                        <h4 class="freight-cost">@Resource.headingFees</h4>
+                        @Html.PartialFor("_PartialFees", m => m.FuelDeliveryDetails.FuelFees)
+                    </div>
+                </div>
+            </div>
+
+            <!-- fees ends -->
+            <!-- order starts -->
+            <div class="col-sm-12">
+                <div class="well row mb15">
+                    <div class="col-sm-12">
+                        <h4>@Resource.headingOrders</h4>
+                        <div class="row mb10">
+                            <div class="col-md-6">
+                                <div id="special-instruction-section" class="partial-section mirror">
+                                    <div class="partial-block-collection-section">
+                                        @if (Model.FuelDeliveryDetails.SpecialInstructions != null && Model.FuelDeliveryDetails.SpecialInstructions.Count() > 0)
+                                        {
+                                            foreach (var instruction in Model.FuelDeliveryDetails.SpecialInstructions)
+                                            {
+                                                Html.RenderPartial("~/Views/Shared/_PartialSpecialInstruction.cshtml", instruction);
+                                            }
+                                        }
+                                    </div>
+                                    @if (CurrentUser.IsBuyerCompany)
+                                    {
+                                        <a href="javascript:void(0)" class="add-partial-block" data-url="@Url.Action("SpecialInstruction", "FuelRequest", new { area = "Buyer" })"><span class="fa fa-plus-circle"></span> @Resource.lblSpecialInstruction</a>
+                                    }
+                                    else
+                                    {
+                                        <a href="javascript:void(0)" class="add-partial-block" data-url="@Url.Action("SpecialInstruction", "FuelRequest", new { area = "Supplier" })"><span class="fa fa-plus-circle"></span> @Resource.lblSpecialInstruction</a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- order ends -->
+            <!-- payment terms starts -->
+            <div class="col-sm-12">
+                <div class="well row mb15">
+                    <div class="col-sm-12">
+                        <h4>@Resource.headingPaymentTerms</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-xs-2">
+                                            <div class="form-check form-check-inline">
+                                                @Html.RadioButtonFor(m => m.FuelOfferDetails.PaymentTermId, (int)PaymentTerms.NetDays, new { @id = "radio-termnet", onclick = "radioChange(this,'netdays',null);", onchange = "focusOnFirst(this, 'netdays');", @class = "revalidate form-check-input" })
+                                                <label class="form-check-label" for="radio-termnet">
+                                                    @Resource.lblNet
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-xs-2 netdays defaultDisabled mt10">
+                                            @Html.TextBoxFor(m => m.FuelOfferDetails.NetDays, new { @class = "form-control always datatype-decimal" })
+                                            @Html.ValidationMessageFor(m => m.FuelOfferDetails.NetDays)
+                                        </div>
+                                        <div class="col-xs-7 col-sm-5 fs12 pt8 mt10">
+                                            @Resource.lblDaysOfReceipt
+                                        </div>
+                                    </div>
+                                    <div class="radio">
+                                        <label>
+                                            @Html.RadioButtonFor(m => m.FuelOfferDetails.PaymentTermId, (int)PaymentTerms.DueOnReceipt, new { onclick = "radioChange(this,null,'netdays')", @class = "revalidate" })
+                                            @Resource.lblDueOnReceipt
+                                        </label>
+                                    </div>
+                                    <div class="radio">
+                                        <label>
+                                            @Html.RadioButtonFor(m => m.FuelOfferDetails.PaymentTermId, (int)PaymentTerms.PrePaidInFull, new { onclick = "radioChange(this,null,'netdays')", @class = "revalidate" })
+                                            @Resource.lblPrePaidInFull
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-9 col-sm-6 col-md-4">
+                                <div class="row">
+                                    <div class="form-group">
+                                        <div class="col-sm-12">
+                                            @Html.LabelFor(m => m.FuelDetails.Comment)
+                                            @Html.TextAreaFor(m => m.FuelDetails.Comment, new { @class = "form-control" })
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- payment terms ends -->
+
+        </div>
+    </div>
+    <!-- action buttons starts -->
+    <div class="row text-right pb20">
+        <div class="col-sm-2"></div>
+        <div class="col-sm-10 text-right">
+            @if (CurrentUser.Identity.IsAuthenticated)
+            {
+                <input type="button" value="Cancel" class="btn" onclick="window.history.go(-1);" />
+            }
+            <input name="preview" type="button" value="Prev" class="btn btn-default btn-lg btnPrev" onclick="changeTab(this,'prev')" />
+            <input name="next" type="button" value="Next" class="btn btn-default btn-lg btnNext" onclick="changeTab(this,'next')" />
+            <input type="button" id="Submit" value="@Resource.btnLabelSubmit" class="btn btn-lg btn-primary btnSubmit" />
+        </div>
+    </div>
+    <!-- action buttons ends -->
+    @Html.Hidden("JobStartDate")
+    @Html.Hidden("JobEndDate")
+
+    <div class="side-panel" id="set-tier-price">
+        <div class="side-panel-wrapper">
+            <div class="pa bg-white top0 left0 z-index5 loading-wrapper pricinglider-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+            <div class="pt10 pb0">
+                <a class="ml20 close-panel" onclick="closeTierSlidePanel();"><i class="fa fa-close fs18"></i></a>
+                <h3 class="dib mt0 mb0 ml15">Set Tier Price </h3>
+            </div>
+            <div id="tier-pricing-slider">
+            </div>
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/quantityrange-validate")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/pricing")
+<script type="text/javascript">
+        $.validator.setDefaults({ ignore: "" });
+        var jobId = parseInt($("#@Html.IdFor(m => m.Job.JobId)").val());
+
+            var priviousCityTerminalId = '@Model.FuelDetails.FuelPricing.CityGroupTerminalId';
+            function assignNewCityGroupTerminal() {
+                var selectedCityTerminal = parseInt($('#@Html.IdFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)').val());
+                if (priviousCityTerminalId != selectedCityTerminal && selectedCityTerminal > 0) {
+                    validationMessageFor('@Html.NameFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)', '');
+                    var url = '@Url.Action("IsCityGroupTerminalPriceAvailable", "FuelRequest")';
+                    var data = {
+                        jobid: '@Model.Job.JobId',
+                        fueltypeId: '@Model.FuelDetails.FuelTypeId',
+                        selectedCityRackId: selectedCityTerminal,
+                        sourceId: getPricingSource()
+                    };
+                    if (data.fueltypeId > 0 && data.jobid > 0) {
+                        $("#EstimatedPPG").text("");
+                        $(".cityrack-loader").show();
+                        $.get(url, data, function (response) {
+                            if (response === false) {
+                                validationMessageFor('@Html.NameFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)', '@Resource.errMessageTerminalPriceNotAvailable');
+                                $('#@Html.IdFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)').multiselect('select', ['noneselected']);
+                                $(".cityrack-loader").hide();
+                            }
+                            else {
+                                validationMessageFor('@Html.NameFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)', '');
+                                $('#@Html.IdFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalStateId)').val(selectedCityTerminal);
+                                $(".cityrack-loader").hide();
+                            }
+                            priviousCityTerminalId = selectedCityTerminal;
+                        });
+                    }
+                }
+            }
+
+
+        function ShowHideFTLPricingControls() {
+        }
+
+        $(document).ready(function () {
+            $(".enum-ddl option[value='0']").remove();
+            updateFeesHeader('@Model.FuelDetails.IsFTLEnabled' == 'True' ? '@((int)TruckLoadTypes.FullTruckLoad)' : '@((int)TruckLoadTypes.LessTruckLoad)');
+            updateFeesUrls('@Model.FuelDetails.IsFTLEnabled' == 'True' ? '@((int)TruckLoadTypes.FullTruckLoad)' : '@((int)TruckLoadTypes.LessTruckLoad)');
+            if ($('.ddl-pricing-source').length > 0) {
+                $('.ddl-pricing-source').trigger('change');
+            }
+
+            var isTierPricing = '@Model.FuelDetails.IsTierPricing';
+            if (isTierPricing == 'True') {
+                $('#pricing-section-container').hide();
+            }
+
+            DisplayRackAvgType(".pricing-type")
+            checkStatus('qualification-check', 'qualification');
+            var IsCounterOffer = true;
+            $("#Submit").click(function (e) {
+                var quantityRangMsg = '@Resource.valMessageQuantityNotInRange';
+                var specialDateVal = '@((int)FeeConstraintType.SpecialDate)';
+                var specialDateErrorMsg = '@Resource.valMessageSpecialFeesDuplicate';
+
+                var isTierBasedPricingEnabled = $('#IsTierPricing').prop('checked');
+                if (isTierBasedPricingEnabled) {
+                    $('#@Html.IdFor(m => m.FuelDetails.FuelPricing.PricePerGallon)').val(0);
+                    $('#@Html.IdFor(m => m.FuelDetails.FuelPricing.FuelPricingDetails.PricingCode.Id)').val(0);
+                }
+
+                var isvalid = $("form").valid() && ValidateRangeCoversTotalQuantity(quantityRangMsg) && validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+
+                if (isvalid) {
+                    var selectedPricingType = parseInt($('input[name="@Html.NameFor(m => m.FuelDetails.FuelPricing.PricingTypeId)"]:checked').val());
+                    if (selectedPricingType == '@((int)PricingType.Suppliercost)') {
+                        GetGlobalCost(e);
+                    }
+                    else {
+                        validationMessageFor($("#@Html.IdFor(m=>m.FuelDetails.FuelPricing.PricingTypeId)").attr('name'), '');
+                        var url = "@Url.Action("Save")";
+                        if (IsCounterOffer == true) {
+                            url = "@Url.Action("CounterOffer")";
+                        }
+                        $("form").attr("action", url);
+                        $("form").submit();
+                    }
+                }
+                else {
+                    e.preventDefault();
+                    showInvalidTab();
+                }
+            });
+
+            if ('@Model.FuelDetails.FuelDisplayGroupId' == '@((int)ProductDisplayGroups.OtherFuelType)') {
+                radioChange(null, null, 'wrapper-rackprice,wrapper-suppliercost,city-groupterminal,chkcity-groupterminal');
+            }
+            fillCityGroupTerminals('@Model.FuelDetails.FuelPricing.CityGroupTerminalStateId', '@Model.FuelDetails.FuelPricing.CityGroupTerminalId');
+
+            if ('@(Model.FuelDeliveryDetails.DeliveryTypeId)' == '@((int)DeliveryType.OneTimeDelivery)') {
+                $('.weekend-fee-types').hide();
+            }
+            $("#btnCalculate").on("click", function () {
+                var isValidRackPrice =$("#@Html.IdFor(m => m.FuelDetails.FuelPricing.RackPrice)").valid();
+                var isValidFuelType =$("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").valid();
+                var jobId = $("#@Html.IdFor(m=>m.Job.JobId)").val();
+                var sourceId = $('.ddl-pricing-source').length > 0 ? $('.ddl-pricing-source').val() : @((int)PricingSource.Axxis);
+                if (isValidRackPrice && isValidFuelType) {
+                    var data = {
+                        jobId: jobId,
+                        productId: $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").val(),
+                        rackType: $("#@Html.IdFor(m => m.FuelDetails.FuelPricing.RackAvgTypeId)").val(),
+                        rackPrice: $("#@Html.IdFor(m => m.FuelDetails.FuelPricing.RackPrice)").val(),
+                        includeTaxes: $("#@Html.IdFor(m => m.FuelDetails.FuelPricing.IncludeTaxes)").is(":checked"),
+                        marketBasedType: $("#@Html.IdFor(m => m.FuelDetails.FuelPricing.MarkertBasedPricingTypeId)").val(),
+                        cityRackTerminalId: $("#@Html.IdFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)").val(),
+                        sourceId: sourceId,
+                    };
+
+                    var url = $(this).attr("data-url");
+                    $(".calculate-wrapper").removeClass("hide-element");
+                    $.get(url, data, function (response) {
+                        $("#EstimatedPPG").text(response);
+                    }).always(function () { $(".calculate-wrapper").addClass("hide-element"); });
+                }
+            });
+        });
+
+        function GetGlobalCost(e) {
+            var selectedFuelTypeId = $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").val();
+            var jobStateId = @Model.Job.State.Id;
+           var uom=$("#@Html.IdFor(m => m.FuelDetails.FuelQuantity.UoM)").val();
+            $.get("@Url.Action("GetGlobalFuelCost", "Order",new { area="Supplier" })", { fuelTypeId: selectedFuelTypeId, jobStateId: jobStateId,uom:uom, currency: @((int)Model.Job.Country.Currency) },
+                function (response) {
+                    if (response != 0) {
+                        validationMessageFor($("#@Html.IdFor(m=>m.FuelDetails.FuelPricing.PricingTypeId)").attr('name'), '');
+                        var url = "@Url.Action("Save")";
+						if (('@Model.IsCounterOffer').toLowerCase() == 'true') {
+							url = "@Url.Action("CounterOffer")";
+						}
+						$("form").attr("action", url);
+						$("form").submit();
+                    }
+                    else {
+                        validationMessageFor($("#@Html.IdFor(m=>m.FuelDetails.FuelPricing.PricingTypeId)").attr('name'), '@ResourceMessages.GetMessage(Resource.ErrorGlobalCostNotProvidedForCounterOffer)');
+                        e.preventDefault();
+                        showInvalidTab();
+                    }
+                });
+        }
+
+        function DisplayRackAvgType(element) {
+            var selected = $(element).find('option:selected').val();
+            if (selected == "@((int)PricingType.RackAverage)") {
+                $(".partialTier .tier").removeClass('pntr-none subSectionOpacity');
+            }
+            else {
+                $(".partialTier .tier").addClass('pntr-none subSectionOpacity');
+            }
+		}
+</script>
+}
+

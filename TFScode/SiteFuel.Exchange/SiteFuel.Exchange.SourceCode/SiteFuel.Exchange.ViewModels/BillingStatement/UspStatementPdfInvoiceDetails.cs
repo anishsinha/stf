@@ -1,0 +1,101 @@
+﻿using SiteFuel.Exchange.Utilities;
+using System;
+
+namespace SiteFuel.Exchange.ViewModels
+{
+    public class UspStatementPdfInvoiceDetails
+    {
+        public string FuelType { get; set; }
+        public DateTimeOffset DropStartDate { get; set; }
+        public DateTimeOffset DropEndDate { get; set; }
+        public DateTimeOffset PaymentDueDate { get; set; }
+        public decimal DroppedGallons { get; set; }
+        public decimal PricePerGallon { get; set; }
+        public decimal BasicAmount { get; set; }
+        public decimal? TotalFeeAmount { get; set; }
+        public decimal TotalTaxAmount { get; set; }
+        public decimal TotalDiscountAmount { get; set; }
+        public string PoNumber { get; set; }
+        public string JobName { get; set; }
+        public string DisplayJobID { get; set; }
+        public string CustomAttribute { get; set; }
+        public string Address { get; set; }
+        public string City { get; set; }
+        public string ZipCode { get; set; }
+        public string StateCode { get; set; }
+        public int WaitingFor { get; set; }
+        public bool IsApprovalWorkflowEnabled { get; set; }
+        public bool IsFTL { get; set; }
+        public string BOL { get; set; }
+        public string LiftTicketNumber { get; set; }
+        public decimal? LiftQuantity { get; set; }
+        public decimal? GrossGallons { get; set; }
+        public decimal? NetGallons { get; set; }
+        public string QbInvoiceNumber { get; set; }
+        public int Version { get; set; }
+        public Currency Currency { get; set; }
+        public UoM UoM { get; set; }
+        public int InvoiceTypeId { get; set; }
+        public string TerminalName { get; set; }
+        public string DisplayInvoiceNumber { get; set; }
+        public string InvoiceNumber { get; set; }
+        public string CityGroupTerminalName { get; set; }
+        public string FuelDescription { get; set; }
+        public int FuelDisplayGroup { get; set; }
+        public int ProductDisplayGroupId { get; set; }
+        public int PricingTypeId { get; set; }
+        public decimal RackPrice { get; set; }
+        public string PricePerGallonDisplay { get; set; }
+        public int? ExternalBrokerOrder { get; set; }
+        public bool IsBuyPriceInvoice { get; set; }
+        public decimal? BrokerMarkUp { get; set; }
+        public decimal? SupplierMarkUp { get; set; }
+        public int? AssetDropId { get; set; }
+        public DateTimeOffset? AssetDropStartDate { get; set; }
+        public int? DropStatus { get; set; }
+        public string TaxExemptionInd { get; set; }
+        public int? SpecialInstructionId { get; set; }
+        public bool IsNewAsset { get; set; }
+        public bool IsModified { get; set; }
+        public bool IsInstructionFollowed { get; set; }
+        public string VehicleId { get; set; }
+        public DateTimeOffset? AssetDropEndDate { get; set; }
+        public decimal? AssetDroppedGallons { get; set; }
+        public string Instruction { get; set; }
+        public string AssetName { get; set; }
+        public string SubcontractorName { get; set; }
+        public int? FeeId { get; set; }
+        public int? FeeSubTypeId { get; set; }
+        public decimal? Fee { get; set; }
+        public int? FeeConstraintTypeId { get; set; }
+        public decimal? FeeSubQuantity { get; set; }
+        public decimal? TotalFee { get; set; }
+        public decimal? MinimumGallons { get; set; }
+        public DateTimeOffset? SpecialDate { get; set; }
+        public int? OtherFeeTypeId { get; set; }
+        public int? FeeTypeId { get; set; }
+        public int? DiscountLineItemId { get; set; }
+        public bool IncludeInPPG { get; set; }
+        public bool IsOverWaterDelivery { get; set; }
+        public bool IsWetHosingDelivery { get; set; }
+        public string FeeTypeName { get; set; }
+        public string FeeSubTypeName { get; set; }
+        public int? TaxId { get; set; }
+        public decimal? TradingTaxAmount { get; set; }
+        public string RateDescription { get; set; }
+        public string OtherFeeDescription { get; set; }
+        public string DispatchAddress { get; set; }
+        public string DispatchLocation { get; set; }
+        public string TerminalAddress { get; set; }
+        public string TerminalLocation { get; set; }
+        public int? LocationType { get; set; }
+        public int? DispatchLocationId { get; set; }
+        public decimal? TotalAllowance { get; set; }
+        public int SurchargePricingType { get; set; }
+        public decimal? SurchargePercentage { get; set; }
+        public DateTimeOffset? StartTime { get; set; }
+        public DateTimeOffset? EndTime { get; set; }
+        public InvoiceStatus InvoiceStatus { get; set; }
+        public int InvoiceNumberId { get; set; }
+    }
+}

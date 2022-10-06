@@ -1,0 +1,122 @@
+﻿@model int
+@{
+    SelectList externalSupplierStatuses = new SelectList(
+                               new List<SelectListItem>
+                                       {
+                                            new SelectListItem { Text = "New", Value = ((int)ExternalSupplierStatuses.New).ToString()},
+                                            new SelectListItem { Text = "In Progress", Value = ((int)ExternalSupplierStatuses.InProgress).ToString()},
+                                            new SelectListItem { Text = "Complete", Value = ((int)ExternalSupplierStatuses.Completed).ToString()},
+                                        },
+                               "Value", "Text");
+}
+<div class="row">
+    <div class="col-sm-12 col-12">
+        <h4>@Resource.tabHeadingStatus</h4>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xs-7 col-sm-3">
+        <div class="form-group mb10">
+            @Html.Label(Resource.lblChangeStatus)
+            @Html.DropDownList("ChangeStatusId", externalSupplierStatuses, new { @class = "form-control onchange-select-showhide" })
+        </div>
+    </div>
+    <div class="col-xs-3">
+        <div class="col-sm-12 text-left pl0">
+            <label class="db">&nbsp;</label>
+            <input type="button" class="btn btn-primary mb10" id="btnSaveExternalSupplierStatus" value="@Resource.btnLabelSave" />
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="external-supplier-status-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th>@Resource.gridColumnDateAdded</th>
+                                    <th>@Resource.gridColumnAddedBy</th>
+                                </tr>
+                            </thead>                            
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+
+        var externalSupplierStatusDataTable;
+
+        $(document).ready(function () {
+
+            externalSupplierStatusDataTable = $('#external-supplier-status-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetExternalSupplierStatuses", "SuperAdmin", new { area ="SuperAdmin", id=Model })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    { "data": "Status", "autoWidth": true },
+                    { "data": "DateAdded", "autoWidth": true },
+                    { "data": "AddedBy", "autoWidth": true }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingExternalSupplierStatuses' },
+                    { extend: 'excel', title: '@Resource.headingExternalSupplierStatuses'},
+                    { extend: 'pdf', title: '@Resource.headingExternalSupplierStatuses'},
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+
+             $("#btnSaveExternalSupplierStatus").click(function () {
+          var url = "@Url.Action("ChangeExternalSupplierStatus", "SuperAdmin", new { area ="SuperAdmin"})?externalSupplierId=@Model&statusId=" + $("#Id_ChangeStatusId").val();
+          $.get(url, function (response) {
+                if (response == '@((int)Status.Failed)') {
+                    showSuccessErrorMsg(response);
+                }
+                else {
+                    externalSupplierStatusDataTable.ajax.url("@Url.Action("GetExternalSupplierStatuses", "SuperAdmin", new { area ="SuperAdmin", id=Model })");
+                    externalSupplierStatusDataTable.ajax.reload();
+                }
+            });
+            });
+        });
+
+
+
+    </script>
+}

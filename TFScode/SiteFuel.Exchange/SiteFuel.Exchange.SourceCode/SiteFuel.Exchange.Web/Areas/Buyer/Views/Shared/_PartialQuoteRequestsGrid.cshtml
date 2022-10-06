@@ -1,0 +1,141 @@
+﻿@model QuoteRequestDataTableModel
+<div class="row">
+    <div class="col-sm-12">
+        @if (Model.JobId > 0)
+        {
+            <h4>@Resource.lblQuoteRequests</h4>
+        }
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div id="requestsForQuote" class="table-responsive">
+                        <table id="requests-for-quotes-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnQuoteNo</th>
+                                    <th>@Resource.gridColumnJob</th>
+                                    <th>@Resource.gridColumnFuelType</th>
+                                    <th class="uom-by-country"><span class="uom-lbl"></span> @Resource.lblRequested</th>
+                                    <th>@Resource.gridColumnQuoteDueDate</th>
+                                    <th>@Resource.gridColumnQuotesNeeded</th>
+                                    <th>@Resource.gridColumnQuotesReceived</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+        var requestForQuotesDataTable;
+        $(document).ready(function () {
+            $('#txtQuoteRQFromDate').val(GetLocalStorage('txtQuoteRQFromDate'));
+            $('#txtQuoteRQToDate').val(GetLocalStorage('txtQuoteRQToDate'));
+            SetUoMCurrencyAndRacklables();
+            ClearFilter = function () {
+                $('#txtQuoteRQFromDate').val('');
+                $('#txtQuoteRQToDate').val('');
+                $('#txtQuoteRQToDate').data("DateTimePicker").minDate($("#txtQuoteRQFromDate").datetimepicker("minDate"));
+                ReloadDataTable();
+            }
+
+            if ($('#txtQuoteRQFromDate').length > 0 && $('#txtQuoteRQToDate').length > 0) {
+                $("#txtQuoteRQFromDate").on('dp.change dp.show', function (e) {
+                    if (e.date == false)
+                        $('#txtQuoteRQToDate').data("DateTimePicker").minDate($("#txtQuoteRQFromDate").datetimepicker("minDate"));
+                    else
+                        $('#txtQuoteRQToDate').data("DateTimePicker").minDate(moment($('#txtQuoteRQFromDate').val()));
+                });
+            }
+
+            requestForQuotesDataTable = $('#requests-for-quotes-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("QuoteRequestGrid", "Quote", new { area ="Buyer" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "data": function (data) {
+                        var quoteRequestFilter = {
+                            JobId: '@Model.JobId',
+                            Filter: '@Model.Filter',
+                            StartDate: $('#txtQuoteRQFromDate').val(),
+                            EndDate: $('#txtQuoteRQToDate').val(),
+                            Currency: getSelectedCountryAndCurrency().currencyType,
+                            CountryId: getSelectedCountryAndCurrency().countryId
+                        };
+                        $('#requestsForQuote').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                         return quoteRequestFilter;
+                    },
+                    "dataSrc": function (json) {
+                        $("#requestsForQuote").find('.loading-wrapper').remove();
+                        return json;
+                    }
+				},
+                "columns":
+                [
+                    {
+                        "data": function (data, type, row, meta) {
+                            var viewUserUrl = '@Url.Action("Details", "Quote", new { area = "Buyer" })';
+                            return '<a href=' + viewUserUrl + '/' + data.Id + '>' + data.QuoteNumber + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "JobName", "autoWidth": true },
+                    { "data": "FuelType", "autoWidth": true },
+                    { "data": "GallonsRequested", "autoWidth": true },
+                    { "data": "QuoteDueDate", "autoWidth": true },
+                    { "data": "QuotesNeeded", "autoWidth": true },
+                    { "data": "QuotesReceived", "autoWidth": true },
+                     { "data": "Status", "autoWidth": true }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json)
+                {
+                    wrapperHeight();
+                    tabGridHeader(this);
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingAppSettings' },
+                    { extend: 'excel', title: '@Resource.headingAppSettings' },
+                    { extend: 'pdf', title: '@Resource.headingAppSettings' },
+
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+
+
+        });
+        function ReloadDataTable() {
+            SetLocalStorage('txtQuoteRQFromDate', $('#txtQuoteRQFromDate').val());
+            SetLocalStorage('txtQuoteRQToDate', $('#txtQuoteRQToDate').val());
+            requestForQuotesDataTable.ajax.reload();
+        }
+</script>
+
+
+
+

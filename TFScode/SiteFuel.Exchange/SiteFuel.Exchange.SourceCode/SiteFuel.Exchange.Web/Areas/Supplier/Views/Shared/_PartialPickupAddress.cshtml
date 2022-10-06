@@ -1,0 +1,187 @@
+﻿@model DropAddressViewModel
+<!-- address starts -->
+        <div class="row">
+            <div class="col-md-12 address-container">
+                <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                <div class="address-controls">
+                    <div class="checkbox mt0">
+                        <label>
+                            @Html.CheckBoxFor(m => m.IsAddressAvailable, new { onclick = "showHideonCheckbox(this,'pickup-required-fields')", onchange = "ShowHideBolControls();" })
+                            Fuel picked up from bulk plant
+                        </label>
+                    </div>
+                    <div class="row combineDiv">
+                        <div class="pickup-required-fields row col-sm-12">
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.HiddenFor(m => m.SiteId)
+                                    @Html.LabelFor(m => m.SiteName)
+                                    @Html.TextBoxFor(m => m.SiteName, new { @class = "form-control sitename addressInput pickup-taxchange", onblur = "getbulkplantaddress();" })
+                                    @Html.ValidationMessageFor(m => m.SiteName)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.Address)
+                                    @Html.TextBoxFor(m => m.Address, new { @class = "form-control address addressInput pickup-taxchange disable-pickup-controls" })
+                                    @Html.ValidationMessageFor(m => m.Address)
+                                </div>
+                            </div>
+                            <div class="col-xs-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.ZipCode)
+                                    @Html.TextBoxFor(m => m.ZipCode, new { @class = "form-control zipcode addressInput pickup-taxchange disable-pickup-controls" })
+                                    @Html.ValidationMessageFor(m => m.ZipCode)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.City)
+                                    @Html.TextBoxFor(m => m.City, new { @class = "form-control city addressInput disable-pickup-controls" })
+                                    @Html.ValidationMessageFor(m => m.City)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.HiddenFor(m => m.State.Name, new { @Value = Resource.lblDummy, @class = "statename" })
+                                    @Html.HiddenFor(m => m.State.Code, new { @Value = Model.State.Code ?? Resource.lblDummy, @class = "statecode" })
+                                    @Html.LabelFor(m => m.State.Id)
+                                    @Html.DropDownListFor(m => m.State.Id, new SelectList(CommonHelperMethods.GetStatesOfAllCountries(), "StateId", "StateName", Model.State.Id), new { @class = "form-control pickup state addressInput disable-pickup-controls" })
+                                    @Html.ValidationMessageFor(m => m.State.Id)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.HiddenFor(m => m.Country.Name, new { @Value = Resource.lblDummy, @class = "countryname" })
+                                    @Html.HiddenFor(m => m.Country.Code, new { @Value = Model.Country.Code ?? Resource.lblDummy, @class = "countrycode" })
+                                    @Html.HiddenFor(m => m.CountyName, new { @Value = Model.CountyName ?? Resource.lblDummy, @class = "county" })
+                                    @Html.LabelFor(m => m.Country.Id)
+                                    @Html.DropDownListFor(m => m.Country.Id, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.Country.Id), new { @class = "form-control country addressInput disable-pickup-controls" })
+                                    @Html.ValidationMessageFor(m => m.Country.Id)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @Html.HiddenFor(m => m.IsGeocodeUsed)
+                    @Html.HiddenFor(m => m.Latitude, new { @class= "latitude" })
+                    @Html.HiddenFor(m => m.Longitude, new { @class = "longitude" })
+                </div>
+            </div>
+        </div>
+<!-- address ends -->
+<script src="~/Content/js/common-supplier.js"></script>
+<script>
+    function getbulkplantaddress() {
+        var bulkPlantName = $("#@Html.IdFor(m => m.SiteName)").val();
+        var siteId = parseInt($("#@Html.IdFor(m => m.SiteId)").val());
+        if (bulkPlantName == null || bulkPlantName == '' || siteId == 0) {
+           clearPickupControls();
+            return false;
+        }
+
+        var bulkPlantDetailsurl = "@Url.Action("GetBulkPlantDetails","Dispatch", new { area = "Supplier"})";
+        bulkPlantDetailsurl += '?name=' + bulkPlantName;
+        $.ajax({
+            type: "GET",
+            url: bulkPlantDetailsurl,
+            dataType: "json",
+            success: function (data) {
+                if (data.ZipCode == null || data.ZipCode == '' || data.ZipCode == undefined) {
+                    clearPickupControls();
+                }
+                else {
+                    var address = data.Address;
+                    var city = data.City;
+                    var countyname = data.CountyName;
+                    var zipcode = data.ZipCode;
+                    var code = data.Country.code;
+                    var statecode = data.Code;
+                    var countryId = data.Country.Id
+                    var stateId = data.State.Id;
+                    var siteId = data.SiteId;
+
+                    $("#@Html.IdFor(m => m.Address)").val(address);
+                    $("#@Html.IdFor(m => m.City)").val(city);
+                    $("#@Html.IdFor(m => m.ZipCode)").val(zipcode).trigger("change");
+                    $("#@Html.IdFor(m => m.Country.Id)").val(countryId);
+                    $("#@Html.IdFor(m => m.State.Id)").val(stateId);
+                    $("#@Html.IdFor(m => m.SiteId)").val(siteId);
+                    $(".disable-pickup-controls").attr('readonly', true);
+                }
+            },
+            error: function (error) {
+                $(".disable-pickup-controls").removeAttr('readonly');
+                console.log(error);
+            }
+        });
+    }
+
+    function clearPickupControls() {
+        $("#@Html.IdFor(m => m.Address)").val('');
+        $("#@Html.IdFor(m => m.City)").val('');
+        $("#@Html.IdFor(m => m.CountyName)").val('');
+        $("#@Html.IdFor(m => m.ZipCode)").val('');
+        $("#@Html.IdFor(m => m.Country.Id)").val(1);
+        $("#@Html.IdFor(m => m.State.Id)").val(1);
+        $("#@Html.IdFor(m => m.Longitude)").val('');
+        $("#@Html.IdFor(m => m.Latitude)").val('');
+        $("#@Html.IdFor(m => m.TimeZoneName)").val('');
+        $("#@Html.IdFor(m => m.SiteId)").val(0);
+        $(".disable-pickup-controls").each(function () {
+            $(this).removeAttr('readonly');
+        });
+    }
+
+    var bulkPlantUrl = "@Url.Action("GetBulkPlants","Dispatch",new { area = "Supplier"})";
+    $(document).ready(function () {
+        var element = "#@Html.IdFor(m => m.SiteName)";
+        var siteId = parseInt($("#@Html.IdFor(m => m.SiteId)").val());
+        if (siteId > 0)
+            $(".disable-pickup-controls").attr('readonly', true);
+        autoCompleteTextBoxforAddress(element, bulkPlantUrl);
+        function autoCompleteTextBoxforAddress(element, url) {
+            var target = $(element);
+            target.focus(function () {
+                $(this).autocomplete("search", $(this).val());
+            });
+            target.autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        dataType: "json",
+                        data: { Prefix: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item.Name
+                                };
+
+                            }))
+                        }
+                    });
+                },
+                messages: {
+                    noResults: '',
+                    results: function () { }
+                },
+                minLength: 0,
+                maxShowItems: 5,
+                scroll: true,
+                select: function (event, ui) {
+                    $(".disable-pickup-controls").attr('readonly', true);
+                    var bulkPlantName = ui.item.label;
+                    var bulkPlantId = ui.item ? ui.item.value : 0;
+                    $("#@Html.IdFor(m => m.SiteName)").val(bulkPlantName);
+                    $("#@Html.IdFor(m => m.SiteId)").val(bulkPlantId);
+                    return false;
+                }  // select end
+            });// autocomplete end
+            $.ui.autocomplete.prototype._resizeMenu = function () {
+                var ul = this.menu.element;
+                ul.outerWidth(this.element.outerWidth());
+            }
+        }
+
+    });
+</script>

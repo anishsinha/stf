@@ -1,0 +1,114 @@
+﻿@model AdditionalUsersViewModel
+@{
+   ViewBag.Title = "Invited Company User";
+}
+
+@using (Html.BeginForm("AddExternalCompanyUsers", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form" }))
+{
+    @Html.AntiForgeryToken()
+    <!-- job details starts -->
+    <div class="col-sm-12">
+        <div class="row well">
+            <div class="col-sm-12">
+                <h4>@Resource.headingCompanyUsers</h4>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div id="invite-user-section" class="@(CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierAdmin ? "row partial-section" :"row partial-section disable-controls")">
+                            @Html.HiddenFor(m => m.UserId)
+                            <div class="partial-block-collection-section col-12 col-sm-12">
+                                @if (Model.AdditionalUsers != null && Model.AdditionalUsers.Count() > 0)
+                                    {
+                                        foreach (var additionalUser in Model.AdditionalUsers)
+                                        {
+ 
+                                            Html.RenderPartial("_PartialAdditionalUsers", additionalUser);
+                                         
+                                        }
+                                 }
+                                 else
+                                 {
+                                    Html.RenderPartial("_PartialAdditionalUsers", new AdditionalUserViewModel() { CompanyTypeId = Model.CompanyTypeId });
+                                 }
+                                
+                            </div>
+                            @*@if (Model.DisplayMode == PageDisplayMode.Create)
+                            {
+                                <div class="form-group col-12 col-sm-12">
+                                    <a href="javascript:void(0)" class="fs18 add-partial-block" data-url="@Url.Action("InviteAdditionalUsers", "Profile" , new { area = "Settings"})">
+                                        <i class="fa fa-plus-circle fs18 float-left mb10"></i><span class="fs14 float-left">@Resource.btnLabelAddAnother</span>
+                                    </a>
+                                </div>
+                            }*@
+                        </div>
+                    </div>
+                    <div class="col-sm-12">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row text-right mb25">
+            <div class="col-sm-12">
+                @*@if ((CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsSuperAdmin || CurrentUser.IsAccountSpecialist || CurrentUser.IsCarrierAdmin) && Model.DisplayMode != PageDisplayMode.Create && Model.AdditionalUsers.Any() && Model.AdditionalUsers[0].IsInvitedUser)
+                {
+                    <div class="text-left float-left">
+                        <input type="button" class="btn btn-lg btn-default" value="@Resource.lblResendInvitationLink" onclick="resendInvitationLink();" />
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                    </div>
+                }*@
+                <div class="text-right">
+                    <input type="button" class="btn" value="Deny" id="btnCancel"/>
+                    <input type="submit" class="btn btn-lg btn-primary disable-when-no-partialblock" id="btnSave" value="Allow"  />
+            
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- job details ends -->
+}
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+		function showMessage(element)
+		{
+			if ($.inArray('@((int)UserRoles.Admin)', $(element).val()) != -1 && $(element).val().length > 1) {
+				$(element).closest('div').next().addClass('show-element').removeClass('hide-element');
+            }
+            else {
+				$(element).closest('div').next().addClass('hide-element').removeClass('show-element');
+            }
+        }
+        $(document).on('change', '.user-roles', function () {
+            var $this = $(this);
+            var selectedRoles = $this.val();
+            var driverInfo = $this.closest('.partial-block').find('.driver-other-info');
+            if ($.inArray('@((int)UserRoles.Driver)', selectedRoles) >= 0) {
+                driverInfo.show();
+            }
+            else {
+                driverInfo.find('.partial-section .fa-trash-alt').each(function (idx, elem) {
+                    $(elem).click();
+                });
+                driverInfo.hide();
+            }
+        });
+        $(document).on('change', '.card-terminallist', function () {
+            var $this = $(this);
+            var terminalId = $this.find('option:selected').val();
+            var terminalName = $this.find('option:selected').text();
+            var selTerminal = $this.closest('.partial-block').find('.card-termnalname');
+            if (terminalId > 0) {
+                selTerminal.val(terminalName);
+            }
+            else {
+                selTerminal.val('');
+            }
+        });
+
+         $('#btnCancel').click(function (e) {
+            window.location.href = '@Url.Action("CompanyUsers", "Profile", new { area = "Settings"})';
+            window.location.reload(true);
+        });
+
+    </script>
+}

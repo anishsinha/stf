@@ -1,0 +1,1437 @@
+﻿@model OrderDetailsViewModel
+
+@{
+    ViewBag.Title = "Edit Order";
+}
+<script src="~/Content/js/common-supplier.js"></script>
+<style type="text/css">
+    .hide-billing-address-radio {
+        display: block;
+    }
+</style>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="row">
+            <div class="col-sm-5 mb10 tab-headers dib">
+                <a id="tab-details" href="javascript:void(0)" onclick="showsection('order-details'), activelink(this), inputBoxShowHide(null, 'download')" class="active mr20">
+                    <div class="step-inprogress fs18">
+                        <span class="f-light step-text float-left">@Resource.tabheadingDetails</span>
+                    </div>
+                </a>
+            </div>
+            <div class="col-sm-7 col-xs-12 text-right xs-left">
+                <div class="btn-group">
+                    <button id="auto-btnorderaction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                    <ul class="dropdown-menu dropdown-menu-right ">
+                        @if (Model.StatusId == (int)OrderStatus.Open)
+                        {
+                            if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)
+                            {
+                                if (Model.FuelRequestTypeId == (int)FuelRequestType.ThirdPartyRequest)
+                                {
+                                    <li class="dropdown-item"><a href="@Url.Action("Details", "Order", new { area = "Supplier", id = Model.Id })">@Resource.btnLabelCancelEdit</a></li>
+                                    <li role="separator" class="divider"></li>
+                                }
+                            }
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="panel-section hide-element bg-white radius-5 animated slideInLeft pa">
+            <a href="#." class="pa fs25 right0 top0 color-darkgrey mr15 mt5 z-index5" onclick="closePanel()">×</a>
+            <div class="pt15 pb15 ph20">
+                <div class="row mt15">
+                    <div class="col-md-6 mb10">
+                        @if (Model.FuelDetails.FuelQuantity.QuantityTypeId != (int)QuantityType.NotSpecified)
+                        {
+                            <div class="no-margins fs18 float-left" id="auto-lblgallons">@Model.GallonsOrdered.GetCommaSeperatedValue()</div>
+                            <span class="float-left fs11 pt8 pl2">@Model.FuelDetails.FuelQuantity.UoM</span>
+                        }
+                        else
+                        {
+                            <div class="no-margins fs18 float-left" id="auto-lblgallons">@Resource.lblHyphen</div>
+                        }
+                        <span class="fs12 float-left clearboth">@Resource.lblGallonsOrdered</span>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <div class="no-margins fs18 float-left" id="auto-lbldelivered">@Model.GallonsDelivered.GetCommaSeperatedValue()</div>
+                        <span class="float-left fs11 pt8 pl2">@Model.FuelDetails.FuelQuantity.UoM</span>
+                        <span class="fs12 float-left clearboth">@Resource.lblGallonsDelivered</span>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <div class="no-margins fs18 float-left" id="auto-lblppg">@Resource.constSymbolCurrency@Model.AvgPricePerGallon.GetPreciseValue(2)</div>
+                        <span class="currency-symbol float-left fs11 pt8 pl2">@Model.FuelDetails.FuelPricing.Currency</span>
+                        <span class="fs12 clearboth float-left">@(string.Format(Resource.lblAvgPricePerDrop, Model.FuelDetails.FuelPricing.Currency == Currency.CAD ? "PPU" : "PPU"))</span>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <div class="no-margins fs18 float-left">@Model.AvgGallonsPercentagePerDelivery.GetPreciseValue(2).GetCommaSeperatedValue()</div>
+                        <span class="float-left fs11 pt8 pl2">@Model.FuelDetails.FuelQuantity.UoM</span>
+                        <span class="fs12 float-left clearboth">@Resource.lblAvgGallonsDrop</span>
+                    </div>
+                </div>
+            </div>
+            <div class="border-b-dash ml20 mr20 clearboth"></div>
+            <div class="pt15 pb15 ph20">
+                <h4>@Resource.lblNextScheduledDelivery</h4>
+                <div class="row">
+                    <div class="text-center pt10">
+                        @if (Model.NextDeliverySchedule.Count == 0)
+                        {
+                            <h3 class="l-height22 f-normal fs16 mt10">@Resource.lblHyphen</h3>
+                        }
+                        else
+                        {
+                            foreach (var nextSchedule in Model.NextDeliverySchedule)
+                            {
+                                <h3 id="auto-txtnextdeliveryschedule" class="l-height22 f-normal fs16 mt10">
+                                    @nextSchedule.ScheduleDate<br />
+                                    @nextSchedule.ScheduleTime<br />
+                                    <span class="fs14">@nextSchedule.Quantity</span>
+                                </h3>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="border-b-dash ml20 mr20 clearboth"></div>
+            <div class="pt15 pb15 ph20">
+                @Html.Partial("_PartialNewsfeeds")
+            </div>
+        </div>
+        <div class="tab-container">
+            <div class="mb10 panel-icon">
+                <a href="javascript:void(0)" class="radius-5 dib text-center" onclick="loadSidePanel();">
+                    @Resource.lblOrderInfo
+                </a>
+            </div>
+            <div id="order-details">
+                @using (Html.BeginForm("Edit", "Order", FormMethod.Post, new { id = "editTpoDetails" }))
+                {
+                    @Html.HiddenFor(m => m.BuyerCompanyId)
+                    @Html.HiddenFor(m => m.FuelRequestId)
+                    @Html.HiddenFor(m => m.BuyerUserId)
+                    @Html.HiddenFor(m => m.Supplier.Email)
+                    @Html.HiddenFor(m => m.Supplier.Name)
+                    @Html.HiddenFor(m => m.Id)
+                    @Html.HiddenFor(m => m.PaymentTermId)
+                    @Html.HiddenFor(m => m.PreferencesSettingId)
+                    @Html.HiddenFor(m => m.IsSupressOrderPricing)
+                    @Html.HiddenFor(m => m.OrderAdditionalDetails.FreightPricingMethod)
+                    <!-- order details starts -->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4 class="dib">@Resource.headingOrder</h4>
+                                <div class="dib pull-right pt5">
+                                    <div id="auto-lblstatus" class="dib mt3">
+                                        @if (Model.StatusId == (int)OrderStatus.Open)
+                                        {
+                                            <div><label class="label label-warning">@(CommonHelperMethods.GetName<OrderStatus>(Model.StatusId))</label></div>
+                                        }
+                                        else if (Model.StatusId == (int)OrderStatus.Closed)
+                                        {
+                                            <div><label class="label label-danger">@(CommonHelperMethods.GetName<OrderStatus>(Model.StatusId))</label></div>
+                                        }
+                                        else if (Model.StatusId == (int)OrderStatus.Canceled)
+                                        {
+                                            <div><label class="label label-danger">@(CommonHelperMethods.GetName<OrderStatus>(Model.StatusId))</label></div>
+                                        }
+                                    </div>
+                                    @if (!Model.IsProFormaPo && Model.FuelDetails.FuelQuantity.QuantityTypeId != (int)QuantityType.NotSpecified)
+                                    {
+                                        <span>@Model.FuelDeliveredPercentage @Resource.lblCompleted</span>
+                                    }
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-3 col-xs-6 mb10">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblPoNumber</label>
+                                            <div class="mb10"><label>@Model.PoNumber</label></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3 col-xs-6 mb10">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblCustomer @Resource.lblFirstName</label>
+                                            @Html.TextBoxFor(m => m.BuyerUserFirstName, new { @class = "form-control" })
+                                            @Html.ValidationMessageFor(m => m.BuyerUserFirstName)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3 col-xs-6 mb10">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblCustomer @Resource.lblLastName</label>
+                                            @Html.TextBoxFor(m => m.BuyerUserLastName, new { @class = "form-control" })
+                                            @Html.ValidationMessageFor(m => m.BuyerUserLastName)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3 col-xs-6 mb10">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblCustomerPhone</label>
+                                            @Html.TextBoxFor(m => m.Supplier.PhoneNumber, new { @class = "form-control input-phoneformat phone" })
+                                            @Html.ValidationMessageFor(m => m.Supplier.PhoneNumber)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3 col-xs-6 mb10">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblCustomerEmail</label>
+                                            @Html.TextBoxFor(m => m.BuyerUserEmail, new { @class = "form-control" })
+                                            @Html.ValidationMessageFor(m => m.BuyerUserEmail)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3 col-xs-6 mb10">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblCompanyName</label>
+                                            @Html.TextBoxFor(m => m.BuyerCompanyName, new { @class = "form-control" })
+                                            @Html.ValidationMessageFor(m => m.BuyerCompanyName)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3 col-xs-6 mb10">
+                                        <div class="form-check form-check-inline">
+                                            @Html.CheckBoxFor(m => m.IsInvitationEnabled, new { @class = "form-check-input", @id = "checkbox-sendinvitation" })
+                                            <label class="form-check-label" for="checkbox-sendinvitation">@Resource.lblSendInvitationLink</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="partial-section" id="contactpersons">
+                                    <div class="partial-block-collection-section row">
+                                        @if (Model.CustomerContacts != null && Model.CustomerContacts.Any())
+                                        {
+                                            foreach (var contactPerson in Model.CustomerContacts)
+                                            {
+                                                contactPerson.EntityNumber = "CustomerContacts";
+                                                Html.RenderPartial("_PartialContactPerson", contactPerson);
+                                            }
+                                        }
+                                    </div>
+                                    <div class="form-group col-md-12 pl0 contactperson">
+                                        <a href="javascript:void(0)" class="add-partial-block" data-url="@Url.Action("ContactPerson", "Order" , new { area="Supplier" , collectionName = "CustomerContacts"} )"><i class="fas fa-plus-circle"></i> @Resource.btnLabelAddContactPerson</a>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    @if (Model.OrderClosingThreshold != null)
+                                    {
+                                        <div class="col-xs-3 col-sm-2 mb10  order-close-threshold">
+                                            <label class="f-normal">@Resource.lblAutomaticallyCloseOrder</label>
+                                            <div id="lblSupplierCompany">@Model.OrderClosingThreshold@Resource.constSymbolPercent @Resource.lblCompleted</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- order details ends -->
+                    <!-- fuel details starts -->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4>@Resource.headingFuel</h4>
+                                <div class="row">
+                                    <div class="col-sm-8 col-md-3 mb15">
+                                        <label class="f-normal">@Resource.lblFuelType</label>
+                                        <div>
+                                            @Model.FuelDetails.FuelType
+                                            @Html.HiddenFor(m => m.FuelDetails.FuelTypeId)
+                                        </div>
+                                    </div>
+                                    @*<div class="col-sm-4 col-md-4">
+                                            <label>@Resource.lblOrderType</label>
+                                            <div class="checkbox mt0">
+                                                <label>
+                                                    @Html.CheckBoxFor(m => m.IsFTLEnabled) @Resource.lblFullTruckLoad
+                                                </label>
+                                            </div>
+                                        </div>*@
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- fuel details ends-->
+                    <!-- Quantity starts -->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4>@Resource.headingQuantity</h4>
+                                @Html.PartialFor("~/Views/Shared/_PartialFuelQuantity.cshtml", m => m.FuelDetails)
+                                @Html.HiddenFor(m => m.GallonsOrdered)
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Quantity starts -->
+                    <!-- invoices & drop ticket starts -->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4>@Resource.headingInvoicesDropTicket</h4>
+                                <div class="row">
+                                    @if (Model.StatusId == (int)OrderStatus.Open && !Model.IsBrokeredOrder)
+                                    {
+                                        <div class="col-md-3 col-xs-6 col-sm-5 @(CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson ? "" : "pntr-none")">
+                                            <label class="f-normal db">@Resource.lblType</label>
+                                            <div id="inv-btn" class="form-check form-check-inline @(Model.IsSupressOrderPricing ? "hide-element" : "")">
+                                                @Html.RadioButtonFor(m => m.IsDefaultInvoiceTypeManual, true, new { @class = "form-check-input", @id = "radio-invoice", onclick = "radioChange(this, null,'invoice-type')" })
+                                                <label class="form-check-label" for="radio-invoice">@Resource.lblInvoice</label>
+                                            </div>
+                                            <div id="ddt-btn" class="form-check form-check-inline">
+                                                @Html.RadioButtonFor(m => m.IsDefaultInvoiceTypeManual, false, new { @class = "form-check-input", @id = "radio-ddt", onclick = "radioChange(this,'invoice-type',null);" })
+                                                <label class="form-check-label" for="radio-ddt">@Resource.lblDDT</label>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="col-sm-2 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblInvoices</label>
+                                        <div class="pntr-none">
+                                            @{ List<string> invoiceList = new List<string>();
+                                                foreach (var invoice in Model.Invoices)
+                                                {
+                                                    invoiceList.Add(@Html.ActionLink(invoice.Name, "Details", "Invoice", new { area = "Supplier", id = invoice.Id }, new { }).ToHtmlString());
+                                                }
+                                                if (invoiceList.Count > 0)
+                                                {
+                                                    @Html.Raw(string.Join("<br />", invoiceList))
+                                                }
+                                                else
+                                                {
+                                                    @Resource.lblHyphen
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-2 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblDropTickets</label>
+                                        <div class="pntr-none">
+                                            @{ List<string> dropTicketList = new List<string>();
+                                                foreach (var dropTicket in Model.DropTickets)
+                                                {
+                                                    dropTicketList.Add(@Html.ActionLink(dropTicket.Name, "Details", "Invoice", new { area = "Supplier", id = dropTicket.Id }, new { }).ToHtmlString());
+                                                }
+                                                if (dropTicketList.Count > 0)
+                                                {
+                                                    @Html.Raw(string.Join("<br />", dropTicketList))
+                                                }
+                                                else
+                                                {
+                                                    @Resource.lblHyphen
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-2 mb10">
+                                        <label class="f-normal">@Resource.lblDDT</label>
+                                        <div class="form-check form-check-inline @(@Model.ExternalBrokerId > 0 ? "pntr-none subSectionOpacity" : "")">
+                                            @Html.CheckBoxFor(m => m.IsHidePricingEnabled, new { @class = "form-check-input", @id = "checkbox-hidepricing" })
+                                            <label class="form-check-label" for="checkbox-hidepricing">@Resource.lblHidePricing</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- invoices & drop ticket ends -->
+                    if (Model.IsFTLEnabled && Model.OrderAdditionalDetails != null)
+                    {
+                        if (!Model.IsSupressOrderPricing)
+                        {
+                            <div class="col-sm-12">
+                                <div class="row well mb15">
+                                    <div class="col-sm-12">
+                                        <h4>@Resource.lblInvoiceNotificationInstructions</h4>
+                                        <div class="row">
+                                            @foreach (var pref in Enum.GetValues(typeof(InvoiceNotificationPreferenceTypes)))
+                                            {
+                                                if ((InvoiceNotificationPreferenceTypes)pref != InvoiceNotificationPreferenceTypes.None)
+                                                {
+                                                    <div class="col-sm-12 col-xs-6">
+                                                        <div class="radio mb5">
+                                                            <label>
+                                                                @Html.RadioButtonFor(s => s.OrderAdditionalDetails.BOLInvoicePreferenceTypes, pref, new { onchange = "toggleOnPrefernceSetting();" })
+                                                                @(((InvoiceNotificationPreferenceTypes)pref).GetDisplayName())
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                            <div class="col-sm-12 col-xs-6">
+                                                <div class="radio mb5">
+                                                    <label>
+                                                        @Html.RadioButtonFor(s => s.OrderAdditionalDetails.BOLInvoicePreferenceTypes, InvoiceNotificationPreferenceTypes.None, new { onchange = "toggleOnPrefernceSetting();" })
+                                                        @((InvoiceNotificationPreferenceTypes.None).GetDisplayName())
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.HiddenFor(m=>m.OrderAdditionalDetails.BOLInvoicePreferenceTypes)
+                        }
+                    }
+                    <!-- delivery starts -->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4>@Resource.headingDelivery</h4>
+                                <div class="row">
+                                    <div class="col-sm-4 col-md-3">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblInitialDeliveryDate</label>
+                                            @Html.TextBoxFor(m => m.FuelDeliveryDetails.StartDate, new { @class = "form-control datepicker" })
+                                            @Html.ValidationMessageFor(m => m.FuelDeliveryDetails.StartDate)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 col-md-2 col-xs-6">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblFrom</label>
+                                            @Html.TextBoxFor(m => m.FuelDeliveryDetails.StartTime, new { @class = "form-control timepicker" })
+                                            @Html.ValidationMessageFor(m => m.FuelDeliveryDetails.StartTime)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 col-md-2 col-xs-6">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblTo</label>
+                                            @Html.TextBoxFor(m => m.FuelDeliveryDetails.EndTime, new { @class = "form-control timepicker" })
+                                            @Html.ValidationMessageFor(m => m.FuelDeliveryDetails.EndTime)
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 col-xs-6 col-sm-2 mb10">
+                                        <label class="f-normal">@Resource.lblRequestType</label>
+                                        <div id="auto-lbldeliverytype">@(Model.FuelDeliveryDetails.DeliveryTypeId == ((Int16)DeliveryType.OneTimeDelivery) ? Resource.lblSingle : Resource.lblMultiple)</div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        @Html.HiddenFor(model => model.FuelDeliveryDetails.IsOrderEndDateRequired)
+                                        @if (Model.FuelDeliveryDetails.EndDate.HasValue)
+                                        {
+                                            <label class="f-normal">@Resource.lblDeliveryEndDate</label>
+                                            @Html.TextBoxFor(m => m.FuelDeliveryDetails.EndDate, new { @class = "form-control datepicker" })
+                                            @Html.ValidationMessageFor(m => m.FuelDeliveryDetails.EndDate)
+                                        }
+                                        else
+                                        {
+                                            @Html.HiddenFor(m => m.FuelDeliveryDetails.EndDate)
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- delivery ends -->
+                    <!-- driver details starts -->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4>@Resource.headingDriver</h4>
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="f-normal">
+                                            @Resource.lblSpecialInstruction
+                                            <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.infoMessageSpecialInstructions"></i>
+                                        </label>
+                                        <ol class="pl15" id="auto-lblspecialinstructions">
+                                            @if (Model.FuelDeliveryDetails.SpecialInstructions.Count == 0)
+                                            {
+                                                @Resource.lblHyphen
+                                            }
+                                            else
+                                            {
+                                                foreach (var specialInstruction in Model.FuelDeliveryDetails.SpecialInstructions)
+                                                {
+                                                    <li class="break-word">
+                                                        @specialInstruction.Instruction
+                                                    </li>
+                                                }
+                                            }
+                                        </ol>
+                                    </div>
+                                    <div class="col-md-3 col-xs-6 col-sm-3">
+                                        <label class="f-normal">@Resource.lblAssignedDriver:</label>
+                                        <div id="driver-name">
+                                            <div class="form-group">
+                                                @Html.DropDownListFor(m => m.DriverId, new SelectList(CommonHelperMethods.GetAllDrivers(CurrentUser.CompanyId), "Id", "Name", Model.DriverId), string.Format(Resource.valMessageSelect, Resource.lblDriver), new { @class = "form-control optional-field" })
+                                                @Html.ValidationMessageFor(m => m.DriverId)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @if (Model.IsFTLEnabled && Model.OrderAdditionalDetails != null)
+                                {
+                                    <div class="row" id="terminal-additional-details">
+                                        <div class="col-sm-3 mb10 ftl-controls">
+                                            <label class="f-normal">@Resource.lblCarrier</label>
+                                            @Html.PartialFor("~/Views/Shared/_PartialCarrier.cshtml", m => m.OrderAdditionalDetails.Carrier)
+                                        </div>
+                                        <div class="col-sm-3 mb10 ftl-controls">
+                                            @Html.LabelFor(m => m.OrderAdditionalDetails.SupplierSource.Name, new { @class = "f-normal" })
+                                            @Html.PartialFor("~/Views/Shared/_PartialSupplierSource.cshtml", m => m.OrderAdditionalDetails.SupplierSource)
+                                        </div>
+                                        <div class="col-sm-3 mb10 ftl-controls">
+                                            @Html.LabelFor(m => m.OrderAdditionalDetails.SupplierSource.ContractNumber, new { @class = "f-normal" })
+                                            @Html.TextBoxFor(m => m.OrderAdditionalDetails.SupplierSource.ContractNumber, new { @class = "form-control", @placeholder = @Resource.lblContractNumber })
+                                        </div>
+                                        <div class="col-sm-3 mb10 ftl-controls">
+                                            @Html.LabelFor(m => m.OrderAdditionalDetails.LoadCode, new { @class = "f-normal" })
+                                            @Html.TextBoxFor(m => m.OrderAdditionalDetails.LoadCode, new { @class = "form-control", @placeholder = @Resource.lblLoadCode })
+                                        </div>
+                                        <div class="col-sm-12 ftl-controls">
+                                            <div class="form-check form-check-inline">
+                                                @Html.CheckBoxFor(m => m.OrderAdditionalDetails.IsDriverToUpdateBOL, new { @class = "form-check-input", @id = "checkbox-driverbol" })
+                                                <label class="form-check-label" for="checkbox-driverbol">@Resource.lblDriverToUpdateBOL</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <!-- driver details ends -->
+                    <!-- pricing starts -->
+                    if (!Model.IsSupressOrderPricing)
+                    {
+
+                        <div class="col-sm-12">
+                            <div class="row well mb15">
+                                <div class="col-sm-12">
+                                    <h4>@Resource.headingPricing</h4>
+                                    @Html.HiddenFor(m => m.FuelDetails.IsTierPricing)
+                                    @if (Model.FuelDetails.IsMarineLocation && !Model.IsSupressOrderPricing && !Model.FuelDetails.IsTierPricing)
+                                    {
+                                        <div class="section-pricing">
+                                            @Html.Hidden("hdnRadius", (object)Convert.ToInt32(100))
+                                            @Html.PartialFor("_PartialNominationPriceEdit", m => m)
+                                            @*@Html.HiddenFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)*@
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="col-xs-6 col-sm-2 mb10">
+                                            <label class="f-normal">@(string.Format(Resource.lblRackPP, Model.FuelDetails.FuelPricing.Currency == Currency.CAD ? Resource.lblPricePerLitre : Resource.lblPricePerGallon))</label>
+                                            @if (Model.PricingTypeId == (int)PricingType.Suppliercost)
+                                            {
+                                                <div id="auto-lblCalculatedPricingppg">@Resource.constSymbolCurrency@Model.CalculatedPricePerGallon</div>
+                                            }
+                                            <div id="auto-lblpricingppg">@Model.PricePerGallon @Model.FuelDetails.FuelPricing.Currency</div>
+                                        </div>
+                                        if (Model.PricingTypeId == (int)PricingType.Suppliercost)
+                                        {
+                                            <div class="col-xs-6 col-md-3 mb10 @((Model.StatusId == (int)OrderStatus.Open) ? "" : "disable-controls")">
+                                                <div class="row">
+                                                    <div class="col-sm-12">
+                                                        <div class="form-group">
+                                                            <div class="radio">
+                                                                <label>
+                                                                    @Html.RadioButtonFor(m => m.SuppplierCostTypeId, (int)SupplierCostTypes.GlobalCost,
+new { onclick = "radioChange(this,'global-fuel-cost','add-fuel-cost');", onchange = "focusOnFirst(this, 'global-fuel-cost');" })
+                                                                    @Resource.lblUseGlobalFuelCost
+                                                                    <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgGlobalFuelCost"></i>
+                                                                </label>
+                                                            </div>
+                                                            <div class="row mt5 global-fuel-cost defaultDisabled">
+                                                                <div class="col-xs-7">
+                                                                    <div class="input-group">
+                                                                        <div class="input-group-addon">@Resource.constSymbolCurrency</div>
+                                                                        @Html.TextBoxFor(m => m.GlobalFuelCost, new { @class = "form-control datatype-decimal" })
+                                                                    </div>
+                                                                    @Html.ValidationMessageFor(m => m.GlobalFuelCost)
+                                                                    <span id="responseMsgForGlobalCost"></span>
+                                                                </div>
+                                                                <div class="col-xs-4 pl0 pt8">
+                                                                    @*for now it will redirect to dashboard in another tab*@
+                                                                    @*<input type="button" id="btnSaveGlobalCost" class="btn btn-primary btn-xs" onclick="updateGlobalFuelCost();" value="@Resource.btnLabelSave" />*@
+                                                                    <a target="_blank" href="@(Url.Action("Index", "Dashboard", new { area = "Supplier" }))?IsFuelCost=true"><i class="fa fa-edit ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgGlobalFuelCost"></i></a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3 col-xs-6 mb10 @((Model.StatusId == (int)OrderStatus.Open) ? "" : "disable-controls")">
+                                                <div class="row">
+                                                    <div class="col-sm-12 resetleftspace">
+                                                        <div class="radio">
+                                                            <label>
+                                                                @Html.RadioButtonFor(m => m.SuppplierCostTypeId, (int)SupplierCostTypes.SupplierCost,
+new { onclick = "radioChange(this,'add-fuel-cost','global-fuel-cost');", onchange = "focusOnFirst(this, 'add-fuel-cost');" })
+                                                                @Resource.lblCurrentFuelCost
+                                                                <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgCurrentFuelCost"></i>
+                                                            </label>
+                                                        </div>
+                                                        <div class="row mt5 add-fuel-cost defaultDisabled">
+                                                            <div class="col-md-7">
+                                                                <div class="input-group">
+                                                                    <div class="input-group-addon">@Resource.constSymbolCurrency</div>
+                                                                    @Html.TextBoxFor(m => m.CurrentFuelCost, new { @class = "form-control datatype-decimal" })
+                                                                </div>
+                                                                @Html.ValidationMessageFor(m => m.CurrentFuelCost)
+                                                                <span id="responseMsgForCurrentCost"></span>
+                                                            </div>
+                                                            <div class="col-xs-4 pl0 pt8">
+                                                                <input type="button" id="btnSaveCurrentCost" class="btn btn-primary btn-xs" onclick="updateFuelCostForOrder()" value="@Resource.btnLabelSave" />
+                                                            </div>
+                                                            <div class="col-xs-1 pa0 add-fuelcost-loader" hidden>
+                                                                <span class='spinner-small'></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                    @if (Model.IsFTLEnabled)
+                                    {
+                                        <div class="col-xs-6 col-sm-3 mb10 ftl-controls">
+                                            <label>@Resource.lblSupplierAllowance</label>
+                                            <div class="input-group mtm1">
+                                                <span class="input-group-addon currency-symbol allowance">@Model.Country.Currency/@Model.UoM</span>
+                                                @Html.TextBoxFor(m => m.OrderAdditionalDetails.Allowance, new { @class = "form-control datatype-decimal always" })
+                                            </div>
+                                            @Html.ValidationMessageFor(m => m.OrderAdditionalDetails.Allowance)
+                                        </div>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- pricing ends -->
+                        <!-- Fuel Surcharge Freight Cost starts -->
+                        if (Model.IsFTLEnabled && Model.IsFuelSurchargeValid && Model.OrderAdditionalDetails.FreightPricingMethod == FreightPricingMethod.Manual)
+                        {
+                            <div class="col-sm-12">
+                                <div class="row well mb15">
+                                    <div class="col-sm-9">
+                                        @{ Html.RenderPartial("_PartialEditFuelSurchargeFreightFee", Model); }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <!-- Fuel Surcharge Freight Cost ends -->
+                        <!-- Normal fees / Brokered Order starts -->
+                        if (Model.OrderAdditionalDetails.FreightPricingMethod == FreightPricingMethod.Manual)
+                        {
+                            <div class="col-sm-12">
+                                <div class="row well mb15">
+                                    <div class="col-sm-12">
+                                        @{
+                                            if (Model.IsBuyAndSellOrder)
+                                            {
+                                                <h4>@Resource.headingBuySell</h4>
+                                                @Html.HiddenFor(m => m.ExternalBrokerId)
+                                                @Html.HiddenFor(m => m.IsBuyAndSellOrder)
+                                                <div class="disable-controls">
+                                                    <div class="row disable-controls">
+                                                        <div class="col-sm-4 col-md-3">
+                                                            <div class="form-group">
+                                                                <label class="f-normal">@Resource.lblCompanyBrokeringFor</label>
+                                                                <div>@Model.ExternalBrokerCompanyName</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4 col-md-3">
+                                                            <div class="form-group">
+                                                                <label class="f-normal">@Resource.lblBrokerMarkup</label>
+                                                                <div>@Resource.constSymbolCurrency@Model.ExternalBrokeredOrder.BrokerMarkUp</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4 col-md-3">
+                                                            <div class="form-group">
+                                                                <label class="f-normal">@Resource.lblSupplierMarkup</label>
+                                                                <div>@Resource.constSymbolCurrency@Model.ExternalBrokeredOrder.SupplierMarkUp</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            if (Model.IsThirdPartyHardwareUsed)
+                                            {
+                                                @Html.HiddenFor(m => m.IsThirdPartyHardwareUsed)
+                                                <div class="row">
+                                                    <div class="col-sm-12">
+                                                        <h4 class="f-light fs18 border-b pb10 mt10">@Resource.heading3rdPartyHardwareUsed</h4>
+                                                        <div class="row disable-controls">
+                                                            <div class="col-sm-3">
+                                                                <label>
+                                                                    @Resource.lbl3rdPartyNozzleService
+                                                                    <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgPetroTracSupport"></i>
+                                                                </label>
+                                                                @Html.DropDownListFor(m => m.ExternalBrokeredOrder.ThirdPartyNozzleId, new SelectList(CommonHelperMethods.GetThirdPartyNozzles(), "Id", "Name", Model.ExternalBrokeredOrder.ThirdPartyNozzleId), new { @class = "form-control" })
+                                                            </div>
+                                                            <div class="col-sm-5">
+                                                                <label>@Resource.lblInvoicePreferences</label>
+                                                                <div class="checkbox mt0">
+                                                                    <label>
+                                                                        @Html.CheckBoxFor(m => m.IsSendFileToBroker)
+                                                                        @Resource.lblSendDataFiles
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="mt15">
+                                                        <div class="col-sm-4 col-md-2">
+                                                            <div class="form-group">
+                                                                <label class="f-normal">@Resource.lblVendorId</label>
+                                                                <div>@Model.ExternalBrokeredOrder.VendorId</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4 col-md-2">
+                                                            <div class="form-group">
+                                                                <label class="f-normal">@Resource.lblCustomerNumber</label>
+                                                                <div>@Model.ExternalBrokeredOrder.CustomerNumber</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4 col-md-2">
+                                                            <div class="form-group">
+                                                                <label class="f-normal">@Resource.lblShipTo</label>
+                                                                <div>@Model.ExternalBrokeredOrder.ShipTo</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4 col-md-2">
+                                                            <div class="form-group">
+                                                                <label class="f-normal">@Resource.lblSource</label>
+                                                                <div>@Model.ExternalBrokeredOrder.Source</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4 col-md-2">
+                                                            <div class="form-group">
+                                                                <label class="f-normal">@Resource.lblProductCode</label>
+                                                                <div>@Model.ExternalBrokeredOrder.ProductCode</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            if (!Model.IsThirdPartyHardwareUsed)
+                                            {
+                                                <h4 class="freight-cost">@Resource.headingFees</h4>
+                                                //@Html.HiddenFor(m => m.FuelDeliveryDetails.FuelFees.CommonFees)
+                                                @Html.PartialFor("_PartialFees", m => m.FuelDeliveryDetails.FuelFees)
+                                            }
+                                            else
+                                            {
+                                                <h4 class="freight-cost">@Resource.headingFees</h4>
+                                                <div class="mb10">
+                                                    <label class="f-normal">@Resource.lblFreight</label>
+                                                    <div>
+                                                        @if (Model.ExternalBrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId == (int)FeeSubType.NoFee)
+                                                        {
+                                                            @Resource.lblNoFee
+                                                        }
+                                                        else if (Model.ExternalBrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                                                        {
+                                                            @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ExternalBrokeredOrder.BrokeredOrderFee.FreightFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                                                        }
+                                                        else if (Model.ExternalBrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId == (int)FeeSubType.PerRoute)
+                                                        {
+                                                            @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ExternalBrokeredOrder.BrokeredOrderFee.FreightFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerRoute.ToLower()}")
+                                                        }
+                                                        else if (Model.ExternalBrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId == (int)FeeSubType.PerGallon)
+                                                        {
+                                                            @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ExternalBrokeredOrder.BrokeredOrderFee.FreightFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerGallon.ToLower()}")
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                        <div class="row">
+                                            <div class="col-sm-4 col-xs-12 mb10 hide-element">
+                                                <label class="f-normal">@Resource.lblDiscountForEarlyPayment</label>
+                                                <div>
+                                                    @if (Model.DiscountEarlyPayment.Count > 0)
+                                                    {
+                                                        foreach (var discount in Model.DiscountEarlyPayment)
+                                                        {
+                                                            @($"{discount.DiscountPercent}{Resource.constSymbolPercent} {Resource.lblDiscountPercentage} {discount.WithinDays} {Resource.lblDaysAfterInvoice}")
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        @Resource.lblNoDiscount
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mt10">
+                                            @if (Model.DifferentFuelPrices.Count > 0)
+                                            {
+                                                <div class="col-sm-7 col-xs-12 mb10">
+                                                    <label class="f-normal">@Resource.lblTier</label>
+                                                    <div>
+                                                        <table class="table table-hover mb0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>@Resource.lblFrom</th>
+                                                                    <th>@Resource.lblUpto</th>
+                                                                    <th>@Resource.lblPriceType</th>
+                                                                    <th>@Resource.lblPricePerGallon</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @if (Model.DifferentFuelPrices.Count > 0)
+                                                                {
+                                                                    foreach (var fuelPrice in Model.DifferentFuelPrices)
+                                                                    {
+                                                                        <tr>
+                                                                            <td>@fuelPrice.MinQuantity.GetCommaSeperatedValue()</td>
+                                                                            <td>@(fuelPrice.MaxQuantity == null ? Resource.lblHyphen : fuelPrice.MaxQuantity.Value.GetCommaSeperatedValue())</td>
+                                                                            @if (fuelPrice.PricingTypeId == (int)PricingType.PricePerGallon)
+                                                                            {
+                                                                                <td>
+                                                                                    @Resource.lblPricePerGallon
+                                                                                </td>
+                                                                                <td>
+                                                                                    @(fuelPrice.PricePerGallon == null ? Resource.lblHyphen : fuelPrice.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                                                </td>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <td>@Resource.lblRackPrice</td>
+                                                                                <td>
+                                                                                    @if (fuelPrice.RackAvgTypeId == (int)RackPricingType.PlusPercent)
+                                                                                    {
+                                                                                        @($"{Resource.lblRackPlus} {fuelPrice.PricePerGallon}{Resource.constSymbolPercent}")
+                                                                                    }
+                                                                                    else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.MinusPercent)
+                                                                                    {
+                                                                                        @($"{Resource.lblRackMinus} {fuelPrice.PricePerGallon}{Resource.constSymbolPercent}")
+                                                                                    }
+                                                                                    else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.PlusDollar)
+                                                                                    {
+                                                                                        @($"{Resource.lblRackPlus} {Resource.constSymbolCurrency}{fuelPrice.PricePerGallon}")
+                                                                                    }
+                                                                                    else if (fuelPrice.RackAvgTypeId == (int)RackPricingType.MinusDollar)
+                                                                                    {
+                                                                                        @($"{Resource.lblRackMinus} {Resource.constSymbolCurrency}{fuelPrice.PricePerGallon}")
+                                                                                    }
+                                                                                </td>
+                                                                            }
+                                                                        </tr>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="2"> @Resource.lblNoDifferentFuelPrice </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <!-- Normal fees / Brokered Order ends -->
+                        <!-- Job Information starts -->
+                    }
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                @if (Model.FuelDetails != null && Model.FuelDetails.IsMarineLocation)
+                                {
+                                    <h4>@Resource.headingPortOrDeliveryLocation</h4>
+                                }
+                                else
+                                {
+                                    <h4>@Resource.headingJobInformation</h4>
+                                }
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb5">
+                                            @if (Model.FuelDetails != null && Model.FuelDetails.IsMarineLocation)
+                                            {
+                                                <label>@Resource.lblPort</label>
+                                            }
+                                            else
+                                            {
+                                                <label class="f-normal">@Resource.lblJobName</label>
+                                            }
+                                            <div>
+                                                @Model.JobName
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @*@if (!string.IsNullOrWhiteSpace(Model.DisplayJobID))
+                                        {*@
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb5">
+                                            @if (Model.FuelDetails != null && !Model.FuelDetails.IsMarineLocation)
+                                            {
+                                                <label class="f-normal">@Resource.lblKiewitJobID</label>
+                                            }
+                                            else
+                                            {
+                                                @Resource.lblBerth
+                                            }
+                                            <div>
+                                                @if (Model.FuelDetails != null && !Model.FuelDetails.IsMarineLocation)
+                                                {
+                                                    @Html.TextBoxFor(m => m.DisplayJobID, new { @class = "form-control" })
+
+                                                }
+                                                else
+                                                {
+                                                    if (Model.FuelDetails != null && Model.FuelDetails.IsMarineLocation && !string.IsNullOrWhiteSpace(Model.FuelDetails.Berth))
+                                                    {
+                                                        @Html.TextBoxFor(m => m.FuelDetails.Berth, new { @class = "form-control" })
+                                                    }
+                                                    else
+                                                    { @Resource.lblHyphen}
+                                            }
+                                                @*@Model.DisplayJobID*@
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @*}*@
+                                    <div class="col-sm-2 col-xs-6 mb10">
+                                        <div class="form-group mb5">
+                                            <label class="f-normal">@Resource.headingAddress</label>
+                                            @if (!string.IsNullOrWhiteSpace(Model.JobLocation.City) && !Model.JobLocation.City.Equals(Resource.lblVarious))
+                                            {
+                                                <div>
+                                                    @Model.JobLocation.Address
+                                                    <br />
+                                                    @Model.JobLocation.City, @Model.JobLocation.StateCode @Model.JobLocation.ZipCode
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div>
+                                                    @Model.JobLocation.StateCode
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(Model.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber))
+                                    {
+                                        <div class="col-sm-2">
+                                            <div class="form-group mb5">
+                                                <label class="f-normal">@Resource.lblWBSNumber</label>
+                                                <div>@Model.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb5">
+                                            @Html.Partial("~/Views/Shared/_PartialJobSpecificBillToView.cshtml")
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-8">
+
+                                        <div class="form-check form-check-inline" id="sales-tax-exempt">
+                                            @Html.CheckBoxFor(m => m.IsTaxExempted, new { @class = "form-check-input", @id = "checkbox-taxexempted" })
+                                            <label class="form-check-label" for="checkbox-taxexempted">@Resource.lblTaxExempted</label>
+                                        </div>
+                                        <div class="row">
+                                            <div id="sales-tax-message" class="col-sm-10 hide">
+                                                <div class="alert alert-danger fs12">
+                                                    @Html.Raw(Resource.warningMessageModifySalesTaxExempt)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    if (Model.FuelDetails != null && Model.FuelDetails.IsMarineLocation)
+                    {
+                        @Html.HiddenFor(m => m.FuelDetails.IsMarineLocation)
+                        @Html.HiddenFor(m => m.FuelDetails.JobXAssetId)
+                        <div class="col-sm-12">
+                            <div class="row well">
+                                <div class="col-sm-4 col-md-3 form-group">
+                                    @Html.LabelFor(m => m.FuelDetails.VessleId)<span class="required pl4" aria-required="true">*</span>
+                                    @Html.DropDownListFor(m => m.FuelDetails.VessleId, new SelectList(CommonHelperMethods.GetVesselList(CurrentUser.CompanyId), "Id", "Name", Model.FuelDetails.VessleId), Resource.lblSelectVessle, new { @class = "form-control", onchange = "getVesselDetails(this);" })
+                                    <span class="field-validation-error hide-element vessel-validation-error" id="spnErrorVessel"></span>
+                                </div>
+                                <div class="col-sm-4 col-md-3 form-group" id="wbsnumber">
+                                    @Html.LabelFor(m => m.FuelDetails.IMONumber)<span class="required pl4" aria-required="true"></span>
+                                    @Html.TextBoxFor(m => m.FuelDetails.IMONumber, new { @class = "form-control" })
+                                    <span class="field-validation-error hide-element IMONumber-validation-error" id="spnErrorIMONumber"></span>
+                                </div>
+                                <div class="col-sm-4 col-md-3 form-group" id="wbsnumber">
+                                    @Html.LabelFor(m => m.FuelDetails.Flag)
+                                    @Html.TextBoxFor(m => m.FuelDetails.Flag, new { @class = "form-control" })
+                                </div>
+                            </div>
+                        </div>
+
+                    }
+
+                    <!-- Modal -->
+                    <div class="modal fade float-left" id="jobSpecificBillToModel" role="dialog">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-body" id="jobSpecificBillToData">
+                                    @Html.PartialFor("_PartialJobSpecificBillingAddress", m => m.BillToInfo)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Job Information ends-->
+                    <!-- onsite contact starts -->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4>@Resource.headingOnsiteContact</h4>
+                                <table class="table table-hover margin bottom">
+                                    <thead>
+                                        <tr>
+                                            <th id="auto-lblonsitename">@Resource.gridColumnName</th>
+                                            <th id="auto-lblonsiteemail">@Resource.gridColumnEmail</th>
+                                            <th id="auto-onsitecontactno">@Resource.gridColumnContact</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auto-tblonsitecontact">
+                                        @if (Model.ContactPersons.Count > 0)
+                                        {
+                                            foreach (var contactPerson in Model.ContactPersons)
+                                            {
+                                                <tr>
+                                                    <td>@contactPerson.Name</td>
+                                                    <td>@contactPerson.Email</td>
+                                                    <td>@contactPerson.PhoneNumber</td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="2"> @Resource.lblNoContacts </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- onsite contact ends -->
+                    <!--Payment Terms Starts-->
+                    if (!Model.IsSupressOrderPricing)
+                    {
+                        <div class="col-sm-12">
+                            <div class="row well mb15">
+                                <div class="col-md-12">
+                                    <h4>@Resource.headingPaymentTerms</h4>
+                                    @{ Html.RenderPartial("_PartialEditPaymentTerms", Model); }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <!-- Payment Terms Ends -->
+                    <!--invoice note Starts-->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-md-6">
+                                <h4 class="pb10">@Resource.lblOtherDetails</h4>
+                                <label>@Resource.lblInvoiceNotes</label>
+                                <div class="mtm1">
+                                    @Html.TextAreaFor(m => m.OrderAdditionalDetails.Notes, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.OrderAdditionalDetails.Notes)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--invoice note ends-->
+                    <div class="col-sm-12 text-right form-buttons">
+                        <input class="btn" type="button" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Details", "Order", new { area = "Supplier", id = Model.Id })'" />
+                        <input id="reSubmit" type="submit" value="@Resource.btnLabelSave" class="btn btn-primary btn-lg"/>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/address-goecoder")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/js/news-feed")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/quantityrange-validate")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Script/Main/Order")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/pricing")
+<script type="text/javascript">
+        $("#reSubmit").click(function ()
+        {
+            var endDate = $('#@Html.IdFor(m => m.FuelDeliveryDetails.EndDate)').val();
+            if ('@Model.FuelDeliveryDetails.IsOrderEndDateRequired' == 'True' && endDate == '') {
+                validationMessageFor("@Html.IdFor(m => m.FuelDeliveryDetails.EndDate)", 'End date is required');
+                return;
+            }
+            if ($('input[name="@Html.NameFor(m=> m.FuelDetails.FuelQuantity.QuantityTypeId)"]:checked').val() != '@((int)QuantityType.NotSpecified)')
+            {
+                return ValidateRangeCoversTotalQuantity('@Resource.valMessageQuantityNotInRange');
+            }
+            fixedButtons(this);
+        });
+        var mapsApiKey = '@SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleApiKey';
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = @Model.JobStateId; // for state autofill
+        var billTostateId = @Model.BillToInfo.State.Id; // for bill to state autofill
+        var billTocityname = '@Model.BillToInfo.City'; // for bill to state autofill
+        var billToCountryId = @Model.BillToInfo.Country.Id; // for bill to Country autofill
+
+        var notificationOrderId = @Model.Id, notificationPoNumber = '@Model.PoNumber';
+        var notificationTargetUrl = '@Url.Action("SendDeliveryNotification", "Order", new { area = "Supplier" })';
+        var productListUrl = "@Url.Action("GetProductList", "FuelRequest", new { area = "Supplier" })";
+        var jobId = @Model.JobId;
+        var zipCode = ''; //// do not remove, used in partial fuel types view
+        var currentEntityId = @Model.Id; // for newsfeed
+        var newsfeedUrl = "@Url.Action("GetNewsfeed", "Order", new { area = "Supplier" })";
+		var customerCompany = '@Model.BuyerCompanyId';
+		var fuelSurchargeLink = "@Url.Action("BuyerDetails", "Dashboard", new { area = "Supplier" })";
+        var requestMinDate = $('#@Html.IdFor(m => m.FuelDeliveryDetails.StartDate)').val();
+        if (requestMinDate == undefined || requestMinDate == "") { requestMinDate = '@Model.FuelDeliveryDetails.StartDate' || '@DateTimeOffset.Now'; }
+        var currentFuelCost = @Model.CurrentFuelCost;
+
+    $(document).ready(function () {
+            toggleOnPrefernceSetting();
+            $('#CustomerDetails_CompanyId').val(@Model.BuyerCompanyId);
+            LoadExistingAddress();
+            var billToStateId = $("#@Html.IdFor(m => m.BillToInfo.State.Id)").val();
+            SetQuickMessageURL('@AppMessageQueryType.Order',@Model.Id);
+            RemoveProcessingFeeOption();
+            $('.show-in-tpo').show(); $('.hide-from-tpo').hide();
+            updateFeesUrls('@Model.IsFTLEnabled' == 'True' ? '@((int)TruckLoadTypes.FullTruckLoad)' : '@((int)TruckLoadTypes.LessTruckLoad)');
+            updateFeesHeader('@Model.IsFTLEnabled' == 'True' ? '@((int)TruckLoadTypes.FullTruckLoad)' : '@((int)TruckLoadTypes.LessTruckLoad)');
+            $(document).ajaxComplete(function (event, xhr, settings) {
+                $('.show-in-tpo').show(); $('.hide-from-tpo').hide();
+            });
+
+            //$(".disable-in-tpo-edit").addClass('pntr-none subSectionOpacity');
+            $('.special-date').each(function () { $(this).data("DateTimePicker").minDate(moment(requestMinDate).startOf('d')) });
+
+            updateDefaultUrls('@((int)Model.FuelDetails.FuelPricing.Currency)', '@((int)Model.FuelDetails.FuelQuantity.UoM)');
+
+            if ($('input[name="@Html.NameFor(m=> m.FuelDetails.FuelQuantity.QuantityTypeId)"]:checked').val() == '@((int)QuantityType.SpecificAmount)'
+                || $('input[name="@Html.NameFor(m=> m.FuelDetails.FuelQuantity.QuantityTypeId)"]:checked').val() == '@((int)QuantityType.Range)') {
+                $(".quantitytype-notspecified").addClass("pntr-none subSectionOpacity").attr("disabled");
+            }
+            else if ($('input[name="@Html.NameFor(m=> m.FuelDetails.FuelQuantity.QuantityTypeId)"]:checked').val() == '@((int)QuantityType.NotSpecified)') {
+                $(".quantitytype-specificamount,.quantitytype-range").addClass("pntr-none subSectionOpacity").attr("disabled");
+            }
+
+            $("#@Html.IdFor(m=> m.IsTaxExempted)").on("change", function () {
+                if (('@Model.IsTaxExempted').toLowerCase() == $("#@Html.IdFor(m=> m.IsTaxExempted)").prop("checked").toString()) {
+                    $("#sales-tax-message").addClass("hide");
+                }
+                else {
+                    $("#sales-tax-message").removeClass("hide");
+                }
+            });
+
+            $('#@Html.IdFor(m => m.IsFTLEnabled)').change(function () {
+                $(this).attr('disabled', 'disabled');
+                var url = '@Url.Action("UpdateFTLCheckDetails", "Order")';
+                var data = $(this).is(':checked');
+                $.post(url, { 'OrderId': '@Model.Id', 'isFTL': data }, function (response) {
+                    $('#@Html.IdFor(m => m.IsFTLEnabled)').removeAttr('disabled');
+                    if (response.StatusCode == @((int)Status.Success)) {
+                        msgsuccess('@Resource.successMessageFTLDetailsUpdated');
+                    }
+                });
+            });
+
+            $("#terminalContainer").removeClass('hidden');
+            onJobSpecificBillToSubmitt(false);
+
+            $("#@Html.IdFor(m=> m.CurrentFuelCost)").on("input propertychange paste", function () {
+                if (currentFuelCost != $("#@Html.IdFor(m=> m.CurrentFuelCost)").val()) {
+                    $("#btnSaveCurrentCost").removeAttr("disabled");
+                }
+                else {
+                    $("#btnSaveCurrentCost").attr("disabled", "disabled");
+                }
+            });
+        });
+
+        function SetSpecialMinDate(element) {
+            var updateMinDate = $('#@Html.IdFor(m => m.FuelDeliveryDetails.StartDate)').val();
+            if (updateMinDate != undefined && updateMinDate != "") { requestMinDate = updateMinDate; }
+            $(element).closest('.fee-types').find('.special-date').data("DateTimePicker").minDate(moment(requestMinDate).startOf('d'));
+        }
+
+        function RemoveProcessingFeeOption() {
+            if ('@Model.PaymentMethod' != '@PaymentMethods.CreditCard') {
+                var feetypes = $.find("select.feetype-ddl option[value='13']");
+                $.each(feetypes, function (idx, dropdown) {
+                    dropdown.remove();
+                });
+            }
+    }
+
+
+    var priviousCityTerminalId = '@Model.FuelDetails.FuelPricing.CityGroupTerminalId';
+    function assignNewCityGroupTerminal() {
+            let _fueltypeId = '@Model.TfxFuelTypeId' == '' ? 0 : '@Model.TfxFuelTypeId';
+            var selectedCityTerminal = parseInt($('#@Html.IdFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)').val());
+            var source = getPricingSource();
+            if (priviousCityTerminalId != selectedCityTerminal && selectedCityTerminal > 0) {
+                validationMessageFor('@Html.NameFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)', '');
+                $(".cityrack-validation").addClass("hide-element");
+                var url = '@Url.Action("IsCityGroupTerminalPriceAvailable", "FuelRequest")';
+                var data = {
+                    jobid: @Model.JobId,
+                    fueltypeId: _fueltypeId,
+                    selectedCityRackId: selectedCityTerminal,
+                    lattitude: 0,
+                    longitude: 0,
+                    countryCode: '@Model.Country.Code',
+                    sourceId: source
+                };
+                if (data.fueltypeId > 0 && (data.jobid > 0 || (!isNaN(data.lattitude) && !isNaN(data.longitude)))) {
+                    $(".cityrack-loader").show();
+                    $.get(url, data, function (response) {
+                        if (response === false) {
+                            validationMessageFor('@Html.NameFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)', '@Resource.errMessageTerminalPriceNotAvailable');
+                            $('#@Html.IdFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)').multiselect('select', ['noneselected']);
+                            $(".cityrack-validation").removeClass("hide-element");
+                        }
+                        else {
+                            validationMessageFor('@Html.NameFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalId)', '');
+                            $(".cityrack-validation").addClass("hide-element");
+                            $('#@Html.IdFor(m => m.FuelDetails.FuelPricing.CityGroupTerminalStateId)').val(selectedCityTerminal);
+                        }
+                        $(".cityrack-loader").hide();
+                        priviousCityTerminalId = selectedCityTerminal;
+                    });
+                }
+            }
+            if (source != @((int)PricingSource.Axxis)) {
+                GetOpisTerminals();
+            }
+        }
+
+
+        function GetOpisTerminals() {
+            var inputData;
+            var source = getPricingSource();
+            if ($('#AddressDetails_IsVarious').is(':checked')) {
+                inputData = {
+                    cityRackId: $('.cityrackterminallist').val(),
+                    terminal: '',
+                    source: source
+                };
+            }
+            else {
+                inputData = {
+                    latitude: @Model.JobLocation.Latitude,
+                    longitude: @Model.JobLocation.Longitude,
+                    countryId: @Model.Country.Id,
+                    terminal: '',
+                    source: source
+                };
+            }
+
+           var terminalUrl = "@Url.Action("GetOpisTerminals", "Order", new { area = "Supplier" })";
+           autoCompleteTerminal("#@Html.IdFor(m => m.FuelDetails.FuelPricing.TerminalName)", terminalUrl, inputData);
+        }
+
+    function autoCompleteTerminal(element, url, inputData) {
+
+        var target = $(element);
+        var prevTerminal = $(element).val();
+        var terminalId = 0;
+        var isSelected = false;
+
+        target
+            .autocomplete({
+                source: function (request, response) {
+                    inputData.terminal = request.term;
+                    inputData.cityRackId = $('.cityrackterminallist').val();
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        dataType: "json",
+                        data: inputData,
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item.Name,
+                                    value: item.Id
+                                };
+                            }))
+                        },
+                        complete: function (event, xhr, settings) {
+                            $(".ddterminal-loader").hide();
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    isSelected = true;
+                    $(target).val(ui.item.label); // display the selected text
+                    terminalId = ui.item ? ui.item.value : 0;
+                    prevTerminal = ui.item ? ui.item.label : prevTerminal;
+                    if (terminalId != 0)
+                        $("#@Html.IdFor(m => m.FuelDetails.FuelPricing.TerminalId)").val(terminalId);
+                    return false;
+                },
+                messages: {
+                    noResults: '',
+                    results: function () { }
+                },
+                minLength: 2,
+                maxShowItems: 10,
+                scroll: true
+            });
+        $.ui.autocomplete.prototype._resizeMenu = function () {
+            var ul = this.menu.element;
+            ul.outerWidth(this.element.outerWidth());
+        }
+
+        target.autocomplete("search", "  ");
+    }
+
+        function onJobSpecificBillToSubmitt(isSubmitClicked) {
+            //set popup values to Model
+            if (($("#@Html.IdFor(m => m.BillToInfo.Name)").val() != null && $("#@Html.IdFor(m => m.BillToInfo.Name)").val() != "") &&
+                ($("#@Html.IdFor(m => m.BillToInfo.Address)").val() != null && $("#@Html.IdFor(m => m.BillToInfo.Address)").val() != "")) {
+
+                if (!isSubmitClicked) {
+                    $('#radio-existingBillAddress').val(true);
+                    $("#radio-existingBillAddress").prop("checked", true).trigger('click');
+                    $("#selection-list-billing-Address").removeClass('hide-element');
+                    //$("#@Html.IdFor(m => m.BillToInfo.BillingAddressId)").val('@Model.BillToInfo.BillingAddressId')
+                }
+
+                $("#jobSpecificBillName").html($("#@Html.IdFor(m => m.BillToInfo.Name)").val());
+                var address = $("#@Html.IdFor(m => m.BillToInfo.Address)").val();
+                var addressLine2 = $("#@Html.IdFor(m => m.BillToInfo.AddressLine2)").val();
+                var addressLine3 = $("#@Html.IdFor(m => m.BillToInfo.AddressLine3)").val();
+                var city = $("#@Html.IdFor(m => m.BillToInfo.City)").val();
+                var county = $("#@Html.IdFor(m => m.BillToInfo.County)").val();
+                var zipCode = $("#@Html.IdFor(m => m.BillToInfo.ZipCode)").val();
+                var stateName = $("#@Html.IdFor(m => m.BillToInfo.State.Name)").val();
+                var countryName = $("#@Html.IdFor(m => m.BillToInfo.Country.Name)").val();
+                var billToAddress = address;
+
+                if (addressLine2 != undefined && addressLine2 != null && addressLine2 != '')
+                    billToAddress = billToAddress + ', ' + addressLine2;
+                if (addressLine3 != undefined && addressLine3 != null && addressLine3 != '')
+                    billToAddress = billToAddress + ', ' + addressLine3;
+                if (city != undefined && city != null && city != '')
+                    billToAddress = billToAddress + ', ' + city;
+                if (county != undefined && county != null && county != '')
+                    billToAddress = billToAddress + ', ' + county;
+                if (zipCode != undefined && zipCode != null && zipCode != '')
+                    billToAddress = billToAddress + ', ' + zipCode;
+                if (stateName != undefined && stateName != null && stateName != '')
+                    billToAddress = billToAddress + ', ' + stateName;
+                if (countryName != undefined && countryName != null && countryName != '')
+                    billToAddress = billToAddress + ', ' + countryName;
+
+                $("#jobSpecificBillAddress").html(billToAddress);
+                $("#jobSpecificBillInfoWell").show();
+                $("#jobSpecificBillToButton").hide();
+                if (billTostateId > 0 && !isSubmitClicked) {
+                    $("#@Html.IdFor(m => m.BillToInfo.State.Id)").val(billTostateId);
+                    $("#@Html.IdFor(m => m.BillToInfo.City)").val(billTocityname);
+                    $("#@Html.IdFor(m => m.BillToInfo.Country.Id)").val(billToCountryId);
+                }
+                var attr = $("#JobSpecificBillToSubmit").attr('data-dismiss');
+                if (typeof attr === typeof undefined && attr != 'modal') {
+                    $("#JobSpecificBillToSubmit").attr('data-dismiss', 'modal');
+                }
+                MakeItNonEditable(true);
+                //if (isSubmitClicked) {
+                //    $("#reSubmit").trigger("click");
+                //}
+            }
+            else {
+                $("#@Html.IdFor(m => m.BillToInfo.State.Id)").val(0);
+                $("#jobSpecificBillName").html('');
+                $("#jobSpecificBillAddress").html('');
+                $("#jobSpecificBillInfoWell").hide();
+                $("#jobSpecificBillToButton").show();
+            }
+        }
+
+        function toggleOnPrefernceSetting() {
+            if ($("#@Html.IdFor(m => m.IsSupressOrderPricing)").val()=='True') {
+                $("#radio-ddt").trigger('click');
+                $("#inv-btn").hide();
+            } else {
+                $("#inv-btn").show();
+            }
+        }
+
+        function updateFuelCostForOrder() {
+             var selectedFuelCostTypeId = '@Model.SuppplierCostTypeId';
+             var originalFuelCost = '@(Model.SuppplierCostTypeId == (int)SupplierCostTypes.GlobalCost ? Model.GlobalFuelCost : Model.CurrentFuelCost)';
+            $(".add-fuel-cost :input").attr("disabled", "disabled");
+            $(".add-fuelcost-loader").show();
+            currentFuelCost = $('#@Html.IdFor(m => m.CurrentFuelCost)').val();
+            fuelCostTypeId = @((int)SupplierCostTypes.SupplierCost);
+            if (Number(currentFuelCost) > 0) {
+                validationMessageFor($("#@Html.IdFor(m => m.CurrentFuelCost)").attr('name'), '');
+                $("#responseMsgForCurrentCost").html('');
+                var url = '@Url.Action("UpdateFuelCurrentCost", "Order", new { area = "Supplier" })';
+                var data = {
+                        FuelRequestId: '@Model.FuelRequestId',
+                        PriceRequestDetailId: '@Model.RequestPriceDetailId',
+                        TfxFuelTypeId: '@Model.TfxFuelTypeId',
+                        FuelTypeId: '@Model.FuelTypeId',
+                        IsGlobalCost: false,
+                        FuelCost: currentFuelCost,
+                        SupplierFuelCostTypeId: selectedFuelCostTypeId,
+                        OriginalFuelCost: originalFuelCost,
+                        OrderId: '@Model.Id',
+                        CountryId: @Model.Country.Id,
+                        CurrencyType: @((int)Model.Country.Currency),
+                    };
+                $.post(url, data, function (response) {
+                    if (response.StatusCode == 0) {
+                        $("#responseMsgForCurrentCost").css("color", "green").html(response.Message);
+                        selectedFuelCostTypeId = '@((int)SupplierCostTypes.SupplierCost)';
+                        originalFuelCost = currentFuelCost;
+                    }
+                    else
+                        $("#responseMsgForCurrentCost").css("color", "red").html(response.Message);
+
+                    $('#auto-lblCalculatedPricingppg').html('$' + response.CalculatedPpg);
+
+                }).always(function () {
+                    $(".add-fuelcost-loader").hide();
+                    $(".add-fuel-cost :input").removeAttr("disabled");
+                    $("#btnSaveCurrentCost").attr("disabled", "disabled");
+                });
+            }
+            else {
+                validationMessageFor($("#@Html.IdFor(m=>m.CurrentFuelCost)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanZero, new object[] { Resource.lblFuelCost })');
+            }
+    }
+
+    function getVesselDetails(vesselEle) {
+            var vesselId = parseInt($(vesselEle).val());
+            if (!isNaN(vesselId) && vesselId > 0) {
+                var url = '@Url.Action("GetVesselDetails", "Order", new { Area = "Supplier" })';
+                $.get(url, { vesselId: vesselId }, function (response) {
+                    if (response != null && response.StatusCode == '@((int)Status.Success)') {
+                        $('#@Html.IdFor(m => m.FuelDetails.IMONumber)').val(response.ResponseData.IMONumber);
+                        $('#@Html.IdFor(m => m.FuelDetails.Flag)').val(response.ResponseData.Flag);
+                        $('#spnErrorVessel').html('');
+                        $('#spnErrorIMONumber').html('');
+                    }
+                    else {
+                        $('#@Html.IdFor(m => m.FuelDetails.IMONumber)').val('');
+                        $('#@Html.IdFor(m => m.FuelDetails.Flag)').val('');
+                    }
+                });
+            }
+            else {
+                $('#@Html.IdFor(m => m.FuelDetails.IMONumber)').val('');
+                $('#@Html.IdFor(m => m.FuelDetails.Flag)').val('');
+            }
+    }
+</script>
+}

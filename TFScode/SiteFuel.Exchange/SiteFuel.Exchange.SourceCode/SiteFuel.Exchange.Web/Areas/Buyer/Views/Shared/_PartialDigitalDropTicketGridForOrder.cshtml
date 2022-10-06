@@ -1,0 +1,132 @@
+﻿<div class="col-md-12">
+    <div class="well bg-white shadow-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-padding no-border">
+                <div class="table-responsive">
+                    <table id="buyerorder-ddt-datatable" class="table table-striped table-bordered table-hover small-grid" data-grid-parent="#order-droptickets" data-grid-tab="#tab-history">
+                        <thead>
+                            <tr>
+                                <th>@Resource.gridColumnDropTicketNumber</th>
+                                <th>@Resource.gridColumnBolNumber</th>
+                                <th>@Resource.gridColumnDropDate</th>
+                                <th>@Resource.gridColumnSupplier</th>
+                                <th>@Resource.lblAssetFilled</th>
+                                <th>@Resource.gridColumnGallonsDelivered</th>
+                                <th>@Resource.lblRackPPG</th>
+                                <th>@Resource.gridColumnPercentageDelivered</th>
+                                <th>@Resource.gridColumnStatus</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var orderId = '@(ViewContext.RouteData.Values["id"] ?? 0)';
+    var url = "@Url.Action("DigitalDropTicketGridByOrder", "Invoice", new { area = "Buyer" })" + "?orderId=" + orderId + "";
+
+    $('#buyerorder-ddt-datatable').DataTable({
+        "ajax": {
+            "url": url,
+            "type": "GET",
+            "datatype": "json",
+            "dataSrc": ""
+        },
+        "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("Details", "Invoice", new { area = "Buyer" })?id=' + data.Id + '">' + data.InvoiceNumber + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "BolNumber", "autoWidth": true },
+                    { "data": "DropDate", "autoWidth": true },
+
+                        {
+                            "data": function (data, type, row, meta) {
+                                return data.Supplier;
+                            }, "autoWidth": true
+                        },
+
+                    { "data": "AssetCount", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.',0, '') },
+                    { "data": "Quantity", "autoWidth": true },
+                    { "data": "PricePerGallon", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+                    { "data": "FuelDeliveredPercentage", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                        if (data.WaitingFor == @((int)WaitingAction.UpdatedPrice)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForPrice</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.AvalaraTax)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForTax</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.CustomerApproval)) {
+                            return ' <span class="fs12 text-info">' + data.Status +'</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.BolDetails)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForBol</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.ExceptionApproval)) {
+                            return data.Status + '<span class="fs12 text-info"> @Resource.lblWaitingForExceptionApproval </span>';
+                         }
+                        else if (data.WaitingFor == @((int)WaitingAction.Images)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForImage</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.PrePostDipData)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForPrePostData</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.InventoryVerification)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingInventoryVerification</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.AllDRCompletion)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForOtherDrops</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.FilldResponse)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForFilldResponse</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.BDNConfirmation)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForBDNConfirmation</span>';
+                        }
+                        else if (data.WaitingFor == @((int)WaitingAction.InvoiceConfirmation)) {
+                            return data.Status + ' <span class="fs12 text-info">@Resource.lblWaitingForInvoiceConfirmation</span>';
+                        }
+                        else {
+                            return data.Status;
+                        }
+                    }, "autoWidth": true
+                },
+
+        ],
+        pageLength: 10,
+        responsive: true,
+        fixedHeader: false,
+        "order": [],
+        "initComplete": function (settings, json) {
+            wrapperHeight();
+        },
+        dom: '<"html5buttons"B>lTfgitp',
+        buttons: [
+            { extend: 'copy' },
+            { extend: 'csv', title: '@Resource.headingDropTickets' },
+            { extend: 'excel', title: '@Resource.headingDropTickets' },
+            { extend: 'pdf', title: '@Resource.headingDropTickets', orientation: 'landscape', pageSize: 'LETTER'},
+
+            {
+                extend: 'print',
+                customize: function (win) {
+                    $(win.document.body).addClass('white-bg');
+                    $(win.document.body).css('font-size', '10px');
+
+                    $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                }
+            }
+        ],
+        language: {
+            sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+        }
+    });
+</script>

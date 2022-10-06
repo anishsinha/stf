@@ -1,0 +1,91 @@
+﻿@{
+    ViewBag.Title = "Active Impersonations";
+}
+<div class="row">
+    <div class="col-sm-12 col-12">
+        <h4>@Resource.headingActiveImpersonations</h4>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="active-impersonation-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnUser</th>
+                                    <th>@Resource.gridColumnImpersonatedBy</th>
+                                    <th>@Resource.gridColumnStartTime</th>
+                                    <th>@Resource.gridColumnAction</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .dataTables_wrapper {
+        overflow: auto !important
+    }
+</style>
+<script type="text/javascript">
+    $(document).ready(function () {
+            impersonation = $('#active-impersonation-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetImpersonations", "Impersonation", new { area = "SuperAdmin" })",
+                    "type": "GET",
+					"datatype": "json",
+                    "data": "",
+                    "dataSrc": ""
+                },
+                "columns": [
+                            { "data": "ImpersonatedUser", "autoWidth": true },
+                            { "data": "ImpersonatedBy", "autoWidth": true },
+							{ "data": "ImpersonatedStartTime", "autoWidth": true, "sType":"date" },
+                            {
+                                "data": function (data, type, row, meta)
+                                {
+                                    var confirmationBtn = '<input type="button" class="btn btn-primary btn-xs" value="@Resource.btnLabelLogout" data-toggle="confirmation" data-placement="bottom" data-popout="true" data-singleton="true" href="@Url.Action("RemoveImpersonation", "Impersonation", new { area = "SuperAdmin" })/'+data.Id+'" />';
+                                    return confirmationBtn;
+                                }, "width": "50px", "bSortable": false, "className": "text-center"
+                            }
+						  ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]',
+                        html: true
+                    });
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingImpersonationHistory' },
+                    { extend: 'excel', title: '@Resource.headingImpersonationHistory'},
+                    { extend: 'pdf', title: '@Resource.headingImpersonationHistory' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        });
+</script>

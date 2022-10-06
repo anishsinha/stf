@@ -1,0 +1,186 @@
+﻿@model DeliveryGroupPickupViewModel
+<form id="dg-pickup-form">
+    <div id="dg-pickup" class="row form-group">
+        <div class="col-md-8">
+            <div class="radio">
+                <label class="radio-inline">
+               
+                    @Html.RadioButtonFor(m => m.IsPickupLocation, false, new { @class = "location-switch", onclick = "inputBoxShowHide('pickup-terminal','pickup-location');" })
+                    @Resource.lblTerminal
+                </label>
+                <label class="radio-inline">
+                    @Html.RadioButtonFor(m => m.IsPickupLocation, true, new { @class = "location-switch dg-bulkplant-pickup", onclick = "inputBoxShowHide('pickup-location','pickup-terminal');" })
+                    @*@Resource.lblPickUpLocation*@
+                    Pick-up Location
+                </label>
+            </div>
+        </div>
+        <div class="col-md-4 pickup-location hide-element">
+            <div class="checkbox mt0">
+                <div class="form-group">
+                    <label>
+                        @Html.CheckBoxFor(m => m.IsPickupGeocodeUsed, new { onclick = "setReadOnlyMode(this,'geoInput','addressInput')" })
+                        @Resource.lblGeoCodes
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="pickup-terminal col-sm-12">
+            <div class="row col-md-6">
+                <div class="pa bg-white top0 left0 loading-wrapper terminal-loader hide-element mt5"><span class='spinner-dashboard pa'></span></div>
+                @Html.TextBoxFor(m => m.TerminalName, new { @class = "form-control" })
+                @Html.TextBoxFor(m => m.TerminalId, new { @class = "form-control hide" })
+                @Html.ValidationMessageFor(m => m.TerminalId)
+            </div>
+        </div>
+        <div class="pickup-location hide-element">
+            <div class="col-md-12 address-container">
+                <div class="pa bg-white top0 left0 z-index5 loading-wrapper tpo-addressloader hide-element"><span class='spinner-dashboard pa'></span></div>
+                <div class="address-controls partial-block">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="row combineDiv">
+                                <div class="col-sm-4 col-md-6">
+                                    <div class="form-group">
+                                        @Html.HiddenFor(m => m.SiteId, new { @class = "siteId" })
+                                        @Html.LabelFor(m => m.SiteName)
+                                        @Html.TextBoxFor(m => m.SiteName, new { @class = "form-control sitename addressInput", onblur = "getbulkplantaddress(this)" })
+                                        @Html.ValidationMessageFor(m => m.SiteName)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-6">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.PickupAddress)
+                                        @Html.TextBoxFor(m => m.PickupAddress, new { @class = "form-control address addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.PickupAddress)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-6">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.PickupZipCode)
+                                        @Html.TextBoxFor(m => m.PickupZipCode, new { @class = "form-control zipcode addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.PickupZipCode)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-6">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.PickupCity)
+                                        @Html.TextBoxFor(m => m.PickupCity, new { @class = "form-control city addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.PickupCity)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-6">
+                                    <div class="form-group">
+                                        @Html.HiddenFor(m => m.PickupStateCode, new { @class = "statecode" })
+                                        @Html.LabelFor(m => m.PickupStateId)
+                                        @Html.DropDownListFor(m => m.PickupStateId, new SelectList(CommonHelperMethods.GetStatesOfAllCountries(), "StateId", "StateCode", Model.PickupStateId), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.PickupStateId)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-6">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.PickupCountyName)
+                                        <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgCountyNameReason"></i>
+                                        @Html.TextBoxFor(m => m.PickupCountyName, new { @class = "form-control county addressInput defaultDisabled disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.PickupCountyName)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-6">
+                                    <div class="form-group">
+                                        @Html.HiddenFor(m => m.PickupCountryCode, new { @class = "countrycode" })
+                                        @Html.LabelFor(m => m.PickupCountryId)
+                                        @Html.DropDownListFor(m => m.PickupCountryId, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.PickupCountryId), new { @class = "form-control country addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.PickupCountryId)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-6 countrygroup-div hide-element">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.PickupCountryGroupId)
+                                        @Html.DropDownListFor(m => m.PickupCountryGroupId, new SelectList(CommonHelperMethods.GetCountriesGroupEx(), "Id", "Name", Model.PickupCountryGroupId), new { @class = "form-control countrygroup addressInput disable-pickup-controls" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="combineDiv subSectionOpacity">
+                                <div class="row geoCntrls">
+                                    <div class="col-xs-6 col-sm-4 col-md-12">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.PickupLatitude)
+                                            @Html.TextBoxFor(m => m.PickupLatitude, new { @class = "form-control datatype-decimal mask-decimal latitude geoInput defaultDisabled", @readonly = "true" })
+                                            @Html.ValidationMessageFor(m => m.PickupLatitude)
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-6 col-sm-4 col-md-12">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.PickupLongitude)
+                                            @Html.TextBoxFor(m => m.PickupLongitude, new { @class = "form-control datatype-decimal mask-decimal longitude geoInput defaultDisabled", @readonly = "true" })
+                                            @Html.ValidationMessageFor(m => m.PickupLongitude)
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-6 col-sm-4 col-md-12">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.PickupTimeZone)
+                                            @Html.TextBoxFor(m => m.PickupTimeZone, new { @class = "form-control timeZoneName defaultDisabled", @readonly = "true" })
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script src="~/Content/js/common-supplier.js"></script>
+<script>
+    $(document).ready(function () {        
+        var element = "#@Html.IdFor(m => m.SiteName)";
+        autoCompleteTextBoxForAddress(element, bulkPlanturl);
+        function autoCompleteTextBoxForAddress(element, url) {           
+            var target = $(element);
+            target.focus(function () {
+                $(this).autocomplete("search", $(this).val());
+            });
+            target.autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        dataType: "json",
+                        data: { Prefix: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item.Name,
+                                };
+
+                            }))
+                        }
+                    });
+                },
+                messages: {
+                    noResults: '',
+                    results: function () { }
+                },
+                minLength: 0,
+                maxShowItems: 5,
+                scroll: true,
+                select: function (event, ui) {                    
+                    var bulkPlantName = ui.item.label;
+                    var bulkPlantId = ui.item ? ui.item.value : 0;
+                    $("#@Html.IdFor(m => m.SiteName)").val(bulkPlantName); 
+                    $("#@Html.IdFor(m => m.SiteId)").val(bulkPlantId);
+                    $(".disable-pickup-controls").attr('readonly', true);
+                    return false;
+                } // select end
+            });// autocomplete end
+            $.ui.autocomplete.prototype._resizeMenu = function () {
+                var ul = this.menu.element;
+                ul.outerWidth(this.element.outerWidth());
+            }
+        }
+    })
+</script>

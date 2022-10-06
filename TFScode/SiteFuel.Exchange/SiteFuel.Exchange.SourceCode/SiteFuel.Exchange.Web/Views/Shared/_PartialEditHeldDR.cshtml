@@ -1,0 +1,315 @@
+﻿@model HeldDeliveryRequestModel
+
+
+@Html.HiddenFor(m => m.HeldDrId)
+<div class="row">
+    <div class="col-sm-6">
+        @Html.LabelFor(m => m.Priority)
+        <div>
+            <div class="form-check form-check-inline radio">
+                @Html.RadioButtonFor(m => m.Priority, DeliveryReqPriority.MustGo, new { @class = "form-check-input" })
+                <label class="form-check-label">@Resource.lblMustGoRequests</label>
+            </div>
+            <div class="form-check form-check-inline radio">
+                @Html.RadioButtonFor(m => m.Priority, DeliveryReqPriority.ShouldGo, new { @class = "form-check-input" })
+                <label class="form-check-label">@Resource.lblShouldGoRequests</label>
+            </div>
+            <div class="form-check form-check-inline radio">
+                @Html.RadioButtonFor(m => m.Priority, DeliveryReqPriority.CouldGo, new { @class = "form-check-input" })
+                <label class="form-check-label">  @Resource.lblCouldGoRequests</label>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-sm-3">
+        <div class="row">
+            <div class="col-10 form-group">
+                <label>@Resource.lblDate</label>
+                @Html.TextBoxFor(m => m.SelectedDate, new { @class = "form-control datepicker delivery-date" })
+                @Html.ValidationMessageFor(m => m.SelectedDate)
+            </div>
+            <div class="col-1 d-flex align-items-center">
+                <label></label>
+                <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="top"
+                   title="Select date for scheduling future loads. Future loads will be displayed in Calendar View."
+                   data-original-title="Select date for scheduling future loads. Future loads will be displayed in Calendar View."></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3 form-group">
+        <label>@Resource.gridColumnStartTime</label>
+        <div class="input-group">
+            @Html.TextBoxFor(m => m.ScheduleStartTime, new { @class = "form-control timepicker" })
+            <div class="input-group-addon"><i class="far fa-clock"></i></div>
+        </div>
+        @Html.ValidationMessageFor(m => m.ScheduleStartTime)
+    </div>
+    <div class="col-sm-3 form-group">
+        <label>@Resource.gridColumnEndTime</label>
+        <div class="input-group">
+            @Html.TextBoxFor(m => m.ScheduleEndTime, new { @class = "form-control timepicker" })
+            <div class="input-group-addon"><i class="far fa-clock"></i></div>
+        </div>
+        @Html.ValidationMessageFor(m => m.ScheduleEndTime)
+    </div>
+    <div class="col-sm-3 form-group">
+        <label>@Resource.lblRequiredQuantity</label>
+        <div class="input-group">
+            @Html.TextBoxFor(m => m.RequiredQuantity, new { @class = "form-control datatype-decimal" })
+            <span class="input-group-addon">@(Model.UoM == 1? "G" : "L")</span>
+        </div>
+        @Html.ValidationMessageFor(m => m.RequiredQuantity)
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-sm-4 form-group">
+        <label>@Resource.lblBadgeNo1</label>
+        @Html.TextBoxFor(m => m.BadgeNo1, new { @class = "form-control" })
+        @Html.ValidationMessageFor(m => m.BadgeNo1)
+    </div>
+    <div class="col-sm-4 form-group">
+        <label>@Resource.lblBadgeNo2</label>
+        @Html.TextBoxFor(m => m.BadgeNo2, new { @class = "form-control" })
+        @Html.ValidationMessageFor(m => m.BadgeNo2)
+    </div>
+    <div class="col-sm-4 form-group">
+        <label>@Resource.lblBadgeNo3</label>
+        @Html.TextBoxFor(m => m.BadgeNo3, new { @class = "form-control" })
+        @Html.ValidationMessageFor(m => m.BadgeNo3)
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-4 form-group">
+        <label>@Resource.gridDeliveryLevelPO</label>
+        @Html.TextBoxFor(m => m.DeliveryLevelPO, new { @class = "form-control" })
+        @Html.ValidationMessageFor(m => m.DeliveryLevelPO)
+    </div>
+    <div class="col-sm-4 form-group">
+        @Html.LabelFor(m => m.Notes)
+        @Html.TextBoxFor(m => m.Notes, new { @class = "form-control" })
+        @Html.ValidationMessageFor(m => m.Notes)
+    </div>
+    <div class="col-sm-4 form-group">
+        <label>Indicative Price</label>
+        @Html.TextBoxFor(m => m.IndicativePrice, new { @class = "form-control datatype-decimal" })
+        @Html.ValidationMessageFor(m => m.IndicativePrice)
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="mb-2">
+            <div class="form-check form-check-inline radio">
+                @Html.RadioButtonFor(m => m.PickupLocationType, PickupLocationType.Terminal, new { @class = "terminal-change form-check-input", onclick = "inputBoxShowHide('existing-terminal','new-terminal');", onchange = "focusOnFirst(this, 'existing-terminal'); " })
+                <label class="form-check-label"> @Resource.gridColumnTerminal</label>
+            </div>
+            <div class="form-check form-check-inline radio">
+                @Html.RadioButtonFor(m => m.PickupLocationType, PickupLocationType.BulkPlant, new { @class = "terminal-change form-check-input", onclick = "inputBoxShowHide('new-terminal','existing-terminal');", onchange = "focusOnFirst(this, 'new-terminal');" })
+                <label class="form-check-label"> @Resource.lblBulkPlant</label>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="row">
+            <div class="col-md-4 form-group">
+                <div class="existing-terminal">
+                    <div class="pa bg-white top0 left0 loading-wrapper terminal-loader hide-element mt5"><span class='spinner-dashboard pa'></span></div>
+                    @Html.TextBoxFor(m => m.Terminal.Name, new { @class = "form-control" })
+                    @Html.TextBoxFor(m => m.Terminal.Id, new { @class = "form-control hide" })
+                    @Html.ValidationMessageFor(m => m.Terminal.Name)
+                </div>
+            </div>
+            <div class="new-terminal defaultDisabled partial-block">
+                <div class="col-sm-12">
+                    <div class="row address-container">
+                        <div class="col-sm-12">
+                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper tpo-addressloader hide-element"><span class='spinner-dashboard pa'></span></div>
+                            <div class="address-controls">
+                                <div class="row">
+                                    <div class="col-sm-4 form-group">
+                                        @Html.HiddenFor(m => m.Bulkplant.SiteId, new { @class = "siteId" })
+                                        @Html.LabelFor(m => m.Bulkplant.SiteName)
+                                        @Html.TextBoxFor(m => m.Bulkplant.SiteName, new { @class = "form-control sitename", onblur = "getbulkplantaddress(this);" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.SiteName)
+                                    </div>
+                                    <div class="col-sm-4 combineDiv form-group">
+                                        @Html.LabelFor(m => m.Bulkplant.Address)
+                                        @Html.TextBoxFor(m => m.Bulkplant.Address, new { @class = "form-control address addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.Address)
+                                    </div>
+                                    <div class="col-sm-4 combineDiv form-group">
+                                        @Html.LabelFor(m => m.Bulkplant.City)
+                                        @Html.TextBoxFor(m => m.Bulkplant.City, new { @class = "form-control city addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.City)
+                                    </div>
+                                    <div class="col-sm-4 combineDiv form-group">
+                                        @Html.LabelFor(m => m.Bulkplant.ZipCode)
+                                        @Html.TextBoxFor(m => m.Bulkplant.ZipCode, new { @class = "form-control zipcode addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.ZipCode)
+                                    </div>
+                                    <div class="col-sm-4 combineDiv form-group">
+                                        @Html.HiddenFor(m => m.Bulkplant.State.Name, new { @Value = Resource.lblDummy, @class = "statename" })
+                                        @Html.HiddenFor(m => m.Bulkplant.State.Code, new { @Value = Resource.lblDummy, @class = "statecode" })
+                                        @Html.LabelFor(m => m.Bulkplant.State.Id)
+                                        @Html.DropDownListFor(m => m.Bulkplant.State.Id, new SelectList(new List<DropdownDisplayItem>(), Model.Bulkplant.State.Id), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.State.Id)
+                                    </div>
+                                    <div class="col-sm-4 form-group">
+                                        @Html.HiddenFor(m => m.Bulkplant.Country.Name, new { @Value = Resource.lblDummy, @class = "countryname" })
+                                        @Html.HiddenFor(m => m.Bulkplant.Country.Code, new { @Value = Resource.lblDummy, @class = "countrycode" })
+                                        @Html.LabelFor(m => m.Bulkplant.Country.Id)
+                                        @Html.DropDownListFor(m => m.Bulkplant.Country.Id, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.Bulkplant.Country.Id), new { @class = "form-control country addressInput disable-pickup-controls" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.Country.Id)
+                                    </div>
+                                    <div class="col-sm-4 countrygroup-div hide-element form-group">
+                                        @Html.LabelFor(m => m.Bulkplant.CountryGroup)
+                                        @Html.DropDownListFor(m => m.Bulkplant.CountryGroup.Id, new SelectList(CommonHelperMethods.GetCountriesGroupEx(), "Id", "Name", Model.Bulkplant.CountryGroup.Id), new { @class = "form-control countrygroup addressInput disable-pickup-controls" })
+                                    </div>
+                                </div>
+                                <div class="row combineDiv">
+                                    <div class="col-sm-4 form-group">
+                                        @Html.LabelFor(m => m.Bulkplant.CountyName)
+                                        <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgCountyNameReason"></i>
+                                        @Html.TextBoxFor(m => m.Bulkplant.CountyName, new { @class = "form-control county addressInput" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.CountyName)
+                                    </div>
+                                    <div class="col-sm-4 form-group">
+                                        @Html.LabelFor(m => m.Bulkplant.Latitude)
+                                        @Html.TextBoxFor(m => m.Bulkplant.Latitude, new { @class = "form-control datatype-decimal mask-decimal latitude lat geoInput", @readonly = "true" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.Latitude)
+                                    </div>
+                                    <div class="col-sm-4 form-group">
+                                        @Html.LabelFor(m => m.Bulkplant.Longitude)
+                                        @Html.TextBoxFor(m => m.Bulkplant.Longitude, new { @class = "form-control datatype-decimal mask-decimal longitude long geoInput", @readonly = "true" })
+                                        @Html.ValidationMessageFor(m => m.Bulkplant.Longitude)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+<script>
+    $(document).ready(function () {
+        stateId = '@(Model.Bulkplant != null && Model.Bulkplant.State != null ? Model.Bulkplant.State.Id : 0)';
+        $('#@Html.IdFor(m => m.SelectedDate)').data("DateTimePicker").useCurrent(false);
+        var selectedDate = $('#@Html.IdFor(m => m.SelectedDate)').val();
+        $('#@Html.IdFor(m => m.SelectedDate)').data("DateTimePicker").minDate(moment(new Date()).startOf('d'));
+        if (moment(selectedDate) < moment(new Date())) {
+            $('#@Html.IdFor(m => m.SelectedDate)').data("DateTimePicker").useCurrent(true);
+            $('#@Html.IdFor(m => m.SelectedDate)').val(moment(new Date()).startOf('d').format('L'));
+        }
+        if ("@Model.PickupLocationType" != "@PickupLocationType.BulkPlant") {
+            inputBoxShowHide('existing-terminal', 'new-terminal');
+        }
+        else {
+            inputBoxShowHide('new-terminal', 'existing-terminal');
+        }
+        onLoadEditPopup('@Model.OrderId', '@(Model.Terminal!= null && Model.Terminal.Id > 0 ? Model.Terminal.Name :"")');
+
+        $('#saveHeldDr').off().on('click', function () {
+            var requiredQuantity = $('#RequiredQuantity').val();
+            if (!requiredQuantity || requiredQuantity == 0) {
+                validationMessageFor('RequiredQuantity', '@(string.Format(Resource.valMessageRequired, "Required Quantity"))');
+                return;
+            }
+            var indicativePrice = $('#IndicativePrice').val();
+            if (!indicativePrice || indicativePrice == 0) {
+                validationMessageFor('IndicativePrice', '@(string.Format(Resource.valMessageRequired, "Indicative Price"))');
+                return;
+            }
+            var priority = $('input[name="@Html.NameFor(m=> m.Priority)"]:checked').val();
+            if (priority != '@DeliveryReqPriority.MustGo' && priority != '@DeliveryReqPriority.ShouldGo' && priority != '@DeliveryReqPriority.CouldGo') {
+                validationMessageFor('Priority', '@(string.Format(Resource.valMessageRequired, "Priority"))');
+                return;
+            }
+            var pickupLocationType = $('input[name="@Html.NameFor(m=> m.PickupLocationType)"]:checked').val();
+            if (pickupLocationType != '@PickupLocationType.Terminal' && pickupLocationType != '@PickupLocationType.BulkPlant') {
+                validationMessageFor('PickupLocationType', '@(string.Format(Resource.valMessageRequired, "Pickup Location Type"))');
+                return;
+            }
+            if (pickupLocationType == '@PickupLocationType.BulkPlant' && !validateBulkplantAddress()) {
+                return;
+            }
+            var terminal = $('#Terminal_Id').val();
+            if (pickupLocationType != '@PickupLocationType.BulkPlant' && (!terminal || terminal == 0)) {
+                validationMessageFor('Terminal', '@(string.Format(Resource.valMessageRequired, "Terminal"))');
+                return;
+            }
+            if (pickupLocationType != '@PickupLocationType.BulkPlant') {
+                $("#@Html.IdFor(m => m.Bulkplant.State.Id)").val("1");
+            }
+            else {
+                $("#@Html.IdFor(m => m.Terminal.Id)").val("1");
+            }
+            $('.heldDrPopup').removeClass("hide-element");
+            var input = $("#edit-held-dr").serialize();
+            $.post("@Url.Action("EditHeldDr","SupplierBase",new {area = "Supplier" })", input, function (data) {
+                if (data.StatusCode == 0) {
+                    msgsuccess(data.StatusMessage);
+                    reloadGrid();
+                }
+                else {
+                    msgerror(data.StatusMessage);
+                }
+            }).fail(function (a, b, c) {
+                msgerror('Could not update delivery request');
+            }).always(function () {
+                $('#cancel-edit-helddr').click();
+                $('.heldDrPopup').addClass("hide-element");
+            });
+        });
+    });
+
+    $(document).off('#saveHeldDr');
+
+    function validateBulkplantAddress() {
+        var isValid = true;
+        var countryId = parseInt($('#Bulkplant_Country_Id').val());
+        var stateId = parseInt($("#Bulkplant_State_Id").val());
+        validationMessageFor('Bulkplant.State_Id', '');
+
+        if (countryId == '@((int)Country.CAR)') {
+            if (isNaN(stateId) || stateId <= 0) {
+                validationMessageFor('Bulkplant.State.Id', '@(string.Format(Resource.valMessageRequired, "State"))');
+                isValid = false;
+            }
+        }
+        else {
+            var city = $.trim($("#Bulkplant_City").val());
+            var zipCode = $.trim($("#Bulkplant_ZipCode").val());
+            var countyName = $.trim($("#Bulkplant_CountyName").val());
+            var address = $.trim($("#Bulkplant_Address").val());
+
+            if (address == '') {
+                validationMessageFor('Bulkplant.Address', '@(string.Format(Resource.valMessageRequired, "Address"))');
+                isValid = false;
+            }
+            if (city == '') {
+                validationMessageFor('Bulkplant.City', '@(string.Format(Resource.valMessageRequired, "City"))');
+                isValid = false;
+            }
+            if (isNaN(stateId) || stateId <= 0) {
+                validationMessageFor('Bulkplant.State.Id', '@(string.Format(Resource.valMessageRequired, "State"))');
+                isValid = false;
+            }
+            if (zipCode == '') {
+                validationMessageFor('Bulkplant.ZipCode', '@(string.Format(Resource.valMessageRequired, "ZipCode"))');
+                isValid = false;
+            }
+            if (countyName == '') {
+                validationMessageFor('Bulkplant.CountyName', '@(string.Format(Resource.valMessageRequired, "County"))');
+                isValid = false
+            }
+        }
+        return isValid;
+    }
+</script>

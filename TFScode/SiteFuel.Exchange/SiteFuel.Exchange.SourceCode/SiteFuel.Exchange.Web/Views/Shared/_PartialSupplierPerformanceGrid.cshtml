@@ -1,0 +1,102 @@
+﻿@model UspSupplierPerformanceViewModel
+<div class="row">
+    <div class="col-sm-12">
+        <h4>@Resource.lblYourCarriersSuppliers</h4>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="supplierPerformance-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnSupplierName</th>
+                                    <th>@Resource.gridColumnTotalOrders</th>
+                                    <th>@Resource.gridColumnTotalOrderValue</th>
+                                    <th>@Resource.gridColumnQuantityDelivered</th>
+                                    <th>@Resource.gridColumnTotalDeliveries</th>
+                                    <th>@Resource.lblMissedDeliveries</th>
+                                    <th class="color-default">@Resource.gridColumnLateDeliveries</th>
+                                    <th class="color-default">@Resource.gridColumnDeliveryOverages</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var buyerYourSupplierGrid, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7] };
+    var ClearFilter;
+    $(document).ready(function () {
+
+        buyerYourSupplierGrid = $('#supplierPerformance-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("YourSuppliersGrid", "Dashboard")",
+                "type": "GET",
+                "datatype": "json",
+                "dataSrc": ""
+            },
+            "columns": [
+                {
+                   "data": function (data, type, row, meta) {
+                       return '<a href="@Url.Action("SupplierDetails", "Dashboard" )?supplierCompanyId=' + data.SupplierCompanyId + '">' + data.SupplierName + '</a>';
+                   }, "autoWidth": true
+                },
+                //{ "data": "SupplierName", "autoWidth": true },
+                { "data": "TotalOrders", "autoWidth": true },
+                { "data": "TotalOrderValue", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+                { "data": "GallonsDelivered", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 0, '') },
+                { "data": "TotalDeliveries", "autoWidth": true },
+                { "data": "MissedDeliveries", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<label class=' + (data.LateDelivries > 0 ? "text-danger" : "") + '>' + data.LateDelivries + '</label>';
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<label class=' + (data.DeliveryOverages > 0 ? "text-danger" : "") + '>' + data.DeliveryOverages + '</label>';
+                    }, "autoWidth": true
+                }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+            "initComplete": function (settings, json) {
+                if ($(this).find('tbody tr td').length < 2) {
+                    hideElementById("supplier-supplierperformanceDiv");
+                }
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.lblYourSuppliers', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.lblYourSuppliers', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.lblYourSuppliers', exportOptions: exportColumns, orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                },
+
+            });
+        });
+</script>
+

@@ -1,0 +1,127 @@
+﻿@model TerminalBulkBadgeViewModel
+@{
+    var randomNum099 = (new Random()).Next(0, 99);
+}
+@using (Html.BeginCollectionItem("OrderBadgeDetails.TerminalBulkBadge"))
+{
+    <div class="partial-block">
+        <div class="row mb10">
+            <div class="col-md-12">
+                <div class="row mb5">
+                    <div class="col-sm-12">
+                        <div class="custom-control custom-radio custom-control-inline radio">
+                            @Html.RadioButtonFor(m => m.IsPickupTerminal, true, new { @id = "radio-newTerminal" + -@randomNum099, @class = "custom-control-input radio-badge-terminal", onclick = "showHideGeoControls(this, 'ddlterminal','ddlBulk')" })
+                            <label class="custom-control-label" for="radio-newTerminal-@randomNum099">@Resource.lblTerminalText</label>
+                        </div>
+                        <div class="custom-control custom-radio custom-control-inline radio">
+                            @Html.RadioButtonFor(m => m.IsPickupTerminal, false, new { @id = "radio-newBulk" + -@randomNum099, @class = "custom-control-input radio-badge-bulkplant", onclick = "showHideGeoControls(this,'ddlBulk','ddlterminal')" })
+                            <label class="custom-control-label" for="radio-newBulk-@randomNum099">@Resource.lblBulkPlant</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb10">
+                    <div class="col-sm-3">
+                        <div class="ddlterminal">
+
+                            @Html.DropDownListFor(m => m.TerminalId, new SelectList(CommonHelperMethods.GetAllTerminals(), "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblTerminalText), new { @class = "form-control selectTerminal randomTerminalId" + -@randomNum099 })
+                            @Html.ValidationMessageFor(m => m.TerminalId)
+                        </div>
+                        <div class="ddlBulk hide-element">
+                            @Html.DropDownListFor(m => m.BulkPlantId, new SelectList(CommonHelperMethods.GetBulkPlants(CurrentUser.CompanyId), "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblBulkPlant), new { @class = "form-control selectBulkPlant randomBulkPlantId" + -@randomNum099 })
+                            @Html.ValidationMessageFor(m => m.BulkPlantId)
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        @Html.TextBoxFor(m => m.BadgeNo1, "", new { @class = "form-control badge1", @placeholder = "Badge #1" })
+                        @Html.ValidationMessageFor(m => m.BadgeNo1)
+                    </div>
+                    <div class="col-sm-2">
+                        @Html.TextBoxFor(m => m.BadgeNo2, "", new { @class = "form-control badge2", @placeholder = "Badge #2" })
+                        @Html.ValidationMessageFor(m => m.BadgeNo1)
+                    </div>
+                    <div class="col-sm-2">
+                        @Html.TextBoxFor(m => m.BadgeNo3, "", new { @class = "form-control badge3", @placeholder = "Badge #3" })
+                        @Html.ValidationMessageFor(m => m.BadgeNo1)
+                    </div>
+                    <div class="col-xs-3">
+                        <a href="javascript:void(0)" class="fa fa-trash-alt mt10 color-maroon" title="Remove" onclick="removePartial(this);"></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script type="text/javascript">
+        $(document).ready(function () {            
+            filterTerminals();
+            filterBulkPlants();
+        });
+
+    $(".selectTerminal").select2({
+        placeholder: '@string.Format(Resource.valMessageSelect, Resource.lblTerminalText)',
+        allowClear: true
+    }).on('select2:opening', function (e) {
+        filterTerminals();
+        $(this).data('select2').$dropdown.find(':input.select2-search__field').attr('placeholder', '@Resource.lblTerminalText')
+    });
+
+    $(".selectBulkPlant").select2({
+        placeholder: '@string.Format(Resource.valMessageSelect, Resource.lblBulkPlant)',
+        allowClear: true
+    }).on('select2:opening', function (e) {
+        filterBulkPlants();
+        $(this).data('select2').$dropdown.find(':input.select2-search__field').attr('placeholder', '@Resource.lblBulkPlant')
+    });
+
+    function filterBulkPlants() {
+        let arr = [];
+        arr = bindBadgeDetailsBulkPlants();
+        bindLocalBulkPlants(arr);
+    }
+    function filterTerminals() {
+        let arr = [];
+        arr = bindBadgeDetailsTerminals();
+        bindLocalTerminal(arr);
+       }
+
+    function IdInComparer(otherArray) {
+        return function (current) {
+            return otherArray.filter(function (other) {
+                return other == current.Id
+            }).length == 1;
+        }
+    }
+    function bindLocalBulkPlants(selectedBulkPlantIds) {
+        var isManual = $("#OrderAdditionalDetailsViewModel_FreightPricingMethod").is(":checked");
+        if (!isManual) {
+            var response =  @Html.Raw(Json.Encode(CommonHelperMethods.GetBulkPlants(CurrentUser.CompanyId)));
+            var target = $(".randomBulkPlantId" + -@randomNum099);
+            target.empty();
+            if (selectedBulkPlantIds.length > 0) {
+                response = response.filter(IdInComparer(selectedBulkPlantIds));
+                response.forEach(el => {
+                    target.append($("<option></option>").attr("value", el.Id).text(el.Name));
+                });
+            }
+        }
+    }
+
+    function bindLocalTerminal(selectedTerminalIds)
+    {
+
+        var isManual = $("#OrderAdditionalDetailsViewModel_FreightPricingMethod").is(":checked");
+        if (!isManual) {
+            var response =  @Html.Raw(Json.Encode(CommonHelperMethods.GetAllTerminals()));
+            var target = $(".randomTerminalId" + -@randomNum099);
+            if (selectedTerminalIds.length > 0) {
+                target.empty();
+                response = response.filter(IdInComparer(selectedTerminalIds));
+                response.forEach(el => {
+                    target.append($("<option></option>").attr("value", el.Id).text(el.Name));
+                });
+            }
+        }
+    }
+</script>
+

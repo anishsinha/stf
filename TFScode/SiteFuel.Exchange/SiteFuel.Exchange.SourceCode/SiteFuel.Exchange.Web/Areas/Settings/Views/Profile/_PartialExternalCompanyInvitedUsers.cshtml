@@ -1,0 +1,87 @@
+﻿@model AdditionalUserViewModel
+
+@using (Html.BeginCollectionItem("ExternalInvitedUser"))
+{
+    <div class="partial-block border-dash-dark radius-5 mb15 pa15">
+        <div class="row">
+            <div class="col-sm-11">
+                <div class="row">
+                    @Html.HiddenFor(m => m.Id)
+                    @Html.HiddenFor(m => m.CompanyId)
+                    @Html.HiddenFor(m => m.InvitedBy)
+                    @Html.HiddenFor(m => m.IsInvitedUser)
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.FirstName)
+                            @Html.TextBoxFor(m => m.FirstName, new { @class = "form-control", autofocus = "autofocus" })
+                            @Html.ValidationMessageFor(m => m.FirstName)
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.LastName)
+                            @Html.TextBoxFor(m => m.LastName, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.LastName)
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Email)
+                            @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.Email)
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Title)
+                            @Html.TextBoxFor(m => m.Title, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.Title)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @{
+                                var companyTypeId = (int)CurrentUser.CompanyTypeId <= 0 ? Model.CompanyTypeId : (int)CurrentUser.CompanyTypeId;
+                            }
+                            @Html.LabelFor(m => m.RoleIds)
+                            @Html.ListBoxFor(m => m.RoleIds, new SelectList(CommonHelperMethods.GetRolesByCompanyType(companyTypeId), "Id", "Name", 0), new { @class = "form-control multi-select user-roles", onchange = "showMessage(this);" })
+                            @Html.ValidationMessageFor(m => m.RoleIds)
+                        </div>
+                        <div class="hide-element val-message">
+                            <div class="alert alert-warning fs12 col-sm-12" role="alert">
+                                @Resource.valMessageMultipleRolesWithAdminRole
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (Model.DisplayMode == PageDisplayMode.Create)
+            {
+                <div class="col-sm-1 fs18 mt25 nmt mb10">
+                    <a href="javascript:void(0)" class="fa fa-trash-alt color-maroon mt7" title="@Resource.btnLabelRemove" onclick="removePartial(this);"></a>
+                </div>
+            }
+        </div>
+        @Html.Partial("_PartialDrivertOtherInfo", Model)
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+
+        function
+            resendInvitationLink() {
+            var url = '@Url.Action("ResendActivationLink", "Profile", new { area = "Settings" })';
+            var data = { userId: '@Model.Id', isInvitedUser:'@Model.IsInvitedUser' };
+            $(".loading-wrapper").show();
+            $.post(url, data).done(function (response) {
+                if (response) {
+                    $(".loading-wrapper").hide();
+                    msgsuccess('@Resource.successMessageActivationEmailSent');
+                }
+            });
+        }
+    </script>
+}
+

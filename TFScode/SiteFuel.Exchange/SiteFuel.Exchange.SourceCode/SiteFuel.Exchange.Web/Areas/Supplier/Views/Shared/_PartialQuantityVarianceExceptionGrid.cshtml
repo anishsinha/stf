@@ -1,0 +1,265 @@
+﻿<div class="well bg-white shadow-b">
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div id="approvals-div" class="table-responsive">
+                <table id="tbl-dqv-approvals" data-gridname="@GridName.ManageException" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th data-key="@Resource.lblCustomer">@Resource.lblCustomer</th>
+                            <th data-key="@Resource.headinPoNumber">@Resource.headinPoNumber</th>
+                            <th data-key="@Resource.lblEDDT">@Resource.lblEDDT</th>
+                            <th data-key="@Resource.lblDriver">@Resource.lblDriver</th>
+                            <th data-key="@Resource.lblCarrier">@Resource.lblCarrier</th>
+                            <th data-key="@Resource.lblJobName">@Resource.lblJobName</th>
+                            <th data-key="@Resource.lblDroppedDate">@Resource.lblDroppedDate</th>
+                            @*<th>@Resource.lblOrderedQuantity</th>*@
+                            <th data-key="@Resource.lblBilledQuantity">@Resource.lblBilledQuantity</th>
+                            <th data-key="@Resource.lblDropped">@Resource.lblDropped @Resource.lblQuantity</th>
+                            <th data-key="@Resource.lblSetVarianceAsperTolerance">@Resource.lblSetVarianceAsperTolerance</th>
+                            <th data-key="@Resource.lblBOLNetVarianceGridText">@Resource.lblBOLNetVarianceGridText</th>
+                            <th data-key="@Resource.lblApprovedDate">@Resource.lblApprovedDate</th>
+                            <th data-key="@Resource.lblStatus">@Resource.lblStatus</th>
+                            <th data-key="@Resource.gridColumnAction">@Resource.gridColumnAction</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="edit-bolDetails" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+        <div class="modal-content">
+            <div class="modal-body">
+                <div>
+                    <table class="exception-details opacity8" width="100%">
+                        <tr>
+                            <td>@Resource.lblJobName</td>
+                            <td><label id="jobName"></label></td>
+                        </tr>
+                        <tr>
+                            <td>@Resource.lblDroppedDate</td>
+                            <td><label id="droppedDate"></label></td>
+                        </tr>
+                        <tr>
+                            <td>@Resource.lblBilledQuantity</td>
+                            <td><label id="billedQuantity"></label></td>
+                        </tr>
+                        <tr>
+                            <td>@Resource.lblDropped @Resource.lblQuantity</td>
+                            <td><label id="DropQty"></label></td>
+                        </tr>
+                        <tr>
+                            <td>@Resource.lblSetVarianceAsperTolerance</td>
+                            <td><label id="variance"></label></td>
+                        </tr>
+                        <tr>
+                            <td>@Resource.lblBOLNetVarianceGridText</td>
+                            <td><label id="bolnetVariance"></label></td>
+                        </tr>
+                    </table>
+
+                </div>
+                @*<div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">Enter the drop quantity</h4>
+                        <button aria-label="Close" class="close color-grey pull-right pa" data-dismiss="modal" type="button"><i class="fa fa-close fs21"></i></button>
+                    </div>*@
+                <label class="mt15">Enter Drop Quantity</label>
+                <div class="input-group">
+                    <input id="txtBOLNetVariance" type="text" class="form-control" onkeypress="return validatePositiveNumber(event,this)" autofocus />
+                    <span class="input-group-addon">Gallons/Liters</span>
+                    <input type="hidden" id="exceptionId" value="0" />
+                    <input type="hidden" id="hdnBOLQty" value="0" />
+                    <div style="display:none" id="tempDiv"></div>
+                </div>
+                <div class="field-validation-error" style="display:none;" data-valmsg-for="BOLNetVariance" data-valmsg-replace="true"><span id="BOLNetVariance-error" class="">Quantity is required.</span></div>
+                <div class="field-validation-error drop-field-validation-error" style="display:none;" data-valmsg-for="BOLNetVariance" data-valmsg-replace="true"><span id="BOLNetVariance-error" class="">Drop quantity must be less than billed quantity.</span></div>
+                <div class="text-right mt15">
+                    <button type="button" class="btn" data-dismiss="modal">Cancel</button>
+                    <button type="button" onclick="submitBOLDetails();" class="btn btn-primary btn-lg">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var exceptionsGrid, exportColumns = { columns: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10] };
+    $(document).ready(function () {
+        exceptionsGrid = $('#tbl-dqv-approvals').DataTable({
+            "ajax": {
+                "url": "@Url.Action("MyApprovalExceptionGrid", "Exception", new { area = "Supplier" })",
+                "type": "POST",
+                "data": function (data) {
+                    $('#approvals-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "datatype": "json",
+                "dataSrc": function (json) {
+                    $("#approvals-div").find('.loading-wrapper').hide();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": false,
+            "searchDelay": 500,
+            processing: true,
+            "searching": true,
+            "bProcessing": true,
+            lengthChange: true,
+            responsive: true,
+            "columns": [
+                { "data": "Customer", "autoWidth": true },
+                { "data": "PoNumber", "autoWidth": true },
+                { "data": "InvoiceNumber", "autoWidth": true },
+                { "data": "DriverName", "autoWidth": true },
+                { "data": "CarrierName", "autoWidth": true },
+                { "data": "JobName", "autoWidth": true },
+                { "data": "DropDate", "autoWidth": true },
+                @*{
+                    "data": function (data, type, row, meta) {
+                        if (data.OrderedQuantity === 9999999)
+                            return "@Resource.lblNotSpecified";
+                        else
+                            return '' + data.OrderedQuantity;
+                    }, "autoWidth": true
+                },*@
+                { "data": "BolQuantity", "autoWidth": true },
+                { "data": "DeliveredQuantity", "autoWidth": true },
+                { "data": "Tolerance", "autoWidth": true },
+                { "data": "Varience", "autoWidth": true },
+                { "data": "ResolvedOn", "autoWidth": true },
+                { "data": "StatusName", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.StatusId === 1) {
+                            var columnData = "<div class='btn-group'><button data-toggle='dropdown' class='btn btn-primary btn-sm dropdown-toggle' aria-expanded='false'>Approve <span class='caret'>";
+                            columnData += "</span></button><ul class='dropdown-menu dropdown-menu-right'>";
+                            columnData += '<li class="dropdown-item"><a data-href="@Url.Action("Approve", "Exception")?exceptionId=' + data.Id + '&resolutionTypeId=@ExceptionResolution.ApproveBOLQuantity&quantity=' + data.BolQuantity + '" onclick="approveException(this)">@Resource.lblBilledQuantity (' + data.BolQuantity + ' ' + data.UOM +')</a></li>';
+                            columnData += "<li class='divider'></li>";
+                            columnData += '<li class="dropdown-item"><a data-href="@Url.Action("Approve", "Exception")?exceptionId=' + data.Id + '&resolutionTypeId=@ExceptionResolution.ApproveDroppedQuantity&quantity=' + data.DeliveredQuantity + '" onclick="approveException(this)">@Resource.lblDropped @Resource.lblQuantity (' + data.DeliveredQuantity + ' ' + data.UOM +')</a></li>';
+                            columnData += "<li class='divider'></li>";
+                            columnData += '<li class="dropdown-item"><a onclick="openDialogBix(' + data.Id + ',\'' + data.JobName + '\'\,\'' + data.DropDate + '\'\,' + data.BolQuantity + ',' + data.DeliveredQuantity + ',' + data.Tolerance + ',' + data.Varience + ',\'' + data.UOM + '\'\);">@Resource.lblBOLNetVariance</a></li>';
+                            columnData += "</ul></div>";
+                            return columnData;
+                        }
+                        else
+                            return "";
+                    }, "autoWidth": true
+                }
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "columnDefs": [
+                { "name": "Customer", "targets": 0 },
+                { "name": "PoNumber", "targets": 1 },
+                { "name": "InvoiceNumber", "targets": 2 },
+                { "name": "JobName", "targets": 3 },
+                { "name": "DropDate", "targets": 4 },
+                //{ "name": "OrderedQuantity", "targets": 5 },
+                { "name": "BolQuantity", "targets": 5 },
+                { "name": "DeliveredQuantity", "targets": 6 },
+                { "name": "Tolerance", "targets": 7 },
+                { "name": "Varience", "targets": 8 },
+                { "name": "AutoApprove", "targets": 9 },
+                { "name": "StatusName", "targets": 10 },
+                { "targets": [11], "searchable": false }
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'colvis', columns: exportColumns.columns },
+                { extend: 'csv', title: '@Resource.gridColumnException', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.gridColumnException', exportOptions: exportColumns },
+                @*{ extend: 'pdf', title: '@Resource.headingFuelRequestSummary', exportOptions: exportColumns, orientation: 'landscape' },*@
+                {
+                    extend: 'print', exportOptions: exportColumns,
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+    function approveException(elem) {
+        var targetUrl = $(elem).attr('data-href');
+        $("#approvals-div").find('.loading-wrapper').show();
+        $.post(targetUrl, function (data) {
+            if (data.StatusCode === 0) {
+                $("#txtBOLNetVariance").val('');
+                msgsuccess(data.StatusMessage);
+                if (exceptionsGrid != undefined) {
+                    exceptionsGrid.ajax.reload();
+                }
+            }
+            else {
+                msgerror(data.StatusMessage);
+            }
+        }).done(function () {
+            $("#approvals-div").find('.loading-wrapper').hide();
+        });
+    }
+    function openDialogBix(Id,JobName, DropDate, BolQuantity, DeliveredQuantity, Tolerance, Varience,UOM) {
+        $("#exceptionId").val(Id);
+        $("#hdnBOLQty").val(BolQuantity);
+
+        //set value in table
+        $("#jobName").html(JobName);
+        $("#droppedDate").html(DropDate);
+        $("#billedQuantity").html(BolQuantity+" "+UOM);
+        $("#DropQty").html(DeliveredQuantity+" "+UOM);
+        $("#variance").html(Tolerance+" "+UOM);
+        $("#bolnetVariance").html(Varience+" "+UOM);
+
+
+        $(".field-validation-error").hide();
+        $(".drop-field-validation-error").hide();
+        $('#edit-bolDetails').modal('show');
+ }
+    function submitBOLDetails() {
+        $(".field-validation-error").hide();
+        $(".drop-field-validation-error").hide();
+        var validationstatus = 0;
+        var bolNetQty = $("#txtBOLNetVariance").val();
+        var billedQty = $("#hdnBOLQty").val();
+        if (bolNetQty == '') {
+            validationstatus = 1;
+        }
+        else if ((parseFloat(bolNetQty) > parseFloat(billedQty)) && validationstatus==0) {
+            validationstatus = 2;
+        }
+        var exceptionId = $("#exceptionId").val();
+        if (validationstatus==0 && exceptionId > 0) {
+            $("#tempDiv").html('');
+            $("#tempDiv").append('<a id="dinamic_link" data-href="@Url.Action("Approve", "Exception")?exceptionId=' + exceptionId + '&resolutionTypeId=@ExceptionResolution.ApproveBOLMinusNetVariance&quantity=' + bolNetQty + '"">@Resource.lblBOLNetVariance <i class="fa fa-tint pull-left mt7"></i></a>');
+            $("#dinamic_link").click();
+            $('#edit-bolDetails').modal('hide');
+            approveException($("#dinamic_link"));
+        }
+        else {
+            if (validationstatus == 1) {
+                $(".field-validation-error").show();
+                $(".drop-field-validation-error").hide();
+            }
+            else if (validationstatus == 2) {
+                $(".field-validation-error").hide();
+                $(".drop-field-validation-error").show();
+            }
+            else {
+                $(".field-validation-error").hide();
+                $(".drop-field-validation-error").hide();
+            }
+        }
+    }
+</script>

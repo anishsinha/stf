@@ -1,0 +1,606 @@
+﻿@model SalesCalculatorViewModel
+
+@using (Ajax.BeginForm("Calculator", "InternalSales", new AjaxOptions { }, new { id = "calculator-form" }))
+{
+    @Html.Hidden("hdnRadius", (object)Convert.ToInt32(100))
+    @Html.HiddenFor(m => m.FuelTypeInYourAreaId)
+    @Html.HiddenFor(m => m.StateName)
+    @Html.HiddenFor(m => m.CountryCode)
+    <div class="pa bg-white top0 left0 loading-wrapper mt5 hide-element calculate-action"><span class='spinner-dashboard pa'></span></div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-sm-2">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.PriceDate)
+                        @Html.TextBoxFor(m => m.PriceDate, new { @class = "form-control datepicker job-start-date mirror" })
+                        @Html.ValidationMessageFor(m => m.PriceDate)
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div>
+                        <div class="form-group mb5">
+                            <div class="radio">
+                                <label class="radio-inline">
+                                    @Html.RadioButtonFor(m => m.IsZipCode, false, new { @class = "rdoAddress", onclick = "radioChange(this,'sales-Address','zip'); fillFuelTypesByZip();showHideControls(this,'sales-Address','zip')" })
+                                    @Resource.lblAddress
+                                </label>
+                                <label class="radio-inline">
+                                    @Html.RadioButtonFor(m => m.IsZipCode, true, new { @class = "rdoZip", onclick = "radioChange(this,'zip','sales-Address'); fillFuelTypesByZip();showHideControls(this,'zip','sales-Address')" })
+                                    @Resource.lblZipcode
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row address-zip-container">
+                <div class="col-md-10 address defaultDisabled address-container sales-Address">
+                        <div class="row">
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.Address)
+                                    @Html.TextBoxFor(m => m.Address, new { @class = "form-control" })
+                                    @*@Html.ValidationMessageFor(m => m.Address)*@
+                                    <span class="field-validation-error hide" id="address-error"><span class="">@string.Format(Resource.valMessageRequired, Resource.lblAddress)</span></span>
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.Zip)
+                                    @Html.TextBoxFor(m => m.Zip, new { @class = "form-control zipcode", onchange = "GetFuelTypesInYourArea(this.value)" })
+                                    @*@Html.ValidationMessageFor(m => m.Zip)*@
+                                    <span class="field-validation-error hide" id="address-zip-error"><span class="">@string.Format(Resource.valMessageRequired, Resource.lblZipcode)</span></span>
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.City)
+                                    @Html.TextBoxFor(m => m.City, new { @class = "form-control city" })
+                                    @*@Html.ValidationMessageFor(m => m.City)*@
+                                    <span class="field-validation-error hide" id="city-error"><span class="">@string.Format(Resource.valMessageRequired, Resource.lblCity)</span></span>
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.StateId)
+                                    @Html.DropDownListFor(m => m.StateId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name"), null, new { @class = "form-control state" })
+                                    @Html.ValidationMessageFor(m => m.StateId)
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.CountryId)
+                                    @Html.DropDownListFor(m => m.CountryId, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code"), null, new { @class = "form-control country" })
+                                    @Html.ValidationMessageFor(m => m.CountryId)
+                                </div>
+                            </div>
+                        </div>
+                </div>
+                <div class="col-sm-2">
+                    <div class="form-group">
+                        <div class="zip defaultDisabled">
+                            @Html.TextBoxFor(m => m.ZipCode, new { @class = "zip form-control", onchange = "fillFuelTypesByZip()" })
+                            <span class="field-validation-error hide" id="zip-code-error"><span>@string.Format(Resource.valMessageRequired, Resource.lblZipcode)</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="row mt10">
+                        <div class="col-sm-12">
+                            <div class="radio">
+                                <label class="radio-inline">
+                                    @Html.RadioButtonFor(m => m.SelectedFuelType, (int)ProductDisplayGroups.FuelTypesInYourArea, new { @checked = "checked", onclick = "radioChange(this,'fuelTypeNearYourArea','commonfueltype,lesscommonfueltype');showHideControls(this,'fuelTypeNearYourArea','commonfueltype,lesscommonfueltype')", onchange = "focusOnFirst(this, 'fuelTypeNearYourArea');fillFuelTypesByZip();clearPricingCode();" })
+                                    Near This Address
+                                </label>
+                                <label class="radio-inline">
+                                    @Html.RadioButtonFor(m => m.SelectedFuelType, (int)ProductDisplayGroups.CommonFuelType, new { @class = "commonFuelType", onclick = "radioChange(this,'commonfueltype','fuelTypeNearYourArea,lesscommonfueltype');showHideControls(this,'commonfueltype','fuelTypeNearYourArea,lesscommonfueltype')", onchange = "focusOnFirst(this, 'commonfueltype');clearPricingCode();" })
+                                    @Resource.lblCommon
+                                </label>
+                                <label class="radio-inline">
+                                    @Html.RadioButtonFor(m => m.SelectedFuelType, (int)ProductDisplayGroups.LessCommonFuelType, new { @class = "lessCommonFuelType", onclick = "radioChange(this,'lesscommonfueltype','fuelTypeNearYourArea,commonfueltype');showHideControls(this,'lesscommonfueltype','fuelTypeNearYourArea,commonfueltype')", onchange = "focusOnFirst(this, 'lesscommonfueltype');clearPricingCode();" })
+                                    @Resource.lblLessCommon
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="fuel-type-near-you">
+                            <div id="fuelTypeNearYourArea" class="fuelTypeNearYourArea defaultDisabled">
+                                <div class="col-sm-12">
+                                    <div class="pr">
+                                        <input id="FuelTypeNearYou" type="text" class="form-control nearest-fueltype" autocomplete="off" onchange="clearPricingCode();"  onkeydown="javascript:return false">
+                                    </div>
+                                    <div class="nearest-fuellist pa bg-white">
+                                        <ul class="list-unstyled"></ul>
+                                        <div class="text-center">
+                                            <a href="javascript:void(0)" class="more-nearestfuel" style="display:none">See More</a>
+                                            <div class="spinner-xsmall mbm2 ml2" style="display:none"></div>
+                                        </div>
+                                    </div>
+                                    @Html.ValidationMessageFor(m => m.FuelTypeInYourAreaId)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="common-fuel-type">
+                            <div class="commonfueltype defaultDisabled">
+                                <div class="col-sm-6">
+                                    @Html.DropDownListFor(m => m.CommonFuelTypeId, new SelectList(CommonHelperMethods.GetFuelProducts(ProductDisplayGroups.CommonFuelType), "Id", "Name"), null, new { @class = "form-control", @onchange="clearPricingCode();" })
+                                </div>
+                            </div>
+                        </div>
+                        <div class="less-common-fuel-type">
+                            <div class="lesscommonfueltype defaultDisabled">
+                                <div class="col-sm-6">
+                                    @Html.DropDownListFor(m => m.LessCommonFuelTypeId, new SelectList(CommonHelperMethods.GetFuelProducts(ProductDisplayGroups.LessCommonFuelType), "Id", "Name"), null, new { @class = "form-control", @onchange="clearPricingCode();"  })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="row mt10">
+                        @Html.HiddenFor(m => m.FuelPricingDetails.PricingSourceId, new { @class = "ddl-pricing-source" })
+                        <div class="pricing-code col-sm-12">
+                            <div class="row">
+                                <div class="col-sm-8">
+                                    <div class="row">
+                                        @Html.PartialFor("_PartialPricingCodes", m => m.FuelPricingDetails.PricingCode)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <button type="button" class="btn btn-sm btn-primary mt25 btn-info" data-toggle="modal" data-target="#modal-pricing-codes" onclick="reloadPricingData()">@Resource.lblSelectPricingCode</button>
+                                </div>
+                            </div>
+                            <div id="pricing-code-info" class="fs12 text-left hide-element v-middle fs12">
+                                <label></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group mb5">
+                                <div class="checkbox">
+                                    <label>
+                                        @Html.CheckBoxFor(m => m.IsCustomPricing, new { onclick = "checkBoxChange(this,'customtype')" })
+                                        @Resource.lblCustomPricing
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="form-group mb5">
+                                @Html.LabelFor(m => m.CustomPricing)
+                                @Html.DropDownListFor(m => m.CustomPricing, new SelectList(CommonHelperMethods.GetRackAvgPricingTypes(), "Id", "Name"), new { @class = "form-control customtype" })
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group mb5">
+                                @Html.LabelFor(m => m.Amount)
+                                @Html.TextBoxFor(m => m.Amount, new { @class = "form-control customtype" })
+                                @Html.ValidationMessageFor(m => m.Amount)
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group checkbox mt30">
+                                <label>
+                                    @Html.CheckBoxFor(m => m.IncludeTaxes)
+                                    @Resource.lblIncludeTaxes
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
+                        @Html.CheckBoxFor(m => m.IsCityRackTerminal, new { onchange = "checkBoxChange(this,'CityTerminalIds')" })
+                        @Resource.lblCityGroupTerminal
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="CityTerminalIds form-group col row">
+            <div class="col-sm-4">
+                <div class="radio">
+                    <label>
+                        @Html.RadioButtonFor(m => m.CityTerminalPricingType, (int)SalesCalculatorRegionType.City, new { @checked = "checked", onclick = "showHideControls(this,'terminal-cities','terminal-states')", onchange = "focusOnFirst(this, 'terminal-cities');" })
+                        @Resource.lblShowPricingForCityRackTerminal
+                    </label>
+                </div>
+                <div class="terminal-cities">
+                    @Html.ListBoxFor(m => m.CityTerminalIds, new SelectList(CommonHelperMethods.GetCityGroupCities((PricingSource)Model.FuelPricingDetails.PricingSourceId), "Id", "Name", 0), new { @class = "form-control multi-select" })
+                    @Html.ValidationMessageFor(m => m.CityTerminalIds)
+                    <div class="pa bg-white top0 left0 z-index5 city-loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                </div>
+            </div>
+            <div class="col-sm-4 terminal-pricing-by-state">
+                <div class="radio">
+                    <label>
+                        @Html.RadioButtonFor(m => m.CityTerminalPricingType, (int)SalesCalculatorRegionType.State, new { onclick = "showHideControls(this,'terminal-states','terminal-cities')", onchange = "focusOnFirst(this, 'terminal-states');" })
+                        @Resource.lblShowCityRackInStateOf
+                    </label>
+                </div>
+                <div class="terminal-states hide-element">
+                    @Html.ListBoxFor(m => m.StateTerminalIds, new SelectList(CommonHelperMethods.GetStates(), "Id", "Name", 0), new { @class = "form-control multi-select " })
+                    @Html.ValidationMessageFor(m => m.StateTerminalIds)
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row text-right mt10 mb25 btn-wrapper">
+        <div class="col-sm-12">
+            <div class="form-group">
+                <input type="button" class="btn btn-primary" data-url="@Url.Action("IsValidFullAddress", "Validation", new { area = "" })" id="salesBtnCalculate" value="@Resource.btnLabelCalculate" />
+            </div>
+        </div>
+    </div>
+}
+
+<div id="salesCalculatorResult">
+
+</div>
+
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+<script type="text/javascript">
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = 0;
+    initDateTimePicker();
+    showHideControls('', 'zip', 'sales-Address');
+    showHideControls(this, 'commonfueltype', 'fuelTypeNearYourArea,lesscommonfueltype');
+    initMultiSelect();
+    $(document).ready(function () {
+        checkBoxChange($("#IsCustomPricing"),'customtype')
+        $('#salesBtnCalculate').click(function (e) {
+                if (!$('#calculator-form').valid()) {
+                    return false;
+                }
+                $('.field-validation-error').addClass('hide');
+                if (!validateForm()) {
+                    return false;
+                }
+
+                var isCityPricing = $('input[name=IsCityRackTerminal]:checked').val();
+                if (isCityPricing) {
+                    if ($('input[name=CityTerminalPricingType]:checked').val() == '@((int)SalesCalculatorRegionType.City)' && $('#CityTerminalIds').val() == "") {
+                        var id = "@Html.NameFor(m => m.CityTerminalIds)";
+                        validationMessageFor(id, '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblCity })');
+                        $("span[data-valmsg-for=\"" + id + "\"]").removeClass('hide');
+                        return false;
+                    }
+                    else if ($('input[name=CityTerminalPricingType]:checked').val() == '@((int)SalesCalculatorRegionType.State)' && $('#StateTerminalIds').val() == "") {
+                        validationMessageFor("@Html.NameFor(m => m.StateTerminalIds)", '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblState })'); return false;
+                    }
+                }
+
+            $('#salesBtnCalculate').attr('disabled', 'disabled');
+            $(".calculate-action").show();
+
+            var countryId = parseInt($("#@Html.IdFor(m=>m.CountryId)").val());  
+                var isZipCode = isZipCodeSelected();
+                if (isZipCode) {
+                    submitForm(e);
+                }
+                else {
+                    if (countryId != @((int)Country.CAR)) {
+                        var url = $(this).data("url");
+                        var model = { address: getAddressModel() };
+                        $.post(url, model, function (response) {
+                            if (response == true) {
+                                submitForm(e);
+                            }
+                            else {
+                                validationMessageFor("@Html.NameFor(m => m.Address)",
+                                    '@ResourceMessages.GetMessage(Resource.valMessageFullAddressInvalid
+                                     , new object[] { Resource.lblAddress, Resource.lblCity, Resource.lblState, Resource.lblCountry, Resource.lblZipcode })');
+                                $('#salesBtnCalculate').removeAttr('disabled');
+                            }
+                        });
+                    }
+                    else {
+                        submitForm(e);
+                    }                   
+                }
+            });
+
+            $(".commonFuelType").click(function () {
+                $('.field-validation-error').addClass('hide');
+                bindFuelTypes($("#@Html.IdFor(m => m.CommonFuelTypeId)"));
+            });
+
+            $(".lessCommonFuelType").click(function () {
+                $('.field-validation-error').addClass('hide');
+                bindFuelTypes($("#@Html.IdFor(m => m.LessCommonFuelTypeId)"));
+            });
+
+            var pricingSourceId = parseInt($("#@Html.IdFor(m => m.FuelPricingDetails.PricingSourceId)").val());
+            if (!isNaN(pricingSourceId) && pricingSourceId > 0) {
+                setControlsByIndices(pricingSourceId);
+            }
+
+            $("#@Html.IdFor(m => m.FuelPricingDetails.PricingSourceId)").change(function () {
+                var pricingSourceId = $(this).val();
+                setControlsByIndices(pricingSourceId);
+                getCityGroupCities(pricingSourceId)
+            });
+
+            //$("#pricing-code-info").addClass('hide hide-element');
+        });
+
+        function setControlsByIndices(pricingSourceId) {
+            if (pricingSourceId == '@((int)PricingSource.OPIS)') {
+                $('.sales-address').hide();
+                $("#@Html.IdFor(m => m.IncludeTaxes)").prop("checked", false);
+                $("#@Html.IdFor(m => m.IncludeTaxes)").prop("disabled", true);
+                $("#@Html.IdFor(m => m.IsCityRackTerminal)").prop("checked", true).trigger('change');
+                $("#@Html.IdFor(m => m.IsCityRackTerminal)").prop("disabled", true);
+                $('.terminal-pricing-by-state').addClass("pntr-none subSectionOpacity");
+                EnableRackHighLow();
+            }
+            else if (pricingSourceId == '@((int)PricingSource.PLATTS)') {
+                $('.sales-address').hide();
+                $("#@Html.IdFor(m => m.IncludeTaxes)").prop("checked", false);
+                $("#@Html.IdFor(m => m.IncludeTaxes)").prop("disabled", true);
+                $("#@Html.IdFor(m => m.IsCityRackTerminal)").prop("checked", true).trigger('change');
+                $("#@Html.IdFor(m => m.IsCityRackTerminal)").prop("disabled", true);
+                $('.terminal-pricing-by-state').addClass("pntr-none subSectionOpacity");
+                DisableRackHighLow();
+            }
+            else {
+                $('.sales-address').show();
+                $("#@Html.IdFor(m => m.IncludeTaxes)").prop("disabled", false);
+                $("#@Html.IdFor(m => m.IsCityRackTerminal)").prop("checked", false).trigger('change');
+                $("#@Html.IdFor(m => m.IsCityRackTerminal)").prop("disabled", false);
+                $('.terminal-pricing-by-state').removeClass("pntr-none subSectionOpacity");
+                EnableRackHighLow();
+            }
+
+            $('.field-validation-error').addClass('hide');
+            //bindFuelTypes($("#@Html.IdFor(m => m.CommonFuelTypeId)"));
+        }
+
+        function submitForm(e) {
+            var stateElem = $('#@Html.IdFor(m => m.StateId) option:selected');
+            $('#@Html.IdFor(m => m.StateName)').val(stateElem.text());
+            var countryElem = $('#@Html.IdFor(m => m.CountryId) option:selected');
+            $('#@Html.IdFor(m => m.CountryCode)').val(countryElem.text());
+
+
+            //$('#calculator-form').submit();
+
+            e.preventDefault();
+           //Show loading display here
+            var form = $("#calculator-form");
+           $.ajax({
+               url : '@Url.Action("Calculator", "InternalSales")',
+               data: form.serialize(),
+               type: 'POST',
+               success: function(data){
+                  //Show popup
+                   $("#salesCalculatorResult").html(data);
+                   parseForm();
+                   $("#salesBtnCalculate").removeAttr('disabled');
+                   $('#slider-content').animate({
+                       scrollTop: $('#slider-content')[0].scrollHeight
+                   }, 1000);
+                   $(".calculate-action").hide();
+               },
+               error: function (data) {
+                   msgerror('No data found');
+                   $("#salesBtnCalculate").removeAttr('disabled');
+               }
+           });
+        }
+
+        function bindFuelTypes(ddl) {
+            $(ddl).empty();
+            var address = getAddress();
+            var groupId = getProductDisplayGroupId();
+
+            $.get("@Url.Action("GetProductListByGroup", "InternalSales")", { displayGroupId: groupId, zipCode: address }, function (response) {
+                $.each(response, function (i, element) {
+                    $(ddl).append($('<option></option>').val(element.Id).html(element.Name));
+                });
+
+                var commonFuelTypeId = parseInt('@Model.CommonFuelTypeId');
+                if (!isNaN(commonFuelTypeId) && commonFuelTypeId > 0) {
+                    $(ddl).val(commonFuelTypeId);
+                }
+
+                $(".spinner-xsmall").hide();
+            });
+        }
+
+        function fillFuelTypesByZip() {
+            $('.field-validation-error').addClass('hide');
+            var displayGroupId = getProductDisplayGroupId();
+            if (displayGroupId == @((int)ProductDisplayGroups.CommonFuelType)) {
+                bindFuelTypes($("#@Html.IdFor(m => m.CommonFuelTypeId)"));
+            }
+            else if (displayGroupId == @((int)ProductDisplayGroups.LessCommonFuelType)) {
+                bindFuelTypes($("#@Html.IdFor(m => m.LessCommonFuelTypeId)"));
+            }
+            else if (displayGroupId == @((int)ProductDisplayGroups.FuelTypesInYourArea)) {
+                var address = getAddress();
+                GetFuelTypesInYourArea(address);
+            }
+        }
+
+        function GetFuelTypesInYourArea(zipcode) {
+            $("#FuelTypeNearYou").val("");
+            $(".nearest-fuellist ul").empty();
+            $(".more-nearestfuel").hide();
+
+            if (zipcode != "" && zipcode.length >= 5) { 
+                $("#hdnRadius").val(parseInt($("#hdnRadius").val()));
+                var radius = $("#hdnRadius").val();
+                $.get("@Url.Action("GetProductList", "InternalSales", new { area="Sales" })", { zipcode: zipcode, radius: radius }, function (response) {
+                    $.each(response, function (i, element) {
+                        $(".nearest-fuellist ul").append($('<li></li>').val(element.Id).html(element.Name));
+                    });
+                    $('.nearest-fuellist li:first-child').click();
+                    $("span[data-valmsg-for='FuelTypeInYourAreaId']").hide();
+                });
+            }
+        }
+
+        $(".more-nearestfuel").click(function () {
+            $(".spinner-xsmall").show();
+            $("#hdnRadius").val(parseInt($("#hdnRadius").val()) + 100);
+            var radius = $("#hdnRadius").val();
+            var address = getAddress();
+            $.get("@Url.Action("GetProductList", "InternalSales", new { area="Sales" })", { zipcode: address, radius: radius }, function (response) {
+                $.each(response, function (i, element) {
+                    $(".nearest-fuellist ul").append($('<li></li>').val(element.Id).html(element.Name));
+                });
+                $(".spinner-xsmall").hide();
+            });
+        });
+
+         //takes first value and adds to text box
+         $(".nearest-fueltype").val($(".nearest-fuellist ul li:first-child").text())
+
+         //Put the text of clicked list item to text box
+        $('.nearest-fuellist ul').on('click', 'li', function () {
+            $(".nearest-fueltype").val($(this).text());
+            $(".nearest-fuellist").hide();
+            $("#@Html.IdFor(m => m.FuelTypeInYourAreaId)").val($(this).val());
+        });
+
+        $(".nearest-fueltype").click(function () {
+            if ($(".nearest-fuellist").is(':visible')) {
+                $(".nearest-fuellist").hide();
+            }
+            else {
+                $(".nearest-fuellist").show();
+            }
+        });
+
+        $(document).click(function (e) {
+            if (!$(e.target).is('.nearest-fuellist, .nearest-fuellist *,.nearest-fueltype')) {
+                $(".nearest-fuellist").hide();
+            }
+        });
+
+        function isZipCodeSelected() {
+            return $('#@Html.IdFor(m => m.IsZipCode):checked').val() == 'True';
+        }
+
+        function getProductDisplayGroupId() {
+            return parseInt($('input[name=SelectedFuelType]:checked').val(), 10);
+        }
+
+        function getAddress() {
+            var address = '';
+            var isZipCode = isZipCodeSelected();
+            if (isZipCode) {
+                address = $('#ZipCode').val();
+            }
+            else {
+                var model = getAddressModel();
+                address = model.Address + ' ' + model.City + ' ' + model.StateCode + ' ' + model.CountryCode + ' ' + model.ZipCode;
+            }
+            return address;
+        }
+
+        function getAddressModel() {
+            var address = {
+                Address: $('#@Html.IdFor(m => m.Address)').val(),
+                City: $('#@Html.IdFor(m => m.City)').val(),
+                StateCode: $('#@Html.IdFor(m => m.StateId) option:selected').text(),
+                CountryCode: $('#@Html.IdFor(m => m.CountryId) option:selected').text(),
+                ZipCode: $('#@Html.IdFor(m => m.Zip)').val()
+            };
+            return address;
+        }
+
+        function validateForm() {
+            var isValid = true;
+            var pricingSourceId = parseInt($("#@Html.IdFor(m => m.FuelPricingDetails.PricingSourceId)").val());
+            var countryId = parseInt($("#@Html.IdFor(m=>m.CountryId)").val()); 
+            
+            if (!isNaN(pricingSourceId) && pricingSourceId == '@((int)PricingSource.Axxis)') {
+                var isZipCode = isZipCodeSelected();
+                if (isZipCode) {
+                    var zipCode = $('#ZipCode').val();
+                    if (zipCode == undefined || zipCode == '') {
+                        $('#zip-code-error').removeClass('hide');
+                        isValid = false;
+                    }
+                }
+                else {
+                    if (countryId != @((int)Country.CAR)) {
+                        var model = getAddressModel();
+                        if (model.Address == undefined || model.Address == '') {
+                            $('#address-error').removeClass('hide');
+                            isValid = false;
+                        }
+
+                        if (model.ZipCode == undefined || model.ZipCode == '') {
+                            $('#address-zip-error').removeClass('hide');
+                            isValid = false;
+                        }
+
+                        if (model.City == undefined || model.City == '') {
+                            $('#city-error').removeClass('hide');
+                            isValid = false;
+                        }
+                    }
+                    
+                }
+            }
+
+            return isValid;
+        }
+
+        function getCityGroupCities(source) {
+            var url = '@Url.Action("GetCityGroupCities", "InternalSales")?source=' + source;
+            $(".city-loading-wrapper").show();
+            $.get(url, source).done(function (response) {
+                if (response != null && response.length > 0) {
+                    var target = $("#@Html.IdFor(m => m.CityTerminalIds)");
+                    target.empty();
+                    $.each(response, function (i, element) {
+                        target.append($('<option></option>').val(element.Id).html(element.Name));
+                    });
+                    $(".city-loading-wrapper").hide();
+                }
+            });
+        }
+
+    function getPricingFilter() {
+        var fuelgroupTypeId = $("#@Html.IdFor(m=> m.SelectedFuelType):checked").val();
+        var tfxProductId = $("#@Html.IdFor(m=> m.CommonFuelTypeId)").val();
+        if (fuelgroupTypeId == @((int)ProductDisplayGroups.FuelTypesInYourArea)) {
+            tfxProductId = $("#@Html.IdFor(m=> m.FuelTypeInYourAreaId)").val();
+        }
+        else if (fuelgroupTypeId == @((int)ProductDisplayGroups.LessCommonFuelType)) {
+            tfxProductId = $("#@Html.IdFor(m=> m.LessCommonFuelTypeId)").val();
+        }
+
+        return {
+                "PricingSourceId": $("#@Html.IdFor(m => m.FuelPricingDetails.PricingSourceId)").val(),
+                "PricingTypeId": @((int)PricingType.RackAverage),
+                "tfxProdId": tfxProductId
+            };
+    }
+
+</script>
+@*}*@
+
+

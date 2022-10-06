@@ -1,0 +1,155 @@
+﻿@model SpecialInstructionAttachmentViewModel
+<div class="row">
+    <div class="col-sm-6">
+        <label class="f-normal">Upload Instruction File(s)</label>
+        <div id="special-instruction-upload-files">
+            @using (Html.BeginForm("UploadSpecialInstructionFiles", "Order", new { Id = Model.Id }, FormMethod.Post, new { role = "form", enctype = "multipart/form-data", id = "special-instruction-documents-form" }))
+            {
+                @Html.AntiForgeryToken()
+                @Html.HiddenFor(m => m.Id)
+                <div class="row">
+                    <div class="col-12">
+                        <input type="file" name="specialInstructionFiles" id="specialInstructionFiles" class="inputfile upload-btn" data-multiple-caption="{count} files selected" accept=".png, .pdf, .jpg, .doc, .docx, .jpeg, .bmp" multiple />
+                        <label for="specialInstructionFiles" class="btn btn-choosefile btn-default ml0 mb0"><span id="btnChooseFile">@Resource.btnChooseFile</span></label>
+                        <input type="button" data-toggle='confirmation' data-popout='true' data-singleton='true' data-title="Upload Files" class="btn btn-primary bulkElements ml5"
+                               data-confirmation-event="uploadFiles" data-content="Are you sure you want to upload files?" data-id="@Model.Id"
+                               id="uploadSpecialInstructionFile" value="@Resource.btnLabelUpload" disabled />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="text-danger col-xs-12 fs12 mt10" id="upload-warning-message"></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="alert fs12 alert-warning mb5">@Resource.lblSpecialInstructionFileTypeWarning</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    @if (Model.Files != null && Model.Files.Count > 0)
+    {
+        <div class="col-sm-6">
+            <div>
+                <table class="table tbl-uploaded-files">
+                    <thead>
+                        <tr>
+                            <th class="color-lightgrey">Uploaded Files</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody class="body-file fs12">
+                        @foreach (var item in Model.Files)
+                        {
+                            <tr class="row-file">
+                                <td>@item.Url</td>
+                                <td class="text-nowrap text-right">
+                                    <a href="javascript:void(0)" onclick="downloadFile(this, '@item.Url')"><i class="fa fa-download mr5 ml5 fs13"></i></a>
+                                    <a href="javascript:void(0)" data-toggle='confirmation' data-popout='true' data-singleton='true' data-title="Delete File"
+                                       data-confirmation-event="deleteFile" data-content="Are you sure you want to delete file?"
+                                       data-url='@item.Url'><i class="fa fa-trash-alt color-maroon ml5 fs13"></i></a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+<script>
+    var totalFileCount = 0;
+    $(document).ready(function () {
+        $('input:file').on("change", function (e) {
+            var isValid = true;
+            var $files = e.target.files;
+            totalFileCount = e.target.files.length;
+            if (totalFileCount > 5) {
+                $('#upload-warning-message').text('@Resource.errMessageUploadSpecialInstructionFileCountWarning');
+                $('#specialInstructionFiles').val('');
+                $('#btnChooseFile').html('@Resource.btnChooseFile');
+                isValid = false;
+            }
+
+            if (isValid && totalFileCount > 0) {
+                $($files).each(function () {
+                    // max 2 MB file size allowed
+                    if (this.size > @ApplicationConstants.TFXImageAndPdfAllowedFileUploadSizeInBytes) {
+                        $('#upload-warning-message').text('@Resource.errMessageUploadSpecialInstructionFileSizeWarning');
+                        $('#specialInstructionFiles').val('');
+                        $('#btnChooseFile').html('@Resource.btnChooseFile');
+                        isValid = false;
+                    }
+                    else {
+                        var $label = $('#btnChooseFile'),
+                            labelVal = $label.html();
+                        var fileName = '';
+
+                        if ($files && totalFileCount > 1)
+                            fileName = (e.target.getAttribute('data-multiple-caption') || '').replace('{count}', totalFileCount);
+                        else if (this.name)
+                            fileName = this.name;
+
+                        if (fileName)
+                            $label.html(fileName);
+                        else
+                            $label.html(labelVal);
+                    }
+                })
+            }
+            if (isValid) {
+                $('#upload-warning-message').text('');
+                $('#uploadSpecialInstructionFile').prop('disabled', !$(this).val());
+            }
+        });
+    });
+
+    function uploadFiles() {
+        var files = $('#specialInstructionFiles')[0].files;
+        $('#special-instruction-documents-form').submit();
+    }
+
+    function downloadFile(ele, fileName) {
+        var url = "@Url.Action("DownloadSpecialInstructionDocument", "Order")?orderId=@Model.Id&fileName=" + fileName;
+        window.open(url, "_blank");  
+    }
+
+    function deleteFile($this) {
+        var ele = $this;
+        var fileName = $this.attr('data-url');
+        var orderId = '@Model.Id';
+        var url = '@Url.Action("DeleteSpecialInstructionDocument", "Order")';
+        var data = {
+            orderId: orderId,
+            fileName: fileName
+        };
+
+        $.post(url, data, function (response) {
+            if (response.StatusCode == 0) {
+                msgsuccess(response.StatusMessage);
+                var row = ele.closest('.row-file');
+                var tr = row.closest('tbody').find('tr');
+                if (tr != undefined && tr.length == 0) {
+                    $('.tbl-uploaded-files').hide();
+                }
+                else {
+                    $('.tbl-uploaded-files').show();
+                }
+
+                row.remove();
+            }
+            else {
+                msgerror(response.StatusMessage);
+            }
+        });
+    }
+     $(document).off('uploadFiles');
+     $(document).on('uploadFiles', function (e) {
+         uploadFiles();
+     });
+     $(document).off('deleteFile');
+     $(document).on('deleteFile', function (e) {
+         var targetElem = $(e.target);
+         deleteFile(targetElem);
+     });
+</script>

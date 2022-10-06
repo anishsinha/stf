@@ -1,0 +1,153 @@
+﻿@model InvoiceFilterViewModel
+
+<div class="col-md-12">
+    <div class="well bg-white shadow-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-padding no-border">
+                <div class="table-responsive">
+                    <table id="approval-@Model.AllowedInvoiceType-datatable" class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>@(Model.AllowedInvoiceType == (int)InvoiceType.DigitalDropTicketManual ? Resource.gridColumnDropTicketNumber : Resource.gridColumnInvoiceNumber)</th>
+                                <th>@Resource.gridColumnAssignedTo</th>
+                                <th>@(Model.AllowedInvoiceType == (int)InvoiceType.DigitalDropTicketManual ? Resource.gridColumnDropTicketDate : Resource.gridColumnInvoiceDate)</th>
+                                <th>@(Model.AllowedInvoiceType == (int)InvoiceType.DigitalDropTicketManual ? Resource.gridColumnDropTicketTime : Resource.gridColumnInvoiceTime)</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var approvalInvoiceDataTable, invoiceApprovalGrid, dropTicketApprovalGrid;
+    var  exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] };
+    var header = '@Resource.headingInvoicesWaitingForApproval';
+    var ClearFilter;
+     $(document).ready(function () {
+
+         $('#txtApprovalFromDate').val(GetLocalStorage('txtApprovalFromDate'));
+         $('#txtApprovalToDate').val(GetLocalStorage('txtApprovalToDate'));
+
+         ClearFilter = function() {
+             $('#txtApprovalFromDate').val('');
+             $('#txtApprovalToDate').val('');
+             $('#txtApprovalToDate').data("DateTimePicker").minDate($("#txtApprovalFromDate").datetimepicker("minDate"));
+             ReloadDataTable();
+         }
+
+         if ($('#txtApprovalFromDate').length > 0 && $('#txtApprovalToDate').length > 0) {
+             $("#txtApprovalFromDate").on('dp.change dp.show', function (e) {
+                 if (e.date == false)
+                     $('#txtApprovalToDate').data("DateTimePicker").minDate($("#txtApprovalFromDate").datetimepicker("minDate"));
+                 else
+                     $('#txtApprovalToDate').data("DateTimePicker").minDate(moment($('#txtApprovalFromDate').val()));
+             });
+         }
+
+            $('#approval-@Model.AllowedInvoiceType-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("WaitingForApprovalList", "Invoice", new { area = "Buyer" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "data": function () {
+                        var invoiceFilter = {
+                            JobId: '@Model.JobId',
+				            Filter: '@Model.Filter',
+                            AllowedInvoiceType: '@Model.AllowedInvoiceType',
+                            StartDate: $('#txtApprovalFromDate').val(),
+                            EndDate: $('#txtApprovalToDate').val(),
+                            GroupIds: '@Model.GroupIds',
+                        };
+                        return invoiceFilter;
+                    },
+                    "dataSrc": ""
+                },
+                "columns": [
+                            {
+						"data": function (data, type, row, meta) {
+									if (data.IsApprovalUser) {
+										return '<a href="@Url.Action("Details", "Invoice", new { area = "Buyer" })?id=' + data.Id + '">' + data.InvoiceNumber + '</a>';
+									}
+									else
+									{
+										return data.InvoiceNumber;
+									}
+                                }, "autoWidth": true
+                            },
+							{ "data": "AssignedTo", "autoWidth": true },
+							{ "data": "CreatedDate", "autoWidth": true, "sType":"date" },
+							{ "data": "CreatedTime", "autoWidth": true }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+				"initComplete": function (settings, json) {
+					if (json.length == 0 && '@(Model.Filter == InvoiceFilterType.JobWaitingForApproval)' == 'True') {
+						if ('@(Model.AllowedInvoiceType == (int)InvoiceType.DigitalDropTicketManual || Model.AllowedInvoiceType == (int)InvoiceType.DigitalDropTicketMobileApp)' == 'True')
+						{
+							$('.dropticket-approvals').hide();
+						}
+						else
+						{
+							$('.invoice-approvals').hide();
+						}
+					}
+					else {
+						wrapperHeight();
+						AssignFilterVariables();
+                    }
+                    tabGridHeader(this);
+                },
+                "drawCallback": function (settings, json) {
+                    hideLinksForCompanyGroup(this);
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: header },
+                    { extend: 'excel', title: header },
+                    { extend: 'pdf', title: header, orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+			function AssignFilterVariables() {
+				if ('@(Model.AllowedInvoiceType != (int)InvoiceType.DigitalDropTicketManual)' == 'True')
+				{
+					invoiceApprovalGrid = $('#approval-@Model.AllowedInvoiceType-datatable').DataTable();
+				}
+				if ('@(Model.AllowedInvoiceType == (int)InvoiceType.DigitalDropTicketManual)' == 'True')
+				{
+					dropTicketApprovalGrid = $('#approval-@Model.AllowedInvoiceType-datatable').DataTable();
+				}
+			}
+        });
+
+     function ReloadDataTable() {
+         SetLocalStorage('txtApprovalFromDate', $('#txtApprovalFromDate').val());
+         SetLocalStorage('txtApprovalToDate', $('#txtApprovalToDate').val());
+        if (invoiceApprovalGrid != null) {
+            invoiceApprovalGrid.ajax.reload();
+        }
+        if (dropTicketApprovalGrid != null) {
+            dropTicketApprovalGrid.ajax.reload();
+        }
+    }
+</script>
+

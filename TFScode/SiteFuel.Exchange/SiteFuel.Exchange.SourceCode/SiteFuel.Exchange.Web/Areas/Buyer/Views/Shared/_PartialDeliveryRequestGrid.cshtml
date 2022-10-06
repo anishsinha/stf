@@ -1,0 +1,120 @@
+﻿@model  DeliveryRequestFilterGridViewModel
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div id="buyer-deliveryrequest-div" class="table-responsive">
+                        <table id="buyer-deliveryrequest-datatable" class="table  table-striped table-bordered table-hover pb0">
+                            <thead>
+                                <tr>
+                                    <th class="no-break p10">@Resource.lblJobId</th>
+                                    <th>@Resource.lblJobAddress</th>
+                                    <th>@Resource.lblQuantityRequested</th>
+                                    <th> @Resource.lblProductType</th>
+                                    <th>@Resource.lblPriority</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var buyerdeliveryRequestGrid, exportColumns = { columns: [0, 1, 2, 3] };
+        var dataGridDelRq;
+    var deliveryRequestGridUrl = "@Url.Action("GetDeliveryRequestsByPriority", "DeliveryRequest", new { area= "Buyer"})";
+    console.log(deliveryRequestGridUrl);
+    $(document).ready(function () {     
+        buyerdeliveryRequestGrid = $('#buyer-deliveryrequest-datatable').DataTable({
+            "ajax": {
+                "url": deliveryRequestGridUrl,
+                "type": 'post',
+                "dataType": "json",
+                "data": function (data) {
+                    data.priority = $('.broadcast-type:checked').attr('id')
+                },
+                "dataSrc":''
+            },
+            "columns": [
+                { "data": "JobId", "autoWidth": true, "searchable": true },
+                { "data": "JobAddress", "autoWidth": true, "searchable": true },
+                { "data": "RequiredQuantity", "autoWidth": true, "searchable": true },
+                { "data": "ProductType", "autoWidth": true, "searchable": true},
+                {
+                    "data": "Priority", "autoWidth": true, "searchable": true,
+                    "render": function (jsonData) {
+                        if (jsonData == "1") {
+                            return "Must Go";
+                        }
+                        else if (jsonData == "2") {
+                            return "Should Go";
+                        }
+                        else if (jsonData == "3") {
+                            return "Could Go";
+                        }
+                    }
+                }
+            ],
+            "searching": true,
+            dom:'lTfgitp',
+        });
+        $('.broadcast-type').on('change', function () {
+            ReloadDataTable();
+        });
+
+    }); // end of (document.ready(function))
+    function ReloadDataTable() {
+        $('#buyer-deliveryrequest-datatable').DataTable().ajax.reload();
+    }
+
+</script>
+
+@*
+    buyerdeliveryRequestGrid = $('#buyer-deliveryrequest-datatable').DataTable({
+        "ajax": {
+            "url": deliveryRequestGrid,
+            "type": "POST",
+            "dataType": "json",
+            "data": function (data) {
+                data.PriorityFilter = '@Model.Priorityfilter';
+                $('#buyer-deliveryrequest-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+            },
+            "dataSrc": function (json) {
+                $('#buyer-deliveryrequest-div').find('.loading-wrapper');
+                return json.data;
+            }
+        },
+        'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        aaSorting: [[0, 'desc']],
+        processing: true,
+        "searching": { "regex": false },
+        "columns": [
+            { "data": "SiteId", "autoWidth": true },
+            { "data": "RequiredQuantity", "autoWidth": true },
+            { "data": "ProductType", "autoWidth": true },
+            { "data": "Priority", "autoWidth": true }
+        ],
+        pageLength: 10,
+        responsive: true,
+        "initComplete": function (settings, json) {
+            wrapperHeight();
+            $('#buyer-fuelrequest-datatable th:eq(8)').addClass('filtering-disabled');
+            tabGridHeader(this);
+        },
+        "drawCallback": function (settings, json) {
+            hideLinksForCompanyGroup(this);
+        },
+        "columnDefs": [
+            { "name": "JobId", "targets": 0, "regex": false },
+            { "name": "Required Quantity", "targets": 1 },
+            { "name": "ProductType", "targets": 2 },
+            { "name": "Priority", "targets": true }
+        ]
+    });
+    $('.onbroadcastType').on('change', function () {
+      //  ReloadDataTable();
+
+    });*@

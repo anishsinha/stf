@@ -1,0 +1,287 @@
+﻿@{
+	ViewBag.Title = "Time Card";
+}
+
+<div class="row mb10">
+	<div class="col-sm-12">
+		<div class="well pb15 mb5">
+			<div class="row">
+				<div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+				<div class="col-xs-6 col-sm-3 col-md-2"><input type="text" id="txtFromDateTimeCard" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+				<div class="col-xs-6 col-sm-3 col-md-2"><input type="text" id="txtToDateTimeCard" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+				<div class="col-xs-12 col-sm-4 col-md-3">
+					<input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadTimeCard();" />
+					<input type="button" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="TimeCardClearFilter();" />
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="row">
+	<div id="timecardInfo" class="col-md-12">
+		<div class="alert alert-info fs12 mb10"><strong>@Resource.lblInfo</strong>@Resource.lblTimeCardInfo</div>
+	</div>
+</div>
+<div class="row">
+	<div class="col-md-12">
+		<div class="well bg-white shadow-b">
+			<div class="ibox mb0">
+				<div class="ibox-content no-border no-padding">
+					<div class="table-responsive">
+						<table id="supplier-driver-timecard" class="table table-striped table-bordered table-hover">
+							<thead>
+								<tr>
+									<th>@Resource.gridcolumnEventName</th>
+									<th>@Resource.gridColumnDate</th>
+									<th>@Resource.gridColumnStartTime</th>
+									<th>@Resource.gridColumnEndTime</th>
+									<th>@Resource.gridcolumnElapsedTime</th>
+									<th>@Resource.gridColumnLocation</th>
+									<th>@Resource.gridColumnDistance</th>
+									<th>@Resource.gridColumnTotalShiftTime</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+	var TimeCardClearFilter, supplierDriverTimeCardGrid, isTimeCardLoaded = false, tSelectedDrivers, isMultipleDrivers = true;
+	ReloadTimeCard();
+
+	function ReloadTimeCard() {
+		if ($('#tab-timecard').hasClass('active')) {
+			tSelectedDrivers = $("#SelectedDrivers").val();
+			if (tSelectedDrivers.length == 0) {
+				tSelectedDrivers = drivers.map(function (a) { return a.Id });
+			}
+			timeCardStartDate = $('#txtFromDateTimeCard').val();
+			timeCardEndDate = $('#txtToDateTimeCard').val();
+			if (timeCardStartDate == '') {
+				$("#txtFromDateTimeCard").val(moment().startOf('d').subtract(1, 'd').format('MM/DD/YYYY'));
+			}
+			if (timeCardEndDate == '') {
+				$("#txtToDateTimeCard").val(moment().startOf('d').subtract(1, 'd').format('MM/DD/YYYY'));
+			}
+			isMultipleDrivers = tSelectedDrivers.length == 1 ? false : true;
+
+			if (isTimeCardLoaded == true) {
+				supplierDriverTimeCardGrid.ajax.reload(HideTimeShiftColumn);
+			}
+			else {
+				LoadTimeCard();
+			}
+		}
+    }
+
+	function HideTimeShiftColumn()
+	{
+		supplierDriverTimeCardGrid.column(7).visible(isMultipleDrivers);
+	}
+
+	function LoadTimeCard()
+	{
+		isTimeCardLoaded = true;
+		tSelectedDrivers = $("#SelectedDrivers").val();
+		if (tSelectedDrivers.length == 0) {
+			tSelectedDrivers = drivers.map(function (a) { return a.Id });
+		}
+		isMultipleDrivers = tSelectedDrivers.length == 1 ? false : true;
+
+		supplierDriverTimeCardGrid = $('#supplier-driver-timecard').DataTable({
+			"ajax": {
+			    "url": "@Url.Action("TimeCardGrid", "Dispatch", new { area = "Supplier" })",
+			    "type": "GET",
+				"datatype": "json",
+				"traditional": true,
+			    "data": function (d) {
+			            d.startDate = $('#txtFromDateTimeCard').val(),
+						d.endDate = $('#txtToDateTimeCard').val(),
+                        d.driverIds = tSelectedDrivers,
+                        d.currency = PageCountryId,
+                        d.countryId = PageCurrencyId
+			    },
+			    "dataSrc": ""
+			},
+			"columns": [
+
+			    {
+					"data": function (data, type, row, meta) {
+						if (isMultipleDrivers == true) {
+			                return data.DriverName;
+			            }
+			            else {
+			                return data.ActionName;
+			            }
+			        }, "autoWidth": true
+			    },
+			    {
+			        "data": function (data, type, row, meta) {
+						if (isMultipleDrivers == true) {
+			                return data.ActionDate;
+			            }
+			            else {
+			                return data.ActionDate;
+			            }
+			        }, "autoWidth": true, "sType":"date"
+			    },
+			    {
+			        "data": function (data, type, row, meta) {
+						if (isMultipleDrivers == true) {
+			                return data.ClockIn;
+			            }
+			            else {
+			                return data.StartTime;
+			            }
+			        }, "autoWidth": true
+			    },
+				{
+				    "data": function (data, type, row, meta) {
+						if (isMultipleDrivers == true) {
+				            return data.FuelDropTime;
+				        }
+				        else {
+				            return data.EndTime;
+				        }
+				    }, "autoWidth": true
+				},
+				{
+				    "data": function (data, type, row, meta) {
+						if (isMultipleDrivers == true) {
+				            return data.TransitTime;
+				        }
+				        else {
+				            return data.Duration;
+				        }
+				    }, "autoWidth": true
+				},
+				{
+				    "data": function (data, type, row, meta) {
+						if (isMultipleDrivers == true) {
+				            return data.BreakTime;
+				        }
+				        else {
+				            return data.UserLocation;
+				        }
+				    }, "autoWidth": true
+				},
+				{
+				    "data": function (data, type, row, meta) {
+						if (isMultipleDrivers == true) {
+				            return data.ClockOut;
+				        }
+				        else {
+				            return data.Distance;
+				        }
+				    }, "autoWidth": true
+				},
+				{ "data": "TotalShiftTime", "autoWidth": true }
+			],
+			pageLength: 10,
+			responsive: true,
+			"aaSorting": [],
+			"initComplete": function (settings, json) {
+			    wrapperHeight();
+			},
+			"columnDefs": [
+			{
+					"targets": [7],
+					"visible": isMultipleDrivers == true,
+					"searchable": isMultipleDrivers == true
+			}],
+			dom: '<"html5buttons"B>lTfgitp',
+			buttons: [
+			    { extend: 'copy' },
+			    { extend: 'csv', title: '@Resource.tabHeadingTimeCard' },
+			    { extend: 'excel', title: '@Resource.tabHeadingTimeCard' },
+			    { extend: 'pdf', title: '@Resource.tabHeadingTimeCard' },
+			    {
+			        extend: 'print',
+			        customize: function (win) {
+			            $(win.document.body).addClass('white-bg');
+			            $(win.document.body).css('font-size', '10px');
+
+			            $(win.document.body).find('table')
+			                    .addClass('compact')
+			                    .css('font-size', 'inherit');
+			        }
+			    }
+			],
+			language: {
+			    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+			}
+		});
+    }
+
+    $(document).ready(function () {
+        TimeCardClearFilter = function () {
+			$("#txtFromDateTimeCard").val(moment().startOf('d').subtract(1, 'd').format('MM/DD/YYYY'));
+			$("#txtToDateTimeCard").val(moment().startOf('d').subtract(1, 'd').format('MM/DD/YYYY'));
+                $('#txtToDateTimeCard').data("DateTimePicker").minDate($("#txtFromDateTimeCard").datetimepicker("minDate"));
+				ReloadTimeCard();
+            }
+
+			if ($('#txtFromDateTimeCard').length > 0 && $('#txtToDateTimeCard').length > 0) {
+                $("#txtFromDateTimeCard").on('dp.change dp.show', function (e) {
+                    if (e.date == false)
+                        $('#txtToDateTimeCard').data("DateTimePicker").minDate($("#txtFromDateTimeCard").datetimepicker("minDate"));
+                    else
+                        $('#txtToDateTimeCard').data("DateTimePicker").minDate(moment($('#txtFromDateTimeCard').val()));
+                });
+		}
+
+		if ($('#tab-timecard').hasClass('active')) {			
+			LoadTimeCard();
+		}
+
+		$("#SelectedDrivers").change(function () {
+			if ($('#tab-timecard').hasClass('active')) {
+				driverIds = $("#SelectedDrivers").val();
+
+				if (driverIds.length == 0 || driverIds.length > 1) {
+					var headerElement = supplierDriverTimeCardGrid.column(0).header();
+					$(headerElement).html('@Resource.gridColumnDriverName');
+
+					headerElement = supplierDriverTimeCardGrid.column(2).header();
+					$(headerElement).html('@Resource.gridColumnCheckInTime');
+
+					headerElement = supplierDriverTimeCardGrid.column(3).header();
+					$(headerElement).html('@Resource.gridColumnDeliveryTime');
+
+					headerElement = supplierDriverTimeCardGrid.column(4).header();
+					$(headerElement).html('@Resource.gridcolumnTransitTime');
+
+					headerElement = supplierDriverTimeCardGrid.column(5).header();
+					$(headerElement).html('@Resource.gridColumnBreakTime');
+
+					headerElement = supplierDriverTimeCardGrid.column(6).header();
+					$(headerElement).html('@Resource.gridColumnCheckOutTime');
+				}
+				else {
+
+					var headerElement = supplierDriverTimeCardGrid.column(0).header();
+					$(headerElement).html('@Resource.gridcolumnEventName');
+
+					headerElement = supplierDriverTimeCardGrid.column(2).header();
+					$(headerElement).html('@Resource.gridColumnStartTime');
+
+					headerElement = supplierDriverTimeCardGrid.column(3).header();
+					$(headerElement).html('@Resource.gridColumnEndTime');
+
+					headerElement = supplierDriverTimeCardGrid.column(4).header();
+					$(headerElement).html('@Resource.gridcolumnElapsedTime');
+
+					headerElement = supplierDriverTimeCardGrid.column(5).header();
+					$(headerElement).html('@Resource.gridColumnLocation');
+
+					headerElement = supplierDriverTimeCardGrid.column(6).header();
+					$(headerElement).html('@Resource.gridColumnDistance');
+				}
+				ReloadTimeCard();
+			}
+		});
+   });
+</script>

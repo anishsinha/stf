@@ -1,0 +1,529 @@
+﻿@using SiteFuel.Exchange.ViewModels.Forcasting;
+@model ForcastingPreferenceViewModel
+
+@{
+    var readOnly = ""; var subSectionOpacity = "";
+    if (!Model.IsEditable) { subSectionOpacity = "subSectionOpacity"; readOnly = "readOnly"; }
+    var uomName = string.IsNullOrEmpty(Model.uomDetails) ? UoM.Gallons.ToString() : Model.uomDetails;
+}
+<div class="col-sm-12" id="complete-forcasting-form">
+    <div class="row">
+        <div class="col-sm-12 disable-forcasting-form">
+            <div class="form-check form-check-inline">
+                @Html.CheckBoxFor(m => m.ForcastingServiceSetting.IsEnabled, new { @class = "form-check-input", @checked = "checked", @id = "idAccountLevelForcastingEnabled", @onchange = "EnableDisableForcasting(this)" })
+                @Html.LabelFor(m => m.ForcastingServiceSetting.IsEnabled, htmlAttributes: new { @class = "control-label form-check-label", @for = "idAccountLevelForcastingEnabled" })
+            </div>
+            <label id="lblforcastingNote" class="color-red lblforcastingNote mb0">Note : The changes made at account level will override all location and tank level changes.</label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 forcastingForm @subSectionOpacity @(@Model.ForcastingServiceSetting.IsEnabled ? "" : "hide-element")" @readOnly id="forcastingForm">
+            @*<h4 class="mt0 mb0 pt0">@Resource.headingForecastingServiceSetting</h4>*@
+            <div class="row mt5">
+                <div class="col-sm-12">
+                    <div class="border pa10 radius-5">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                @Html.HiddenFor(model => model.ForcastingServiceSetting.IsEditableTpo)
+                                @Html.HiddenFor(model => model.IsEditable)
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.BandPeriod, htmlAttributes: new { @class = "control-label" })
+                                <div class="input-group">
+                                    @Html.DropDownListFor(model => model.ForcastingServiceSetting.BandPeriod, new SelectList(CommonHelperMethods.GetBandPeriodDropDown(), "Id", "Name", 0), new { @class = "form-control" })
+                                    <div class="input-group-append">
+                                        <span class="input-group-text fs11">Hrs</span>
+                                    </div>
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.BandPeriod, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.StartTime, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.StartTime, new { htmlAttributes = new { @class = "form-control, timepicker" } })
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.StartTime, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.MinimumLoad, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.MinimumLoad, new { htmlAttributes = new { @class = "form-control" } })
+                                    <div class="input-group-append">
+                                        <span class="input-group-text fs11">%</span>
+                                    </div>
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.MinimumLoad, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.AverageLoad, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.AverageLoad, new { htmlAttributes = new { @class = "form-control" } })
+                                    <div class="input-group-append">
+                                        <span class="input-group-text fs11">%</span>
+                                    </div>
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.AverageLoad, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt5">
+                <div class="col-sm-12">
+                    <div class="border pa10 radius-5">
+                        <div class="form-check form-check-inline">
+                            @Html.RadioButtonFor(model => model.ForcastingServiceSetting.ForcastingType, "1", new { @class = "form-check-input", onchange = "GetInventoryPriorityType(1);", @id = "rdInventoryPriorityType", @name = "InventoryPriorityType" })
+                            <label class="form-check-label ml5" for="rdInventoryPriorityType">Priority Level Based Inventory</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            @Html.RadioButtonFor(model => model.ForcastingServiceSetting.ForcastingType, "2", new { @class = "form-check-input", onchange = "GetInventoryPriorityType(2);", @id = "rdConsumptionPriorityType", @name = "InventoryPriorityType" })
+                            <label class="form-check-label ml5" for="rdConsumptionPriorityType">Priority Level Based on Rate of Consumption</label>
+                        </div>
+                        <div>
+                            @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.ForcastingType, "", new { @class = "text-danger" })
+                        </div>
+                        <div class="row mt5">
+                            <div class="col-sm-3">
+                                <label>&nbsp;</label>
+                                @Html.DropDownListFor(model => model.ForcastingServiceSetting.InventoryUOM, new SelectList(CommonHelperMethods.GetforcastingInventoryUOM(), "Id", "Name", 0), new { @onChange = "uomChanged(this)", @class = "form-control mb-2 forcastingInventoryUOM" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.Retain, htmlAttributes: new { @class = "control-label mb5" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.Retain, new { htmlAttributes = new { @class = "form-control", @onChange = "CalculateData();" } })
+                                    <div class="input-group-append">
+                                        <span class="input-group-text fs11 uomName">@uomName</span>
+                                    </div>
+                                </div>
+                                <small id="smretain" class="smretain" style="display:none;">672 Hrs</small>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.Retain, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.SafetyStock, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.SafetyStock, new { htmlAttributes = new { @class = "form-control", @onChange = "CalculateData();" } })
+                                    <div class="input-group-append">
+                                        <span class="input-group-text fs11 uomName">@uomName</span>
+                                    </div>
+                                </div>
+                                <small id="smsafety" class="smsafety" style="display:none;">360 Hrs</small>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.SafetyStock, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.RunoutLevel, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.RunoutLevel, new { htmlAttributes = new { @class = "form-control", @onChange = "CalculateData();" } })
+                                    <div class="input-group-append">
+                                        <span class="input-group-text fs11 uomName">@uomName</span>
+                                    </div>
+                                </div>
+                                <small id="smrunout" class="smrunout" style="display:none;">360 Hrs</small>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.RunoutLevel, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="row mt5 dvAutoDR" style="display:none">
+                            <div class="col-sm-12">
+                                <div class="form-check form-check-inline">
+                                    @Html.CheckBoxFor(model => model.ForcastingServiceSetting.IsAutoDRCreation, new { @class = "form-check-input", @id = "autodr" })
+                                    <label class="form-check-label ml5" for="autodr">Auto DR Creation</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt5">
+                            <div class="col-sm-12">
+                                <div class="form-check form-check-inline">
+                                    @Html.CheckBoxFor(model => model.ForcastingServiceSetting.IsOttoAutoDRCreation, new { @class = "form-check-input", @id = "autoottodr", onchange = "getAutoDRCreation(this)" })
+                                    <label class="form-check-label ml5" for="autoottodr">Otto (Auto DR Creation)</label>
+                                </div>
+                            </div>
+                        </div>
+                        @if (Model.ForcastingServiceSetting.IsOttoAutoDRCreationDisplay)
+                        {
+                            <div class="row mt5 ph20 ph5 ottocarrierselection" style="display:none;">
+                                <div class="col-sm-12">
+                                    <div>
+                                        <label class="mb0">Do you want to enable it for?</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt5 mb10 ph20 ph5 ottocarrierselection" style="display:none;">
+                                <div class="col-sm-12">
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(model => model.ForcastingServiceSetting.IsOttoAutoDRCreationAllCarrier, "-1", new { @class = "form-check-input", onchange = "showhideottocarrier(-1);", @id = "rdIsOttoAutoDRCreationNoneCarrier", @name = "IsOttoAutoDRCreationAllCarrier" })
+                                        <label class="form-check-label ml5" for="rdIsOttoAutoDRCreationNoneCarrier">None</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(model => model.ForcastingServiceSetting.IsOttoAutoDRCreationAllCarrier, "1", new { @class = "form-check-input", onchange = "showhideottocarrier(1);", @id = "rdIsOttoAutoDRCreationAllCarrier", @name = "IsOttoAutoDRCreationAllCarrier" })
+                                        <label class="form-check-label ml5" for="rdIsOttoAutoDRCreationAllCarrier">All Carrier</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(model => model.ForcastingServiceSetting.IsOttoAutoDRCreationAllCarrier, "2", new { @class = "form-check-input", onchange = "showhideottocarrier(2);", @id = "rdIsOttoAutoDRCreationSelectedCarrier", @name = "IsOttoAutoDRCreationAllCarrier" })
+                                        <label class="form-check-label ml5" for="rdIsOttoAutoDRCreationSelectedCarrier">Selected Carriers</label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 ottocarrierdetails sequence-product-div" style="display:none;">
+                                    @Html.ListBoxFor(m => m.ForcastingServiceSetting.SelectedCarrierList, new SelectList(Model.ForcastingServiceSetting.CarrierList, "Id", "Name", 0), new { @class = "form-control carrier-list" })
+                                </div>
+                            </div>
+                        }
+
+                        <div class="row mt5">
+                            <div class="col-sm-12">
+                                <div class="form-check form-check-inline">
+                                    @Html.CheckBoxFor(model => model.ForcastingServiceSetting.IsOttoScheduleCreation, new { @class = "form-check-input", @id = "autoottoscheduledr" })
+                                    <label class="form-check-label ml5" for="autoottoscheduledr">Otto Schedule Creation</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt5">
+                <div class="col-sm-12">
+                    <div class="border pa10 radius-5">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.StartBuffer, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.StartBuffer, new { htmlAttributes = new { @class = "form-control" } })
+                                    <div class="input-group-append">
+                                        @Html.DropDownListFor(model => model.ForcastingServiceSetting.StartBufferUOM, new SelectList(CommonHelperMethods.GetforcastingRateOfConsumtionUOM(), "Id", "Name", 1), new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.StartBuffer, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.EndBuffer, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.EndBuffer, new { htmlAttributes = new { @class = "form-control" } })
+                                    <div class="input-group-append">
+                                        @Html.DropDownListFor(model => model.ForcastingServiceSetting.EndBufferUOM, new SelectList(CommonHelperMethods.GetforcastingRateOfConsumtionUOM(), "Id", "Name", 1), new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.EndBuffer, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.RetainTimeBuffer, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.RetainTimeBuffer, new { htmlAttributes = new { @class = "form-control" } })
+                                    <div class="input-group-append">
+                                        @Html.DropDownListFor(model => model.ForcastingServiceSetting.RetainTimeBufferUOM, new SelectList(CommonHelperMethods.GetforcastingRateOfConsumtionUOM(), "Id", "Name", 1), new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.RetainTimeBuffer, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.LeadTime, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.LeadTime, new { htmlAttributes = new { @class = "form-control" } })
+                                    <div class="input-group-append">
+                                        @Html.DropDownListFor(model => model.ForcastingServiceSetting.LeadTimeUOM, new SelectList(CommonHelperMethods.GetforcastingRateOfConsumtionUOM(), "Id", "Name", 1), new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.LeadTime, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-3 mt10">
+                                @Html.LabelFor(model => model.ForcastingServiceSetting.SupplierLead, htmlAttributes: new { @class = "control-label" })
+                                <span class="required pl4" aria-required="true">*</span>
+                                <div class="input-group">
+                                    @Html.EditorFor(model => model.ForcastingServiceSetting.SupplierLead, new { htmlAttributes = new { @class = "form-control" } })
+                                    <div class="input-group-append">
+                                        @Html.DropDownListFor(model => model.ForcastingServiceSetting.SupplierLeadUOM, new SelectList(CommonHelperMethods.GetforcastingRateOfConsumtionUOM(), "Id", "Name", 1), new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                @Html.ValidationMessageFor(model => model.ForcastingServiceSetting.SupplierLead, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+    $('.timepicker').datetimepicker({
+        format: 'LT',
+    });
+    $(document).ready(function () {
+        GetDefaultInventoryPriorityType(@(Model.ForcastingServiceSetting.ForcastingType ?? 0));
+        CalculateData();
+        var inventoryUOM = @(Model.ForcastingServiceSetting.InventoryUOM ?? 0);
+        var forcastingType = @(Model.ForcastingServiceSetting.ForcastingType ?? 0);
+        if (forcastingType == 2) {
+            defaultUOMDetails(inventoryUOM, forcastingType);
+        }
+        else if (forcastingType == 1 && inventoryUOM==2) {
+            defaultUOMDetails(inventoryUOM, forcastingType);
+        }
+        if ('@Model.ForcastingServiceSetting.IsOttoAutoDRCreation' == 'True' && '@Model.ForcastingServiceSetting.IsOttoAutoDRCreationDisplay'=='True') {
+            var isOttoAutoDRCreationAllCarrier = @(Model.ForcastingServiceSetting.IsOttoAutoDRCreationAllCarrier ?? 0);
+            $(".ottocarrierselection").show();
+            if (isOttoAutoDRCreationAllCarrier == 2) {
+                $(".ottocarrierdetails").show();
+            }
+        }
+        $(".carrier-list").multiselect({
+            includeSelectAllOption: true,
+            enableFiltering: true,
+            buttonWidth: '50%',
+        });
+    });
+    function getAutoDRCreation(obj) {
+        var status = false;
+        if ('@Model.ForcastingServiceSetting.IsOttoAutoDRCreationDisplay'=='True') {
+            status = true;
+        }
+
+        if (status) {
+            if ($(obj).is(':checked')) {
+                $(".ottocarrierselection").show();
+                $(".carrier-list").multiselect({
+                    includeSelectAllOption: true,
+                    enableFiltering: true,
+                    buttonWidth: '50%',
+                });
+            }
+            else {
+                $(".ottocarrierselection").hide();
+            }
+        }
+    }
+    function showhideottocarrier(obj) {
+        if (obj == 1 || obj == -1) {
+            $(".ottocarrierdetails").hide();
+        }
+        else {
+            $(".ottocarrierdetails").show();
+        }
+    }
+    function EnableDisableForcasting(obj) {
+        if ($(obj).prop('checked')) {
+            $(".forcastingForm").show();
+            if (window.location.href.indexOf("Onboarding/Company") > -1) {
+                var countryCode = $("#CompanyAddress_Country_Id").val();
+                var uomDetails = '@UoM.Gallons.ToString()';
+                if (countryCode == 2) {
+                    uomDetails = '@UoM.Litres.ToString()';
+                }
+                $(".minuomName").text(uomDetails);
+                $(".avguomName").text(uomDetails);
+                 $(".uomName").each(function () {
+                     $(this).html(uomDetails);
+                });
+            }
+        }
+        else {
+            $(".forcastingForm").hide();
+        }
+    }
+    function uomChanged(obj) {
+        var selectedText = $(obj).find("option:selected").text();
+        if (selectedText == "Percentage" || selectedText == "Days" || selectedText == "Hours") {
+            if (selectedText == "Percentage") {
+                selectedText = "%";
+            };
+            $(".uomName").each(function () {
+                $(this).html(selectedText);
+            });
+        }
+        else {
+            if (window.location.href.indexOf("Onboarding/Company") > -1) {
+                var countryCode = $("#CompanyAddress_Country_Id").val();
+                var uomDetails = '@UoM.Gallons.ToString()';
+                 if (countryCode == 2) {
+                    uomDetails = '@UoM.Litres.ToString()';
+                }
+                 $(".uomName").each(function () {
+                   $(this).html(uomDetails);
+                 });
+            }
+            else {
+                 $(".uomName").each(function () {
+                      $(this).html('@uomName');
+                });
+            }
+        }
+        $('#@Html.IdFor(m => m.ForcastingServiceSetting.Retain)').val(0);
+        $('#@Html.IdFor(m => m.ForcastingServiceSetting.SafetyStock)').val(0);
+        $('#@Html.IdFor(m => m.ForcastingServiceSetting.RunoutLevel)').val(0);
+        $(".smretain").hide();
+        $(".smsafety").hide();
+        $(".smrunout").hide();
+        CalculateData();
+    }
+    function GetInventoryPriorityType(type) {
+        if (type == 1) {
+            var data =  @(Html.Raw(Json.Encode(CommonHelperMethods.GetforcastingInventoryUOM())));
+            var sHTML = '';
+            for (var i = 0; i < data.length; i++) {
+                sHTML += '<option value="' + data[i].Id + '">' + data[i].Name + '</option>';
+            }
+            $(".forcastingInventoryUOM").html('');
+            $(".forcastingInventoryUOM").html(sHTML);
+            $(".forcastingInventoryUOM").val(1);
+            $(".dvAutoDR").hide();
+        }
+        else {
+            var data =@(Html.Raw(Json.Encode(CommonHelperMethods.GetforcastingRateOfConsumtionUOM())));
+            var sHTML = '';
+            for (var i = 0; i < data.length; i++) {
+                sHTML += '<option value="' + data[i].Id + '">' + data[i].Name + '</option>';
+            }
+            $(".forcastingInventoryUOM").html('');
+            $(".forcastingInventoryUOM").html(sHTML);
+            $(".forcastingInventoryUOM").val(1);
+            $(".dvAutoDR").show();
+        }
+        uomChanged($(".forcastingInventoryUOM"));
+    }
+    function CalculateData() {
+        var inventoryPriorityType = $("input[name='ForcastingPreference.ForcastingServiceSetting.InventoryPriorityType']:checked").val();
+        if ($("input[name='ForcastingServiceSetting.InventoryPriorityType']").length > 0)
+         {
+            inventoryPriorityType = $("input[name='ForcastingServiceSetting.InventoryPriorityType']:checked").val();
+         }
+        var forcastingInventoryUOM = $('#@Html.IdFor(m => m.ForcastingServiceSetting.InventoryUOM)').val();
+        var couldGo = $('#@Html.IdFor(m => m.ForcastingServiceSetting.Retain)').val();
+        var shouldGo = $('#@Html.IdFor(m => m.ForcastingServiceSetting.SafetyStock)').val();
+        var mustGo =  $('#@Html.IdFor(m => m.ForcastingServiceSetting.RunoutLevel)').val();
+        var fuelCapacityLegnth =$("#AssetAdditionalDetail_FuelCapacity").length;
+        if (fuelCapacityLegnth >0) {
+            var fuelCapacity = $("#AssetAdditionalDetail_FuelCapacity").val();
+            if (forcastingInventoryUOM == 2 && inventoryPriorityType == 1 && fuelCapacity != null && fuelCapacity!='') {
+                if (couldGo > 0) {
+                    var finalcouldGo = (couldGo * fuelCapacity) / 100 + ' @uomName';
+                    $(".smretain").html(finalcouldGo);
+                    $(".smretain").show();
+
+                }
+                 if (shouldGo > 0) {
+                    var finalshouldGo = (shouldGo * fuelCapacity) / 100 + ' @uomName';
+                    $(".smsafety").html(finalshouldGo);
+                    $(".smsafety").show();
+                }
+                 if (mustGo > 0) {
+                    var finalmustGo = (mustGo * fuelCapacity) / 100 + ' @uomName';
+                    $(".smrunout").html(finalmustGo);
+                    $(".smrunout").show();
+                }
+            }
+
+            setInfo(forcastingInventoryUOM, inventoryPriorityType, couldGo, shouldGo, mustGo);
+        }
+        else {
+            setInfo(forcastingInventoryUOM, inventoryPriorityType, couldGo, shouldGo, mustGo);
+        }
+    }
+    function setInfo(forcastingInventoryUOM, inventoryPriorityType, couldGo, shouldGo, mustGo) {
+        if (forcastingInventoryUOM == 1 && inventoryPriorityType == 2) {
+            //Day
+            var finalcouldGo = parseFloat(couldGo / 24);
+            $(".smretain").html(finalcouldGo.toFixed(1) + " Days");
+            $(".smretain").show();
+            var finalshouldGo = parseFloat(shouldGo / 24);
+            $(".smsafety").html(finalshouldGo.toFixed(1) + " Days");
+            $(".smsafety").show();
+            var finalmustGo = parseFloat(mustGo / 24);
+            $(".smrunout").html(finalmustGo.toFixed(1) + " Days");
+            $(".smrunout").show();
+        }
+        else if (forcastingInventoryUOM == 2 && inventoryPriorityType == 2) {
+            //Day
+            var finalcouldGo = parseFloat(couldGo * 24);
+            $(".smretain").html(finalcouldGo.toFixed(1) + " Hours");
+            $(".smretain").show();
+            var finalshouldGo = parseFloat(shouldGo * 24);
+            $(".smsafety").html(finalshouldGo.toFixed(1) + " Hours");
+            $(".smsafety").show();
+            var finalmustGo = parseFloat(mustGo * 24);
+            $(".smrunout").html(finalmustGo.toFixed(1) + " Hours");
+            $(".smrunout").show();
+        }
+    }
+    function GetDefaultInventoryPriorityType(type) {
+        if (type == 1) {
+            var data =  @(Html.Raw(Json.Encode(CommonHelperMethods.GetforcastingInventoryUOM())));
+            var sHTML = '';
+            for (var i = 0; i < data.length; i++) {
+                sHTML += '<option value="' + data[i].Id + '">' + data[i].Name + '</option>';
+            }
+            $(".forcastingInventoryUOM").html('');
+            $(".forcastingInventoryUOM").html(sHTML);
+            $(".forcastingInventoryUOM").val(1);
+            $(".dvAutoDR").hide();
+        }
+        else {
+            var data =@(Html.Raw(Json.Encode(CommonHelperMethods.GetforcastingRateOfConsumtionUOM())));
+            var sHTML = '';
+            for (var i = 0; i < data.length; i++) {
+                sHTML += '<option value="' + data[i].Id + '">' + data[i].Name + '</option>';
+            }
+            $(".forcastingInventoryUOM").html('');
+            $(".forcastingInventoryUOM").html(sHTML);
+            $(".forcastingInventoryUOM").val(1);
+            $(".dvAutoDR").show();
+        }
+        uomDefaultChanged($("#foruomDefaultChangedOM"));
+    }
+     function uomDefaultChanged(obj) {
+         var selectedText = $(obj).find("option:selected").text();
+        if (selectedText == "Percantage" || selectedText == "Days" || selectedText == "Hours") {
+            if (selectedText == "Percantage") {
+                selectedText = "%";
+            };
+            $(".uomName").each(function () {
+                $(this).html(selectedText);
+            });
+        }
+        else {
+            if (window.location.href.indexOf("Onboarding/Company") > -1) {
+                var countryCode = $("#CompanyAddress_Country_Id").val();
+                var uomDetails = '@UoM.Gallons.ToString()';
+                 if (countryCode == 2) {
+                    uomDetails = '@UoM.Litres.ToString()';
+                }
+                 $(".uomName").each(function () {
+                   $(this).html(uomDetails);
+                 });
+            }
+            else {
+                 $(".uomName").each(function () {
+                      $(this).html('@uomName');
+                });
+            }
+        }
+        $(".smretain").hide();
+        $(".smsafety").hide();
+        $(".smrunout").hide();
+        CalculateData();
+    }
+    function defaultUOMDetails(selectedItem, forcastingType) {
+        var selectedText = '';
+        if (selectedItem == 1 && forcastingType==2) {
+            selectedText = 'Hours';
+        }
+        else if (selectedItem == 2 && forcastingType==2) {
+            selectedText = 'Days';
+        }
+        else if (selectedItem == 2 && forcastingType == 1) {
+            selectedText = 'Percantage';
+        }
+        if (selectedText == "Percantage" || selectedText == "Days" || selectedText == "Hours") {
+            if (selectedText == "Percantage") {
+                selectedText = "%";
+            };
+            $(".uomName").each(function () {
+                $(this).html(selectedText);
+            });
+        }
+    }
+</script>

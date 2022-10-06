@@ -1,0 +1,92 @@
+﻿<div class="col-md-12">
+    <div class="well bg-white shadow-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-padding no-border">
+                <div class="table-responsive">
+                    <table id="buyerorder-invoice-datatable" class="table table-striped table-bordered table-hover small-grid" data-grid-parent="#order-invoices" data-grid-tab="#tab-history">
+                        <thead>
+                            <tr>
+                                <th>@Resource.gridColumnInvoiceNumber</th>
+                                <th>@Resource.gridColumnBolNumber</th>
+                                <th>@Resource.gridColumnInvoiceAmount</th>
+                                <th>@Resource.gridColumnDropDate</th>
+                                <th>@Resource.gridColumnSupplier</th>
+                                <th>@Resource.lblAssetFilled</th>
+                                <th class="uom-by-country"><span class="uom-lbl"></span> @Resource.lblDelivered</th>
+                                <th class="rack-ppg-by-country"></th>
+                                <th>@Resource.gridColumnPercentageDelivered</th>
+                                <th>@Resource.gridColumnStatus</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var orderId = '@(ViewContext.RouteData.Values["id"] ?? 0)';
+    var url = "@Url.Action("InvoiceGridByOrder", "Invoice", new { area = "Buyer" })" + "?orderId=" + orderId + "";
+
+    $('#buyerorder-invoice-datatable').DataTable({
+        "ajax": {
+            "url": url,
+            "type": "GET",
+            "datatype": "json",
+            "dataSrc": ""
+        },
+        "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("Details", "Invoice", new { area = "Buyer" })?id=' + data.Id + '">' + data.InvoiceNumber + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "BolNumber", "autoWidth": true },
+                    { "data": "InvoiceAmount", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+                    { "data": "DropDate", "autoWidth": true },
+
+                        {
+                            "data": function (data, type, row, meta) {
+                                return data.Supplier;
+                            }, "autoWidth": true
+                        },
+
+                    { "data": "AssetCount", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.',0, '') },
+                    { "data": "Quantity", "autoWidth": true },
+                    { "data": "PricePerGallon", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+                    { "data": "FuelDeliveredPercentage", "autoWidth": true },
+                    { "data": "Status", "autoWidth": true },
+
+        ],
+        pageLength: 10,
+        responsive: true,
+        fixedHeader:false,
+        "order": [],
+        "initComplete": function (settings, json) {
+            wrapperHeight();
+        },
+        dom: '<"html5buttons"B>lTfgitp',
+        buttons: [
+            { extend: 'copy' },
+            { extend: 'csv', title: '@Resource.headingInvoices' },
+            { extend: 'excel', title: '@Resource.headingInvoices' },
+            { extend: 'pdf', title: '@Resource.headingInvoices', orientation: 'landscape', pageSize: 'LETTER' },
+            {
+                extend: 'print',
+                customize: function (win) {
+                    $(win.document.body).addClass('white-bg');
+                    $(win.document.body).css('font-size', '10px');
+
+                    $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                }
+            }
+        ],
+        language: {
+            sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+        }
+
+    });
+</script>

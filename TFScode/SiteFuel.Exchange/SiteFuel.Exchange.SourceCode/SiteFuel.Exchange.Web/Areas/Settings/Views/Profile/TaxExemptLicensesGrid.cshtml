@@ -1,0 +1,206 @@
+﻿@{
+    ViewBag.Title = "Tax Exempt Licenses";
+}
+<div class="row">
+    <div class="col-sm-12">
+        <h3 class="mt0 f-light fs18 float-left mr20">@Resource.headingTaxExemptionLicenses</h3>
+        @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+        {
+            <a href="@Url.Action("Create", "TaxExemption", new { area = "Settings" })" class="fs18 float-left" id="auto-linkaddnewlicense">
+                <i class="fa fa-plus-circle fs18 mt2 float-left"></i><span class="fs14 ml5 float-left">@Resource.btnLabelAddNewLicense</span>
+            </a>
+        }
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b pr">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="license-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnIDCode</th>
+                                    <th>@Resource.gridColumnLicenseNumber</th>
+                                    <th>@Resource.gridColumnBusinessSubType</th>
+                                    <th>@Resource.gridColumnAddedBy</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th><span class="float-left mr10">@Resource.gridColumnDelete</span><input type="checkbox" class="float-left ml5" id="select-all" /></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 text-right mb25 btn-wrapper">
+            <div class="row">
+                <div class="form-group col-sm-12">
+                    @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+                    {
+                        <input data-toggle ='confirmation' data-content ='@Resource.valMessageConfirmLicenseDelete' data-popout ='true' data-singleton ='true' type="button" class="btn btn-primary" value="@Resource.btnLabelDelete" id="btnDelete" disabled="disabled" />
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var licenseDatatable, element, exportColumns = { columns: [0, 1, 2, 3] };
+        $(document).ready(function () {
+            licenseDatatable = $('#license-datatable').dataTable({
+               "aaSorting": [],
+            "columnDefs": [{
+                "targets": [-1],
+                "orderable": false,
+            }],
+                "processing": true,
+                "ajax": {
+                    "url": "@Url.Action("TaxExemptLicensesGrid", "TaxExemption", new { area ="Settings"})",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+
+                "columns": [
+                            {
+                                "data": function (data, type, row, meta) {
+                                    return '<a href="@Url.Action("Create", "TaxExemption", new { area = "Settings" })?id=' + data.Id + '">' + data.IDCode + '</a>';
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": "LicenseNumber", "autoWidth": true
+                            },
+                            {
+                                "data": "BusinessSubType", "autoWidth": true
+                            },
+                            {
+                                "data": "AddedBy", "autoWidth": true
+                            },
+                            {
+                                "data": "Status", "autoWidth": true
+                            }
+                            ,{
+                                "data": function (data, type, row, meta) {
+                                    var disabled = ('@CurrentUser.IsBuyerAdmin' == 'False' && '@CurrentUser.IsSupplierAdmin' == 'False') ? "disabled=\"disabled\"" : "";
+                                    return '<input type="checkbox" class = "chk-license" id="' + data.Id + '" value = "' + data.Id + '" ' + disabled + '/>';
+                                }
+                            }
+                ],
+                "initComplete": function (settings, json) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]'
+                    });
+                    updateSelectAllCheckboxStatus(json);
+                },
+                "fnDrawCallback": function (settings) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]',
+                        html: true
+                    });
+                    updateSelectAllOnPageChange();
+                    updateSelectAllCheckboxStatus();
+                },
+                pageLength: 10,
+                responsive: true,
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingPaymentInformation', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingPaymentInformation', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingPaymentInformation', exportOptions: exportColumns },
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+            $("#btnDelete").click(function () {
+                var data = [], url = '@Url.Action("DeleteLicenses", "TaxExemption", new { area="Settings"})';
+				var anNodes = $("#license-datatable tbody tr");
+
+				for (var i = 0; i < anNodes.length; ++i) {
+					if ($(anNodes[i]).find('input:checkbox').is(':checked')) {
+						data.push($(anNodes[i]).find('input:checkbox').attr('id'));
+					}
+				}
+                var model = {
+                    licenses: data
+                };
+
+                $.post(url, model, function (response) {
+                    if (response == 0) {
+                        window.location.href = '@Url.Action("CompanyTaxes", "TaxExemption", new { area = "Settings" })';
+                    }
+                }, 'json');
+            })
+        });
+
+        function updateSelectAllOnPageChange() {
+            var allChecked = true, anyOneChecked = false;
+
+            $('#license-datatable tbody tr').each(function () {
+                $(this).find('.chk-license').not(":disabled").each(function () {
+                    if (!$(this).is(':checked')) {
+                        allChecked = false;
+                    }
+                    else if (anyOneChecked == false) {
+                        anyOneChecked = true;
+                    }
+                });
+            });
+            $('#select-all').prop('checked', allChecked);
+            if (anyOneChecked == true) {
+                $("#btnDelete").attr("disabled", false);
+            }
+            else {
+                $("#btnDelete").attr("disabled", true);
+            }
+        }
+
+        function updateSelectAllCheckboxStatus() {
+            $('#select-all').click(function () {
+                if ($(this).prop("checked") == true) {
+                    $("#btnDelete").attr("disabled", false);
+                }
+                else if ($(this).prop("checked") == false) {
+                    $("#btnDelete").attr("disabled", true);
+                }
+                var status = $(this).prop('checked');
+                $(".chk-license").each(function () {
+                    $(this).not(":disabled").prop("checked", status);
+                });
+            });
+
+            $(".chk-license").change(function () {
+                if ($(".chk-license:checked").length > 0) {
+                    $("#btnDelete").attr("disabled", false)
+                }
+                else {
+                    $("#btnDelete").attr("disabled", true)
+                }
+
+                if ($('.chk-license').not(":disabled").length == $(".chk-license:checked").length) {
+                    $('#select-all').prop("checked", true);
+                }
+                else {
+                    $('#select-all').prop("checked", false);
+                }
+            });
+        }
+    </script>
+}
+

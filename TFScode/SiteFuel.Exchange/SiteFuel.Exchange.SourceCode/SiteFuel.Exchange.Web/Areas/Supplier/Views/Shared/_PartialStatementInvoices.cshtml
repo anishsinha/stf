@@ -1,0 +1,166 @@
+﻿@model int
+
+<div class="row">
+	<div class="col-md-12">
+		<div class="well bg-white shadow-b">
+			<div class="ibox mb0">
+				<div class="ibox-content no-border no-padding">
+					<div class="table-responsive">
+						<table id="statementinvoice-datatable" class="table table-striped table-bordered table-hover mt0">
+							<thead>
+								<tr>
+									<th class="text-center">
+										<input type="checkbox" id="select-all" />
+									</th>
+									<th>@Resource.gridColumnInvoiceNumber</th>
+									<th>@Resource.gridColumnStatus</th>
+									<th>@Resource.gridColumnDropDate</th>
+									<th>@Resource.gridColumnQuantityDropped</th>
+									<th>@Resource.gridColumnPoNumber</th>
+									<th>@Resource.gridColumnFuelType</th>
+									<th>@Resource.gridColumnInvoiceAmount</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+@if (CurrentUser.IsSuperAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsAccountingPerson || CurrentUser.IsSupplier)
+{
+	<div class="row text-right btn-wrapper">
+		<div class="col-sm-12">
+			<div class="form-group">
+				@*<input type="button" class="btn btn-default btn-md" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Index", "Home", new { area = "" })'" />*@
+				<input type="button" class="btn btn-lg btn-primary disable-controls" value="@Resource.btnLabelSave" id="btnSave" />
+			</div>
+		</div>
+	</div>
+}
+
+
+<script type="text/javascript">
+	var columnToggle = ('@(CurrentUser.IsSuperAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsAccountingPerson || CurrentUser.IsSupplier)' == 'True');
+        function updateSelectAllOnPageChange() {
+            var allChecked = true;
+
+			$('#statementinvoice-datatable tbody tr').each(function () {
+                $(this).find(':checkbox[name=invoice]').each(function () {
+                    if (!$(this).is(':checked')) {
+                        allChecked = false;
+                    }
+                });
+            });
+            $('#select-all').prop('checked', allChecked);
+	}
+
+		var invoices = @Html.Raw(Json.Encode(Model));
+		var statementInvoiceDatatable;
+		$(document).ready(function () {
+			statementInvoiceDatatable = $('#statementinvoice-datatable').dataTable({
+				"ajax": {
+					"url": "@Url.Action("StatementInvoices", "BillingStatement", new { area ="Supplier"})/@Model",
+					"type": "GET",
+					"datatype": "json",
+					"dataSrc": ""
+				},
+				"columns": [
+					{
+						"data": function (data, type, row, meta) {
+							var columnCtrl = '<input type="checkbox" class ="chk-invoice-group" name="invoice" checked id="' + data.InvoiceId + '" value="' + data.InvoiceId + '"/>';
+							return columnCtrl;
+						}, "autoWidth": true, "bSortable": false, "className":"text-center"
+					},
+					{
+						"data": function (data, type, row, meta) {
+							return '<a onclick="slideInvoiceDetails(' + data.InvoiceId + ')">' + data.InvoiceNumber + '</a>';					
+						}, "autoWidth": true
+					},
+					{ "data": "InvoiceStatus", "autoWidth": true },
+					{ "data": "DropDate", "autoWidth": true },
+					{ "data": "TotalQuantityDropped", "autoWidth": true },
+					{ "data": "PoNumber", "autoWidth": true },
+					{ "data": "FuelType", "autoWidth": true },
+					{ "data": "TotalAmount", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+				],
+				"columnDefs": [{
+					"targets": [0, 1, 2, 3, 4, 5, 6, 7],
+					"searchable": false,
+					"orderable": false
+				},
+					{
+						"targets": [0],
+						"visible": columnToggle,
+						"searchable": false
+					}],
+				"order": [],
+				pageLength: 10,
+				responsive: true,
+				searching: false,
+				paging: false,
+				info: false,
+				buttons: [
+					{
+                        className:'hide-element'
+					}
+				],
+				"initComplete": function (settings, json) {
+					allPages = statementInvoiceDatatable.fnGetNodes();
+					$('#statementinvoice-datatable th').addClass('filtering-disabled');
+					updateSelectAllCheckboxStatus(json);
+					wrapperHeight();
+				},
+				"fnDrawCallback": function (settings) {
+					updateSelectAllOnPageChange();
+				},
+				dom: '<"html5buttons"B>lTfgitp',
+				language: {
+					sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+				}
+			});
+
+			$('#btnSave').on('click', function (e) {
+				e.preventDefault();
+				var selectedInvoice = [];
+				$(".chk-invoice-group", statementInvoiceDatatable.fnGetNodes()).each(function () {
+					if ($(this).is(':checked')) {
+						selectedInvoice.push($(this).attr('id'));
+					}
+				});
+				if (selectedInvoice.length == 0)
+				{
+					return;
+				}
+				var model = {
+                    viewModel: {
+                        StatementId: @Model,
+						SelectedInvoices: selectedInvoice
+                    }
+                };
+
+                var url = '@Url.Action("Edit", "BillingStatement", new { area = "Supplier" })';
+
+				$.post(url, model, function (response) {
+					window.location.href = '@Url.Action("Details", "BillingStatement", new { area = "Supplier" })/' + response;
+                });
+			});
+		});
+
+
+		function updateSelectAllCheckboxStatus(json) {
+
+			$('#select-all').click(function () {
+				var status = $(this).prop('checked');
+				$(".chk-invoice-group").each(function () {
+					$(this).prop("checked", status);
+				});
+			});
+
+			$(':checkbox[name=invoice]', allPages).change(function () {
+				updateSelectAllOnPageChange();
+			});
+		}
+
+</script>

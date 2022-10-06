@@ -1,0 +1,141 @@
+﻿@model CloneRequestViewModel
+<div class="row">
+    @Html.HiddenFor(m => m.Id)
+    @Html.HiddenFor(m => m.CompanyId)
+    @if (!Model.IsProFormaPoEnabled)
+    {
+        <div class="col-md-2">
+            <div class="form-group">
+                @Html.LabelFor(m => m.ExternalPoNumber)
+                @Html.TextBoxFor(m => m.ExternalPoNumber, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.ExternalPoNumber)
+            </div>
+        </div>
+    }
+    @if (Model.QuantityTypeId != (int)QuantityType.NotSpecified)
+    {
+        <div class="col-md-2">
+            <div class="form-group">
+                @Html.LabelFor(m => m.Quantity)
+                @Html.TextBoxFor(m => m.Quantity, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.Quantity) })
+                @Html.ValidationMessageFor(m => m.Quantity)
+            </div>
+        </div>
+    }
+    </div>
+<div class="row">
+    <div class="col-md-2">
+        <div class="form-group">
+            @Html.LabelFor(m => m.StartDate)
+            @Html.TextBoxFor(m => m.StartDate, new { @class = "form-control datepicker" })
+            @Html.ValidationMessageFor(m => m.StartDate)
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="form-group">
+            @Html.LabelFor(m => m.EndDate)
+            @Html.TextBoxFor(m => m.EndDate, new { @class = "form-control datepicker" })
+            @Html.ValidationMessageFor(m => m.EndDate)
+        </div>
+    </div>
+    <div class="col-xs-2">
+        <div class="form-group">
+            @Html.LabelForEx(m => m.StartTime, @Resource.lblFrom)
+            @Html.TextBoxFor(m => m.StartTime, new { @class = "form-control timepicker" })
+            @Html.ValidationMessageFor(m => m.StartTime)
+        </div>
+    </div>
+    <div class="col-xs-2">
+        <div class="form-group">
+            @Html.LabelForEx(m => m.EndTime, @Resource.lblTo)
+            @Html.TextBoxFor(m => m.EndTime, new { @class = "form-control timepicker" })
+            @Html.ValidationMessageFor(m => m.EndTime)
+        </div>
+    </div>
+
+    <div class="col-md-2 clearboth">
+        <div class="form-group">
+            @Html.LabelFor(m => m.ExpirationDate)
+            @Html.TextBoxFor(m => m.ExpirationDate, new { @class = "form-control datepicker" })
+            @Html.ValidationMessageFor(m => m.ExpirationDate)
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#@Html.IdFor(m => m.StartDate)').data("DateTimePicker").useCurrent(false);
+            $('#@Html.IdFor(m => m.EndDate)').data("DateTimePicker").useCurrent(false);
+            $('#@Html.IdFor(m => m.ExpirationDate)').data("DateTimePicker").useCurrent(false);
+
+			var today = moment('@Model.JobLocationCurrentDateTime').startOf('day');
+			var jobStartMoment = moment('@Model.JobStartDate').startOf('day');
+			var requestMinDate;
+			var frExpireMinDate = '', frExpireMaxDate = '';
+			if (jobStartMoment > today) {
+				requestMinDate = '@Model.JobStartDate';
+			}
+			else
+			{
+				requestMinDate = '@Model.JobLocationCurrentDateTime';
+			}
+
+			$('#@Html.IdFor(m => m.StartDate)').data("DateTimePicker").minDate(moment(requestMinDate).startOf('d'));
+			var fuelrequestStartDateVal = $('#@Html.IdFor(m => m.StartDate)').val();
+			if (fuelrequestStartDateVal === undefined || fuelrequestStartDateVal == '' || moment(fuelrequestStartDateVal) <= today){
+				$('#@Html.IdFor(m => m.StartDate)').val(moment(requestMinDate).startOf('d').format('L'));
+				fuelrequestStartDateVal = requestMinDate;
+			}
+			$('#@Html.IdFor(m => m.EndDate)').data("DateTimePicker").minDate(moment(fuelrequestStartDateVal).startOf('d'));
+			if (moment(fuelrequestStartDateVal).startOf('d') > moment(requestMinDate).startOf('d').add(1, 'days')) {
+				$('#@Html.IdFor(m => m.ExpirationDate)').data("DateTimePicker").maxDate(moment(fuelrequestStartDateVal).endOf('d').subtract(1, 'd'));
+				$('#@Html.IdFor(m => m.ExpirationDate)').data("DateTimePicker").minDate(moment(requestMinDate).startOf('d').add(1, 'days'));
+			}
+			frExpireMinDate = jobStartMoment.clone();
+			frExpireMaxDate = today.clone();
+			if ((jobStartMoment > today && moment(fuelrequestStartDateVal).startOf('d') <= frExpireMinDate.add(1, 'days'))
+				|| (jobStartMoment <= today && moment(fuelrequestStartDateVal).startOf('d') <= frExpireMaxDate.add(1, 'days'))) {
+				$('#@Html.IdFor(m => m.ExpirationDate)').val('');
+				$('#@Html.IdFor(m => m.ExpirationDate)').attr('disabled', 'disabled');
+			}
+
+			var mintime = moment(requestMinDate);
+			if (jobStartMoment > today) {
+				mintime = moment('@Model.JobLocationCurrentDateTime').startOf('day');
+			}
+
+			$('.timepicker').each(function () {
+				$(this).data("DateTimePicker").minDate(mintime);
+			});
+
+            if ('@Model.JobEndDate' != '') {
+                $('#@Html.IdFor(m => m.StartDate)').data("DateTimePicker").maxDate(moment('@Model.JobEndDate').endOf('d'));
+                $('#@Html.IdFor(m => m.EndDate)').data("DateTimePicker").maxDate(moment('@Model.JobEndDate').endOf('d'));
+			}
+
+			$(document).on('dp.change', '#@Html.IdFor(m => m.StartDate)', function () {
+				var frStartDate = $(this).val();
+				var mintime = moment(requestMinDate) <= moment(frStartDate).startOf('d') ? moment(requestMinDate).startOf('day') : moment(requestMinDate);
+				$('.timepicker').each(function () {
+						$(this).data("DateTimePicker").minDate(mintime);
+				});
+
+				$('#@Html.IdFor(m => m.EndDate)').data("DateTimePicker").minDate(moment(frStartDate).startOf('d'));
+				if (moment(frStartDate).startOf('d') > moment(requestMinDate).startOf('d').add(1, 'days')) {
+					$('#@Html.IdFor(m => m.ExpirationDate)').removeAttr('disabled');
+					$('#@Html.IdFor(m => m.ExpirationDate)').data("DateTimePicker").maxDate(moment(frStartDate).endOf('d').subtract(1, 'd'));
+					$('#@Html.IdFor(m => m.ExpirationDate)').data("DateTimePicker").minDate(moment(requestMinDate).startOf('d').add(1, 'days'));
+				}
+				frExpireMinDate = jobStartMoment.clone();
+				frExpireMaxDate = today.clone();
+				if ((jobStartMoment > today && moment(frStartDate).startOf('d') <= frExpireMinDate.add(1, 'days'))
+					|| (jobStartMoment <= today && moment(frStartDate).startOf('d') <= frExpireMaxDate.add(1, 'days'))) {
+					$('#@Html.IdFor(m => m.ExpirationDate)').val('');
+					$('#@Html.IdFor(m => m.ExpirationDate)').attr('disabled', 'disabled');
+				}
+			});
+        });
+    </script>
+}

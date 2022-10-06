@@ -1,0 +1,123 @@
+﻿@model OrderDetailsViewModel
+
+<div class="row mt10">
+    <div class="col-sm-3">
+        <label>Table Type</label>
+        @{
+            var selectList = Enum.GetValues(typeof(TableTypes))
+                                 .Cast<TableTypes>()
+                                 .Where(e => e != TableTypes.CarrierSpecific)
+                                 .Select(e => new SelectListItem
+                                 {
+                                     Value = ((int)e).ToString(),
+                                     Text = e.ToString()
+                                 });
+        }
+        @Html.DropDownListFor(m => m.OrderAdditionalDetails.AccessorialFeeTableType, selectList, Resource.btnLabelSelect, new { @class = "form-control enum-ddl-spt", onchange = "GetAccessorialFees();" })
+
+    </div>
+
+    <div class="col-sm-4">
+        <label>Accessorial Fee Table Name</label>
+        @Html.DropDownListFor(m => m.OrderAdditionalDetails.AccessorialFeeId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", Model.OrderAdditionalDetails.AccessorialFeeId), Resource.btnLabelSelect,
+       new { @class = "form-control", onchange = "onChangeAccessorialFeeId();resetPartialFeesControl();" })
+        <div class="row">
+            <div class="col-sm-12">
+                <a onclick="viewAccessorialFeeTable();" id="lnkviewAccessorialFeeTable" class="pntr-none subSectionOpacity">View Accessorial Fee Table</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+    var isLoaded = false;
+    $(document).ready(function () {
+        var AccessorialFeeId = $("#@Html.IdFor(m => m.OrderAdditionalDetails.AccessorialFeeId)").val();
+        if (AccessorialFeeId != null && AccessorialFeeId!=undefined) {
+            GetAccessorialFees();
+        }
+    });
+
+    function resetPartialFeesControl() {
+
+        if (isLoaded) {
+            var answer = confirm("Are you sure? added fees will be lost.");
+            if (answer) {
+                $('.remove-fee').trigger('click');
+            }
+        }
+        isLoaded = true;
+    }
+    function SetAccessorialFeeId(key, val) {
+        if (typeof Storage !== "undefined") {
+            localStorage.setItem(key, val);
+        }
+    }
+
+    function RemoveAccessorialFeeId(key) {
+        if (typeof Storage !== "undefined") {
+            localStorage.removeItem(key);
+        }
+    }
+
+    function onChangeAccessorialFeeId() {
+        var AccessorialFeeId = $("#@Html.IdFor(m => m.OrderAdditionalDetails.AccessorialFeeId)").val();
+        if (AccessorialFeeId == null || AccessorialFeeId == undefined || AccessorialFeeId == -1 || AccessorialFeeId == "") {
+            $('#lnkviewAccessorialFeeTable').addClass('pntr-none subSectionOpacity');
+        } else {
+            $('#lnkviewAccessorialFeeTable').removeClass('pntr-none subSectionOpacity');
+        }
+    }
+
+    function viewAccessorialFeeTable() {
+        var AccessorialFeeId = $("#@Html.IdFor(m => m.OrderAdditionalDetails.AccessorialFeeId)").val();
+        RemoveAccessorialFeeId("AccessorialFeeId");
+        SetAccessorialFeeId("AccessorialFeeId", AccessorialFeeId);
+        var accessoricalLink = "@Url.Action("Create", "AccessorialFees", new { area = "Supplier" })";
+        window.open(accessoricalLink, '_blank');
+    }
+
+    function GetAccessorialFees() {
+        $('#lnkviewAccessorialFeeTable').addClass('pntr-none subSectionOpacity');
+        var selectedTableType = $("#@Html.IdFor(m => m.OrderAdditionalDetails.AccessorialFeeTableType)").val();
+        if (selectedTableType == "") {
+            var selectedTableType = 0;
+        }
+        var selectedCustomerId = '@Model.BuyerCompanyId'; //$("#@Html.IdFor(m => m.CustomerCompanyId)").val();
+        var selectedTerminalId = $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminalId)").val();
+        var selectedBulkPlantId = $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlantId)").val();
+        var selectedFuelTypeId = '@Model.FuelDetails.FuelTypeId'; //$("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").val();
+        var sourceRegionIds = $('#@Html.IdFor(m => m.SourceRegion.SelectedSourceRegions) option:selected').toArray().map(item => parseInt(item.value));
+        var selectedTerminals = $('#@Html.IdFor(m => m.SourceRegion.SelectedTerminals) option:selected').toArray().map(item => parseInt(item.value));
+        var selectedBulkPlants = $('#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants) option:selected').toArray().map(item => parseInt(item.value));
+
+        var target = $("#@Html.IdFor(m => m.OrderAdditionalDetails.AccessorialFeeId)");
+
+        var url = "@Url.Action("GetAccessorialFeeTables", "Order")";
+        var filter = {
+            'TableType': selectedTableType,
+            'CustomerId': selectedCustomerId,
+            'TerminalId': selectedTerminalId,
+            'BulkPlantId': selectedBulkPlantId,
+            'FuelTypeId': selectedFuelTypeId,
+            'SourceRegionIds': sourceRegionIds,
+            'SelectedTerminals': selectedTerminals,
+            'SelectedBulkPlants': selectedBulkPlants
+        }
+        $.post(url, filter,
+                function (response) {
+                    target.empty(), $.each(response, function (i, element) {
+                        target.append($('<option></option>').val(element.Id).html(element.Name));
+                    });
+                    $(target).prepend("<option value selected='selected'>@Resource.btnLabelSelect</option>");
+                    if ('@Model.OrderAdditionalDetails.AccessorialFeeId' != null) {
+                        $("#@Html.IdFor(m => m.OrderAdditionalDetails.AccessorialFeeId) option[value='" + @Model.OrderAdditionalDetails.AccessorialFeeId + "']").prop("selected", true).trigger("change");
+                    }
+            });
+        }
+</script>
+}
+

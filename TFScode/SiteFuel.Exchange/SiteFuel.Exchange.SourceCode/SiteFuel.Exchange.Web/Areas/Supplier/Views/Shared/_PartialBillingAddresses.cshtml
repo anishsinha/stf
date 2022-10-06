@@ -1,0 +1,304 @@
+﻿@model CustomerDetailsViewModel
+
+<div class="col-sm-12 pb15">
+    <h4 class="pb10">@Resource.headingBillingAddress</h4>
+    <div class="row">
+        <div>
+            <a class="fs18 float-left ml20 mt10" onclick='CreateCustomerAddress();'>
+                <i class="fa fa-plus-circle fs18 mt4 float-left"></i><span class="fs14 mt2 ml5 float-left">@Resource.btnLabelCreateNew</span>
+            </a>
+        </div>
+        <div class="col-md-12">
+            <div class="well">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-padding no-border">
+                        <div class="table-responsive">
+                            <table id="BillingAddresses-datatable" class="table table-striped table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.gridColumnName</th>
+                                        <th>@Resource.gridColumnAddress</th>
+                                        <th>@Resource.lblCity</th>
+                                        <th>@Resource.lblStateProvince</th>
+                                        <th>@Resource.lblZipOrPostalCode</th>
+                                        <th>@Resource.lblCountyName</th>
+                                        <th>@Resource.lblCountryGroup</th>
+                                        <th>@Resource.lblDefaultAddress</th>
+                                        <th>@Resource.gridColumnAction</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade float-left" id="jobSpecificBillToModel" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body" id="jobSpecificBillToData">
+                @Html.PartialFor("_PartialJobSpecificBillingAddress", m => m.BillToInfo)
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    var supplierYourCustomerGrid;
+    var isDefautlBillingAddress;
+    $(document).ready(function () {
+        document.getElementById("model-popup-heading").innerHTML = "Billing Address";
+        FetchBillingAddress();
+        $(document).off('submitNoDataActionDefaultAddress');
+        $(document).on('submitNoDataActionDefaultAddress', function (e) {
+            DefaultBillingAddressChange($(e.target).attr('value'));
+            $('#BillingAddresses-datatable').DataTable().ajax.reload();//reload records grid
+        });
+
+         $(document).off('submitNoDataAction');
+         $(document).on('submitNoDataAction', function (e) {
+             var url = '@Url.Action("DeleteBillingAddress", "YourCustomer", new { Area="Supplier" })';
+             var viewModel = {"billingAddressId": $(e.target).attr('billingAddressId')}
+             $.ajax({
+                 type: "post",
+                 url: url,
+                 data: viewModel,
+                 datatype: "json",
+                 cache: false,
+                 success: function (response) {
+                     if (response.StatusCode == 0) {
+                         $('#BillingAddresses-datatable').DataTable().ajax.reload();//reload records grid
+                         clearform();
+                         $('#jobSpecificBillToModel').modal('hide');
+                         msgsuccess("Deleted successfully.")
+                     }
+                     else {
+                         msgerror("Failed.");
+                     }
+                 },
+                 error: function (xhr) {
+                     console('No Valid Data');
+                 }
+             });
+         });
+
+        $('#BillingAddresses-datatable tbody').on('click', '.CustomerId', function () {
+            var $row = $(this).closest('tr');
+             var data = $('#BillingAddresses-datatable').DataTable().row($row).data();             
+             isDefautlBillingAddress = data.IsDefault;
+             LoadExistingBillAddressInModel(data.Id);
+         });
+     });
+
+    function FetchBillingAddress() {
+        supplierYourCustomerGrid = $('#BillingAddresses-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetBillingAddressSummary", "YourCustomer", new { area = "Supplier", companyId = Model.SupplierCompanyId })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+            },
+            "columnDefs": [{
+                "targets": [0],
+                "orderable": false
+            }],
+            "columns": [
+                { "data": "Name", "autoWidth": true },
+                //{ "data": "Address", "autoWidth": true },
+                {
+                    "data": function (data) {
+                        var address = data.Address;
+                        if (data.Address2 != null && data.Address2 != undefined && data.Address2 != '') {
+                            address = address + ', ' + data.Address2;
+                        }
+                        if (data.Address3 != null && data.Address3 != undefined && data.Address3 != '') {
+                            address = address + ', ' + data.Address3;
+                        }
+                        return address;
+
+                    }, "autoWidth": true
+                },
+                { "data": "City", "autoWidth": true },
+                { "data": "State.Name", "autoWidth": true },
+                { "data": "ZipCode", "autoWidth": true},
+                { "data": "County", "autoWidth": true },
+                { "data": "Country.Name", "autoWidth": true },
+                {
+                    "data": function (data) {
+                        if (!data.IsDefault) {
+                            return '<input type="radio" class="rdoDefaultAddress" name="defaultOptions" data-toggle="confirmation" data-confirmation-event="submitNoDataActionDefaultAddress" data-placement="top" data-popout="true" data-singleton="true"  value="' + data.Id + '"/>';
+                        } else {
+                            return '<input type="radio" class="rdoDefaultAddress" name="defaultOptions" checked  value="' + data.Id + '" />';
+                        }
+
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.Id != null && data.Id != '' && data.Id != undefined && data.Id != 0) {
+                            var confirmationBtn = "";
+                            if (!data.IsDefault) {
+                                var confirmationBtn = '<a class="fa fa-trash-alt fs18 color-maroon deleteinvitedDriver" value="@Resource.btnLabelDelete" data-toggle="confirmation" data-confirmation-event="submitNoDataAction" data-placement="top" data-popout="true" data-singleton="true" billingAddressId="' + data.Id + '"/>';
+                            }
+                            return '<a id="btnCustomerId"  class ="CustomerId"><span class="fas fa-edit ml5" data-placement="top"></span></a> ' + confirmationBtn
+                        }
+                        else {
+                            return '<a id="btnCustomerId" class ="CustomerId" data-toggle="modal" data-target="#jobSpecificBillToModel"><span class="fas fa-edit ml5" data-placement="top"  title="@Resource.lblCustomerId"></span></a>'
+                        }
+                    }, "width": "50px", "bSortable": false, "className": "text-center"
+
+                }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+             },
+             "fnDrawCallback": function (settings) {
+                 $('[data-toggle=confirmation]').confirmation({
+                     rootSelector: '[data-toggle=confirmation]',
+                     html: true
+                 });
+             },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                },
+         });
+    }
+
+    function CreateCustomerAddress() {
+        clearform();
+        $('#jobSpecificBillToModel').modal('show');
+    }
+
+    function onJobSpecificBillToSubmitt(isSubmitClicked) {
+        var viewModel = {
+            "Id": $("#@Html.IdFor(m => m.BillToInfo.Id)").val(),
+            "CompanyId": @Model.SupplierCompanyId,
+            "Phone.PhoneType": 1,
+            "Name": $("#@Html.IdFor(m => m.BillToInfo.Name)").val(),
+            "Address": $("#@Html.IdFor(m => m.BillToInfo.Address)").val(),
+            "Address2": $("#@Html.IdFor(m => m.BillToInfo.AddressLine2)").val(),
+            "Address3": $("#@Html.IdFor(m => m.BillToInfo.AddressLine3)").val(),
+            "ZipCode": $("#@Html.IdFor(m => m.BillToInfo.ZipCode)").val(),
+            "City": $("#@Html.IdFor(m => m.BillToInfo.City)").val(),
+            "State.Name": $("#@Html.IdFor(m => m.BillToInfo.State.Name)").val(),
+            "County": $("#@Html.IdFor(m => m.BillToInfo.County)").val(),
+            "Country.Name": $("#@Html.IdFor(m => m.BillToInfo.Country.Name)").val(),
+            "IsDefault": isDefautlBillingAddress
+        }
+        var url = "";
+        var msg = "";
+        if (viewModel.Id != undefined && viewModel.Id != 0) {
+            url = '@Url.Action("UpdateBillingAddress", "YourCustomer", new { Area="Supplier" })';
+            msg = "Updated successfully.";
+        } else {
+            url = '@Url.Action("CreateBillingAddress", "YourCustomer", new { Area="Supplier" })';
+            msg = "Created successfully.";
+        }
+
+        validationMessageFor("@Html.NameFor(m => m.BillToInfo.Name)", '');
+        validationMessageFor("@Html.NameFor(m => m.BillToInfo.Address)", '');
+
+        if ($("#@Html.IdFor(m => m.BillToInfo.Name)").val() == null || $("#@Html.IdFor(m => m.BillToInfo.Name)").val() == "") {
+            validationMessageFor("@Html.NameFor(m => m.BillToInfo.Name)", '@ResourceMessages.GetMessage(Resource.valMsgNameRequired)');
+            $("#JobSpecificBillToSubmit").removeAttr('data-dismiss');
+            return;
+        }
+
+        if ($("#@Html.IdFor(m => m.BillToInfo.Address)").val() == null || $("#@Html.IdFor(m => m.BillToInfo.Address)").val() == "") {
+            validationMessageFor("@Html.NameFor(m => m.BillToInfo.Address)", '@ResourceMessages.GetMessage(Resource.valMsgAddressRequired)');
+            $("#JobSpecificBillToSubmit").removeAttr('data-dismiss');
+            return;
+        }
+
+        $.ajax({
+            type: "post",
+            url: url,
+            data: viewModel,
+            datatype: "json",
+            cache: false,
+            success: function (response) {
+                if (response.StatusCode == 0) {
+                    $('#BillingAddresses-datatable').DataTable().ajax.reload();//reload records grid
+                    clearform();
+                    $('#jobSpecificBillToModel').modal('hide');
+                    msgsuccess(msg);
+                } else {
+                    msgerror("Failed.");
+                }
+            },
+            error: function (xhr) {
+                console('No Valid Data');
+            }
+        });
+    }
+
+    function DefaultBillingAddressChange(billingAddressId) {
+        var viewModel = {
+            "billingAddressId": billingAddressId,
+            "companyId": @Model.SupplierCompanyId,
+        }
+        var url = '@Url.Action("SetDefaultBillingAddress", "YourCustomer", new { Area="Supplier" })';
+        $.ajax({
+            type: "post",
+            url: url,
+            data: viewModel,
+            datatype: "json",
+            cache: false,
+            success: function (response) {
+                if (response.StatusCode == 0) {
+                    $('#BillingAddresses-datatable').DataTable().ajax.reload();//reload records grid
+                    msgsuccess("Default address change successfully.");
+                } else {
+                    msgerror("Failed.");
+                }
+            },
+            error: function (xhr) {
+                console('No Valid Data');
+            }
+        });
+    }
+
+    function clearform() {
+        $("#@Html.IdFor(m => m.BillToInfo.Id)").val(0);
+        $("#@Html.IdFor(m => m.BillToInfo.Name)").val('');
+        $("#@Html.IdFor(m => m.BillToInfo.Address)").val('');
+        $("#@Html.IdFor(m => m.BillToInfo.AddressLine2)").val('');
+        $("#@Html.IdFor(m => m.BillToInfo.AddressLine3)").val('');
+        $("#@Html.IdFor(m => m.BillToInfo.ZipCode)").val('');
+        $("#@Html.IdFor(m => m.BillToInfo.City)").val('');
+        $("#@Html.IdFor(m => m.BillToInfo.State.Name)").val('');
+        $("#@Html.IdFor(m => m.BillToInfo.County)").val('');
+        $("#@Html.IdFor(m => m.BillToInfo.Country.Name)").val('');
+    }
+
+    function LoadExistingBillAddressInModel(billingAddressId) {
+        $(".edit-loader").show();
+        var url = '@Url.Action("GetBillingAddressDetails", "YourCustomer", new { Area="Supplier" })';
+        $.get(url, { billingAddressId: billingAddressId }, function (response) {
+            if (response.Id != undefined && response.Id > 0) {
+                $("#@Html.IdFor(m => m.BillToInfo.Id)").val(response.Id);
+                $("#@Html.IdFor(m => m.BillToInfo.Name)").val(response.Name);
+                $("#@Html.IdFor(m => m.BillToInfo.Address)").val(response.Address);
+                $("#@Html.IdFor(m => m.BillToInfo.AddressLine2)").val(response.Address2);
+                $("#@Html.IdFor(m => m.BillToInfo.AddressLine3)").val(response.Address3);
+                $("#@Html.IdFor(m => m.BillToInfo.ZipCode)").val(response.ZipCode);
+                $("#@Html.IdFor(m => m.BillToInfo.City)").val(response.City);
+                $("#@Html.IdFor(m => m.BillToInfo.State.Name)").val(response.State.Name);
+                $("#@Html.IdFor(m => m.BillToInfo.County)").val(response.County);
+                $("#@Html.IdFor(m => m.BillToInfo.Country.Name)").val(response.Country.Name);
+            }
+        });
+        $(".edit-loader").hide();
+        $('#jobSpecificBillToModel').modal('show');
+    }
+</script>

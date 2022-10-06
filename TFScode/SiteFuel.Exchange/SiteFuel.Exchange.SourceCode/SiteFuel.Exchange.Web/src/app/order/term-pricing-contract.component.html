@@ -1,0 +1,171 @@
+<div class="row">
+	<div class="col-sm-3" *ngIf="CurrentUser.IsSupplierCompany">
+		<div class="form-group">
+			<label>Customer</label>
+			<ng-multiselect-dropdown [(ngModel)]="SelectedCustomer" [data]="CustomerList" [settings]="DdlSettings" (onSelect)="OnCustomerSelect($event)" (onDeSelect)="OnCustomerDeSelect($event)">
+			</ng-multiselect-dropdown>
+		</div>
+	</div>
+	<div class="col-sm-3" *ngIf="CurrentUser.IsBuyerCompany">
+		<div class="form-group">
+			<label>Supplier</label>
+			<ng-multiselect-dropdown [(ngModel)]="SelectedSupplier"  [settings]="DdlSettings" [data]="SupplierList" (onSelect)="OnSupplierSelect($event)" (onDeSelect)="OnSupplierDeSelect($event)">
+			</ng-multiselect-dropdown>
+		</div>
+	</div>
+	<div class="col-sm-2">
+		<div class="form-group">
+			<label>Fuel Group Type</label>
+			<ng-multiselect-dropdown [(ngModel)]="SelectedFuelGroup" [settings]="DdlSettings" [data]="FuelGroupList" (onSelect)="OnFuelGroupSelect($event)" (onDeSelect)="OnFuelGroupDeSelect($event)">
+			</ng-multiselect-dropdown>
+		</div>
+	</div>
+	<div class="col-sm-4">
+		<div class="form-group">
+			<label>Job</label>
+			<ng-multiselect-dropdown [(ngModel)]="SelectedJob" [settings]="DdlSettings" [data]="JobList" (onSelect)="OnJobSelect($event)" (onDeSelect)="OnJobDeSelect($event)">
+			</ng-multiselect-dropdown>
+		</div>
+	</div>
+</div>
+<form [formGroup]="TermPricingForm" (ngSubmit)="onSubmit()">
+	<div class="pa bg-white z-index5 loading-wrapper left0 top0" *ngIf="IsLoading">
+		<span class='spinner-dashboard pa'></span>
+	</div>
+	<input type="hidden" formControlName="GroupType" value="2" />
+	<div class="row">
+		<div class="col-sm-3">
+			<div class="clearboth" formArrayName="OrderList">
+				<div class="group-maxheight">
+					<ng-container *ngFor="let tier of TermPricingForm.get('OrderList')['controls']; let i = index;">
+						<div [formGroupName]="i" [ngClass]="['bg'+i]" class="pa10 radius-5 mb10 border-dash-dark">
+							<div class="row">
+								<div class="col-sm-12">
+									<h3 class="mt0 mb0 pull-left">Tier {{i+1}}</h3>
+									<a (click)="removeTier(tier, i)" class="color-maroon ml10 mt2 pull-left"><i class="fa fa-trash-alt pull-right"></i></a>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-6">
+									<div class="form-group mb5">
+										<input type="text" class="form-control" formControlName="MinVolume" placeholder="Min" (change)="comparisonValidator(tier, i,'MinVolume')">
+										<span class="help-block color-maroon" *ngIf="tier.get('MinVolume').errors && (tier.get('MinVolume').touched ||
+                                  tier.get('MinVolume').dirty)">
+											<span *ngIf="tier.get('MinVolume').errors.required">
+												Required.
+											</span>
+											<span *ngIf="tier.get('MinVolume').errors.pattern">
+												Invalid.
+											</span>
+											<span *ngIf="!tier.get('MinVolume').errors.required && !tier.get('MinVolume').errors.pattern && tier.get('MinVolume').errors">
+												Invalid.
+											</span>
+										</span>
+									</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="form-group mb5">
+										<input type="text" class="form-control" formControlName="MaxVolume" placeholder="Max" (change)="comparisonValidator(tier, i, 'MaxVolume')">
+										<span class="help-block color-maroon" *ngIf="tier.get('MaxVolume').errors && (tier.get('MaxVolume').touched || tier.get('MaxVolume').dirty)">
+											<span *ngIf="tier.get('MaxVolume').errors.required">
+												Required.
+											</span>
+											<span *ngIf="tier.get('MaxVolume').errors.pattern">
+												Invalid.
+											</span>
+										</span>
+									</div>
+								</div>
+							</div>
+							<div class="row" [formGroup]="tier.get('Order')">
+								<div class="col-sm-12">
+									<div class="well" draggable droppable (onDrop)="onItemDropTier(i,$event)" [dragData]="tier.get('Order').value">
+										<div class="text-center" *ngIf="tier.get('Order').get('FuelType').value==null">
+											<i class="far fa-hand-rock fs25"></i>
+											<h3 class="fs16 mb0 pa0 color-orange" *ngIf="tier.get('Order').get('FuelType').value==null">Please drag order here</h3>
+										</div>
+										<div *ngIf="tier.get('Order').get('FuelType').value!=null">
+											<h3 class="mt0 mb0">{{tier.get('Order').get('FuelType').value}}</h3>
+											<span>{{tier.get('Order').get('TfxPoNumber').value}}</span><br>
+											<span>{{tier.get('Order').get('Quantity').value}}</span><br>
+											<span>{{tier.get('Order').get('DisplayPrice').value}}</span><br>
+										</div>
+										</div>
+										<span class="help-block color-maroon" *ngIf="tier.get('Order').get('OrderId').errors && (tier.get('Order').get('OrderId').touched || tier.get('Order').get('OrderId').dirty)">
+											<span *ngIf="tier.get('Order').get('OrderId').errors.required">
+												Required.
+											</span>
+										</span>
+									</div>
+								</div>
+							</div>
+					</ng-container>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-sm-12">
+					<a (click)="addNewTier(null);" class="mt20"><i class="fa fa-plus"></i> Add Tier</a>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm-6">
+			<div class="group-height" droppable (onDrop)="onItemDropOrder($event)">
+				<div class="row">
+					<div class="col-sm-6" *ngFor="let order of Orders;index as i">
+						<div draggable class="well" [dragData]="order">
+							<h3 class="mt0 mb0">{{order.FuelType}}</h3>
+							<span>{{order.TfxPoNumber}}</span><br>
+							<span>{{order.Quantity}}</span><br>
+							<span>{{order.DisplayPrice}}</span><br>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm-3">
+			<div class="row">
+				<div class="col-sm-12">
+					<label>Renewal Period</label>
+					<div class="form-group">
+						<input type="text" placeholder="Renewal Frequency" formControlName="RenewalPeriod" class="form-control" value="Monthly" readonly />
+						<input type="hidden" formControlName="RenewalFrequency" value="1" />
+					</div>
+				</div>
+				<div class="col-sm-12">
+					<label>Maximum Renewal Count</label>
+					<input type="text" placeholder="Maximum Renewal Count" formControlName="RenewalCount" class="form-control">
+					<span *ngIf="isInvalid(TermPricingForm, 'RenewalCount')" class="color-maroon">
+						<span *ngIf="isRequired(TermPricingForm, 'RenewalCount')">
+							Required.
+						</span>
+						<span *ngIf="!isRequired(TermPricingForm, 'RenewalCount') && isInvalid(TermPricingForm, 'RenewalCount')">
+							Invalid.
+						</span>
+					</span>
+				</div>
+				<div class="col-sm-12">
+					<div class="form-group">
+						<label>Start Date</label>
+						<input type="text" class="form-control datepicker" formControlName="StartDate" myDatePicker [format]="'MM/DD/YYYY'" [minDate]="MinStartDate" [maxDate]="MaxStartDate" (onDateChange)="TermPricingForm.get('StartDate').setValue($event);getNextRenewalDate($event);" />
+						<span>Next Renewal Date: {{NextRenewalDate}}</span>
+						<span *ngIf="isInvalid(TermPricingForm, 'StartDate')" class="color-maroon">
+							<span *ngIf="isRequired(TermPricingForm, 'StartDate')">
+								Required.
+							</span>
+						</span>
+					</div>
+				</div>
+				<div class="col-sm-12">
+					<label>Customer PO#</label>
+					<input type="text" placeholder="Customer PO#" formControlName="GroupPoNumber" class="form-control">
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12 text-right">
+			<input type="button" value="Cancel" class="btn btn-lg" onclick="closeSlidePanel()">
+			<input type="submit" class="btn btn-primary btn-lg" value="Create">
+		</div>
+	</div>
+</form>

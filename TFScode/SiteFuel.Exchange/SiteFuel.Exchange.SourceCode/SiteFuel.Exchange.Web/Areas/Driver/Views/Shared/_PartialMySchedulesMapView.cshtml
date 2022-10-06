@@ -1,0 +1,132 @@
+﻿<style>
+	#map {
+		height: 250px;
+	}
+</style>
+<div id="my-schedules">
+	<div id="map"></div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)&callback=initMap"></script>
+	<script>
+        var scheduleStartDate, scheduleEndDate, scheduleData;
+        var driverDeliverySchedulesGrid;
+
+        ReloadScheduleGrid();
+
+        function ClosePopup() {
+            $("[data-toggle=popover]").popover("hide");
+        }
+
+        function ReloadScheduleGrid() {
+            if ($('#tab-driver-schedules').hasClass('active')) {
+                scheduleStartDate = $('#txtFromDate').val();
+                scheduleEndDate = $('#txtToDate').val();
+                if (scheduleStartDate == '') {
+                    $("#txtFromDate").val(moment().format('MM/DD/YYYY'));
+                }
+                if (scheduleEndDate == '') {
+                    $("#txtToDate").val(moment().format('MM/DD/YYYY'));
+                }
+                scheduleStartDate = $('#txtFromDate').val();
+                scheduleEndDate = $('#txtToDate').val();
+
+                GetScheduleData(scheduleStartDate, scheduleEndDate);
+                $("#map").css("height", "400");
+            }
+        }
+
+        function GetScheduleData(startDate, endDate) {
+            var params = {
+                "startDate": startDate,
+                "endDate": endDate,
+            };
+            $.get({
+                url: "@Url.Action("GetDeliverySchedules", "Order", new { area = "Driver" })",
+                data: params,
+                traditional: true,
+                success: function (response) {
+                    scheduleData = response;
+                    LoadSchedules(response);
+                    DisplayDriverCustomerLocation(response);
+                }
+            });
+        }
+
+        var customerMarkers = []; var driverMarker = null;
+
+        function initMap() {
+            google.maps.visualRefresh = true;
+            driverMap = new google.maps.Map(document.getElementById('map'), {
+                zoom: 3,
+                center: { lat: 41.850033, lng: -87.6500523 },
+                mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+            });
+        }
+
+        function DisplayDriverCustomerLocation(data) {
+            var latlongDetails = data.latLongDetails;
+            var centerlat = 41.850033;
+            var centerlon = -87.6500523;
+            var zoomarea = 4;
+
+            if (latlongDetails.length > 0) {
+                zoomarea = getZoomArea(latlongDetails);
+                centerlat = 0;
+                centerlon = 0;
+                var latLongCount = 0;
+                $.each(latlongDetails, function (i, item) {
+                    if (item.Latitude != "" && item.Longitude != "") {
+                        centerlat = centerlat + item.Latitude;
+                        centerlon = centerlon + item.Longitude;
+                        latLongCount++;
+                    }
+                });
+            }
+
+            centerlat = centerlat / latLongCount;
+            centerlon = centerlon / latLongCount;
+
+            var centerpoint = new google.maps.LatLng(centerlat, centerlon);
+
+            // These are options that set initial zoom level, where the map is centered globally to start, and the type of map to show
+            var mapOptions = {
+                zoom: zoomarea,
+                center: centerpoint,
+                mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+            };
+
+			driverMap = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+            $.each(data.deliveryScheduleViewModel, function (i, item) {
+               var customerMarker = new google.maps.Marker({
+                   position: new google.maps.LatLng(item.CustomerLatitude, item.CustomerLongitude),
+					map: driverMap,
+                    title: item.CustomerName
+                });
+               customerMarkers.push(customerMarker);
+                // Make the marker-pin blue!
+                   customerMarker.setIcon('https://maps.google.com/mapfiles/ms/icons/green-dot.png');
+            });
+
+             driverMarker = new google.maps.Marker({
+                 position: new google.maps.LatLng(data.driverDetails.Latitude, data.driverDetails.Longitude),
+                map: driverMap,
+                title: data.driverDetails.DriverName
+            });
+            driverMarker.setIcon('https://maps.google.com/mapfiles/ms/icons/red-dot.png');
+        }
+
+        function clearDriverCustomerMarkers() {
+            if (typeof customerMarkers != 'undefined' && customerMarkers.length > 0) {
+                for (var i = 0; i < customerMarkers.length; i++) {
+                    customerMarkers[i].setMap(null);
+                }
+            }
+            if (typeof driverMarker != 'undefined' && driverMarker != null)
+            driverMarker.setMap(null);
+        }
+    </script>
+}

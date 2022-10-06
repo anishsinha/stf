@@ -1,0 +1,193 @@
+﻿@model MailboxMessageFilterViewModel
+@{
+    switch (Model.Type)
+    {
+        case AppMessageFilterType.Inbox:
+            ViewBag.Title = Resource.lblInbox;
+            break;
+        case AppMessageFilterType.SentMails:
+            ViewBag.Title = Resource.lblSentMessages;
+            break;
+        case AppMessageFilterType.Important:
+            ViewBag.Title = Resource.lblImportant;
+            break;
+        case AppMessageFilterType.Drafts:
+            ViewBag.Title = Resource.lblDrafts;
+            break;
+        case AppMessageFilterType.Deleted:
+            ViewBag.Title = Resource.lblTrash;
+            break;
+    }
+}
+
+@using (Html.BeginForm("Messages", "Mailbox", new { area = "Messages" }, FormMethod.Post, new { role = "form", @class = "form-horizontal", Id = "frmMessages" }))
+{
+    <div class="mail-box-header">
+        <h2>
+            @ViewBag.Title
+        </h2>
+        @if (Model.TotalCount > 0)
+        {
+            <div class="mail-tools tooltip-demo m-t-md">
+                <div class="btn-group pull-right">
+                    <button id="btnPrevPage" type="button" class="btn btn-white btn-sm"><i class="fa fa-arrow-left"></i></button>
+                    <button id="btnNextPage" type="button" class="btn btn-white btn-sm"><i class="fa fa-arrow-right"></i></button>
+                </div>
+                <div class="pull-right mr10 mt10">
+                    <span id="messagecount" class="label label-info pull-right">@string.Format("{0} - {1} of {2}", Model.StartCount, Model.EndCount, Model.TotalCount)</span>
+                </div>
+                <input id="chkSelectAll" type="checkbox" class="i-checks check-all" value="0">
+                <button id="btnRefreshPage" type="button" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Refresh"><i class="fa fa-refresh"></i></button>
+                @if (Model.Type == AppMessageFilterType.Inbox)
+                {
+                    <button id="btnMarkAsRead" type="button" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Mark as read"><i class="fa fa-eye"></i></button>
+                    <button id="btnMarkAsUnread" type="button" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Mark as unread"><i class="fa fa-eye-slash"></i></button>
+                }
+                <button id="btnMarkAsImportant" type="button" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Mark as important"><i class="fa fa-star"></i></button>
+                <button id="btnMarkAsUnimportant" type="button" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Mark as unimportant"><i class="far fa-star"></i></button>
+                @if (Model.Type != AppMessageFilterType.SentMails)
+                {
+                    <button id="btnMoveToTrash" type="button" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="@(Model.Type != AppMessageFilterType.Deleted ? "Move to trash" : "Permanently purge")"><i class="fa fa-trash-alt"></i></button>
+                }
+            </div>
+        }
+    </div>
+    <div class="mail-box table-responsive">
+        @Html.HiddenFor(m => m.UserId)
+        @Html.HiddenFor(m => m.Type)
+        @Html.HiddenFor(m => m.StartCount)
+        @Html.HiddenFor(m => m.EndCount)
+        @Html.HiddenFor(m => m.TotalCount)
+        @Html.HiddenFor(m => m.CurrentPage)
+        @Html.HiddenFor(m => m.LastPage)
+        @Html.Partial("_PartialMessageGrid", Model.Messages)
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+
+        var startCount = 0, endCount = 0, totalCount = 0, currenPage = 0, lastPage = 0;
+        var selectedMessages = [];
+
+        $(document).ready(function () {
+            startCount = @Model.StartCount;
+            endCount = @Model.EndCount;
+            totalCount = @Model.TotalCount;
+            currenPage = @Model.CurrentPage;
+            lastPage = @Model.LastPage;
+
+            setPaginationButtons();
+
+            $("#btnPrevPage").on("click", function () {
+                $("#@Html.IdFor(m => m.CurrentPage)").val(currenPage - 1);
+                submitForm();
+            });
+
+            $("#btnNextPage").on("click", function () {
+                $("#@Html.IdFor(m => m.CurrentPage)").val(currenPage + 1);
+                submitForm();
+            });
+
+            $("#btnRefreshPage").on("click", function () {
+                location.href = '@Url.Action("Messages", "Mailbox", new { area = "Messages", type = Model.Type })';
+            });
+
+            $("#btnMarkAsRead").on("click", function () {
+                var url = '@Url.Action("MarkMessages", "Mailbox", new { area = "Messages", type = AppMessageMarkingType.Read })';
+                markMessages(url);
+            });
+
+            $("#btnMarkAsUnread").on("click", function () {
+                var url = '@Url.Action("MarkMessages", "Mailbox", new { area = "Messages", type = AppMessageMarkingType.Unread })';
+                markMessages(url);
+            });
+
+            $("#btnMarkAsImportant").on("click", function () {
+                var url = '@Url.Action("MarkMessages", "Mailbox", new { area = "Messages", type = AppMessageMarkingType.Important })';
+                markMessages(url);
+            });
+
+            $("#btnMarkAsUnimportant").on("click", function () {
+                var url = '@Url.Action("MarkMessages", "Mailbox", new { area = "Messages", type = AppMessageMarkingType.Unimportant })';
+                markMessages(url);
+            });
+
+            $("#btnMoveToTrash").on("click", function () {
+                var url = '@Url.Action("MarkMessages", "Mailbox", new { area = "Messages", type = AppMessageMarkingType.Deleted })';
+                markMessages(url);
+            });
+
+            var checkAll = $('input.check-all'), checkboxes = $('input.check');
+            checkAll.on("click", function () {  // This event is for automation to work Check-All checkbox
+                $(this).is(':checked') ? $(this).trigger('ifChecked') : $(this).trigger('ifUnchecked');
+            });
+            checkAll.on('ifChecked ifUnchecked', function (event) {
+                if (event.type == 'ifChecked') {
+                    checkboxes.iCheck('check');
+                }
+                else {
+                    checkboxes.iCheck('uncheck');
+                }
+            });
+
+            checkboxes.on('ifChecked ifUnchecked', function (event) {
+                var messageId = parseInt(this.value);
+                if (event.type == 'ifChecked') {
+                    selectedMessages.push(messageId);
+                }
+                else {
+                    const index = selectedMessages.indexOf(messageId);
+                    if (index !== -1) {
+                        selectedMessages.splice(index, 1);
+                    }
+                }
+            });
+
+            checkboxes.on('ifChanged', function (event) {
+                if (checkboxes.filter(':checked').length == checkboxes.length) {
+                    checkAll.prop('checked', 'checked');
+                } else {
+                    checkAll.prop('checked', false);
+                }
+                checkAll.iCheck('update');
+            });
+        });
+
+        function setPaginationButtons() {
+            if (currenPage < lastPage) {
+                $("#btnNextPage").prop("disabled", false);
+            }
+            else {
+                $("#btnNextPage").prop("disabled", true);
+            }
+
+            if (currenPage === 1) {
+                $("#btnPrevPage").prop("disabled", true);
+            }
+
+            if (lastPage === 1) {
+                $("#btnNextPage").prop("disabled", true);
+            }
+        };
+
+        function submitForm() {
+            $("#frmMessages").submit();
+        };
+
+        function markMessages(url) {
+            if (selectedMessages && selectedMessages.length > 0) {
+                $.ajaxSettings.traditional = true;
+                $.get(url, { 'selectedMessages': selectedMessages }, function (response) {
+                    if (response) {
+                        location.href = '@Url.Action("Messages", "Mailbox", new { area = "Messages", type = Model.Type })';
+                    }
+                });
+            } else {
+                msgerror("@Resource.errMsgSelectOneMessage");
+            }
+        };
+    </script>
+}
+

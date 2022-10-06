@@ -1,0 +1,156 @@
+﻿@if (CurrentUser.Identity.IsAuthenticated)
+{
+    if (CurrentUser.IsSupplierCompany || CurrentUser.IsSupplierAndCarrierCompany || CurrentUser.IsBuyerAndSupplierCompany)
+    {
+        <li class="float-left d-none d-sm-block pr hide" id="heldDrIcon">
+            <a title="On Hold DRs" class="nav-icons dib mr-1">
+                <i class="fas fa-hand-paper mt-1 ico-hold flip-element"></i>
+            </a>
+            <span id="heldDrsCount" class="notification-count fs10 bg-warning pa dib text-dark">0</span>
+        </li>
+    }
+    if (CurrentUser.IsBuyerCompany)
+    {
+        <li class="float-left d-none  d-sm-block">
+            <a href="@Url.Action("View", "FuelRequest", new { area = "Buyer" })" data-toggle="tooltip" data-placement="bottom" title="@Resource.btnLabelCounterOffer" class="nav-icons dib"><i class="fas fa-exchange-alt fs18 mt8"></i></a>
+        </li>
+        if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+        {
+            <li class="float-left d-none  d-sm-block pr">
+                <a href="javascript:void(0);" onclick="ClearDispatchNotificationCount();SetWebNotificationsReadFlag(@((int)WebNotificationType.DispatchNotification));" data-toggle="dropdown" data-placement="bottom" title="@Resource.headingDispatch" class="nav-icons dib"><i class="fas fa-truck fs18 mt6"></i></a>
+                <span id="DispatchNewNotificationsCount" class="notification-count fs10 bg-danger pa dib hide-element"></span>
+                <ul class="dropdown-menu dispatch-notificaitons-ul notifications-wrapper dropdown-menu-right mt5 fs13" aria-labelledby="user">
+                </ul>
+            </li>
+            <li class="float-left d-none  d-sm-block pr">
+                <a href="javascript:void(0);" onclick="ClearOfferNotificationCount();SetWebNotificationsReadFlag(4);" data-toggle="dropdown" data-placement="bottom" title="@Resource.headingOffers" class="nav-icons dib"><i class="fas fa-hand-holding-usd fs18 mt7"></i></a>
+                <span id="OfferNewNotificationsCount" class="notification-count fs10 bg-danger pa dib hide-element"></span>
+                <ul class="dropdown-menu offer-notificaitons-ul notifications-wrapper dropdown-menu-right mt5 fs13" aria-labelledby="user">
+                    @*ul elements will be added runtime*@
+                </ul>
+            </li>
+        }
+        <li class="float-left d-none  d-sm-block pr">
+            <div class="dropdown">
+                <a href="@Url.Action("View", "Invoice", new { area = "Buyer" })" onclick="ClearInvoiceNotificationCount();SetWebNotificationsReadFlag(3);" data-toggle="dropdown" data-placement="bottom" title="@Resource.lblInvoices" class="nav-icons dib"><i class="fa fa-dollar fs18 mt6"></i></a>
+                <span id="InvoiceNewNotificationsCount" class="notification-count fs10 bg-danger pa dib hide-element"></span>
+                <ul class="dropdown-menu invoice-notifications-ul notifications-wrapper dropdown-menu-right mt5 fs13" aria-labelledby="user">
+                    @*ul elements will be added runtime*@
+                </ul>
+            </div>
+        </li>
+    }
+    if (CurrentUser.IsSupplierCompany && !CurrentUser.IsSalesUser)
+    {
+        <li class="float-left d-none  d-sm-block pr">
+            <a href="javascript:void(0);" onclick="ClearDispatchNotificationCount();SetWebNotificationsReadFlag(@((int)WebNotificationType.DispatchNotification));" data-toggle="dropdown" data-placement="bottom" title="@Resource.headingDispatch" class="nav-icons dib"><i class="fas fa-truck fs18 mt7"></i></a>
+            <span id="DispatchNewNotificationsCount" class="notification-count fs10 bg-danger pa dib hide-element"></span>
+            <ul class="dropdown-menu dispatch-notificaitons-ul notifications-wrapper dropdown-menu-right mt5 fs13" aria-labelledby="user">
+                @*ul elements will be added runtime*@
+            </ul>
+        </li>
+        <li class="float-left d-none  d-sm-block">
+            <a href="@Url.Action("View", "FuelRequest", new { area = "Supplier" })" data-toggle="tooltip" data-placement="bottom" title="@Resource.btnLabelCounterOffer" class="nav-icons dib"><i class="fas fa-exchange-alt fs18 mt6"></i></a>
+        </li>
+        if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin)
+        {
+            <li class="float-left d-none  d-sm-block">
+                <a href="@Url.Action("View", "Offer", new { area = "Supplier" })" data-toggle="tooltip" data-placement="bottom" title="@Resource.headingOffers" class="nav-icons dib"><i class="fas fa-hand-holding-usd fs18 mt5"></i></a>
+            </li>
+        }
+        <li class="float-left d-none  d-sm-block">
+            <a href="@Url.Action("View", "Invoice", new { area = "Supplier" })" data-toggle="tooltip" data-placement="bottom" title="@Resource.lblInvoices" class="nav-icons dib"><i class="fa fa-dollar fs18 mt6"></i></a>
+        </li>
+    }
+
+}
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/webnotification")
+
+<script>
+        $(".dd-invoices").click(function (e) {
+            e.stopPropagation();
+        })
+        var url = '@Url.Action("GetUnreadMessages", "Mailbox", new { area= "Messages" })';
+        $.get(url, function (response) {
+            var countText = response.TotalUnreadMessagesCount;
+            if (response.TotalUnreadMessagesCount > 99) {
+                countText = "99+";
+            }
+            var inboxLink = '@Url.Action("Messages", "Mailbox", new { area = "Messages"})';
+            if (response.TotalUnreadMessagesCount > 0) {
+                $.each(response.LastFiveUnreadMessageModel, function (key, value) {
+                    var msgLink = "@Url.Action("ViewEmail", "Mailbox", new { area = "Messages"})?messageId=" + value.Id;
+                    var unreadMsgTxt = '<li><a href="' + msgLink + '" class="no-lineheight">'
+                                     + '<div class="notification-content overflow-h">'
+                                     + '<div class="float-left">'
+                                     //+ '<i class="user-photo overflow-h f-normal float-left ml10 color-white fs14 text-center pt5">' + value.From + '</i>'
+                                     + '</div>'
+                                     + '<div class="float-left color-darkgrey">'
+                                     + '<h2 class="fs12 mt0">' + value.Subject + '</h2>'
+                                     + '<h5 class="fs10 f-normal color-lightgrey mb0">' + value.DaysAgo + '</h5>'
+                                     + '</div>'
+                                     + '<div class="float-left fs10 color-lightgrey text-right">' + value.HoursAgo + '</div>'
+                                     + '</div>'
+                                     + '</a>'
+                                     + '</li>'
+                                     + '<li role= "separator" class="divider" ></li > ';
+                                     $("#listUnreadMsgs").append(unreadMsgTxt);
+
+                });
+                var readAllMsgsText = '<li><a id="readallmessages" class="fs13" href="' + inboxLink + '">'
+                                    + '<i class="fa fa-envelope color-grey pr5" data-toggle="tooltip" data- placement="bottom" title= "Messages" ></i>'
+                                    + 'Read All Messages'
+                                    + '</a>'
+                                    + '</li>';
+                $("#listUnreadMsgs").append(readAllMsgsText);
+            }
+            else {
+                var noNewMsgsText = '<li><a id="readallmessages"  class="fs13" href="' + inboxLink + '">'
+                                   +'<i class="fa fa-envelope color-grey pr5" data- toggle="tooltip" data- placement="bottom" title= "Messages" ></i>'
+                                   +'No new messages'
+                                   +'</a>'
+                                   +'</li>';
+                $("#listUnreadMsgs").append(noNewMsgsText);
+            }
+            $("#appMessagesCount").text(countText);
+        });
+
+
+    if ("@CurrentUser.IsSupplierCompany" == "True" || "@CurrentUser.IsBuyerAndSupplierCompany" == "True" || "@CurrentUser.IsSupplierAndCarrierCompany" == "True") {
+        GetHeldDrCount();
+
+            $('#heldDrIcon').click(function () {
+                $('#sliderpanel').animate({ "right": "0px" }, "fast").css('display', 'inline-block').width("100%");
+                $('.side-panel-wrapper').width("90%");
+                //<span class="ml-3"><i class="fas fa-th" id="view-toggler" style="font-size:30px"  data-toggle="tooltip" data-placement="right" title="Toggle View"></i></span>
+                $("#slider-heading").html('<div class="d-flex align-items-center">Held Delivery Requests</div>');
+                $('#slider-loader').show();
+
+                var url = '@Url.Action("ShowHeldDeliveryRequests", "Freight", new { area = "" })';
+                $.ajax({
+                    type: "Get",
+                    url: url,
+                    success: function (data) {
+                        $('#slider-content').html(data);
+                        $('.tab-scroll').height(docHeight);
+                    }
+                }).always(function () { $('#slider-loader').hide(); });
+            });
+        }
+
+        function GetHeldDrCount() {
+            let heldDrCountURL = '/Carrier/Freight/GetHeldDeliveryRequestCount';
+            $.get(heldDrCountURL, function (data) {
+                if (data && data > 0) {
+                    $("#heldDrIcon").removeClass('hide');
+                    $("#heldDrsCount").text(data);
+                }
+            });
+        }
+
+
+</script>
+}

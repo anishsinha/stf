@@ -1,0 +1,181 @@
+﻿@using SiteFuel.Exchange.ViewModels.Offer
+@model OfferSummaryViewModel
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div id="supplier-offers-div" class="table-responsive">
+                        <table id="supplier-offers-datatable" class="table table-bordered table-hover pb0 tbl-cardview toggle-card animated">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnOfferName</th>
+                                    <th>@Resource.gridColumnOfferType</th>
+                                    <th>@Resource.gridColumnTier</th>
+                                    <th>@Resource.gridColumnCustomer</th>
+                                    <th>@Resource.gridColumnFuelTypes</th>
+                                    <th>@Resource.gridColumnTruckLoadType</th>
+                                    <th>@Resource.lblLocation</th>
+                                    <th>@Resource.gridColumnPricingFormat</th>
+                                    <th>@Resource.lblFees</th>
+                                    <th>@Resource.gridColumnLastUpdated</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+        var supplierOffersGrid, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] };
+        var ClearFilter;
+        var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+        $(document).ready(function () {
+
+        supplierOffersGrid = $('#supplier-offers-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("SupplierOffersGrid", "Offer", new { area ="Supplier" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data.offerType = $('.rdofferType:checked').attr('id');
+                    data.Customers = $('select.multi-select.offerCustomerSearch').val();
+                    data.CountryId = selectedCountryAndCurrency.countryId;
+                    data.Currency = selectedCountryAndCurrency.currencyType;
+                    $('#supplier-offers-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#supplier-offers-div").find('.loading-wrapper').remove();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": true,
+            "searchDelay": 500,
+            processing: true,
+            "searching": { "regex": false },
+            "bProcessing": true,
+            lengthChange: true,
+            "columns": [
+                {
+                    "data": function (data, type, row, meta) {
+                        var loader = '<span class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class="spinner-dashboard pa mtm10 mlm10"></span></span>'
+                        return loader + '<a onclick="ShowOfferDetails(' + data.OfferPricingId + ', this)">' + data.Name + '</a>';
+                    }, "autoWidth": true, className: "offer-Name"
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.OfferType == 1)
+                            return '@OfferType.Exclusive';
+                        else
+                            return '@OfferType.Market';
+                    }, "render": function (res) { return '<label>@Resource.gridColumnOfferType:</label>' + res;}, "autoWidth": true
+                },
+                 {
+                     "data": "Tiers", "render" : function (data) {
+                         return '<label>@Resource.lblTier:</label>' + data;
+                     }, "autoWidth": true
+                },
+               {
+                   "data": "Customers", "render": function (data) {
+                       return '<label>@Resource.lblCustomer:</label>' + data;
+                   }, "autoWidth": true
+                },
+               {
+                   "data": "FuelTypes", "render" : function (data) {
+                       return '<label>@Resource.lblFuelTypes:</label>' + data;
+                   }, "autoWidth": true
+                },
+               {
+                   "data": "TruckLoadType", "render": function (data) {
+                       return '<label>@Resource.gridColumnTruckLoadType:</label>' + data;
+                   }, "autoWidth": true
+                },
+                {
+                    "data": "Locations", "render" : function (res) {
+                       return '<label>@Resource.lblLocation:</label>' + res;
+                   }, "autoWidth": true
+                },
+                {
+                    "data": "Pricing", "render" : function (data) {
+                        return '<label>@Resource.lblPricing:</label>' + data;
+                        }, "autoWidth": true
+                },
+                {
+                    "data": "Fees", "render" : function (data) {
+                            return '<label>@Resource.lblFees:</label>' + data;
+                        }, "autoWidth": true
+                },
+                {
+                    "data": "UpdatedDate", "render" : function (data) {
+                       return '<label>@Resource.gridColumnLastUpdated:</label>' + data;
+                    }, "autoWidth": true, "sType": "date"
+                }
+            ],
+            "drawCallback": function (settings) {
+                equalHeightCards();
+            },
+            pageLength: 10,
+            responsive: false,
+            fixedHeader: false,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "columnDefs": [
+                { "name": "Name", "targets": 0, "regex": true },
+                { "name": "OfferType", "targets": 1, "sortable": false },
+                { "name": "Tier", "targets": 2, "regex": true },
+                { "name": "Customers", "targets": 3, "regex": true },
+                { "name": "FuelTypes", "targets": 4, "regex": true },
+                { "name": "TruckLoadType", "targets": 5, "regex": true },
+                { "name": "Locations", "targets": 6, "orderable": false },
+                { "name": "Pricing", "targets": 7, "orderable": false },
+                { "name": "Fees", "targets": 8, "orderable": false },
+                { "name": "UpdatedDate", "targets": 9, "orderable": false }
+            ],
+
+                dom: '<"html5buttons"B>Tgt',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingOffers', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingOffers', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingOffers', exportOptions: exportColumns, orientation: 'landscape' },
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+            $('#offer-summary .rdofferType').on('change', function () {
+                ReloadSupplierOfferDataTable();
+            });
+
+            
+    });
+
+    function ReloadSupplierOfferDataTable() {
+            supplierOffersGrid.ajax.reload();
+        }
+
+    function SearchOffers() {
+        ReloadSupplierOfferDataTable();
+    }
+
+    
+    
+</script>

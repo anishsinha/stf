@@ -1,0 +1,245 @@
+﻿@using System.ComponentModel.DataAnnotations
+<div id="driver-details">
+    <div id="map"></div>
+    <div class="row mt10">
+        <div class="col-sm-12 mb10" id="dvDistance"></div>
+    </div>
+</div>
+<div hidden>
+    @Html.Partial("~/Views/Shared/_PartialEnrouteDeliveryStatus.cshtml")
+</div>
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        function updateDriverStatus(element) {
+            $("#status-legends").find("a").css("font-weight", "normal");
+            if ($(element).attr("data-select") == "true") {
+                $("#status-legends").find("a").attr("data-select", false);
+            }
+            else {
+                $("#status-legends").find("a").attr("data-select", false);
+                $(element).css("font-weight", "bold");
+                $(element).attr("data-select", true);
+            }
+            ReloadWhereisMyDriver();
+        }
+
+		var directionsDisplay;
+		if (isDriversSelected == false)
+		{
+			$('#SelectedDrivers').val(@Html.Raw(Json.Encode(Model.SelectedDrivers)));
+        }
+
+        var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+        var PageCountryId = selectedCountryAndCurrency.countryId;
+        var PageCurrencyId = selectedCountryAndCurrency.currencyType;
+        var centerlat = 0;
+        var centerlon = 0;
+
+		$('#SelectedDrivers').change(function () {
+			var drivers = $('#SelectedDrivers').val();
+			$('#compose-message').attr('href', encodeURI('@Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Draft })&queryType=@AppMessageQueryType.Dispatch&recipients=' + drivers.join(",")));
+		});
+        var driverMap;
+        var directionsService;
+        var directionsDisplay;
+        var centerpoint ;
+        var mapOptions;
+        function initDriverMap() {
+            if (driverMap === undefined) {
+                google.maps.visualRefresh = true;
+                directionsService = new google.maps.DirectionsService;
+                directionsDisplay = new google.maps.DirectionsRenderer;
+                driverMap = new google.maps.Map(document.getElementById('map'), mapOptions);
+                directionsDisplay.setMap(driverMap);
+                driverMap.controls[google.maps.ControlPosition.LEFT_TOP].push(document.getElementById("mapLegend"));
+            }
+        }
+
+        function SetMap() {
+            var selected = $("#SelectedDrivers").val();
+            if (selected.length == 0) {
+                selected = drivers.map(function (a) { return a.Id });
+            }
+
+            GetDriverLocations(directionsDisplay);
+
+			$('#SelectedDrivers').change(function () {
+                GetDriverLocations(directionsDisplay);
+            });
+        }
+
+		function ReloadWhereisMyDriver(driverparam)
+		{
+			if (typeof (driverparam) == 'undefined' || driverparam.length == 0) {
+				var selected = $("#SelectedDrivers").val();
+				if (selected.length == 0) {
+					selected = drivers.map(function (a) { return a.Id });
+				}
+			}
+			else
+			{
+				selected = driverparam;
+			}
+			GetDriverLocations(directionsDisplay);
+			ReloadDropData(selected);
+		}
+
+        function GetDriverLocations(directionsDisplay) {
+            try {
+                if ($('#tab-whereisDriver').hasClass('active') || isFromDashboard == true) {
+                    clearDriverMarkers();
+                    $("#error-msg").html("")
+                    dvDistance.innerHTML = "";
+                    var selectedStatus = GetSelectedEnrouteStatus();
+                    var selected = $("#SelectedDrivers").val();
+                    if (selected.length == 0) {
+                        selected = drivers.map(function (a) { return a.Id });
+                    }
+                    if (selected.length > 1) {
+                        if (directionsDisplay !== undefined)
+                        directionsDisplay.setDirections({ routes: [] });
+                        $.post({
+                            url: "@Url.Action("GetDriverLocation", "Dispatch",new { area = "Supplier" })",
+                            data: { driverId: selected, enrouteStatus: selectedStatus },
+                            traditional: true,
+                            success: function (response) {
+                                displayDriverLocation(response);
+                            }
+                        });
+                    }
+                    else if (selected.length == 1) {
+                        var url = "@Url.Action("GetDriverDistance", "Dispatch", new { area = "Supplier" })?driverId=" + selected;
+                        $.get(url, function (response) {
+                            if (response.JobLatitude != 0 && response.JobLongitude != 0) {
+                                calculateAndDisplayRoute(response);
+                            }
+                            else {
+                                $.post({
+                                    url: "@Url.Action("GetDriverLocation", "Dispatch",new { area = "Supplier" })",
+                                    data: { driverId: selected, enrouteStatus: selectedStatus },
+                                    success: function (response) {
+                                        displayDriverLocation(response);
+                                    }
+                                });
+                                if (directionsDisplay !== undefined)
+                                    directionsDisplay.setDirections({ routes: [] });
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+
+            }
+        }
+
+        function calculateAndDisplayRoute(data) {
+            google.maps.visualRefresh = true;
+
+            var marker = new google.maps.Marker({
+                position: new google.maps.LatLng(data.DriverLatitude, data.DriverLongitude),
+                map: driverMap
+            });
+
+            marker.setIcon('https://maps.google.com/mapfiles/ms/icons/truck.png');
+            if (directionsDisplay === undefined) { initDriverMap(); }
+            directionsDisplay.setMap(driverMap);
+
+            directionsService.route({
+                origin: { lat: data.DriverLatitude, lng: data.DriverLongitude },
+                destination: { lat: data.JobLatitude, lng: data.JobLongitude },
+                travelMode: google.maps.TravelMode.DRIVING,
+            }, function (response, status) {
+                if (status === 'OK') {
+                    directionsDisplay.setDirections(response);
+                    var distance = response.routes[0].legs[0].distance.text;
+                    var duration = response.routes[0].legs[0].duration.text;
+                    var dvDistance = document.getElementById("dvDistance");
+                    dvDistance.innerHTML = "";
+                    dvDistance.innerHTML += "<i class='fa fa-road'></i>" + "<span class='pl5 pr10'>Distance: <b>" + distance + "</b></span>";
+                    dvDistance.innerHTML += "<i class='far fa-clock ml15'></i>" + "<span class='pl5'>Time: <b>" + duration + "</b></span>";
+                    $("#error-msg").html("");
+                } else {
+                    $("#error-msg").html('@Resource.valMessageDirectionRequestFailed ' + status);
+                }
+            });
+
+            var selected = $("#SelectedDrivers").val();
+            var url = "@Url.Action("GetNextDriverDropDetailsForMap", "Dispatch", new { area = "Supplier" })";
+            $.post(url, { driverId: selected }, function (response) {
+                if (response.JobLatitude != 0 && response.JobLongitude != 0) {
+					displayNextJobLocation(response);
+                }
+            });
+        }
+
+        function displayDriverLocation(data) {
+            var zoomarea = 4;
+            zoomarea = getZoomArea(data);
+            centerlat = 0;
+            centerlon = 0;
+            var latLongCount = 0;
+                $.each(data, function (i, item) {
+                    if (item.Latitude != "" && item.Longitude != "") {
+                        centerlat = centerlat + item.Latitude;
+                        centerlon = centerlon + item.Longitude;
+                        latLongCount++;
+                    }
+            });
+            setCenterLocation(data, latLongCount);
+            centerpoint = new google.maps.LatLng(centerlat, centerlon);
+            // These are options that set initial zoom level, where the map is centered globally to start, and the type of map to show
+            mapOptions = {
+                zoom: zoomarea,
+                center: centerpoint,
+                mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+            };
+            initDriverMap();
+
+            $.each(data, function (i, item) {
+               var marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(item.Latitude, item.Longitude),
+					map: driverMap,
+                   title: item.DriverName,
+                   icon: { url: getMapDotUrl(item.StatusId) }
+                });
+
+               driverMarkers.push(marker);
+
+               if (isFromDashboard == true) {
+                   google.maps.event.addListener(marker, 'mouseover', function () {
+                       ReloadDropDataOnMouseOver(item.DriverId);
+                   });
+                   google.maps.event.addListener(marker, 'mouseout', function () {
+                        $("#currentDriverDrop").html("@Resource.lblHyphen");
+                        $("#nextDriverDrop").html("@Resource.lblHyphen");
+                   });
+               }
+            });
+        }
+        
+        function displayNextJobLocation(data) {
+            $.each(data, function (i, item) {
+                var marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(item.JobLatitude, item.JobLongitude),
+                    map: driverMap,
+                    title: item.Customer
+                });
+
+                // Make the marker-pin blue!
+                marker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png')
+                driverMarkers.push(marker);
+            });
+        }
+
+        $(document).ready(function () {
+            setInterval(function () {
+                if (IsUserActive()) {
+                    SetMap();
+                }
+            }, 120000);
+
+            SetMap();
+        });
+    </script>
+}

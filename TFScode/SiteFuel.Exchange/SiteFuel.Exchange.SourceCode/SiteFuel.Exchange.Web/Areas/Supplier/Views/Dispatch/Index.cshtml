@@ -1,0 +1,432 @@
+﻿@model DispatchViewModel
+
+@{
+    ViewBag.Title = "Dispatch";
+}
+<style>
+    .confirmation-box {
+        width: 200px;
+        display: none;
+    }
+</style>
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/px-pagination")
+<script type="text/javascript">
+	var drivers = @Html.Raw(Json.Encode(Model.Drivers));
+	var isSupplier = '@(CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)' == 'True';
+	var isDriversSelected = '@(Model.SelectedDrivers.Count > 1 ? false : true)' == 'True';
+    var isFromDashboard = false;
+</script>
+<div id="popover-content" class="hide">
+</div>
+<div class="row">
+    <div class="col-sm-3">
+        <div class="input-group float-left mt3">
+            <div class="input-group-btn btn-dispatch auto-width">
+                @Html.ListBoxFor(m => m.SelectedDrivers, new MultiSelectList(Model.Drivers, "Id", "Name", Model.SelectedDrivers), new { @class = "form-control mlm20" })
+                @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin)
+                {
+                    <a id="compose-message" href="@(Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Draft, queryType = AppMessageQueryType.Dispatch }))" class="fs21 btn btn-primary mlm10" title="@Resource.lblComposeMessage" data-toggle="tooltip" data-placement="bottom" data-html="true">
+                        <span class="fa fa-envelope fs14 float-left mt6"></span>
+                    </a>
+                }
+                @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin)
+                {
+                    <a id="btnEnableLocation" class="btn btn-primary mlm10" title="@Resource.lblEnableDriverLocationDesc" rel="tooltip" data-placement="bottom" data-html="true"><i class="fa fa-map-marker-alt fs14 float-left mt6 text-white "></i></a>
+                }
+            </div>
+        </div>
+        <div class="color-red fs12 pt5 full-width clear" id="error-msg"></div>
+        <div class="full-width clear pb5">@Html.ValidationMessageFor(m => m.SelectedDrivers)</div>
+    </div>
+    <div class="col-sm-6 tab-headers mt3">
+        <a id="tab-whereisDriver" href="javascript:void(0)" onclick="showsection('tab-contents-whereisDriver'), activelink(this), ClosePopup(), ReloadWhereisMyDriver()" class="@(!Model.IsScheduleTab?"active":"") mr20 mb10">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.tabHeadingWhereisMyDriver</span>
+            </div>
+        </a>
+        <a id="tab-schedules" href="javascript:void(0)" onclick="showsection('tab-contents-schedules'), activelink(this), ClosePopup(), ReloadScheduleGrid()" class="@(Model.IsScheduleTab?"active":"") mr20 mb10 schedules-tab">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.tabHeadingSchedules</span>
+            </div>
+        </a>
+        <a id="tab-deliveries" href="javascript:void(0)" onclick="showsection('tab-contents-deliveries'), activelink(this), ClosePopup(), ReloadDeliveries()" class="mr20 mb10 deliveries-tab">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.tabHeadingDeliveries</span>
+            </div>
+        </a>
+        @if (Model.IsTimeCardEnabled)
+        {
+            <a id="tab-timecard" href="javascript:void(0)" onclick="showsection('tab-contents-timecard'), activelink(this), ClosePopup(), ReloadTimeCard()" class="mr20 mb10 timecard-tab">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.tabHeadingTimeCard</span>
+                </div>
+            </a>
+        }
+    </div>
+    <div class="col-sm-3 col-xs-12">
+        @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+    </div>
+</div>
+<div class="tab-container">
+    <div id="tab-contents-whereisDriver" class="hide-element">
+        @Html.Partial("_PartialWhereIsMyDriver")
+    </div>
+    <div id="tab-contents-schedules" class="hide-element">
+        @Html.Partial("_PartialDispatchSchedules")
+    </div>
+    <div id="tab-contents-deliveries" class="hide-element">
+        @Html.Partial("_PartialDeliveryGridView")
+    </div>
+    @if (Model.IsTimeCardEnabled)
+    {
+        <div id="tab-contents-timecard" class="hide-element">
+            @Html.Partial("_PartialTimeCardGridView")
+        </div>
+    }
+</div>
+<div id="nearest-terminals-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog  modal-lg">
+        @using (Html.BeginForm("ModifyDelivery", "Dispatch", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "change-pickup-form", @class = "no-tab-change" }))
+        {
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-body modal-autoscroll">
+                    <h4>@Resource.btnLabelModifySchedule</h4>
+                    <p id="nearest-terminals" style="word-wrap: break-word;"></p>
+                </div>
+                <div class="text-right pa15 shadow-t">
+                    <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                    <input type="button" id="btn-save-pickupterminal" class="btn btn-primary btn-lg" onclick="submitModifyScheduleForm()" value="@Resource.btnLabelSave" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<div id="add-delivery-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog  modal-xl">
+        @using (Ajax.BeginForm("AddDeliverySchedule", "Dispatch", new { area = "Supplier" }, new AjaxOptions { HttpMethod = "POST", OnSuccess = "onAddScheduleSuccess", OnFailure = "onAddScheduleFail" }, new { role = "form", Id = "add-delivery-form", @class = "no-tab-change" }))
+        {
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="col-sm-12 pt15">
+                    <h4 class="float-left mb5 pt0 pb0 mt5">@Resource.btnLabelAddSchedule</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">×</span></button>
+                </div>
+                <div class="modal-body modal-autoscroll">
+                    <div id="newschedule-form"></div>
+                </div>
+                <div class="text-right pa15 shadow-t">
+                    <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                    <input type="button" id="btn-addSchedule" class="btn btn-primary btn-lg" onclick="submitAddScheduleForm()" value="@Resource.btnLabelSave" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+@Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/deliverygroup")
+@Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/px-pagination")
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var mapsApiKey = '@SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleApiKey';
+        function initMap() {
+            initScheduleMap();
+        }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)&callback=initMap"></script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/dispatch")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/ServingStateAutofill")
+    <script type="text/javascript">
+		var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = 0;
+		var driverIds, driverMap, scheduleMap, scheduleOrderId, scheduleTerminalid;
+        var popupDivForReassign = '<div class="ddlist"><div class="col-xs-12 hide-element border z-index5 bg-white confirmation-box shadow-b text-center"><h5 id="popup-title" class="fs13 pr5 pl5 l-height22"></h5><div class="btn-group"><input type="button" onclick ="ReassignDriver(this);" value="Yes" class="btn btn-sm btn-primary"><input type="button" value="No" class="btn btn-sm btn-danger decline"></div></div></div>';
+        var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+        var PageCountryId = selectedCountryAndCurrency.countryId;
+        var deliveryGroupTerminalsUrl = "@Url.Action("GetTerminalsForOrders")";
+		var PageCurrencyId = selectedCountryAndCurrency.currencyType;
+		var getTerminalUrl = "@Url.Action("GetClosestTerminalWithPrice", "Dispatch", new { area = "Supplier" })";
+		var errMessagePickupLocationNotUpdated = '@Resource.errMessagePickupLocationNotUpdated';
+		var getTscheduleUrl = "@Url.Action("GetModifyDeliverySchedule", "Dispatch", new { area = "Supplier" })";
+		var bulkPlanturl = "@Url.Action("GetBulkPlants", "Dispatch", new { area = "Supplier" })";
+		var bulkPlantDetailsurl = "@Url.Action("GetBulkPlantDetails","Dispatch", new { area = "Supplier"})";
+		var getOrderDetailsUrl = "@Url.Action("AddDeliverySchedule", "Dispatch", new { area = "Supplier" })";
+		var cancelScheduleUrl = "@Url.Action("ProcessDeliverySchedule", "Order", new { area = "Supplier" })";
+        var isScheduleGridUpdated = false;
+        var searchText = '';
+		$(document).ajaxComplete(function () {
+			if (PageCountryId == '@((int)Country.CAN)') {
+                $('th:not(.nohiddenchange)').each(function () {
+					$(this).text($(this).text().replace('@Resource.lblGallons', '@Resource.lblLitres'));
+					$(this).text($(this).text().replace('@Resource.lblPricePerGallon', '@Resource.lblPricePerLitre'));
+				});
+			}
+		});
+		$("#btnEnableLocation").on("click", function () {
+			var selected = $("#SelectedDrivers").val();
+
+			if (selected.length == 0) {
+				validationMessageFor('@Html.NameFor(m => m.SelectedDrivers)',
+					'@ResourceMessages.GetMessage(Resource.valMessageSelectDrivers)');
+			}
+			else {
+				var url = '@Url.Action("NotificationToDriver", "Dispatch", new { area="Supplier" })';
+				var data = {
+					driverIds: selected
+				};
+				$.post(url, data).done(function (response) {
+					showSuccessErrorMsg(response);
+				});
+			}
+		});
+		$(document).ready(function () {
+			$('[rel="tooltip"]').tooltip({
+				trigger: 'hover'
+			});
+			$('#SelectedDrivers').multiselect({
+				maxHeight: 200,
+				includeSelectAllOption: true,
+				nonSelectedText: 'Select Drivers',
+				buttonWidth: '135px'
+			});
+
+			$('#SelectedDrivers').change(function () {
+				var selected = $('#SelectedDrivers').val();
+				if (selected.length > 0) {
+					validationMessageFor('@Html.NameFor(m => m.SelectedDrivers)', '');
+				}
+			});
+
+			$(document).on('click', ".reassign-driver", function (e) {
+				previousDriver = $(this).val();
+			});
+
+			$(document).on("change", ".reassign-driver", function (e) {
+				oldDriver = previousDriver;
+				ClosePopup();
+				CloseReassignPopup();
+				if ($(this).data('scheduleid') != null)
+					$(this).closest(".ddlist").find("#popup-title").text("@Resource.warningMessageReassignDriverToSchedule");
+				else
+					$(this).closest(".ddlist").find("#popup-title").text("@Resource.warningMessageReassignDriverToOrder");
+
+				$(this).closest(".ddlist").find(".confirmation-box").show();
+			});
+
+			$(document).on("click", ".decline", function () {
+				$(this).closest(".ddlist").find(".dd").val(oldDriver);
+				$(this).closest(".ddlist").find(".confirmation-box").hide();
+            });
+
+            // reload data grid after delivery group add schedule
+            $(document).on('click', '.close-panel', function () {
+                reloadDataGrid();
+            });
+		});
+
+		function submitModifyScheduleForm()
+		{
+			if ($('#change-pickup-form').valid()) {
+				var isValidForm = ValidateScheduleForm();
+				if (isValidForm)
+				{
+					$('#change-pickup-form').submit();
+				}
+				else {
+					return false;
+				}
+			}
+		}
+
+        function submitAddScheduleForm() {
+			$('.loader').show();
+            if ($('#add-delivery-form').valid()) {
+                var isValidForm = ValidateScheduleForm();
+                var isValidPickUpLocation = true;
+                var isBulkPlantPickUp = $(".bulkplant-pickup:checked").val(); 
+                if (isBulkPlantPickUp =='True') {
+                    isValidPickUpLocation = validateLocationAddress();
+                }
+                if (isValidForm && isValidPickUpLocation) {
+                    $('#add-delivery-form').submit();
+                }
+                else {
+                    $('.loader').hide();
+                    return false;
+                }
+            }
+            else {
+                $('.loader').hide();
+                return false;
+            }
+		}
+
+		function ValidateScheduleForm() {
+			var isValidForm = true;
+			validationMessageFor('DeliverySchedule.DeliveryDate', "");
+			validationMessageFor('DeliverySchedule.StartTime', "");
+			validationMessageFor('DeliverySchedule.EndTime', "");
+		    validationMessageFor('DeliverySchedule.Quantity', "");
+			var jobLocationTime = moment($('#DeliverySchedule_JobCurrentTime').val());
+			var jobLocationDate = moment($('#DeliverySchedule_JobCurrentTime').val()).startOf('day');
+			var deliveryDate = moment($('#DeliverySchedule_DeliveryDate').val()).startOf('day');
+			var deliveryTime = moment($('#DeliverySchedule_DeliveryDate').val() + " " + $('#StartTime').val());
+			var strJobEndDate = $('#DeliverySchedule_JobEndDate').val();
+			var strFrEndDate = $('#DeliverySchedule_FuelRequestEndDate').val();
+		    var scheduleQtyType = $('#DeliverySchedule_ScheduleQuantityType').val();
+            var scheduleQty = parseFloat($('#DeliverySchedule_Quantity').val());
+			var jobEndDate = strJobEndDate != '' ? moment(strJobEndDate).endOf('day') : '';
+			var frEndDate = strFrEndDate != '' ? moment(strFrEndDate).endOf('day') : '';
+			if (deliveryDate < jobLocationDate) {
+				validationMessageFor('DeliverySchedule.DeliveryDate', '@ResourceMessages.GetMessage(Resource.valMessageDeliveryDate, new object[] { Resource.lblDeliveryDate })');
+				isValidForm = false;
+			}
+			if (deliveryTime < jobLocationTime) {
+				validationMessageFor('DeliverySchedule.StartTime', '@ResourceMessages.GetMessage(Resource.valMessageDeliveryStartTime, new object[] { Resource.lblStartTime })');
+				isValidForm = false;
+			}
+			if (scheduleQtyType == '@((int)ScheduleQuantityType.Quantity)' && scheduleQty <= 0) {
+                   validationMessageFor('DeliverySchedule.Quantity', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblQuantity })');
+                   return false;
+            }
+            else if(scheduleQtyType != '@((int)ScheduleQuantityType.Quantity)'){
+                   $('#DeliverySchedule_Quantity').val(0);
+            }
+
+			var startTimeVal = $('#DeliverySchedule_StartTime').val();
+			var endTimeVal = $('#DeliverySchedule_EndTime').val();
+			if (endTimeVal != '' && startTimeVal != '' && endTimeVal != startTimeVal) {
+				var startTimevalInMinutes = getMinutes(convertTo24Hour(startTimeVal));
+				var endTimevalInMinutes = getMinutes(convertTo24Hour(endTimeVal));
+				if (parseInt(startTimevalInMinutes) > parseInt(endTimevalInMinutes)) {
+					validationMessageFor('DeliverySchedule.EndTime', '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanOrEqual, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+					isValidForm= false;
+				}
+			}
+			if (frEndDate != '' && deliveryDate > frEndDate) {
+				validationMessageFor('DeliverySchedule.DeliveryDate', '@ResourceMessages.GetMessage(Resource.valMessageScheduleDate)');
+				isValidForm= false;
+			}
+			if (jobEndDate != '' && deliveryDate > jobEndDate) {
+				validationMessageFor('DeliverySchedule.DeliveryDate', '@ResourceMessages.GetMessage(Resource.valMessageScheduleDateExceedsJobDate)');
+				isValidForm = false;
+			}
+			return isValidForm;
+		}
+
+		function ValidateForm() {
+			if ($('#reschedule-form').valid()) {
+				validationMessageFor('DeliveryDate', "");
+				validationMessageFor('StartTime', "");
+				validationMessageFor('EndTime', "");
+				var jobLocationTime = moment($('#JobCurrentTime').val());
+				var jobLocationDate = moment($('#JobCurrentTime').val()).startOf('day');
+				var deliveryDate = moment($('#DeliveryDate').val()).startOf('day');
+				var deliveryTime = moment($('#DeliveryDate').val() + " " + $('#StartTime').val());
+				var strJobEndDate = $('#JobEndDate').val();
+				var strFrEndDate = $('#FuelRequestEndDate').val();
+				var jobEndDate = strJobEndDate != '' ? moment(strJobEndDate).endOf('day') : '';
+				var frEndDate = strFrEndDate != '' ? moment(strFrEndDate).endOf('day') : '';
+				if (deliveryDate < jobLocationDate) {
+					validationMessageFor('DeliveryDate', '@ResourceMessages.GetMessage(Resource.valMessageDeliveryDate, new object[] { Resource.lblDeliveryDate })');
+					return false;
+				}
+				if (deliveryTime < jobLocationTime) {
+					validationMessageFor('StartTime', '@ResourceMessages.GetMessage(Resource.valMessageDeliveryStartTime, new object[] { Resource.lblStartTime })');
+					return false;
+				}
+
+				var startTimeVal = $('#StartTime').val();
+				var endTimeVal = $('#EndTime').val();
+				if (endTimeVal != '' && startTimeVal != '' && endTimeVal != startTimeVal) {
+					var startTimevalInMinutes = getMinutes(convertTo24Hour(startTimeVal));
+					var endTimevalInMinutes = getMinutes(convertTo24Hour(endTimeVal));
+					if (parseInt(startTimevalInMinutes) > parseInt(endTimevalInMinutes)) {
+						validationMessageFor('EndTime', '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanOrEqual, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+						return false;
+					}
+				}
+				if (frEndDate != '' && deliveryDate > frEndDate) {
+					validationMessageFor('DeliveryDate', '@ResourceMessages.GetMessage(Resource.valMessageScheduleDate)');
+					return false;
+				}
+				if (jobEndDate != '' && deliveryDate > jobEndDate) {
+					validationMessageFor('DeliveryDate', '@ResourceMessages.GetMessage(Resource.valMessageScheduleDateExceedsJobDate)');
+					return false;
+				}
+
+				$('#reschedule-form').submit();
+			}
+		}
+
+		function onLoadPopup() {
+			var element = "#TerminalDetails_AddressDetails_SiteName";
+            var siteId = parseInt($("#TerminalDetails_AddressDetails_SiteId").val());
+            if (siteId > 0)
+                $(".disable-pickup-controls").attr('readonly', true);
+			autoCompleteTextBoxforAddress(element, bulkPlanturl);
+			var inputData = { orderId:scheduleOrderId, terminalId: scheduleTerminalid };
+			autoCompleteTerminal($('#TerminalDetails_TerminalName'), getTerminalUrl, inputData,
+					function (terminalId) { $('#TerminalDetails_TerminalId').val(terminalId); });
+        }
+
+        function searchSchedulesAndDeliveryGroups(ele) {
+            searchText = $(ele).val();
+            if (searchText != undefined && searchText != null && searchText != '' && searchText.length >= 2) {
+                searchText = $.trim(searchText);
+                ReloadScheduleGrid();
+                refreshDeliveryGroups();
+            }
+            else if ((searchText == undefined || searchText == null || searchText == '') && searchText.length == 0) {
+                ReloadScheduleGrid();
+                refreshDeliveryGroups();
+            }
+        }
+
+        function validateLocationAddress() {
+                var isValid = true;
+                var countryId = parseInt($('#TerminalDetails_AddressDetails_Country_Id').val());
+                var stateId = parseInt($("#TerminalDetails_AddressDetails_State_Id").val());
+                validationMessageFor('TerminalDetails.AddressDetails.State_Id', '');
+
+                if (countryId == '@((int)Country.CAR)') {
+                    if (isNaN(stateId) || stateId <= 0) {
+                        validationMessageFor('TerminalDetails.AddressDetails.State.Id', '@(string.Format(Resource.valMessageRequired, "State"))');
+                        isValid = false;
+                    }
+                }
+                else {
+                    var city = $.trim($("#TerminalDetails_AddressDetails_City").val());
+                    var zipCode = $.trim($("#TerminalDetails_AddressDetails_ZipCode").val());
+                    var countyName = $.trim($("#TerminalDetails_AddressDetails_CountyName").val());
+                    var address = $.trim($("#TerminalDetails_AddressDetails_Address").val());
+
+                    if (address == '') {
+                        validationMessageFor('TerminalDetails.AddressDetails.Address', '@(string.Format(Resource.valMessageRequired, "Address"))');
+                        isValid = false;
+                    }
+                    if (city == '') {
+                        validationMessageFor('TerminalDetails.AddressDetails.City', '@(string.Format(Resource.valMessageRequired, "City"))');
+                        isValid = false;
+                    }
+                    if (isNaN(stateId) || stateId <= 0) {
+                        validationMessageFor('TerminalDetails.AddressDetails.State.Id', '@(string.Format(Resource.valMessageRequired, "State"))');
+                        isValid = false;
+                    }
+                    if (zipCode == '') {
+                        validationMessageFor('TerminalDetails.AddressDetails.ZipCode', '@(string.Format(Resource.valMessageRequired, "ZipCode"))');
+                        isValid = false;
+                    }
+                    if (countyName == '') {
+                        validationMessageFor('TerminalDetails.AddressDetails.CountyName', '@(string.Format(Resource.valMessageRequired, "County"))');
+                        isValid = false
+                    }
+                }
+                return isValid;
+        }
+
+    </script>
+}
+
+

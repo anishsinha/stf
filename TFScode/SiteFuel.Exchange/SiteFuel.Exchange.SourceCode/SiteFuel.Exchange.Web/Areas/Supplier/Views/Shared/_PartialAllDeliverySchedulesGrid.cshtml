@@ -1,0 +1,292 @@
+﻿<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b pr">
+            <div class='pa bg-white top0 left0 z-index5 loading-wrapper schedule-loading-wrapper hide-element'><span class='spinner-dashboard pa'></span></div>
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="supplierdriverschedules-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnDriverName</th>
+                                    <th>@Resource.lblDriverPhone</th>
+                                    <th>@Resource.gridColumnPoNumber</th>
+                                    <th>@Resource.gridColumnScheduledDate</th>
+                                    <th>@Resource.lblScheduledTime</th>
+                                    <th class="no-break">@Resource.gridColumnFuelType</th>
+                                    <th>@Resource.gridColumnGallonsScheduled</th>
+                                    <th>@Resource.gridColumnCustomer</th>
+                                    <th>@Resource.gridColumnAddress</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th>@Resource.gridColumnDeliverySchedule</th>
+                                    <th>@Resource.headingPickUpLocation</th>
+                                    <th class="text-nowrap">@Resource.gridColumnAction</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>	
+
+
+<script type="text/javascript">
+	var exportScheduleColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] } , previousDriver, oldDriver;
+
+	exportScheduleColumns = {
+		columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], format: {
+			body: function (data, row, col, node) {
+				var elementType = node.firstChild;
+				if (elementType != null) {
+					var selectElement = $(elementType).find('select');
+					if (selectElement.length > 0)
+						return $(selectElement).find(':selected').text();
+					else
+						return $(elementType).text();
+				}
+				else
+					return data;
+			}
+		}
+	};
+
+
+	function ReassignDriver(obj)
+	{
+		scheduleStartDate = $('#txtSchedulesFromDate').val();
+		scheduleEndDate = $('#txtSchedulesToDate').val();
+		var driverParam = $('#SelectedDrivers').val();
+		var isAllData = false;
+		if (driverParam.length == 0) {
+			driverParam = drivers.map(function (a) { return a.Id });
+			isAllData = true;
+		}
+
+		var modeldata = {
+			"orderId": $(obj).closest(".ddlist").find('.dd').data('orderid'),
+			"scheduleId": $(obj).closest(".ddlist").find('.dd').data('scheduleid'),
+			"tscheduleId": $(obj).closest(".ddlist").find('.dd').data('tschedule'),
+			"driverId": $(obj).closest(".ddlist").find('.dd').val(),
+			"previousDriver": oldDriver
+		};
+		$(document).find(".confirmation-box").hide();
+        $.get({
+            url: "@Url.Action("ReassignDriver", "Dispatch",new { area = "Supplier" })",
+            data: modeldata,
+            success: function (response) {
+                if (response.StatusCode == 0) {
+                    GetScheduleData(driverParam, scheduleStartDate, scheduleEndDate, isAllData);
+                    ReloadWhereisMyDriver(driverParam);
+                }
+            }
+        });
+	}
+
+	function LoadSchedules()
+	{
+        allDeliverySchedules = $('#supplierdriverschedules-datatable').DataTable({
+            "data": scheduleData.GridData,
+            "columns": [
+                {
+					"data": function (data, type, row, meta) {
+                        if (isSupplier == true) {
+                            var selectedtext = '';
+                            var $select = $('<select class="dd form-control reassign-driver" data-orderid="' + data.OrderId + '" data-scheduleId="' + data.Id + '" data-tschedule="' + data.TrackableScheduleId + '"></select>').attr("id", data.Id);
+                            if (data.DeliveryGroupId != null) {
+                                $select.addClass('pntr-none subSectionOpacity');
+                            }
+                            $select.append($("<option></option>", {
+                                "text": '@Resource.lblSelect',
+                                "value": -1
+                            }));
+
+                            $.each(drivers, function (k, v) {
+                                var $option = $("<option></option>", {
+                                    "text": v.Name,
+                                    "value": v.Id
+                                });
+                                if (data.DriverId === v.Id) {
+                                    $option.attr("selected", "selected");
+                                    selectedtext = v.Name;
+                                }
+                                $select.append($option);
+                            });
+                            var dropdownHtml = $(popupDivForReassign).append($select.prop("outerHTML") + "<label class='hide-element'>" + selectedtext + "</label>");
+                            var ackClassForRead = data.DriverAcknowledgementStatus == @((int)DriverAcknowledgementStatus.Read) ? 'order-read' : 'order-unread'
+                            var ackTitleForRead = data.DriverAcknowledgementStatus == @((int)DriverAcknowledgementStatus.Read) ? 'Read' : 'Not Read'
+
+                            var ackTitleForAknow = data.DriverAcknowledgementStatus == @((int)DriverAcknowledgementStatus.Acknowledged) ? 'Acknowledged' : 'Not Acknowledged'
+                            var ackClassForAknow = data.DriverAcknowledgementStatus == @((int)DriverAcknowledgementStatus.Acknowledged) ? 'order-acknowledged' : 'order-notacknowledged'
+
+                            var readmarkForRead = '<i data-toggle="tooltip" data-placement="top" title="' + ackTitleForRead + '" class="fas fa-check-double ml10 ' + ackClassForRead + '"></i>';
+                            var readMarkForAcknowlege = '<i data-toggle="tooltip" data-placement="top" title="' + ackTitleForAknow + '" class="fas fa-check-double ml10 ' + ackClassForAknow + '"></i>';
+                            if (data.DriverAcknowledgementStatus == @((int)DriverAcknowledgementStatus.Read)) {
+                                dropdownHtml = $(dropdownHtml).append(readmarkForRead);
+                            }
+                            else if (data.DriverAcknowledgementStatus == @((int)DriverAcknowledgementStatus.Acknowledged)) {
+                                dropdownHtml = $(dropdownHtml).append(readMarkForAcknowlege);
+                            } else {
+                                dropdownHtml = $(dropdownHtml).append(readmarkForRead);
+                            }
+                            return $(dropdownHtml).prop("outerHTML");
+                        }
+                        else {
+                            return data.DriverName;
+                        }
+                    }, "autoWidth": true
+                },
+                { "data": "PhoneNumber", "autoWidth": true, className: "phone" },
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<a href="@Url.Action("Details", "Order", new { area = "Supplier" })/' + data.OrderId + '">' + data.PoNumber + '</a>';
+                    }, "autoWidth": true
+                },
+                { "data": "Date", "autoWidth": true, "sType": "date" },
+                { "data": "DeliveryWindow", "autoWidth": true },
+                { "data": "FuelType", "autoWidth": true, className: "break-word" },
+                {
+                    "data": function (data, type, row, meta) {
+						return (data.QuantityTypeId == @((int)QuantityType.NotSpecified) && data.DeliverySchedule == '@Resource.lblNo') ? '@Resource.lblNotSpecified' : data.Quantity;
+                    }, "autoWidth": true
+                },
+                { "data": "Customer", "autoWidth": true },
+                { "data": "Location", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.DeliveryScheduleType == '') {
+                            return data.Status;
+                        }
+                        else {
+                            return data.Status + "<br/><b style='font-size:x-small'>" + data.DeliveryScheduleType + "</b>";
+                        }
+                    }, "autoWidth": true
+                },
+                { "data": "DeliverySchedule", "autoWidth": true },
+                { "data": "PickupLocation", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        var columnData = '<span id="actionButtons' + data.TrackableScheduleId + '">';
+                        columnData += '<div class="pa top0 bg-white left0 z-index5 loading-wrapper hide-element"><span class="spinner-dashboard pa"></span></div>';
+                        if (data.TrackableScheduleId != null && data.TrackableScheduleId > 0 || data.IsFtlOrder) {
+                            var statusId = data.Status == '@Resource.lblMissed' ?@((int)TrackableDeliveryScheduleStatus.MissedAndCanceled) : @((int)TrackableDeliveryScheduleStatus.Canceled);
+							columnData += "<a id='btnChangePickUp' class = 'btn btn-default mr10 btn-xs mt5' data-currency ='"+data.Currency+"' data-orderId='" + data.OrderId + "' data-trackableScheduleId='" + data.TrackableScheduleId + "' data-deliveryScheduleId='" + data.Id + "' data-countryId='" + data.CountryId + "' data-countryCode='" + data.CountryCode + "' data-IsFtlOrder='" + data.IsFtlOrder + "' onclick='getTrackableScheduleDetails(this)' data-toggle='modal' data-target='#nearest-terminals-modal'>@Resource.btnLabelModifySchedule</a>";
+                            if (data.TrackableScheduleId != null && data.TrackableScheduleId > 0) {
+                                columnData += "<a id='btnCancelSchedule" + data.Id + "' data-toggle = 'confirmation' data-popout = 'true' data-singleton = 'true' class = 'btn label-danger mr10 btn-xs mt5'  data-orderId='" + data.OrderId + "' data-trackableScheduleId='" + data.TrackableScheduleId + "' data-deliveryScheduleStatusId=" + statusId + "> @Resource.btnLabelCancel </a>";
+                                //data-on-confirm='CancelDeliverySchedule'
+                            }
+                        }
+                        else {
+                            columnData += "<a> @Resource.lblHyphen </a>";
+                        }
+                        columnData += '</span>';
+                        return columnData;
+                    }, "autoWidth": true, "bSortable": false, "className":"pr"
+                }
+            ],
+            pageLength: 10,
+            //searching: false,
+            responsive: true,
+            fixedHeader: false,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+                if (isSupplier == true) {
+                    //$('#supplierdriverschedules-datatable th:eq(0)').addClass('filtering-disabled');
+                }
+                else {
+                    $('#supplierdriverschedules-datatable th:eq(0)').removeClass('filtering-disabled');
+                }
+            },
+            "fnDrawCallback": function (settings) {
+                ClosePopup();
+                CloseReassignPopup();
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true,
+                    onConfirm: CancelDeliverySchedule
+                }).on('show.bs.confirmation', function (e) {
+                    CloseReassignPopup();
+                    $('.popover').not(this).remove();
+                });
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.headingDriverScheduleDetails', exportOptions: exportScheduleColumns },
+                { extend: 'excel', title: '@Resource.headingDriverScheduleDetails', exportOptions: exportScheduleColumns },
+                { extend: 'pdf', title: '@Resource.headingDriverScheduleDetails', exportOptions: exportScheduleColumns },
+                {
+                    extend: 'print',
+                    exportOptions: exportScheduleColumns,
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            },
+			"aoColumnDefs": [{ "targets": [0], "searchable": isSupplier },
+            { "targets": [11], "visible": isSupplier, "searchable": isSupplier }]
+        });
+	}
+
+    $(document).ready(function () {
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip()
+        })
+        $('body').tooltip({
+            selector: '[data-toggle="tooltip"]'
+        });
+        if ($('#txtSchedulesFromDate').length > 0 && $('#txtSchedulesToDate').length > 0) {
+            $("#txtSchedulesFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtSchedulesToDate').data("DateTimePicker").minDate($("#txtSchedulesFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtSchedulesToDate').data("DateTimePicker").minDate(moment($('#txtSchedulesFromDate').val()));
+            });
+        }
+
+        $('#SelectedDrivers').on('change', function () {
+            ReloadScheduleGrid();
+        })
+
+        $('#btnSchedulesApply').click(function () {
+            ReloadScheduleGrid();
+            refreshDeliveryGroups();
+        })
+
+        ClearScheduleFilter = function () {
+            $("#txtSchedulesFromDate").val(moment().add(1, 'days').format('MM/DD/YYYY'));
+            $("#txtSchedulesToDate").val(moment().add(1, 'days').format('MM/DD/YYYY'));
+            $('#txtSchedulesToDate').data("DateTimePicker").minDate($("#txtSchedulesFromDate").datetimepicker("minDate"));
+            ReloadScheduleGrid();
+            refreshDeliveryGroups();
+        }
+    });
+
+	$('#supplierdriverschedules-datatable').on('draw.dt', function (e, settings) {
+		BindDataTableFilter(e, settings);
+	});
+
+    function CancelDeliverySchedule() {
+        $(this).closest("span").find(".loading-wrapper").removeClass("hide-element");
+        var orderId = $(this).attr("data-orderId");
+        var trackableScheduleId = $(this).attr("data-trackableScheduleId");
+        var deliveryScheduleStatusId = $(this).attr("data-deliveryScheduleStatusId");
+        var url = "@Url.Action("ProcessDeliverySchedule", "Order", new { area = "Supplier"})?orderId=" + orderId + "&trackableScheduleId=" + trackableScheduleId + "&deliveryScheduleStatusId=" + deliveryScheduleStatusId;
+        $.get(url, function (response) {
+			ReloadScheduleGrid();
+            ReloadWhereisMyDriver();
+            $(this).closest("span").find(".loading-wrapper").addClass("hide-element");
+            refreshDeliveryGroups();
+        });
+	}
+</script>
+

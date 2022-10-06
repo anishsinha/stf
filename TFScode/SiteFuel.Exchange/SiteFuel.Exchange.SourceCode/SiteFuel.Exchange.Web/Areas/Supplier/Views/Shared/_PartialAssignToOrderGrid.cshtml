@@ -1,0 +1,103 @@
+﻿@model AssignToOrderViewModel
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="supplier-assignToOrder-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnCustomer</th>
+                                    <th>@Resource.gridColumnPoNumber</th>
+                                    <th>@Resource.gridColumnAddress</th>
+                                    <th>@Resource.gridColumnQuantityOrdered</th>
+                                    <th>@Resource.gridColumnAction</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var exportColumns = { columns: [0, 1, 2] };
+        $(document).on('click','.scrollto',function (e) {
+            e.preventDefault();
+            $('html, body').animate({
+                scrollTop: $("#orderPreview").offset().top
+            }, 1000);
+        });     
+        $(document).ready(function () {
+            $('#supplier-assignToOrder-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("AssignToOrderGrid", "Invoice", new { area = "Supplier" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                                { "data": "CustomerName", "autoWidth": true },
+                                { "data": "PoNumber", "autoWidth": true },
+                                { "data": "Location", "autoWidth": true },
+                                { "data": "GallonsOrdered", "autoWidth": true },
+                                {
+                                    "data": function (data, type, row, meta)
+                                    {
+                                        if (data.OrderUoM != '@Model.InvoiceUoM') {
+                                            return '<a class="scrollto btn btn-default btn-xs" data-ajax="true" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#orderPreview" data-ajax-complete="parseConfirmation();" href="@Url.Action("OrderPreView", "Invoice", new { area = "Supplier" })?orderId=' + data.OrderId + '&invoiceId=@Model.InvoiceId">@Resource.btnLabelPreviewOrder</a>' +
+                                                '<a class="btn btn-primary btn-assignorder btn-assignorder-uom btn-xs ml5" href="javascript:void(0)" data-toggle="confirmation" data-popout="true" data-singleton="true" data-html="true" data-placement="top" data-confirmation-event="assignToOrder" data-title="Fuel was dropped in @Model.InvoiceUoM and selected Order is in ' + data.OrderUoM +', <br>Do you wish to convert and Assign?" data-orderid="' + data.OrderId + '">@Resource.btnLabelAssign</a>'
+                                        }
+                                        else {
+                                            return '<a class="scrollto btn btn-default btn-xs" data-ajax="true" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#orderPreview" data-ajax-complete="parseConfirmation();" href="@Url.Action("OrderPreView", "Invoice", new { area = "Supplier" })?orderId=' + data.OrderId + '&invoiceId=@Model.InvoiceId">@Resource.btnLabelPreviewOrder</a>' +
+                                                '<a class="btn btn-primary btn-assignorder btn-xs ml5" href="javascript:void(0)" data-toggle="confirmation" data-popout="true" data-singleton="true" data-html="true" data-placement="top" data-confirmation-event="assignToOrder" data-orderid="' + data.OrderId + '">@Resource.btnLabelAssign</a>'
+                                        }
+                                    },
+                                    "autoWidth": true, "bSortable": false, "className": "text-nowrap pr10"
+                                }
+                ],
+                pageLength: 10,
+                responsive: true,
+                dom: '<"html5buttons"B>lTfgitp',
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingOrders', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingOrders', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingOrders', exportOptions: exportColumns },
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+
+            $('#supplier-assignToOrder-datatable').on("draw.dt",function () {
+                parseConfirmation();
+            });
+        });
+
+        function parseConfirmation() {
+            $('[data-toggle=confirmation]').confirmation({
+                rootSelector: '[data-toggle=confirmation]'
+            });
+        }
+
+    </script>
+}

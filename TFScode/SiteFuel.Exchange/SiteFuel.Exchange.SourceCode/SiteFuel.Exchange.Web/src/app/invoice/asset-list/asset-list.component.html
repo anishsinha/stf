@@ -1,0 +1,153 @@
+
+<div [formGroup]="Parent">
+    <div class="pa bg-white z-index5 loading-wrapper left0 top0" *ngIf="IsCalculating">
+        <span class='spinner-dashboard pa'></span>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="row mt15 pl15 text-color-b" *ngIf="Parent.get('Assets')['controls'].length > 0" formArrayName="Assets">
+                <div class="w-100 border-b"></div>
+                <div class="row col-sm-12">
+                    <table width="100%" cellspacing="2">
+                        <tr class="f-bold">
+                            <td width="17%" valign="top" class="pt5 pb5 pr5">Asset/Tank Name</td>
+                            <td width="17%" valign="top" class="pt5 pb5 pr5">Quantity</td>
+                            <td width="15%" valign="top" class="pt5 pb5 pr5">Start Time</td>
+                            <td width="15%" valign="top" class="pt5 pb5 pr5">End Time</td>
+                            <td width="10%" valign="top" *ngIf="IsDipDataRequired" class="pt5 pb5 pr5">Pre Dip</td>
+                            <td width="10%" valign="top" *ngIf="IsDipDataRequired" class="pt5 pb5 pr5">Post Dip</td>
+                            <td width="12%" valign="top" *ngIf="IsDipDataRequired" class="pt5 pb5 pr5">UOM</td>
+                            <td width="4%" valign="top" class="pt5 pb5">&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="w-100 border-b"></div>
+                <ng-container *ngFor="let asset of Parent.get('Assets')['controls']; let i = index;let last = last">
+                    <div [formGroupName]="i" class="row col-sm-12">
+                        <table width="100%" cellspacing="2">
+                            <tr>
+                                <td width="17%" valign="top" class="pt5 pb5 pr5">
+                                    <input type="text" name="AssetName" formControlName="AssetName" class="form-control" *ngIf="asset.get('IsNewAsset').value" placeholder="Asset Name" />
+                                    <span class="color-maroon" *ngIf="asset.get('AssetName').errors && (asset.get('AssetName').touched ||
+                                  asset.get('AssetName').dirty)">
+                                        <span *ngIf="asset.get('AssetName').errors.required">
+                                            Required.
+                                        </span>
+                                        <span *ngIf="asset.get('AssetName').errors.pattern">
+                                            Invalid.
+                                        </span>
+                                    </span>
+                                    <label class="ml5" *ngIf="!asset.get('IsNewAsset').value">{{asset.get('AssetName').value}}</label>
+                                    <input type="hidden" name="AssetName" formControlName="AssetName" *ngIf="!asset.get('IsNewAsset').value" />
+
+                                </td>
+                                <td width="17%" valign="top" class="pt5 pb5 pr5">
+                                    <div class="input-group" [ngClass]="{'pntr-none': isDisable(asset,IsDipDataRequired)}">
+                                         <input type="text" name="DropGallons" formControlName="DropGallons" [disabled]="isDisable(asset,IsDipDataRequired) ? true : null" class="form-control" placeholder="Quantity" (change)="dropGallonsChanged()"/>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text fs11" id="basic-addon2">{{IsSelectedMT ? 'MT':UoM}}</span>
+                                        </div>
+                                    </div>
+                                    <span class="color-maroon" *ngIf="asset.get('DropGallons').errors && (asset.get('DropGallons').touched ||
+                                  asset.get('DropGallons').dirty)">
+                                        <span *ngIf="asset.get('DropGallons').errors.required">
+                                            Required.
+                                        </span>
+                                        <span *ngIf="asset.get('DropGallons').errors.pattern">
+                                            Invalid.
+                                        </span>
+                                        <span *ngIf="asset.get('DropGallons').errors?.isQuantityMismatch && last">
+                                            Sum of quantity should match with delivered quantity.
+                                        </span>
+                                    </span>
+                                </td>
+                                <td width="15%" valign="top" class="pt5 pb5 pr5">
+                                    <input [timeSmallerThanOrEqualTo]="asset.get('EndTime')" type="text" name="StartTime" formControlName="StartTime" class="form-control pr" placeholder="Start Time" myTimePicker [format]="'hh:mm:ss A'" (onTimeChange)="asset.get('StartTime').setValue($event)" (blur)="ValidateAssetTime(asset,'assetList',null)"/>
+                                    <span class="color-maroon" *ngIf="asset.get('StartTime').errors && (asset.get('StartTime').touched ||
+                                  asset.get('StartTime').dirty)">
+                                        <span *ngIf="asset.get('StartTime').errors.required">
+                                            Required.
+                                        </span>
+                                        <span *ngIf="asset.get('StartTime').errors.pattern">
+                                            Invalid.
+                                        </span>
+                                        <span *ngIf="asset.get('StartTime').errors.timeSmallerThanOrEqualTo">
+                                            Invalid.
+                                        </span>
+                                        <span *ngIf="asset.get('StartTime').errors.invalidDropTime">
+                                            Invalid 
+                                        </span>
+                                    </span>
+                                </td>
+                                <td width="15%" valign="top" class="pt5 pb5 pr5">
+                                    <input [timeGreaterThanOrEqualTo]="asset.get('StartTime')" type="text" name="EndTime" formControlName="EndTime" class="form-control pr" placeholder="End Time" myTimePicker [format]="'hh:mm:ss A'" (onTimeChange)="asset.get('EndTime').setValue($event)" (blur)="ValidateAssetTime(asset,'assetList',null)" />
+                                    <span class="color-maroon" *ngIf="asset.get('EndTime').errors && (asset.get('EndTime').touched ||
+                                  asset.get('EndTime').dirty)">
+                                        <span *ngIf="asset.get('EndTime').errors.required">
+                                            Required.
+                                        </span>
+                                        <span *ngIf="asset.get('EndTime').errors.pattern">
+                                            Invalid.
+                                        </span>
+                                        <span *ngIf="asset.get('EndTime').errors.timeGreaterThanOrEqualTo">
+                                            Invalid.
+                                        </span>
+                                        <span *ngIf="asset.get('EndTime').errors.invalidDropTime">
+                                            Invalid 
+                                        </span>
+                                    </span>
+                                </td>
+                                <td width="10%" valign="top" *ngIf="IsDipDataRequired" class="pt5 pb5 pr5">
+                                    <input type="text" [ngClass]="IsDipDataRequired ? 'null' : 'hide-dip-data-controls'" formControlName="PreDip" class="form-control" placeholder="Pre Dip" />
+                                    <span class="color-maroon" *ngIf="asset.get('PreDip').errors && (asset.get('PreDip').touched ||
+                                  asset.get('PreDip').dirty)">
+                                        <span *ngIf="asset.get('PreDip').errors.required">
+                                            Required.
+                                        </span>
+                                        <span *ngIf="asset.get('PreDip').errors.pattern">
+                                            Invalid.
+                                        </span>
+                                    </span>
+                                </td>
+                                <td width="10%" valign="top" *ngIf="IsDipDataRequired" class="pt5 pb5 pr5">
+                                    <input type="text" [ngClass]="IsDipDataRequired ? 'null' : 'hide-dip-data-controls'" formControlName="PostDip" class="form-control" placeholder="Post Dip" />
+                                    <span class="color-maroon" *ngIf="asset.get('PostDip').errors && (asset.get('PostDip').touched ||
+                                  asset.get('PostDip').dirty)">
+                                        <span *ngIf="asset.get('PostDip').errors.required">
+                                            Required.
+                                        </span>
+                                        <span *ngIf="asset.get('PostDip').errors.pattern">
+                                            Invalid.
+                                        </span>
+                                    </span>
+                                </td>
+                                <td width="12%" valign="top" class="pt5 pb5 pr5">
+                                    <span *ngIf="IsDipDataRequired && asset.get('IsNewAsset').value == false">
+                                        <span *ngIf="asset.get('TankMakeModel').value !=null && asset.get('TankMakeModel').value !='' ">
+                                            <select formControlName="TankScaleMeasurement" class="form-control">
+                                                <option [value]="0" selected>Select</option>
+                                                <option *ngFor="let uom of UOMsForDipTest" [value]="uom.Id">{{uom.Name}}</option>
+                                            </select>
+                                        </span>
+                                        <span *ngIf="asset.get('TankMakeModel').value == null">
+                                            <select formControlName="TankScaleMeasurement" class="form-control">
+                                                <option *ngIf="asset.get('IsNewAsset').value == true" [value]="null" selected>Select</option>
+                                                <option *ngIf="asset.get('IsNewAsset').value == false" [value]="0" selected>Select</option>
+                                                <option [value]="3">{{UoM}}</option>
+                                            </select>
+                                        </span>
+                                    </span>
+                                </td>
+                                <td width="4%" valign="top" class="pt5 pb5">
+                                    <a class="fa fa-trash-alt ml10 color-maroon mt10" *ngIf="asset.get('IsNewAsset').value" (click)="removeAsset(i)" ></a>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </ng-container>
+                <div class="w-100 border-b"></div>
+            </div>
+        </div>
+    </div>
+</div>
+

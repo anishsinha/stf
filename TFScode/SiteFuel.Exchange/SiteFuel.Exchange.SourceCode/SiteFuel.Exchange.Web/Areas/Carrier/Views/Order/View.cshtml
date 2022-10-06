@@ -1,0 +1,109 @@
+﻿
+@model OrderFilterViewModel
+@{
+    ViewBag.Title = "Order Summary";
+}
+@Html.HiddenFor(m => m.GroupIds)
+<div class="row">
+    <div class="col-xs-4 col-sm-7 col-md-9">
+        <h4 class="mt0 pt7 pull-left"><span id="spnGroupName"></span>@Resource.headingOrders</h4>
+        @if (Model.GroupIds == "")
+        {
+            if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+            {
+                <a href="@Url.Action("Create", "Order", new { area = "Supplier" })" class="fs18 pull-left ml20 mt8">
+                    <i class="fa fa-plus-circle fs18 mt4 pull-left"></i><span class="fs14 mt4 pull-left">@Resource.btnLabelCreateNew</span>
+                </a>
+            }
+            <a href="@Url.Action("View", "Order", new { area = "Supplier" })" class="pull-left ml20 mt10 pt3">@Resource.btnLabelViewAll</a>
+        }
+    </div>
+    <div class="col-sm-5 col-md-3">
+        @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+    </div>
+</div>
+<div class="row mb15">
+    <div class="col-md-12">
+        @Html.Partial("_PartialMapViewForOrder", Model)
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb0">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSupplierOrdersFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSupplierOrdersToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                    <input type="button" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt10">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            @Html.Partial("_PartialOrdersGrid", Model)
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#txtSupplierOrdersFromDate').val(GetLocalStorage('txtSupplierOrdersFromDate'));
+    $('#txtSupplierOrdersToDate').val(GetLocalStorage('txtSupplierOrdersToDate'));
+
+    var ClearFilter;
+    $(document).ready(function () {
+        var companyGroup = getCompanyGroup();
+        if (companyGroup.groupIds != "") {
+            $('#spnGroupName').text(companyGroup.groupName + ' ');
+        }
+        else {
+            $('#spnGroupName').text();
+        }
+
+        ClearFilter = function () {
+            $('#txtSupplierOrdersFromDate').val('');
+            $('#txtSupplierOrdersToDate').val('');
+            $('#txtSupplierOrdersToDate').data("DateTimePicker").minDate($("#txtSupplierOrdersFromDate").datetimepicker("minDate"));
+            ReloadDataTable();
+        }
+
+        if ($('#txtSupplierOrdersFromDate').length > 0 && $('#txtSupplierOrdersToDate').length > 0) {
+            $("#txtSupplierOrdersFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtSupplierOrdersToDate').data("DateTimePicker").minDate($("#txtSupplierOrdersFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtSupplierOrdersToDate').data("DateTimePicker").minDate(moment($('#txtSupplierOrdersFromDate').val()));
+            });
+        }
+
+        if (@Model.OrderId > 0) {
+            var url = '@Url.Action("IsTerminalAvailable", "Order", new { area= "Supplier" })';
+            var model = {
+                orderId: '@Model.OrderId'
+            };
+            $.post(url, model, function (response) {
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.Message);
+                }
+                else {
+                    msgerror(response.Message);
+                }
+            });
+        }
+    });
+
+    var supplierOrderGrid;
+    function ReloadDataTable() {
+        SetLocalStorage('txtSupplierOrdersFromDate', $('#txtSupplierOrdersFromDate').val());
+        SetLocalStorage('txtSupplierOrdersToDate', $('#txtSupplierOrdersToDate').val());
+        carrierOrderGrid.ajax.reload();
+        refreshMap();
+        ReloadCarrierOrderMap();
+	}
+</script>
+
+

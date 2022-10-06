@@ -1,0 +1,751 @@
+<div class="well bg-white shadow-b pr">
+    <div class="row ">
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-sm-8 pr-5 text-right sticky-header-dash">
+                    <div class="dib border pa5 radius-capsule shadow-b  mb10">
+                        <div class="btn-group btn-filter">
+                            <input class="hide-element" type="radio" [name]="'viewType'" [value]="1"
+                                   [checked]="viewType==1">
+                            <label class="btn ml0" (click)="changeViewType(1)">Validation Performance</label>
+                            <input class="hide-element" type="radio" [name]="'viewType'" [value]="2"
+                                   [checked]="viewType==2">
+                            <label class="btn" (click)="changeViewType(2)">Carrier Performance</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="float-right" *ngIf="viewType == 1">
+                        <a class="btn border border-secondary float-right pb-1" (click)="openLFVScratchReportGrid()"
+                           placement="bottom" ngbTooltip="Scratch Report"><i class="fab fa-firstdraft fs16 mt2"></i></a>
+                    </div>
+                    <div class="float-right" *ngIf="viewType == 1">
+                        <a class="btn border border-secondary float-right pb-1" (click)="openAccrualReportGrid()"
+                           placement="bottom" ngbTooltip="Accrual Report"><i class="fas fa-file-invoice fs16 mt2"></i></a>
+                    </div>
+                    <div class="float-right" *ngIf="viewType == 1">
+                        <button #btnSearchRecords class="btn btn-default mt0" (click)="toggleRecordSearchControls(true)"><i class="fas fa-search mr5"></i>Search Records</button>
+                        <div class="record-search-controls bg-white pa shadow border z-index10" *ngIf="showSearchControls">
+                            <div class="col-auto text-right">
+                                <a #btnCancelSearch (click)="toggleRecordSearchControls(false)"><i class="fa fa-close fs18 my-2" title="Cancel"></i> </a>
+                            </div>
+                            <div class="col-auto form-group">
+                                <input type="text" class="form-control" #BOLSearchInput [(ngModel)]="bolSearchQuery" placeholder="Search BOL#" />
+                            </div>
+                            <div class="col-auto form-group">
+                                <input type="text" class="form-control" #FileNameSearchInput [(ngModel)]="fileNameSearchQuery" placeholder="Search FileName" />
+                            </div>
+                            <div class="col-auto form-group text-right">
+                                <button class="btn btn-primary btn-sm" (click)="searchLiftFileRecords()">Search</button>
+                                <button id="openModal" #btnOpenModal [hidden]="true" data-toggle="modal" data-target="#searchoutputdetailsgrid-modal"></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="float-right" *ngIf="viewType == 2">
+                        <a class="btn border border-secondary float-right" (click)="openCarrierBOLReportGrid()" placement="bottom" ngbTooltip="Carrier BOL Report"><i class="fas fa-user fs16"></i></a>
+                        <a class="btn border border-secondary float-right" (click)="openSupplierBOLReportGrid()" placement="bottom" ngbTooltip="Supplier BOL Report"><i class="fas fa-truck fs16"></i></a>
+                    </div>
+                </div>
+
+            </div>
+            <!-- <div class="row">
+                <div class="col-4">
+                    <app-left-side-filter (search)="OnSearch($event)"></app-left-side-filter>
+                </div>
+                <div class="col-8">
+                    <app-validation [LFValidationList]="LFValidationList" *ngIf="viewType==1"></app-validation>
+                    <app-carrier-performace [LFValidationList]="LFValidationList" *ngIf="viewType==2">
+                    </app-carrier-performace>
+                </div>
+            </div> -->
+
+            <div class="row">
+                <div class="col-md-12">
+                    <app-left-side-filter (search)="OnSearch($event)" (export)="OnExport($event)"></app-left-side-filter>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <app-validation [LFValidationList]="LFValidationList" *ngIf="viewType==1"></app-validation>
+                    <app-carrier-performace [LFValidationList]="LFValidationList" *ngIf="viewType==2">
+                    </app-carrier-performace>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-12 text-center sticky-header-dash">
+                    <div class="dib border pa5 radius-capsule shadow-b  mb10">
+                        <div class="btn-group btn-filter">
+                            <!-- match -->
+                            <input class="hide-element" type="radio" [name]="'gridType'" [value]="LFVRecordStatus.Clean"
+                                   [checked]="gridType==LFVRecordStatus.Clean">
+                            <label class="btn ml0" (click)="changeGridType(LFVRecordStatus.Clean)">Match</label>
+                            <!-- nomatch -->
+                            <input class="hide-element" type="radio" [name]="'gridType'"
+                                   [value]="LFVRecordStatus.NoMatch" [checked]="gridType==LFVRecordStatus.NoMatch">
+                            <label class="btn" (click)="changeGridType(LFVRecordStatus.NoMatch)">No Match</label>
+                            <!-- Partial Match -->
+                            <input class="hide-element" type="radio" [name]="'gridType'"
+                                   [value]="LFVRecordStatus.PartialMatch"
+                                   [checked]="gridType==LFVRecordStatus.PartialMatch">
+                            <label class="btn" (click)="changeGridType(LFVRecordStatus.PartialMatch)">
+                                Partial
+                                Match
+                            </label>
+                            <!-- Pending -->
+                            <input class="hide-element" type="radio" [name]="'gridType'"
+                                   [value]="LFVRecordStatus.PendingMatch"
+                                   [checked]="gridType==LFVRecordStatus.PendingMatch">
+                            <label class="btn" (click)="changeGridType(LFVRecordStatus.PendingMatch)">Pending</label>
+                            <!-- Duplicate -->
+                            <input class="hide-element" type="radio" [name]="'gridType'"
+                                   [value]="LFVRecordStatus.Duplicate" [checked]="gridType==LFVRecordStatus.Duplicate">
+                            <label class="btn" (click)="changeGridType(LFVRecordStatus.Duplicate)">Duplicate</label>
+                            <!-- Active Exception -->
+                            <input class="hide-element" type="radio" [name]="'gridType'"
+                                   [value]="LFVRecordStatus.ActiveExceptions"
+                                   [checked]="gridType==LFVRecordStatus.ActiveExceptions">
+                            <label class="btn" (click)="changeGridType(LFVRecordStatus.ActiveExceptions)">
+                                Active
+                                Exception
+                            </label>
+                            <!-- Ignored -->
+                            <input class="hide-element" type="radio" [name]="'gridType'"
+                                   [value]="LFVRecordStatus.IgnoreMatch" [checked]="gridType==LFVRecordStatus.IgnoreMatch">
+                            <label class="btn" (click)="changeGridType(LFVRecordStatus.IgnoreMatch)">Ignored</label>
+                            <!-- Forced Ignore Match-->
+                            <input class="hide-element" type="radio" [name]="'gridType'"
+                                   [value]="LFVRecordStatus.ForcedIgnore" [checked]="gridType==LFVRecordStatus.ForcedIgnore">
+                            <label class="btn" (click)="changeGridType(LFVRecordStatus.ForcedIgnore)">Forced Ignore</label>
+                            <!-- Unmatched -->
+                            <input class="hide-element" type="radio" [name]="'gridType'"
+                                   [value]="LFVRecordStatus.UnMatched" [checked]="gridType==LFVRecordStatus.UnMatched">
+                            <label class="btn" (click)="changeGridType(LFVRecordStatus.UnMatched)">Unmatched</label>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="row" [ngClass]="{'hide-element': gridType==0}">
+                <div class="col-12">
+                    <div class="well bg-white shadow-b pr">
+                        <div class='pa bg-white top0 left0 z-index5 loading-wrapper schedule-loading-wrapper hide-element'>
+                            <span class='spinner-dashboard pa'></span>
+                        </div>
+                        <div class="ibox mb0">
+                            <div class="ibox-content no-padding no-border location_table">
+                                <div class="table-responsive">
+                                    <table id="liftfilerecords-datatable" datatable [dtOptions]="dtOptions"
+                                           [dtTrigger]="dtTrigger" class="table table-striped table-bordered table-hover">
+                                        <!--<table id="api-dashboard-datatable" data-gridname="18" class="table table-bordered" datatable>-->
+                                        <thead>
+                                            <tr>
+                                                <th data-key="BOL">BOL</th>
+                                                <th data-key="Terminal">Terminal Code</th>
+                                                <th data-key="Terminals">Terminal</th>
+                                                <th data-key="Corrected_Quantity">Corrected Quantity</th>
+                                                <th data-key="Terminal_Item_Code">Terminal Item Code</th>
+                                                <th data-key="Product_Type">Product Type</th>
+                                                <th data-key="Load_Date">Load Date</th>
+                                                <th data-key="Record_Date">Record Date</th>
+                                                <th data-key="Carrier_ID">Carrier ID</th>
+                                                <th data-key="Carrier_Name">Carrier Name</th>
+                                                <th data-key="Reasons">Reasons</th>
+                                                <th data-key="Reason_Code"
+                                                    [ngClass]="{'hide-element': (gridType==LFVRecordStatus.Clean || gridType==LFVRecordStatus.NoMatch || gridType==LFVRecordStatus.PartialMatch || gridType==LFVRecordStatus.Duplicate || gridType==LFVRecordStatus.PendingMatch)}">
+                                                    Reason Code</th>
+                                                <th data-key="Reason_Category"
+                                                    [ngClass]="{'hide-element': (gridType==LFVRecordStatus.Clean || gridType==LFVRecordStatus.NoMatch || gridType==LFVRecordStatus.PartialMatch || gridType==LFVRecordStatus.Duplicate || gridType==LFVRecordStatus.PendingMatch)}">
+                                                    Reason Category
+                                                </th>
+                                                <th data-key="User_Name">Modified By</th>
+                                                <th data-key="Modified_Date">Modified Date (MST)</th>
+                                                <th data-key="Modified_Date">Resolution Time</th>
+                                                <th data-key="TimeToBol"
+                                                     [ngClass]="{'hide-element': (gridType==LFVRecordStatus.PartialMatch || gridType==LFVRecordStatus.Clean) ? false : true}">
+                                                   Time To BOL
+                                                </th>
+                                                <th data-key="SelectAll"
+                                                    [ngClass]="{'hide-element': !(gridType==LFVRecordStatus.NoMatch || gridType==LFVRecordStatus.UnMatched || gridType==LFVRecordStatus.Duplicate)}">
+                                                    SelectAll
+                                                    <input type=checkbox id='select-all-records' value='select-all-records'
+                                                           (click)="selectAllRecords($event)" />
+                                                </th>
+                                                <th data-key="Action"
+                                                    [ngClass]="{'hide-element': gridType!=LFVRecordStatus.PartialMatch}">
+                                                    Action
+                                                </th>
+                                                <!-- Below th is for LiftFileRecord edit Workflow-->
+                                                <th data-key="Edit"
+                                                    [ngClass]="{'hide-element': gridType ==LFVRecordStatus.IgnoreMatch || gridType ==LFVRecordStatus.Clean || gridType ==LFVRecordStatus.ForcedIgnore || !isAdminUser}">
+                                                    Edit
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <ng-container>
+                                                <tr *ngFor="let item of LFVRecordGrid">
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.bol}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.TerminalName}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.Terminals}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.correctedQuantity}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.TerminalItemCode}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.ProductType}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.LoadDate}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.RecordDate}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.CarrierID}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.CarrierName}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.Reason}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi, 'hide-element': (gridType==LFVRecordStatus.Clean || gridType==LFVRecordStatus.NoMatch || gridType==LFVRecordStatus.PartialMatch || gridType==LFVRecordStatus.Duplicate || gridType==LFVRecordStatus.PendingMatch)}">
+                                                        {{item?.ReasonCode}}
+                                                    </td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi, 'hide-element': (gridType==LFVRecordStatus.Clean || gridType==LFVRecordStatus.NoMatch || gridType==LFVRecordStatus.PartialMatch || gridType==LFVRecordStatus.Duplicate || gridType==LFVRecordStatus.PendingMatch)}">
+                                                        {{item?.ReasonCategory}}
+                                                    </td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.Username}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.ModifiedDate}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi}">{{item?.LFVResolutionTime}}</td>
+                                                    <td [ngClass]="{'highlight-record':((item.Status == LFVRecordStatus.Clean) || (item.Status == LFVRecordStatus.IgnoreMatch) || (item.Status == LFVRecordStatus.ForcedIgnore)) && !item.IsRecordPushedToExternalApi,'hide-element': (gridType==LFVRecordStatus.PartialMatch || gridType==LFVRecordStatus.Clean) ? false : true}">{{item?.TimeToBol}}</td>
+                                                    <!-- Below td is for Reprocess and Ignore Match Workflow-->
+                                                    <td class="text-center"
+                                                        [ngClass]="{'hide-element': !(gridType==LFVRecordStatus.NoMatch || gridType==LFVRecordStatus.UnMatched || gridType==LFVRecordStatus.Duplicate)}">
+                                                        <input type="checkbox" class="dt-checkbox"
+                                                               id="{{item.LiftFileRecordId}}" [checked]="isChecked"
+                                                               value="{{item.LiftFileRecordId}}" />
+                                                    </td>
+                                                    <!-- Below td is for partial Match Workflow-->
+                                                    <td class="text-center"
+                                                        [ngClass]="{'hide-element': gridType!=LFVRecordStatus.PartialMatch}">
+
+                                                        <button type="button" (click)="getBolDetailsForResolve(item)"
+                                                                class="btn btn-link">
+                                                            <i class="fas fa-edit fs16"></i>
+                                                        </button>
+                                                    </td>
+                                                    <!-- Below td is for LiftFileRecord edit Workflow-->
+                                                    <td class="text-center"
+                                                        [ngClass]="{'hide-element': gridType ==LFVRecordStatus.IgnoreMatch || gridType ==LFVRecordStatus.Clean || gridType ==LFVRecordStatus.ForcedIgnore || !item.IsAdminUser,
+                                                        'highlight-record': gridType ==LFVRecordStatus.Clean &&!item.IsRecordPushedToExternalApi}">
+                                                        <button type="button"
+                                                                class="btn btn-link" (click)="editLiftFileRecord(item)">
+                                                            <i class="fas fa-edit fs16 " title="Edit Lf Record"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </ng-container>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12 text-right mb25 btn-wrapper" *ngIf="LFVRecordGrid?.length>0">
+                    <div class="row">
+                        <div class="form-group col-sm-12">
+                            <input type="button" class="btn btn-primary" value="Ignore" id="btnForceIgnoreRecords"
+                                   (click)="ValidateForIgnoreMatchProcessing('ignore')"
+                                   *ngIf="gridType==LFVRecordStatus.NoMatch || gridType==LFVRecordStatus.UnMatched" />
+                            <input type="button" class="btn btn-primary" value="ReProcess" id="btnForceReprocessRecords"
+                                   (click)="ValidateForIgnoreMatchProcessing('reprocess')"
+                                   *ngIf="gridType==LFVRecordStatus.Duplicate || gridType==LFVRecordStatus.UnMatched" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- LFV Partial match resolve sidebar  -->
+<ng-sidebar-container>
+    <ng-sidebar [(opened)]="_opened" [animate]="_animate" [position]="_POSITIONS[_positionNum]" style="height: 100vh"
+                class="Lfv-resolve-sidebar">
+        <a (click)="_toggleOpened(false)"><i class="fa fa-close fs18"></i></a>
+        <h3 class="dib ml10 mt10 mb10">Edit BOL Details</h3>
+        <!-- Need to give this sidebar a z-index = 3 for UI issue fix-->
+        <div class="scroll-auto">
+            <div class="well bg-white shadow-b lfrecord-section">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-border no-padding">
+                        <div id="LFrecord" class="table-responsive">
+                            <table id="table-Lfrecord" class="table table-striped table-bordered table-hover lfvrecord">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>BOL#</th>
+                                        <th>Terminal</th>
+                                        <th>Corrected Quantity</th>
+                                        <th>Terminal Item Code</th>
+                                        <th>Load Date</th>
+                                        <th>ProductType</th>
+                                    </tr>
+                                </thead>
+                                <tr>
+                                    <td>{{selectedLiftFileRecord?.bol}}</td>
+                                    <td>{{selectedLiftFileRecord?.TerminalName}}</td>
+                                    <td>{{selectedLiftFileRecord?.correctedQuantity}}</td>
+                                    <td>{{selectedLiftFileRecord?.TerminalItemCode}}</td>
+                                    <td>{{selectedLiftFileRecord?.LoadDate}}</td>
+                                    <td>{{selectedLiftFileRecord?.ProductType}}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div *ngIf="bolResolveForm !=undefined && bolResolveForm !=null">
+                <div class="col-sm-6" *ngIf="InvoiceFtlDetailIdList !=null && InvoiceFtlDetailIdList.length > 0">
+                    <div class="form-group">
+                        <select class="form-control" id="select-bol" (change)="GetBolRecord($event.target.value)">
+                            <option [value]="null">Select BOL-Product to edit </option>
+                            <ng-container *ngFor="let bol Of InvoiceFtlDetailIdList">
+                                <option [value]="bol.Id"
+                                        [selected]="bol.Id == bolResolveForm.get('InvoiceFtlDetailId').value">
+                                    {{bol.Name}}
+                                </option>
+                            </ng-container>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <content class="pr30" *ngIf="bolResolveForm !=undefined && bolResolveForm !=null && bolResolveForm.get('InvoiceFtlDetailId').value >0">
+                <form [formGroup]="bolResolveForm" (ngSubmit)="onSubmit()">
+                    <div>
+                        <div class="col-sm-12 section-bol-details-edit">
+                            <div class="mt10 row">
+                                <div class="col-sm-3 bol">
+                                    <div class="form-group">
+                                        <label for="BolNumber">BOL/LiftTicket#<span class="color-maroon">*</span></label>
+                                        <input formControlName="InvoiceFtlDetailId" type="hidden" class="hide-element">
+                                        <input formControlName="LIftFileRecordId" type="hidden" class="hide-element" />
+                                        <input formControlName="BolNumber" class="form-control" required>
+                                        <div *ngIf="bolResolveForm.get('BolNumber').invalid && (bolResolveForm.get('BolNumber').dirty || bolResolveForm.get('BolNumber').touched)"
+                                             class="color-maroon">
+                                            <div *ngIf="bolResolveForm.get('BolNumber').errors.required">
+                                                BOL/LiftTicket# is required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 lifdt">
+                                    <div class="form-group">
+                                        <label for="LiftDate">Lift Date<span class="color-maroon">*</span></label>
+                                        <input name="LiftDate" class="form-control" formControlName="LiftDate" myDatePicker
+                                               [format]="'MM/DD/YYYY'"
+                                               (onDateChange)="bolResolveForm.get('LiftDate').setValue($event)">
+                                        <div *ngIf="bolResolveForm.get('LiftDate').invalid && (bolResolveForm.get('LiftDate').dirty || bolResolveForm.get('LiftDate').touched)"
+                                             class="color-maroon">
+                                            <div *ngIf="bolResolveForm.get('LiftDate').errors.required">
+                                                Lift Date is required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 grossQty">
+                                    <div class="form-group">
+                                        <label for="GrossQuantity">Gross Quantity<span class="color-maroon">*</span></label>
+                                        <input formControlName="GrossQuantity" class="form-control">
+                                        <div *ngIf="bolResolveForm.get('GrossQuantity').invalid && (bolResolveForm.get('GrossQuantity').dirty || bolResolveForm.get('GrossQuantity').touched)"
+                                             class="color-maroon">
+                                            <div *ngIf="bolResolveForm.get('GrossQuantity').errors.required">
+                                                Gross quantity is required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 netQty">
+                                    <div class="form-group">
+                                        <label for="NetQuantity">Net Quantity<span class="color-maroon">*</span></label>
+                                        <input formControlName="NetQuantity" class="form-control">
+                                        <div *ngIf="bolResolveForm.get('NetQuantity').invalid && (bolResolveForm.get('NetQuantity').dirty || bolResolveForm.get('NetQuantity').touched)"
+                                             class="color-maroon">
+                                            <div *ngIf="bolResolveForm.get('NetQuantity').errors.required">
+                                                Net quantity is required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+
+
+                                <div class="col-sm-6 terminal-section" *ngIf="!bolResolveForm.get('IsBulkPlantLift').value">
+                                    <div class="form-group">
+                                        <label for="Jobs">Terminal Name</label>
+                                        <ng-multiselect-dropdown formControlName="SelectedTerminal"
+                                                                 [placeholder]="'Select Terminal'" 
+                                                                 [settings]="multiselectSettingsById" [data]="TerminalList" [(ngModel)]="SelectedTerminalList">
+                                        </ng-multiselect-dropdown>
+                                        <!-- <select class="form-control"  placeholder="Select Terminal"  >
+                                            <option id="{{item.Id}}" value="{{item.Id}}" *ngFor="let item of TerminalList">{{item.Name}}</option>
+                                          </select> -->
+                                        <div *ngIf="bolResolveForm.get('SelectedTerminal').invalid && (bolResolveForm.get('SelectedTerminal').dirty || bolResolveForm.get('SelectedTerminal').touched)"
+                                             class="color-maroon">
+                                            <div *ngIf="bolResolveForm.get('SelectedTerminal').errors.required">
+                                                Terminal is required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 fuelType">
+                                    <div class="form-group">
+                                        <label for="Jobs">Fuel</label>
+                                        <ng-multiselect-dropdown formControlName="SelectedFuelType"
+                                                                 [placeholder]="'Select Fuel'" 
+                                                                 [settings]="multiselectSettingsById" [data]="FuelTypeList" [(ngModel)]="SelectedFuelTypeList">
+                                        </ng-multiselect-dropdown>
+                                        <!-- <select class="form-control"  placeholder="Select Fuel"  >
+                                            <option id="{{item.Id}}" value="{{item.Id}}" *ngFor="let item of FuelTypeList">{{item.Name}}</option>
+                                          </select> -->
+                                    </div>
+                                    <div *ngIf="bolResolveForm.get('SelectedFuelType').invalid && (bolResolveForm.get('SelectedFuelType').dirty || bolResolveForm.get('SelectedFuelType').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="bolResolveForm.get('SelectedFuelType').errors.required">
+                                            Fuel Type is required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label for="BadgeNumber">Badge#</label>
+                                        <input formControlName="BadgeNumber" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label for="Notes">Notes</label>
+                                        <textarea class="form-control" id="Notes" placeholder="Notes" formControlName="Notes"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="text-right">
+                        <button (click)="_toggleOpened(false)" class="btn btn-lg" type="reset">Cancel</button>
+                        <button class="ml15 btn btn-primary btn-lg" type="submit">Save &Re-Submit</button>
+                    </div>
+                </form>
+            </content>
+        </div>
+
+    </ng-sidebar>
+</ng-sidebar-container>
+
+<!-- LFV Record search output modal -->
+<div id="searchoutputdetailsgrid-modal" class="modal fade" role="dialog" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <!--<h3 class="modal-title" id="counttypeheader"></h3>-->
+                <button type="button" class="close searchoutputdetailsgrid" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="well bg-white shadowb-b">
+                            <div class="ibox mb0">
+                                <div class="ibox-content no-padding no-border">
+                                    <div class="table-responsive">
+                                        <table id="liftfileSearchrecords-datatable" data-gridname="16" datatable [dtOptions]="searchGridDtOptions" [dtTrigger]="searchGridDtTrigger" class="table table-striped table-bordered table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th data-key="CallId">CallID</th>
+                                                    <th data-key="BolNumber">BOL#</th>
+                                                    <th data-key="Terminal">Terminal Code</th>
+                                                    <th data-key="Terminals">Terminal</th>
+                                                    <th data-key="FileName">File Name</th>
+                                                    <th data-key="TerminalITemCode">Terminal Item Code</th>
+                                                    <th data-key="LoadDate">Load Date</th>
+                                                    <th data-key="RecordDate">Record Date</th>
+                                                    <th data-key="CarrierID">CarrierID</th>
+                                                    <th data-key="CarrierName">Carrier Name</th>
+                                                    <th data-key="Status">Status</th>
+                                                    <th data-key="Reason">Reason</th>
+                                                    <th data-key="Reason_Code">Reason Code</th>
+                                                    <th data-key="Reason_Category">Reason Category</th>
+                                                    <th data-key="UserName">Modified By</th>
+                                                    <th data-key="Modified_Date"> Modified Date (MST)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody *ngIf="LiftFilesearchResults?.length > 0">
+                                                <tr *ngFor="let record of LiftFilesearchResults; let i = index">
+                                                    <td> {{record.CallId}}</td>
+                                                    <td>{{record.bol}}</td>
+                                                    <td>
+                                                        {{record.TerminalName}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.Terminals}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.FileName}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.TerminalItemCode}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.LoadDate}}
+                                                    </td>
+                                                    <td> {{record.RecordDate}}</td>
+                                                    <td>
+                                                        {{record.CarrierID}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.CarrierName}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.recordStatus}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.Reason}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.ReasonCode}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.ReasonCategory}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.Username}}
+                                                    </td>
+                                                    <td>
+                                                        {{record.ModifiedDate}}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- LFV Record edit sidebar -->
+<ng-sidebar-container>
+    <ng-sidebar [(opened)]="_EditOpened" [animate]="_EditAnimate" [position]="_POSITIONS[_positionNum]" style="height: 100vh"
+                class="Lfv-edit-sidebar">
+        <a (click)="_EditToggleOpened(false)"><i class="fa fa-close fs18"></i></a>
+        <h3 class="dib ml10 mt10 mb10">Edit Lift File Record </h3>
+        <!-- Need to give this sidebar a z-index = 3 for UI issue fix-->
+        <div class="scroll-auto">
+            <content class="pr30" *ngIf="LFVRecordEditForm !=undefined && LFVRecordEditForm !=null && LfvValidationParameters != undefined && LfvValidationParameters != null">
+                <form [formGroup]="LFVRecordEditForm" (ngSubmit)="onRecordEditSubmit()">
+                    <div class="col-sm-12 section-lfv-record-edit">
+                        <div class="mt10 row">
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="BolNumber">BOL#<span *ngIf="LfvValidationParameters.IsBolReq" class="color-maroon">*</span></label>
+                                    <input formControlName="LIftFileRecordId" type="hidden" class="hide-element" />
+                                    <input formControlName="BolNumber" class="form-control" [readonly]="!LfvValidationParameters.IsBolReq">
+                                    <div *ngIf="LFVRecordEditForm.get('BolNumber').invalid && (LFVRecordEditForm.get('BolNumber').dirty || LFVRecordEditForm.get('BolNumber').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('BolNumber').errors.required">
+                                            BOL# is required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="TerminalCode">Terminal Code<span *ngIf="LfvValidationParameters.IsTerminalCodeReq" class="color-maroon">*</span></label>
+                                    <input formControlName="TerminalCode" class="form-control" [readonly]="!LfvValidationParameters.IsTerminalCodeReq">
+                                    <div *ngIf="LFVRecordEditForm.get('TerminalCode').invalid && (LFVRecordEditForm.get('TerminalCode').dirty || LFVRecordEditForm.get('TerminalCode').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('TerminalCode').errors.required">
+                                            Terminal Code is required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="TerminalItemCode">Terminal Item Code<span *ngIf="LfvValidationParameters.IsTermItemCodeReq" class="color-maroon">*</span></label>
+                                    <input formControlName="TerminalItemCode" class="form-control" [readonly]="!LfvValidationParameters.IsTermItemCodeReq">
+                                    <div *ngIf="LFVRecordEditForm.get('TerminalItemCode').invalid && (LFVRecordEditForm.get('TerminalItemCode').dirty || LFVRecordEditForm.get('TerminalItemCode').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('TerminalItemCode').errors.required">
+                                            Terminal Item Code is required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="CIN">CIN<span *ngIf="LfvValidationParameters.IsCINReq" class="color-maroon">*</span></label>
+                                    <input formControlName="CIN" class="form-control" [readonly]="!LfvValidationParameters.IsCINReq">
+                                    <div *ngIf="LFVRecordEditForm.get('CIN').invalid && (LFVRecordEditForm.get('CIN').dirty || LFVRecordEditForm.get('CIN').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('CIN').errors.required">
+                                            CIN is required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt10 row">
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="CarrierName">Carrier Name<span *ngIf="LfvValidationParameters.IsCarrierNameReq" class="color-maroon">*</span></label>
+                                    <input formControlName="CarrierName" class="form-control" [readonly]="!LfvValidationParameters.IsCarrierNameReq">
+                                    <div *ngIf="LFVRecordEditForm.get('CarrierName').invalid && (LFVRecordEditForm.get('CarrierName').dirty || LFVRecordEditForm.get('CarrierName').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('CarrierName').errors.required">
+                                            Carrier Name is required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="LoadDate">Load Date<span *ngIf="LfvValidationParameters.IsLoadDateReq" class="color-maroon">*</span></label>
+                                    <input name="LoadDate" class="form-control" formControlName="LoadDate" myDatePicker
+                                           [format]="'MM/DD/YYYY'"
+                                           (onDateChange)="LFVRecordEditForm.get('LoadDate').setValue($event)"
+                                           [readonly]="!LfvValidationParameters.IsLoadDateReq">
+                                    <div *ngIf="LFVRecordEditForm.get('LoadDate').invalid && (LFVRecordEditForm.get('LoadDate').dirty || LFVRecordEditForm.get('LoadDate').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('LoadDate').errors.required">
+                                            Load Date is required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="CorrectedQuantity">Corrected Quantity<span *ngIf="LfvValidationParameters.IsCorrectedQtyRes || LfvValidationParameters.IsGrossReq " class="color-maroon">*</span></label>
+                                    <input formControlName="CorrectedQuantity" class="form-control" [readonly]="!LfvValidationParameters.IsCorrectedQtyOrGrossReq">
+                                    <div *ngIf="LFVRecordEditForm.get('CorrectedQuantity').invalid && (LFVRecordEditForm.get('CorrectedQuantity').dirty || LFVRecordEditForm.get('CorrectedQuantity').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('CorrectedQuantity').errors.required">
+                                            Corrected quantity is required.
+                                        </div>
+                                        <div *ngIf="LFVRecordEditForm.get('CorrectedQuantity').errors.pattern">
+                                            Invalid
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="GrossQuantity">Gross Quantity<span *ngIf="LfvValidationParameters.IsGrossReq ||LfvValidationParameters.IsCorrectedQtyRes" class="color-maroon">*</span></label>
+                                    <input formControlName="GrossQuantity" class="form-control" [readonly]="!LfvValidationParameters.IsCorrectedQtyOrGrossReq">
+                                    <div *ngIf="LFVRecordEditForm.get('GrossQuantity').invalid && (LFVRecordEditForm.get('GrossQuantity').dirty || LFVRecordEditForm.get('GrossQuantity').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('GrossQuantity').errors.pattern">
+                                            Invalid
+                                        </div>
+                                        <div *ngIf="LFVRecordEditForm.get('GrossQuantity').errors.required">
+                                            Gross Quantity is required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt10 row">                         
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="ProductType">Product Type</label>
+                                    <input name="ProductType" class="form-control" formControlName="ProductType"
+                                           [readonly]="true">
+                                    <!--<div *ngIf="LFVRecordEditForm.get('ProductType').invalid && (LFVRecordEditForm.get('ProductType').dirty || LFVRecordEditForm.get('ProductType').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('ProductType').errors.required">
+                                            Product Type is required.
+                                        </div>
+                                    </div>-->
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="RecordDate">Record Date</label>
+                                    <input formControlName="RecordDate" class="form-control" [readonly]="true">
+                                    <!--<div *ngIf="LFVRecordEditForm.get('RecordDate').invalid && (LFVRecordEditForm.get('RecordDate').dirty || LFVRecordEditForm.get('RecordDate').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('RecordDate').errors.required">
+                                            Corrected quantity is required.
+                                        </div>
+                                        <div *ngIf="LFVRecordEditForm.get('RecordDate').errors.pattern">
+                                            Invalid
+                                        </div>
+                                    </div>-->
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="CarrierId">CarrierID</label>
+                                    <input formControlName="CarrierId" class="form-control" [readonly]="true">
+                                    <!--<div *ngIf="LFVRecordEditForm.get('CarrierId').invalid && (LFVRecordEditForm.get('CarrierId').dirty || LFVRecordEditForm.get('CarrierId').touched)"
+                                         class="color-maroon">
+                                        <div *ngIf="LFVRecordEditForm.get('CarrierId').errors.pattern">
+                                            Invalid
+                                        </div>
+                                        <div *ngIf="LFVRecordEditForm.get('CarrierId').errors.required">
+                                            Gross Quantity is required.
+                                        </div>
+                                    </div>-->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <button (click)="_EditToggleOpened(false)" class="btn btn-lg" type="reset">Cancel</button>
+                        <button class="ml15 btn btn-primary btn-lg" type="submit">Save &Re-Submit</button>
+                    </div>
+                </form>
+            </content>
+        </div>
+    </ng-sidebar>
+</ng-sidebar-container>
+
+
+<div class="loader" *ngIf="IsLoading">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Loading...</div>
+    </div>
+</div>
+
+
+<!-- trigger ignoreModal -->
+<div type="hidden" id="openIgnoreModal" data-toggle="modal" data-target="#ignoreModal"></div>
+
+<!-- Modal -->
+<div class="modal fade" id="ignoreModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Select Reason</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <ng-multiselect-dropdown [placeholder]="'Select Reason'" [settings]="dropdownSettings"
+                    [data]="reasonList" [(ngModel)]="selectedReason">
+                </ng-multiselect-dropdown>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" (click)="submitIgnoreDescription()"
+                    [disabled]="selectedReason && selectedReason.length==0" data-dismiss="modal">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,93 @@
+﻿@model RegisterViewModel
+
+@{
+    if (Request.QueryString["userRole"] == "SuperAdmin")
+    {
+        ViewBag.Title = "Create Super Admin";
+    }
+    else if (Request.QueryString["userRole"] == "InternalSalesPerson")
+    {
+        ViewBag.Title = "Create Sales Calculator User";
+    }
+    else if (Request.QueryString["userRole"] == "ExternalVendor")
+    {
+        ViewBag.Title = "Create External Vendor";
+    }
+    else if (Request.QueryString["userRole"] == "AccountSpecialist")
+    {
+        ViewBag.Title = "Create Account Specialist";
+    }
+}
+
+@using (Html.BeginForm("Create", "SuperAdmin", new { area = "SuperAdmin" }, FormMethod.Post, new { role = "form" }))
+{
+    @Html.AntiForgeryToken()
+    <div class="col-sm-12">
+        <div class="row well">
+            <div class="col-sm-12">
+                <h4>@Resource.btnLabelCreateNew</h4>
+                <div class="row">
+                    @Html.HiddenFor(m => m.UserRole)
+                    @Html.HiddenFor(m => m.Password)
+                    @Html.HiddenFor(m => m.ConfirmPassword)
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.FirstName)
+                            @Html.TextBoxFor(m => m.FirstName, new { @class = "form-control", autofocus = "autofocus" })
+                            @Html.ValidationMessageFor(m => m.FirstName)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.LastName)
+                            @Html.TextBoxFor(m => m.LastName, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.LastName)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Email)
+                            @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.Email)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.MobileNumber)
+                            @Html.TextBoxFor(m => m.MobileNumber, new { @class = "form-control input-phoneformat phone", onchange = "IsPhoneNumberValid(this.value)" })
+                            @Html.ValidationMessageFor(m => m.MobileNumber)
+                            <div class="color-orange fs12 pt5" id="mobile-validation-msg"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row text-right  mb25">
+        <div class="col-12">
+            <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="window.history.go(-1);" />
+            <input type="submit" class="btn btn-primary btn-lg disable-when-no-partialblock" value="@Resource.btnLabelSave" />
+        </div>
+    </div>
+}
+
+<script type="text/javascript">
+    function IsPhoneNumberValid(phoneNumber) {
+        var new_phoneNumber = phoneNumber.replace(/-|\s/g, "");
+        if (new_phoneNumber != "" && new_phoneNumber.length == 10) {
+            var isPhoneNumberValid = '@Url.Action("IsPhoneNumberValid", "Validation", new { area = "" })' + '?phoneNumber=' + phoneNumber;
+            $.get(isPhoneNumberValid, function (result) {
+                if (!result) {
+                    $("#mobile-validation-msg").html('@Resource.valMessagePhoneNotValid');
+                    $('#@Html.IdFor(m=>m.IsPhoneNumberConfirmed)').val(false);
+                } else {
+                    $("#mobile-validation-msg").html('');
+                    $('#@Html.IdFor(m=>m.IsPhoneNumberConfirmed)').val(true);
+                }
+            });
+        }
+        else {
+            $("#mobile-validation-msg").html('');
+        }
+    }
+</script>

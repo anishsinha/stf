@@ -1,0 +1,459 @@
+<div class="sales-user-dashboard-container">
+<!--Order Entry Form Start-->
+<form [formGroup]="SalesDRForm" >
+<div class="container well accordion"id="entryForm">
+    <div class="loader" *ngIf="IsLoading">
+        <div class="loading-content text-center">
+            <div class="spinner"></div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-11"><div class="well-header"><h4 class="well-title">Order Entry Form</h4></div></div>
+                    <div class="col-1 mt-2 d-flex justify-content-center" *ngIf=!uparrow><i class="fas fa-chevron-down fa-2x arrow" data-toggle="collapse" data-target="#collapseEntryForm" aria-expanded="true" aria-controls="collapseEntryForm" (click)="toggleArrow()"></i></div>
+                    <div class="col-1 mt-2 d-flex justify-content-center" *ngIf=uparrow><i class="fas fa-chevron-up fa-2x arrow" data-toggle="collapse" data-target="#collapseEntryForm" aria-expanded="true" aria-controls="collapseEntryForm" (click)="toggleArrow()"></i></div>
+                </div>
+                <div id="collapseEntryForm" class="collapse show" data-parent="#entryForm">
+                    <div class="row well-header">
+                        <div class="col-sm-4">
+                            <label for="Quantity" class="control-label font-weight-bold">Company Name<span class="color-maroon">*</span></label>
+                            <div class="form-group">
+                                <ng-multiselect-dropdown class="single-select"
+                                                         [placeholder]="'Select Company'"
+                                                         [settings]="CompanySettings"
+                                                         [data]="AllTPOCompaniesList"
+                                                         formControlName="CompanyList"
+                                                         (onSelect)="onCompanySelect($event)"
+                                                         (onDeSelect)="onCompanyDeSelect($event)">
+                                </ng-multiselect-dropdown>
+                                <div *ngIf="formSubmitted && SalesDRForm.controls?.CompanyList?.errors">
+                                    <span class="text-danger"
+                                          *ngIf="SalesDRForm.controls?.CompanyList?.errors?.required">
+                                        Company is required
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="Quantity" class="control-label font-weight-bold">Ship-to Location <span class="color-maroon">*</span></label>
+                            <div class="form-group">
+                                <ng-multiselect-dropdown class="single-select"
+                                                         [placeholder]="'Select Ship-to location'"
+                                                         [settings]="SingleSelectSettingsById"
+                                                         [data]="SiteList"
+                                                         formControlName="SiteList"
+                                                         (onSelect)="onSiteSelect($event)"
+                                                         (onDeSelect)="onSiteDeSelect($event)">
+                                </ng-multiselect-dropdown>
+                                <div *ngIf="formSubmitted && SalesDRForm.controls?.SiteList?.errors">
+                                    <span class="text-danger"
+                                          *ngIf="SalesDRForm.controls?.SiteList?.errors?.required">
+                                        Ship-to location is required
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div formArrayName="AdditionalProducts" *ngFor="let product of AdditionalProducts; let i=index; let isLast = last" class="mx-3">
+                        <div class="row well-header" [formGroupName]="i">
+                            <!--Repeating Row-->
+                            <div class="col-sm-12 addProdTemplate shadow-sm">
+                                <div class="row mt-3">
+                                    <!--Row 1-->
+                                    <div class="form-group col-sm-3">
+                                        <!--Product-->
+                                        <label for="idFuelType" class="control-label font-weight-bold">Product</label>
+                                        <span class="color-maroon">*</span>
+                                        <ng-multiselect-dropdown class="single-select"
+                                                                 formControlName="FuelTypes"
+                                                                 id="FuelTypes"
+                                                                 [placeholder]="'Select Product'"
+                                                                 [settings]="SingleSelectSettingsById" [data]="FuelTypeList">
+                                        </ng-multiselect-dropdown>
+                                        <div *ngIf="formSubmitted && SalesDRForm.controls?.AdditionalProducts?.controls[i]?.controls?.FuelTypes?.errors ? true : false">
+                                            <span class="text-danger"
+                                                  *ngIf="SalesDRForm.controls?.AdditionalProducts?.controls[i]?.controls?.FuelTypes?.errors?.required ? true : false">
+                                                Product is Required.
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group col-sm-3">
+                                        <!--Quantity-->
+                                        <label for="Quantity" class="control-label font-weight-bold">Quantity<span class="color-maroon">*</span></label>
+                                        <input type="text" value='' class="form-control" id="Quantity" placeholder="" formControlName="Quantity">
+                                        <div *ngIf="formSubmitted && SalesDRForm.controls?.AdditionalProducts?.controls[i]?.controls?.Quantity?.errors ? true : false">
+                                            <span class="text-danger"
+                                                  *ngIf="SalesDRForm.controls?.AdditionalProducts?.controls[i]?.controls?.Quantity?.errors?.required ? true : false">
+                                                Quantity is required
+                                            </span>
+                                            <span class="text-danger"
+                                                  *ngIf="SalesDRForm.controls?.AdditionalProducts?.controls[i]?.controls.Quantity?.errors?.pattern ? true : false">
+                                                Quantity is Invalid
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group col-sm-3">
+                                        <!--UoM-->
+                                        <label for="idUoM" class="control-label font-weight-bold">UoM<span class="color-maroon">*</span></label>
+                                        <select class="form-control" id="idUoM"
+                                                formControlName="UoM">
+                                            <option value="1">Gallons</option>
+                                            <option value="2">Litres</option>
+                                            <option value="3">Barrels</option>
+                                            <option value="4">MetricTons</option>
+                                        </select>
+                                        <div *ngIf="formSubmitted && SalesDRForm.controls?.AdditionalProducts?.controls[i]?.controls?.UoM?.errors ? true : false">
+                                            <span class="text-danger"
+                                                  *ngIf="SalesDRForm.controls?.AdditionalProducts?.controls[i]?.controls?.UoM?.errors?.required ? true : false">
+                                                UoM is required
+                                            </span>
+                                        </div>
+                                    </div><!--End of UoM-->
+                                    <div class="col-sm-3 form-group">
+                                        <!--DR-PO#-->
+                                        <label for="DR_PO" class="control-label font-weight-bold">Delivery Level PO#</label>
+                                        <input type="text" value='' class="form-control" id="DR_PO" placeholder="" formControlName="DRPO">
+                                        <!-- Uncomment Below for Required Validations -->
+                                        <!-- <div *ngIf="formSubmited && SalesDRForm.controls.AdditionalProducts[i].controls.DRPO.errors">
+                                <span class="text-danger"
+                                      *ngIf="SalesDRForm.controls.AdditionalProducts[i].controls.DRPO.errors?.required">
+                                      DR-PO# is required
+                                </span>
+                            </div> -->
+                                    </div>
+                                </div><!--End of Row 1-->
+
+                                <div class="row">
+                                    <!--Row 2-->
+                                    <div class="form-group col-sm-3 col-md-2">
+                                        <label class="font-weight-bold">Start Date <!-- <span class="color-maroon">*</span> --></label>
+                                        <input type="text" formControlName="StartDate" class="form-control datepicker"
+                                               placeholder="Start Date" myDatePicker [format]="'MM/DD/YYYY'"
+                                               [maxDate]="maxDate" [minDate]="minDate"
+                                               (onDateChange)="SetStartDate($event, i)" autocomplete="off" />
+                                        <!--  <div *ngIf="formSubmited && SalesDRForm.controls.AdditionalProducts[i].controls.StartDate.invalid && SalesDRForm.controls.AdditionalProducts[i].controls.StartDate.touched" class="color-maroon">
+                                <div *ngIf="SalesDRForm.controls.AdditionalProducts[i].controls.StartDate.errors.required">
+                                    Required.
+                                </div>
+                            </div> -->
+
+                                    </div>
+
+                                    <div class="col-sm-3 col-md-2 form-group">
+                                        <label for="idStartTime" class="font-weight-bold">Start Time</label>
+                                        <input type="text" class="form-control timepicker"
+                                               formControlName="StartTime" myTimePicker [format]="'hh:mm A'"
+                                               placeholder="Start Time"
+                                               (onTimeChange)="SetStartTime($event, i)" autocomplete="off" />
+                                    </div>
+                                    <div class="col-sm-3 col-md-2 form-group">
+                                        <label for="idEndTime" class="font-weight-bold">End Time</label>
+                                        <input type="text" class="form-control timepicker"
+                                               formControlName="EndTime" myTimePicker [format]="'hh:mm A'"
+                                               placeholder="End Time"
+                                               (onTimeChange)="SetEndTime($event, i)" autocomplete="off" />
+                                    </div>
+                                </div><!--End of Row 2-->
+                                <div class="row">
+                                    <div class="col-sm-12 form-group">
+                                        <a class="float-right" *ngIf="i > 0">
+                                            <i class="fa fa-trash-alt text-danger" data-toggle="tooltip" data-placement="right" title="Remove" (click)="removeProduct(i)"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!--End of Repeating Row-->
+                    </div>
+                    <div class="row well-header">
+                        <!-- Add Product Row-->
+                        <div class="col-sm-4">
+                            <a class="add-partial-block" (click)="addProducts()">
+                                <i class="fas fa-plus-circle"></i>
+                                Add Product
+                            </a>
+                        </div>
+                    </div> <!--End of Add Product Row-->
+                    <div class="row well-header">
+                        <!--DRNotes Row-->
+                        <div class="form-group col-sm-3">
+                            <label for="DRNotes" class="font-weight-bold">DR Notes</label>
+                            <textarea name="DRNotes" id="DRNotes" cols="30" rows="2" formControlName="DRNotes"></textarea>
+                        </div>
+                    </div><!--End of DRNotes Row-->
+
+                    <div class="row">
+                        <!--Clear and Submit Buttons-->
+                        <div class="col-sm-12 text-right">
+                            <div class="container form-group">
+                                <input type="button" value="Clear" class="btn" (click)="clearSalesDRForm()" data-toggle="modal" data-target="#validateModal">&nbsp;&nbsp;
+                                <input id="Submit" type="button" value="Submit" (click)="onValidate()"
+                                       class="btn btn-lg btn-primary btnSubmit">
+                            </div>
+                        </div>
+                    </div><!--End of Clear and Submit Buttons-->
+                </div>
+            </div>
+    </div>
+</div>
+
+</form>
+<!--Order Entry Form End-->
+
+<!--Order Entry Form Validations-->
+<div class="container p-0">
+    <div class="container well">
+        <div class="loader" *ngIf="IsLoading">
+            <div class="loading-content text-center">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="modal fade" id="validateModal" tabindex="-1" [ngClass]="{'show': showModal}">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="col-sm-8 text-left ">
+                                <h4 class="modal-title pull-left p-0"><b>Preview</b></h4>
+                            </div>
+                            <div class="col-sm-4 text-right">
+                                <button class="close pull-right" data-dismiss="modal" (click)="showModal = false">&times;</button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="row form-group" *ngIf="salesDrModel != undefined && ((salesDrModel | json) != '{}')  ">
+                                <div class="col-sm-4">
+                                    <h5 class="font-800">Customer Company</h5>
+                                    <div><span>{{salesDrModel.CompanyName}}</span></div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <h5 class="font-800">Location Name</h5>
+                                    <div><span>{{salesDrModel.JobName}}</span></div>
+                                </div>
+                            </div>
+
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Quantity</th>
+                                        <th>Delivery Date</th>
+                                        <th>Delivery Window</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody *ngIf="ProductStatuses != undefined && ProductStatuses.length > 0">
+                                    <tr *ngFor="let prodStatus of ProductStatuses">
+                                        <td>{{prodStatus.Product.FuelName}}</td>
+                                        <td>{{prodStatus.Product.Quantity}} &nbsp; {{ GetUoMString(prodStatus.Product.UoM) }}</td>
+                                        <td>{{prodStatus.Product.StartDate}}</td>
+                                        <td>{{prodStatus.Product.StartTime}} - {{prodStatus.Product.EndTime}}</td>
+                                        <td class="text-center"><span class="dot tooltip-dot" [ngStyle]="{backgroundColor: getBGColor(prodStatus)}" placement="bottom" container="body" ngbTooltip="{{GetToolTip(prodStatus)}}"></span></td>
+                                    </tr>   
+                                </tbody>
+                            </table>
+
+                            <div class="row form-group">
+                                <div class="col-sm-12">
+                                    <p class="font-weight-bold my-2">DR Notes</p>
+                                    <div>{{salesDrModel.DRNotes}}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <div class="col-sm-12 text-right pull-right pr-0">
+                                <button class="btn btn-clear" data-dismiss="modal" (click)="showModal = false">Back</button>
+                                <button class="btn btn-primary" (click)="onSubmit()" [disabled]="isConfirmDisabled">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--End of Order Entry Form Validations-->
+
+
+    <div class="row">
+        <div class="col-12 col-lg-6">
+            <div class="well">
+                <div class="well-header">
+                    <div class="row">
+                        <div class="col-sm-9 form-row align-items-center">
+                            <div class="d-inline-block">
+                                <h4 class="well-title">Sourcing Request</h4>
+                            </div>
+                        </div>
+                        <div class="col-sm-3 form-row align-items-center flex-row-reverse pr0">
+                            <button class="btn btn-outline btn-primary btn-rnd fs11" (click)="navigateToSourcing()">View More</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="well-body  padding-8">
+                    <div class="table-wrapper">
+                        <!-- <div class="pa top0 bg-white left0 z-index5 loading-wrapper">
+                            <span class="spinner-dashboard pa"></span>
+                        </div> -->
+                        <table  class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th >Request #</th>
+                                    <th >Location</th>
+                                    <th >Fuel Type</th>
+                                    <th >Quantity</th>
+                                    <th >Pricing</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let item of Sourcingrequests">
+                                    <td>{{item.RequestNumber}}</td>
+                                    <td>{{item.JobName}} </td>
+                                    <td>{{item.FuelType }}</td>
+                                    <td>{{item.Quantity}}</td>
+                                    <td>{{item.Pricing}}</td>                  
+                                </tr>
+                                <tr *ngIf="Sourcingrequests && Sourcingrequests.length==0">
+                                    <td colspan="5">
+                                        <div class="row align-items-center" style="height: 175px;">
+                                            <div class="col-12 align-items-center text-center">
+                                                <i class="fab fa-searchengin fa-5x"></i>
+                                                <h4>No Data Found</h4>
+                                            </div>
+                                        </div>
+                                     </td>  
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="well">
+                <div class="well-header">
+                    <div class="row">
+                        <div class="col-sm-9 form-row align-items-center">
+                            <div class="d-inline-block">
+                                <h4 class="well-title">Orders</h4>
+                            </div>
+                        </div>
+                        <div class="col-sm-3 form-row align-items-center flex-row-reverse pr0">
+                            <button class="btn btn-outline btn-primary btn-rnd fs11" (click)="navigateToOrders()">View More</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="well-body  padding-8">
+                    <div class="table-wrapper">
+                        <table  class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th >PO #</th>
+                                    <th >Location Name</th>
+                                    <th >Customer</th>
+                                    <th >Fuel Type</th>
+                                    <th >Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <ng-container>
+                                    <tr *ngFor="let item of orders">
+                                    <td>{{item.PoNumber}}</td>
+                                    <td>{{item.JobName}} </td>
+                                    <td>{{item.Customer }}</td>
+                                    <td>{{item.FuelType}}</td>
+                                    <td>{{item.Quantity}}</td>         
+                                    </tr>
+                                    <tr *ngIf="orders && orders.length==0">
+                                        <td colspan="5">
+                                            <div class="row align-items-center" style="height: 175px;">
+                                                <div class="col-12 align-items-center text-center">
+                                                    <i class="fab fa-searchengin fa-5x"></i>
+                                                    <h4>No Data Found</h4>
+                                                </div>
+                                            </div>
+                                         </td>  
+                                    </tr>
+                                </ng-container>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+   
+    </div>
+    <div class="row">
+        <div class="col-12 col-lg-6">
+            <div class="well">
+                <div class="well-header">
+                    <div class="row">
+                        <div class="col-sm-9 form-row align-items-center">
+                            <div class="d-inline-block">
+                                <h4 class="well-title">{{ (activeInvoiceDDTTab==6)? 'DDTs' : 'Invoices' }}</h4>
+                            </div>
+                            <div class="dib border radius-capsule shadow-b ml20">
+                                <div class="btn-group btn-filter">
+                                    <input class="hide-element" type="radio" [name]="'activeInvoiceDDTTab'" [value]="0" [checked]="activeInvoiceDDTTab==0">
+                                    <label class="btn ml0" (click)="changeActiveTab(0)">Invoices</label>
+                                    <input class="hide-element" type="radio" [name]="'activeInvoiceDDTTab'" [value]="6" [checked]="activeInvoiceDDTTab==6">
+                                    <label class="btn" (click)="changeActiveTab(6)">DDTs</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3 form-row align-items-center flex-row-reverse pr0">
+                            <button class="btn btn-outline btn-primary btn-rnd fs11" (click)="navigateToInvoice()">View More</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="well-body  padding-8">
+                    <div class="table-wrapper">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>InvoiceNumber #</th>
+                                    <th>PoNumber</th>
+                                    <th>SourcingRequest</th>
+                                    <th>DropDate</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <ng-container>
+                                    <tr *ngFor="let item of Invoices">
+                                        <td>{{item.InvoiceNumber}}</td>
+                                        <td>{{item.PoNumber}} </td>
+                                        <td>{{item.SourcingRequest }}</td>
+                                        <td>{{item.DropDate}}</td>
+                                        <td>
+                                            <span class="badge badge-pill badge-primary" [ngClass]="{'badge-success': item?.Status=='Received','badge-danger': item?.Status=='Rejected','badge-warning': item?.Status.length>8 }"
+                                                  placement="left"
+                                                  ngbTooltip="{{item?.Status}}">
+                                                {{ (item?.Status.length>8)? (item?.Status | slice:0:8)+'..':(item?.Status) }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr *ngIf="Invoices && Invoices.length==0">
+                                        <td colspan="5">
+                                            <div class="row align-items-center" style="height: 175px;">
+                                                <div class="col-12 align-items-center text-center">
+                                                    <i class="fab fa-searchengin fa-5x"></i>
+                                                    <h4>No Data Found</h4>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </ng-container>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

@@ -1,0 +1,310 @@
+<div id="CarrierToggleId" class="mt10">
+    <ng-sidebar-container>
+        <ng-sidebar [(opened)]="_opened" [animate]="_animate" [position]="_POSITIONS[_positionNum]" style="height: 100vh">
+            <a (click)="_toggleOpened(false)"><i class="fa fa-close fs18"></i></a>
+            <h3 *ngIf="isUpdate; else editTitle" class="dib ml10 mt10 mb0">Edit Carrier</h3>
+            <ng-template #editTitle>
+                <h3 class="dib ml10 mt10 mb0">Assign Carrier</h3>
+                <div class="alert alert-warning fs11 pt5 pl10 pr10 pb5 mb5">Order(s)/DR(s) created for those locations will be sent to respective email(s)</div>
+            </ng-template>
+            <div *ngIf="isUpdate && IsJobDeselect">
+                <div class="alert alert-warning fs11 pt5 pl10 pr10 pb5 mb5">{{ WarningMessage }}</div>
+            </div>
+            <div class="pa bg-white z-index5 loading-wrapper" *ngIf="IsSuccess">
+                <span class='spinner-dashboard pa'></span>
+            </div>
+            <div class="row mt10">
+                <div class="col-sm-4 text-left">
+                    <div class="form-group">
+                        <label class="fs16 font-weight-500" *ngIf="!isUpdate" for="formGroupExampleInput">Carrier</label>
+                        <ng-multiselect-dropdown *ngIf="!isUpdate" class="single-select" id="formGroupExampleInput" [(ngModel)]="selectedCarrierItem"
+                                                 [placeholder]="'Select Carrier'" 
+                                                 [settings]="dropdownSettings" [data]="carrierList" (onSelect)="OnCarrierSelect($event)"
+                                                 (onDeSelect)="OnCarrierDeSelect($event)">
+                        </ng-multiselect-dropdown>
+                        <div class="fs16 font-weight-500" *ngIf="isUpdate">{{SelectedCarrier.Name}}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="dual-list list-left col-4">
+                    <div class="well text-right">
+                        <div class="row">
+                            <div class="col-sm-12 text-left">
+                                <h4>Available Location(s)</h4>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-9">
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1"><i class="fa fa-search"></i></span>
+                                    </div>
+                                    <input type="text" name="searchAvailableJob" [(ngModel)]="list1Search" class="form-control" placeholder="search" />
+                                </div>
+                            </div>
+                            <div class="col-sm-1">
+                                <h5>Count</h5>
+                                <div class="text-center">
+                                    {{SelectedCount}}
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="btn-group float-left form-control chk-custom-all" data-toggle="tooltip" data-placement="top" title="Select All">
+                                    <!-- <a class="btn btn-default selector" title="select all"><i class="glyphicon glyphicon-unchecked"></i></a>-->
+                                    <div class="form-check form-check-inline mt4">
+                                        <input class="form-check-input" type="checkbox" [(ngModel)]="availableJobSelectAll" name="availableJobSelectAll" id="ckb-list1-SelectAll" value="selectAll" (change)="toogleSelectAll('availableJob', $event.target.checked)">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <ul class="list-group">
+                            <li class="list-group-item" [ngClass]="{'active':availableJob.Job.IsSelected}" *ngFor="let availableJob of availableJobs | startsWithJob : list1Search" (click)="toggleSelect(availableJob);"> {{availableJob.Job.Name}}</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="list-arrows col-sm-1 text-center">
+                    <button class="btn btn-default btn-sm move-left"  title="Shift to Left" (click)="moveToLeft()">
+                        <span class="glyphicon glyphicon-chevron-left"></span>
+                    </button>
+                    
+                    <button class="btn btn-default btn-sm move-right" title="Shift to Right" (click)="moveToRight()" >
+                        <span class="glyphicon glyphicon-chevron-right"></span>
+                    </button>
+                </div>
+                <div class="dual-list list-right col-7">
+                    <div class="well">
+                        <div class="row">
+                            <div class="col-sm-12 text-left">
+                                <h4>Assigned Location(s)</h4>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-9">
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1"><i class="fa fa-search"></i></span>
+                                    </div>
+                                    <input type="text" name="searchAvailableJob" [(ngModel)]="list2Search" class="form-control" placeholder="search" />                                  <!--<input type="text" name="searchAssignedJob" [(ngModel)]="list2Search" class="form-control" placeholder="search" />-->
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="btn-group float-left form-control chk-custom-all" data-toggle="tooltip" data-placement="top" title="Select All">
+                                    <!-- <a class="btn btn-default selector" title="select all" (click)="toogleSelectAll('jobs2')"><i class="glyphicon glyphicon-unchecked"></i></a>-->
+                                    <div class="form-check form-check-inline mt4">
+                                        <input class="form-check-input" type="checkbox" [(ngModel)]="assginedJobSelectAll" name="assginedJobSelectAll" id="ckb-list2-SelectAll" value="selectAll" (change)="toogleSelectAll('assignedJob', $event.target.checked)">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <ul class="list-group">
+                            <li class="list-group-item" [ngClass]="{'active':assignedJob.Job.IsSelected}" *ngFor="let assignedJob of assignedJobs | startsWithJob : list2Search ">
+                                <div class="row">
+                                    <div class="col-4" (click)="toggleSelect(assignedJob);">
+                                        <span>{{assignedJob.Job.Name}}</span>
+                                    </div>
+                                    <div class="col-7  trncate-text text-right">
+                                        <span *ngIf="assignedJob.Job.Emails">
+                                            <ng-container *ngFor="let item of assignedJob.Job.Emails; let isLast=last">
+                                                {{item.Name}}{{isLast ? '' : ', '}}
+                                            </ng-container>
+                                        </span>
+                                    </div>
+                                    <div class="col-1 text-right">
+                                        <a href="javascript:void(0);" id="edit-email" data-toggle="modal" data-target="#add-edit-email" (click)="editEmail($event,assignedJob);"><i class="fa fa-edit ml10" data-toggle="tooltip" data-placement="top" title="Edit Email"></i> </a>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt15">
+                <div class="col-sm-12 text-right">
+                    <button (click)="_toggleOpened(false)" class="btn btn-lg" type="reset">Cancel</button>
+                    <button class="ml15 btn btn-primary btn-lg" (click)="SaveCarrier()" type="submit">Save</button>
+                    <button #btnOpenModal id="openfreightOrderModel" type="button" [hidden]="true" data-toggle="modal"
+                            data-target="#createFreightOrderModel"></button>
+                </div>
+            </div>
+        </ng-sidebar>
+    </ng-sidebar-container>
+
+    <!--sidebar for region creation-->
+    <div class="row mt5 mb10">
+        <div class="col-sm-9">
+            <h4 class="pt0 pull-left">Assigned Carriers</h4>
+            <a id="assignNewCarrier" (click)="assignNewForm();" class="fs18 pull-left ml20">
+                <i class="fa fa-plus-circle fs18 mt4 pull-left"></i><span class="fs14 mt2 pull-left">Assign New</span>
+            </a>
+        </div>
+        <!--<div class="col-sm-3">
+            <input type="text" id="searchCarrier" class="form-control input" placeholder="Search Carriers" [(ngModel)]="query">
+        </div>-->
+        <div class="col-sm-3 text-right">
+            <a id="BulkUpload" data-toggle="modal" (click)="bulkUpload()" data-target="#upload-carrier-csv" class="fs18 float-right ml20">
+                <i class="fa fa-download fs18 mt4 pull-left"></i><span class="fs14 mt2 pull-left">Bulk Upload</span>
+            </a>
+        </div>
+    </div>
+    <div class="row pr" id="assignCarrierDetails">
+        <div class="pa bg-white z-index5 loading-wrapper left0 top0" *ngIf="IsLoading">
+            <span class="spinner-dashboard pa"></span>
+        </div>
+        <div class="col-sm-12">
+            <div class="well bg-white shadowb-b">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-padding no-border">
+                        <div id="carrierjobassignment-grid" class="table-responsive">
+                            <table id="carrier-datatable" class="table table-bordered table-hover" datatable [dtOptions]="dtOptions" [dtTrigger]="dtTrigger">
+                                <thead>
+                                    <tr>
+                                        <th>Carrier Name</th>
+                                        <th>Locations</th>
+                                        <th>No. of Locations Assigned</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let carrier of assignedCarrierList">
+                                        <!--<td>{{carrier.CarrierCompanyName}}</td>
+                                        <td>{{carrier.AssignedLocations}}</td>
+                                        <td>{{carrier.LocationCount}}</td>-->
+                                        <td>{{carrier.Carrier.Name}}</td>
+                                        <td>{{carrier.assignedLocations}}</td>
+                                        <td>{{carrier.Jobs.length}}</td>
+                                        <td class="text-center">
+                                            <button (click)="editForm(carrier)" type="button" class="btn btn-link"><i class="fas fa-edit fs16"></i></button>
+                                            <a class="fa fa-trash-alt color-maroon ml10 mr15" mwlConfirmationPopover
+                                               [popoverTitle]="popoverTitle" [popoverMessage]="popoverMessage" placement="left"
+                                               (cancel)="cancelClicked = true" (confirm)="removeAssignedCarrier(carrier)"></a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--freight order confimation modal-->
+    <div class="modal fade" id="createFreightOrderModel" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog modal-sm" role="document">
+
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="pa bg-white z-index5 loading-wrapper" *ngIf="IsDisplayLoader">
+                        <span class='spinner-dashboard pa'></span>
+                    </div>
+                    <div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">Pass Order</h4>
+                        <button #btnCloseModal type="button" class="close color-grey pull-right pa" data-dismiss="modal"
+                                aria-label="Close">
+                            <i class="fa fa-close fs21"></i>
+                        </button>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12 mt10">
+                            Do you want to pass the existing Order(s) to the assigned carrier?
+                        </div>
+                    </div>
+                    <div class=row>
+                        <div class="col-sm-12 text-right mt10">
+                            <button type="button" id="btnDismissCreateFreightOrder" class="btn btn-lg"
+                                    (click)="IscreateFreightOrders(false)">
+                                No
+                            </button>
+                            <button type="button" id="btnCreateFreightOrder" class="btn btn-lg btn-primary"
+                                    (click)="IscreateFreightOrders(true)">
+                                Yes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="upload-carrier-csv" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog " role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">Carrier CSV</h4>
+                        <button  #btnCloseBulkModal type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">&times;</span></button>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <span class="fa fa-download mr10 mt10"></span>
+                            <a href="/Content/Bulk_upload_template_Carrier_Assignment.csv" class="mb5 btn-download">Download Template</a>
+                        </div>
+                    </div>
+                    <div class="row mt10">
+                        <div class="col-md-12 b-dashed">
+                            <h2>
+                                <label for="csvFile" class="btn btn-primary ml0">
+                                    <input id="csvFile" name="csvFile" [(ngModel)]="selectedFile" (change)="onFileChange($event)" class="bulkElements full-width" type="file" accept=".csv" />
+                                </label>
+                            </h2>
+                            <div class="alert alert-warning fs12">
+                                Note : Please use the .csv template for uploading your Carrier details. Follow the required and optional field guidelines.
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="form-group">
+                                        <label for="selectInputEmail1" class="d-block">
+                                            *
+                                            Do you want to pass the existing Order(s) to the assigned carrier?
+                                        </label>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="inlineRadioOptions" [(ngModel)]="IsCreateFreightOrder" id="inlineRadio1" value="1">
+                                            <label class="form-check-label" for="inlineRadio1">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="inlineRadioOptions" [(ngModel)]="IsCreateFreightOrder" id="inlineRadio2" value="0">
+                                            <label class="form-check-label" for="inlineRadio2">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 text-right pb0 fs12">
+                                    <input type="submit" [disabled]="IsCreateFreightOrder == null" value="Upload" class="btn btn-primary bulkElements" (click)="onFileUpload()" id="uploadBulkCarrier" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="add-edit-email" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header modal-header pt5 pb0">
+                    <h4 class="float-left">Add/Edit Email</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12 b-dashed">
+                            <div class="form-group">
+                                <label for="selectInputEmail1">Select Email </label>
+                                <ng-multiselect-dropdown id="selectInputEmail1" [placeholder]="'Select Email'" [(ngModel)]="editEmailDetails" [settings]="multiDropdownSettings" [data]="getCarrierEmailsById()"> </ng-multiselect-dropdown>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!-- <input type="submit" value="Save" class="btn btn-primary bulkElements" (click)="onFileUpload()" id="uploadBulkCarrier" />-->
+                    <button type="button" (click)="SaveJobEmail()" data-dismiss="modal" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

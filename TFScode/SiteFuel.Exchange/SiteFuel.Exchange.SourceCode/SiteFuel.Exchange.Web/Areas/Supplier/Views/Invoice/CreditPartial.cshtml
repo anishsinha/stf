@@ -1,0 +1,324 @@
+﻿@model ManualInvoiceViewModel
+@{
+    ViewBag.Title = "Partial Credit Invoice";
+}
+@using (Html.BeginForm("CreditPartial", "Invoice", new { area = "Supplier", orderId = Model.OrderId }, FormMethod.Post, new { enctype = "multipart/form-data", @class = "partial-credit-invoice" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.InvoiceTypeId)
+    @Html.HiddenFor(m => m.PoNumber)
+    @Html.HiddenFor(m => m.StatusId)
+    @Html.HiddenFor(m => m.SignatureId)
+    @Html.HiddenFor(m => m.OrderId)
+    @Html.HiddenFor(m => m.DisplayInvoiceNumber)
+    @Html.HiddenFor(m => m.IsFTL)
+    @Html.HiddenFor(m => m.IsQuanityOrDateChanged)
+    @Html.HiddenFor(m => m.SplitLoadChainId)
+    @Html.HiddenFor(m => m.TerminalName)
+    @Html.HiddenFor(m => m.CityGroupTerminalId)
+    @Html.HiddenFor(m => m.TerminalId)
+    @Html.HiddenFor(m => m.CityGroupTerminalName)
+    @Html.HiddenFor(m => m.InvoiceHeaderId)
+    @Html.PartialFor("_PartialCreditPartialInvoice", m => m)
+
+    <div class="row text-right">
+        <div class="col-sm-2"></div>
+        <div class="col-sm-10 text-right form-buttons">
+            <input class="btn" type="button" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Details", "Invoice", new { area = "Supplier", id = Model.InvoiceId })'" />
+            <input class="btn btn-lg btn-primary form-submit" type="button" value="@Resource.btnLabelSubmit" onclick="return submitForm(false);" />
+            @if (Model.StatusId == (int)InvoiceStatus.Draft)
+            {
+                <input class="btn btn-lg btn-primary form-submit" type="button" value="@Resource.btnLabelSave" onclick="return submitForm(true);" />
+            }
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    @*<script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>*@
+    @*@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/address-goecoder")*@
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Invoice")
+    <script type="text/javascript">
+
+        var mapsApiKey = '@SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleApiKey';
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+
+        var stateId = @(Model.DropAddress != null ? @Model.DropAddress.State.Id : 0); // for state autofill
+
+        var CollectionName = "Assets";
+		var assetsFromModel =  @Html.Raw(Json.Encode(Model.Assets));
+        var fuelRemaining = '@(Model.FuelRemaining + Model.ZeroGallonAllowedFuelDropped)';
+        var originalFuelDropped = $("#@Html.IdFor(m => m.ZeroGallonAllowedFuelDropped)").val();
+        var originalDropDate = $("#DeliveryDate").val();
+
+        ShowFtlInvoiceElements();
+
+        function ShowFtlInvoiceElements() {
+            if ('@Model.IsFTL' == 'True') {
+                $('.show-in-invoice').show();
+            }
+        }
+
+        $('#@Html.IdFor(m=>m.ZeroGallonAllowedFuelDropped)').on("input, change", function () {
+            if (parseFloat(fuelRemaining) < parseFloat($('#@Html.IdFor(m=>m.ZeroGallonAllowedFuelDropped)').val())) {
+                $("#valFuelDropped").addClass('show-element').removeClass('hide-element');
+            }
+            else {
+                $("#valFuelDropped").addClass('hide-element').removeClass('show-element');
+            }
+            calculateSurcharge();
+        });
+
+        $('.surchargePercentage').on("input, change", function () {
+            calculateSurcharge();
+        });
+
+        $('.surchargeDistance').on("input, change", function () {
+            calculateSurcharge();
+        });
+
+        function calculateSurcharge() {
+            var isbyDistance = '@Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.IsFeeByDistance';
+            if (isbyDistance == 'True') {
+                var distance = parseFloat($('.surchargeDistance').val());
+                if (distance > 0)
+                    SetDistanceBasedFreightCost(distance);
+            }
+            var surchargePartial = (parseFloat($('.surchargePercentage').val()) / 100) * parseFloat($('.surchargeFreightCost').val());
+            var surchargeQty = parseFloat($('#ZeroGallonAllowedFuelDropped').val());
+            var surchargeFee = surchargePartial.toFixed(4) * surchargeQty;
+            if (surchargeFee > 0)
+                $('.totalFuelSurchargeFee').val(surchargeFee.toFixed(4));
+        }
+
+        var surchargeFeeByQty;
+        $(document).ready(function () {
+
+            $("select.entity-select").change(function () {
+                var targetElement = $(this).children("option:selected");
+                var targetSection = $(targetElement).attr("data-target");
+                if (targetSection != undefined) {
+                    $(targetElement).hide();
+                    $(this).closest(".trigger-container").find('#' + targetSection).show().removeClass("hide-element");
+                    $(this)[0].selectedIndex = 0;
+
+                    var qtyInput = $(this).closest(".trigger-container").find('#' + targetSection).find('.dropquantity');
+                    if (qtyInput != undefined && qtyInput != NaN & qtyInput.length > 0) {
+                        var originalQty = $(this).closest(".trigger-container").find('#' + targetSection).find('.original-qty');
+                        //qtyInput.val(originalQty.val());
+                        qtyInput.trigger('keyup');
+                    }
+                    UpdateTotalCreditAmount();
+                }
+            });
+
+            $('.delete-record').click(function () {
+                $(this).closest('.credit-entity').hide().addClass("hide-element");
+                var qtyInput = $(this).closest('.credit-entity').find('.dropquantity');
+
+                if (qtyInput != undefined && qtyInput != NaN & qtyInput.length > 0) {
+                    //qtyInput.val(0);
+                    qtyInput.trigger('keyup');
+                }
+
+                var divId = $(this).closest(".credit-entity").attr("id");
+                $("select.entity-select").find("[data-target='" + divId + "']").show();
+
+                UpdateTotalCreditAmount();
+            });
+
+            $('.delete-tr').click(function () {
+                $(this).closest('tr').hide().addClass("hide-element");
+                var divId = $(this).closest("tr").attr("id");
+                $("select.entity-select").find("[data-target='" + divId + "']").show();
+                UpdateTotalCreditAmount();
+            });
+
+            $(".submit-credit-invoice").click(function () {
+                $('.section').find('.hide-element').remove();
+            });
+
+             surchargeFeeByQty = JSON.parse('@Html.Raw(Json.Encode(Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.DeliveryFeeByQuantity.ToList()))');
+             $('input:radio[name="@Html.NameFor(m => m.TaxType)"][value="Manual"]').prop("checked", true).trigger('click');
+             $('.tax-type-radio').hide();
+             $('.tax-type-radio').addClass('subSectionOpacity');
+        });
+
+        function SetDistanceBasedFreightCost(distance) {
+            var exactFee = surchargeFeeByQty.find(x => x.MinQuantity <= distance && x.MaxQuantity >= distance);
+            if (exactFee != undefined)
+                $('.surchargeFreightCost').val(exactFee.Fee);
+            else {
+                exactFee = surchargeFeeByQty[surchargeFeeByQty.length - 1];
+                if (exactFee != undefined)
+                    $('.surchargeFreightCost').val(exactFee.Fee);
+                else
+                    $('.surchargeFreightCost').val(0);
+                //set message as cost not available for this distance
+            }
+        }
+
+        $(document).on("change", ".ftl-drop-input", function () {
+            setStandartTax();
+        });
+
+		$('#SelectedAssets').change(function (e) {
+			var newAssets = [];
+			$(this).find('option:selected').each(function () {
+				newAssets.push({ id: $(this).data('id'), jobxAssetId: $(this).data('jobxassetid') });
+			});
+			var existingAssets = [];
+			var existingAssetBlocks = $('#asset-drops .partial-block');
+			existingAssetBlocks.each(function () {
+				existingAssets.push({ id: $(this).find('[id$="_Id"]').val(), jobxAssetId: $(this).find('[id$="_JobXAssetId"]').val() });
+            });
+			for (var i = 0; i < existingAssetBlocks.length; i++) {
+				var mappingId = $(existingAssetBlocks[i]).find('[id$="_Id"]').val();
+                var jobxAssetId = $(existingAssetBlocks[i]).find('[id$="_JobXAssetId"]').val();
+                var assetDropGallons = parseInt($(existingAssetBlocks[i]).closest('.partial-block').find('[id$="_DropGallons"]').val()) || 0;
+                var totalDroppedGallons = parseInt($("#@Html.IdFor(m=> m.ZeroGallonAllowedFuelDropped)").val()) || 0;
+				if (jobxAssetId > 0 && $.grep(newAssets, function (key, value) {
+					return key.id == mappingId && key.jobxAssetId == jobxAssetId
+                }).length == 0) {
+                    if (totalDroppedGallons > assetDropGallons) {
+                        $("#@Html.IdFor(m=> m.ZeroGallonAllowedFuelDropped)").val(totalDroppedGallons - assetDropGallons);
+                    }
+                    else {
+                        $("#@Html.IdFor(m=> m.ZeroGallonAllowedFuelDropped)").val('');
+                    }
+					$(existingAssetBlocks[i]).prev("input[type='hidden']").remove();
+					$(existingAssetBlocks[i]).remove();
+				}
+            }
+            var assetsToAdd = $.grep(newAssets, function (element, index) {
+                if ($.grep(existingAssets, function (key, value) {
+                    return element.id == key.id && element.jobxAssetId == key.jobxAssetId
+                }).length == 0) {
+                    return element.jobxAssetId;
+                }
+            });
+            for (var i = 0; i < assetsToAdd.length; i++) {
+                var data = $.grep(assetsFromModel, function (asset) {
+                    return asset.JobXAssetId == assetsToAdd[i].jobxAssetId && asset.Id == assetsToAdd[i].id;
+                });
+
+                //removed code with .findIndex as it was not working with IE
+                var index;
+                for (var ind = 0; ind < assetsFromModel.length; ++ind) {
+                    if (assetsFromModel[ind].JobXAssetId == assetsToAdd[i].jobxAssetId && assetsFromModel[ind].Id == assetsToAdd[i].id) {
+                        index = ind;
+                        break;
+                    }
+                }
+
+                var assetDrop = new AssetDropModule.AssetDrop(data[0], index, '@Model.UoM');
+                var partialView = assetDrop.getPartialBlock();
+                var totalDroppedGallons = parseInt($("#@Html.IdFor(m=> m.ZeroGallonAllowedFuelDropped)").val()) || 0;
+                var assetDropGallons = parseInt($(partialView).find('[id$="_DropGallons"]').val()) || 0;
+                if (assetDropGallons > 0) {
+                    $("#@Html.IdFor(m=> m.ZeroGallonAllowedFuelDropped)").val(totalDroppedGallons + assetDropGallons);
+                }
+                $("#asset-drop-section .partial-block-collection-section").append(partialView);
+            }
+            if (assetsToAdd.length > 0) {
+                parseForm();
+                documentReady(true);
+                enableSubmit();
+            }
+		});
+
+        var $form = $(".partial-credit-invoice");
+        function submitForm(isSaveDraftDdt) {
+
+            $('.credit-entity.hide-element').remove();
+
+            var isValidForm = true;
+            //fixedButtons('.form-submit');
+            focusonErrorControl();
+			try {
+				var assets = $('#asset-drops .partial-block');
+				for (var i = 0; i < assets.length; i++) {
+					var dropGallons = $(assets[i]).find('.drop-input');
+					if (dropGallons.val() != '') {
+						var isdropGallonsValid = dropGallons.valid();
+						if (isValidForm == true) {
+							isValidForm = isdropGallonsValid;
+						}
+					}
+				}
+
+                $(".dropquantity").each(function () {
+                    var quantity = $(this).val();
+                    var dropStat = $(this).closest(".row").find(".dd-dropstatus").text();
+                    if ((quantity == '0' || quantity == '') && (dropStat == '')) {
+                        validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageFuelQuantity)');
+                        isValidForm = false;
+                    }
+                });
+
+                var quantityRangMsg = '@Resource.valMessageQuantityNotInRange';
+                var specialDateVal = '@((int)FeeConstraintType.SpecialDate)';
+                var specialDateErrorMsg = '@Resource.valMessageSpecialFeesDuplicate';
+
+                if ('@Model.QuantityTypeId' != '@((int)QuantityType.NotSpecified)') {
+                    isValidForm = isValidForm && ValidateRangeCoversTotalQuantity(quantityRangMsg)
+                        && validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+                }
+                else {
+                    isValidForm = isValidForm && validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+                }
+
+                if (isValidForm == true) {
+					for (var i = 0; i < assets.length; i++) {
+						var dropGallons = $(assets[i]).find('.drop-input').val();
+						if (dropGallons == '') {
+							$(assets[i]).prev("input[type='hidden']").remove();
+							$(assets[i]).remove();
+						}
+					}
+                    if (isSaveDraftDdt) {
+                        $('form').submit();
+                    }
+                    else {
+                        if (@Model.StatusId == @((int)InvoiceStatus.Draft)) {
+                            var url = "@Url.Action("DraftDDT")";
+                            $("form").attr("action", url);
+                        }
+                        $('form').submit();
+                    }
+                }
+                else {
+                    $('.form-submit').removeAttr('disabled');
+                    return false;
+                }
+            }
+            catch (error) {
+                console.log(error.message);
+                $('.form-submit').removeAttr('disabled');
+                return false;
+            }
+        }
+
+        function setStandartTax() {
+            if ('@Model.TypeofFuel' != '@((int)ProductDisplayGroups.OtherFuelType)' && @Model.InvoiceId > 0 && @Model.InvoiceTypeId != @((int)InvoiceType.DigitalDropTicketManual)) {
+                var currentFuelDropped = $("#@Html.IdFor(m => m.ZeroGallonAllowedFuelDropped)").val();
+                var currentDropDate = $("#DeliveryDate").val()
+                if (originalFuelDropped != currentFuelDropped || originalDropDate != currentDropDate) {
+                    $("input[type='radio'][value='Standard']").click();
+                    $('.tax-type-radio').attr('readonly', 'readonly').addClass('subSectionOpacity');
+                }
+                else {
+                    $('.tax-type-radio').removeAttr('readonly', 'readonly').removeClass('subSectionOpacity');
+                }
+
+                if (originalDropDate != currentDropDate) {
+                    $("#@Html.IdFor(m => m.IsQuanityOrDateChanged)").val(true);
+                }
+                else {
+                    $("#@Html.IdFor(m => m.IsQuanityOrDateChanged)").val(false);
+                }
+            }
+        }
+    </script>
+}

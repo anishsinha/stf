@@ -1,0 +1,270 @@
+﻿<div class="well bg-white shadow-b">
+    <div class='pa bg-white top0 left0 z-index5 loading-wrapper schedule-loading-wrapper hide-element'><span class='spinner-dashboard pa'></span></div>
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div id="unknown-delivery-exception-div" class="table-responsive">
+                <table id="tbl-unknown-delivery-exception-approvals" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnLocation</th>
+                            <th>@Resource.lblJobAddress</th>
+                            <th>@Resource.lblProduct</th>
+                            <th>@Resource.lblDropDate</th>
+                            <th>@Resource.lblDropTime</th>
+                            <th>@Resource.lblStatus</th>
+                            <th>@Resource.gridColumnAction</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var unknownDeliveryGrid, exportColumns = { columns: [0,1,2,3,4,5,6] };
+    $(document).ready(function () {
+        unknownDeliveryGrid = $('#tbl-unknown-delivery-exception-approvals').DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetGeneratedExceptionsForApproval", "Exception", new { area = "Supplier" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data.ExceptionTypes = "@((int)ExceptionType.UnknownDeliveries)";
+                    dataGridRq = data;
+                    $('#unknown-delivery-exception-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#unknown-delivery-exception-div").find('.loading-wrapper').hide();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": false,
+            "searchDelay": 500,
+            processing: true,
+            "searching": true,
+            "bProcessing": true,
+            lengthChange: true,
+            "columns": [
+                { "data": "JobName", "autoWidth": true },
+                { "data": "JobAddress", "autoWidth": true },
+                { "data": "ProductName", "autoWidth": true },
+                { "data": "DropDate", "autoWidth": true },
+                { "data": "DropTime", "autoWidth": true },
+                { "data": "StatusName", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.StatusId === 1) {
+                            var columnData = "<div class='btn-group'><button data-toggle='dropdown' class='btn btn-primary btn-sm dropdown-toggle' aria-expanded='false'>Action <span class='caret'>";
+                                columnData += "</span></button><ul class='dropdown-menu dropdown-menu-right'>";
+                                columnData += '<li class="dropdown-item"><a id="lnkCreateInvoiceForUnknownDelivery" exception-id="' + data.Id + '" customer-name="' + data.Customer + '" customer-id="' + data.CustomerId + '" job-id="' + data.JobId + '" job-name="' + data.JobName +'" onclick="showOrderSelectionPopup(this)">@Resource.lblCreateManualInvoice </a></li>';
+                                columnData += "</ul></div>";
+                            return columnData;
+                        }
+                        else
+                            return "";
+                    }, "autoWidth": true
+                }
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true
+                });
+            },
+            "columnDefs": [
+                { "name": "JobName", "targets": 0 },
+                { "name": "JobAddress", "targets": 1 },
+                { "name": "ProductName", "targets": 2 },
+                { "name": "DropDate", "targets": 3 },
+                { "name": "DropTime", "targets": 4 },
+                { "name": "StatusName", "targets": 5 },
+                { "targets": [6], "searchable": false }
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.gridColumnException', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.gridColumnException', exportOptions: exportColumns },
+                {
+                    extend: 'print', exportOptions: exportColumns,
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+
+    function showOrderSelectionPopup(ele) {
+        clearPopupControls();
+        setExceptionValues(ele);
+        $("#SelectOrdersForInvoiceCreateModal").modal();
+    }
+
+    function setExceptionValues(ele) {
+        var customerId = parseInt($(ele).attr('customer-id'));
+        customerId = isNaN(customerId) ? 0 : customerId;
+        $('#hdnCustomerId').val(customerId);
+        var customerName = $(ele).attr('customer-name');
+
+        if (customerName != undefined && customerName != null && customerName != '') {
+            $('#hdnCustomerName').val(customerName);
+            $('#spnCustomerName').text(customerName);
+        }
+
+        var jobId = parseInt($(ele).attr('job-id'));
+        jobId = isNaN(jobId) ? 0 : jobId;
+        $('#hdnJobId').val(jobId);
+        var jobName = $(ele).attr('job-name');
+        if (jobName != undefined && jobName != null && jobName != '') {
+            $('#hdnJobName').val(jobName);
+            $('#spnJobName').text(jobName);
+        }
+
+        var exceptionId = parseInt($(ele).attr('exception-id'));
+        exceptionId = isNaN(exceptionId) ? 0 : exceptionId;
+        $('#hdnExceptionId').val(exceptionId);
+
+        var isValid = true;
+        if (customerId <= 0) {
+            isValid = false;
+            $('#invalid-order-details-error').text('Invalid customer');
+        }
+        else if (jobId <= 0) {
+            isValid = false;
+            $('#invalid-order-details-error').text('Invalid location');
+        }
+        else if (exceptionId <= 0) {
+            isValid = false;
+            $('#invalid-order-details-error').text('Invalid exception details');
+        }
+
+        if (isValid && customerId > 0 && jobId > 0 && exceptionId > 0) {
+            getOrders();
+        }
+        else {
+            $('#divErrorMessage').removeClass('hide-element');
+        }
+    }
+
+    function createInvoice() {
+        var orderId = parseInt($('#ddlOrders').val());
+        var exceptionId = parseInt($('#hdnExceptionId').val());
+
+        orderId = isNaN(orderId) && orderId > 0 ? 0 : orderId;
+        exceptionId = isNaN(exceptionId) && exceptionId > 0 ? 0 : exceptionId;
+        if(orderId > 0 && exceptionId > 0){
+            $('#divErrorMessage').addClass('hide-element');
+            var targetUrl = '@Url.Action("CreateNew", "Invoice")';
+            window.location.href = targetUrl + '?orderId=' + orderId + '&del-exceptionId=' + exceptionId;
+        }
+        else{
+            $('#invalid-order-details-error').text('Invalid order details');
+            $('#divErrorMessage').removeClass('hide-element');
+        }
+    }
+
+    function getOrders() {
+        $("#ddlOrders").empty();
+        $("#ddlOrders").append($("<option></option>").val(0).text('Select Order'));
+        $('.select-order-popup-loader').show();
+        $.post("@Url.Action("GetOrdersByCustomerAndLocationId", "Exception", new { area = "Supplier" })", { customerId: $("#hdnCustomerId").val(), locationId: $('#hdnJobId').val() },
+            function (response) {
+                $.each((response), function (index, item) {
+                    $("#ddlOrders").append($("<option></option>").val(item.Id).text(item.Name));
+                });
+            }).always(function () {
+                    $(".select-order-popup-loader").hide();
+                });
+    }
+
+    function clearPopupControls() {
+        $("#ddlOrders").empty();
+        $("#spnCustomerName").text('');
+        $("#spnJobName").text('');
+        $('#hdnCustomerId').val(0);
+        $('#hdnCustomerName').val('');
+        $('#hdnJobId').val(0);
+        $('#hdnJobName').val('');
+        $('#hdnExceptionId').val(0);
+        $("#ddlOrders").append($("<option></option>").val(0).text('Select Order'));
+        $('#divErrorMessage').addClass('hide-element');
+    }
+
+    function closeDeliveryDetailModel(){
+        clearPopupControls();
+        $('#SelectOrdersForInvoiceCreateModal').modal('hide');
+    }
+</script>
+<!-- The Modal -->
+<div class="modal fade" id="SelectOrdersForInvoiceCreateModal" data-backdrop="static">
+    <div class="modal-dialog modal-md">
+        <div class='pa text-center bg-white select-order-popup-loader loading-wrapper hide-element'>
+            <span class='spinner-small pa col-1'></span>
+        </div>
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">@Resource.btnLabelOrderDetails</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <!-- Modal body -->
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-4 mb-5">
+                        <div class="form-group">
+                            <label>@Resource.lblCustomer</label>
+                            <div class="col-sm-12 pa0">
+                                <span id="spnCustomerName"></span>
+                                <input type="hidden" id="hdnCustomerId" />
+                                <input type="hidden" id="hdnCustomerName" />
+                                <input type="hidden" id="hdnExceptionId" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 mb-5">
+                        <div class="form-group">
+                            <label>@Resource.lblJob</label>
+                            <div class="col-sm-12 pa0">
+                                <span id="spnJobName"></span>
+                                <input type="hidden" id="hdnJobId" />
+                                <input type="hidden" id="hdnJobName" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 mb-5">
+                        <div class="form-group">
+                            <label>@Resource.lblOrder</label>
+                            <select id="ddlOrders" class="form-control">
+                                <option value="0">@Resource.lblOrder</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal footer -->
+            <div class="modal-footer no-gutters">
+                <div id="divErrorMessage" class="hide-element col-6">
+                    <span class="field-validation-error" data-valmsg-for="Order" data-valmsg-replace="true"><span id="invalid-order-details-error" class=""></span></span>
+                </div>
+                <div class="col-6 text-right">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeDeliveryDetailModel()">@Resource.btnLabelClose</button>
+                    <button type="button" class="btn btn-primary" onclick="createInvoice()">@Resource.btnLabelCreate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

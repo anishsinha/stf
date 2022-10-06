@@ -1,0 +1,149 @@
+﻿@model EmailDocumentViewModel
+<div class="modal animated" id="email-document-modal-popup" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-email-document" role="document">
+        @Html.HiddenFor(m => m.InvoiceId)
+        @Html.HiddenFor(m => m.InvoiceHeaderId)
+        @Html.HiddenFor(m => m.InvoiceNumber)
+        @Html.HiddenFor(m => m.OrderId)
+        @Html.HiddenFor(m => m.PoNumber)
+        @Html.HiddenFor(m => m.DocumentName)
+        @Html.HiddenFor(m => m.CompanyType)
+
+        <div class="modal-content pa10 pt0">
+            <div class="modal-body" id="email-document-div">
+                <div id="body-email-document">
+                    <div>
+                        <h4 class="pt0">@Resource.btnLabelSendEmail</h4>
+                    </div>
+                    @{ var invDdtNumber = !string.IsNullOrWhiteSpace(Model.InvoiceNumber) && Model.InvoiceNumber.Contains(ApplicationConstants.SFDD) ? Resource.lblDropTicketNumber : Resource.lblInvoiceNumber; }
+                    @if (Model.DocumentName == DocumentName.BDR || Model.DocumentName == DocumentName.InvoiceSummary || Model.DocumentName == DocumentName.MarineTaxAffidavit || Model.DocumentName == DocumentName.CGInspection)
+                    {
+                        <label class="f-normal">@invDdtNumber</label><br />
+                        <b><span id="spnNumber">@Model.InvoiceNumber</span></b>
+                    }
+                    else
+                    {
+                        <div class="form-group">
+                            <label class="f-normal">@(Model.DocumentName == DocumentName.PO ? Resource.lblLabelPONumber : invDdtNumber)</label><br />
+                            <b><span id="spnNumber">@(Model.DocumentName == DocumentName.PO ? Model.PoNumber : Model.InvoiceNumber)</span></b>
+                        </div>
+                    }
+                    <div class="form-group">
+                        <label class="f-normal">@Resource.lblEmailTo</label>
+                        @Html.TextBoxFor(m => m.ToEmailAddress, new { @class = "form-control multiple-emails" })
+                    </div>
+                    <div class="form-group">
+                        <label class="f-normal">@Resource.lblEmailText</label>
+                        @Html.TextAreaFor(m => m.EmailBody, new { @class = "form-control" })
+                    </div>
+                    @if (Model.InvoiceId > 0 && Model.DocumentName == DocumentName.Invoice)
+                    {
+                        <div class="form-group">
+                            <div class="checkbox mt0">
+                                <label>
+                                    @Html.CheckBoxFor(m => m.IncludeImagesInAttachment) @Resource.lblIncludeImagesInAttachment
+                                </label>
+                            </div>
+                        </div>
+                    }
+                    @if (Model.InvoiceHeaderId > 0 && (Model.DocumentName == DocumentName.MarineTaxAffidavit || Model.DocumentName == DocumentName.CGInspection || Model.DocumentName == DocumentName.InspRequestVoucher))
+                    {
+                        <div class="form-group">
+                            <div class="checkbox mt0">
+                                <label>
+                                    @Html.CheckBoxFor(m => m.IncludeImagesInAttachment)
+                                    @if (Model.DocumentName == DocumentName.MarineTaxAffidavit)
+                                    {
+                                        @Resource.lblIncludeMarineTaxImagesInAttachment
+                                    }
+                                    @if (Model.DocumentName == DocumentName.CGInspection)
+                                    {
+                                        @Resource.lblIncludeMarineCGInspImagesInAttachment
+                                    }
+                                    @if (Model.DocumentName == DocumentName.InspRequestVoucher)
+                                    {
+                                        @Resource.lblIncludeMarineInspVoucherImagesInAttachment
+                                    }
+
+                                </label>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer no-border pt0">
+                <div class="pull-left">
+                    <span class="field-validation-error hide" id="spnPopupMsg"></span>
+                </div>
+                <div class="pull-right">
+                    <a href="javascript:void(0);" data-dismiss="modal" class="btn actions" onclick="closeEmailDocumentPopup()">@Resource.btnLabelCancel</a>
+                    <input id="btnSendEmailDocument" type="button" value="@Resource.btnLabelSend" class="btn btn-lg btn-primary" onclick="return saveEmailSendDetails();" />
+                </div>
+                <div class='pa text-center bg-white email-model-loader loading-wrapper hide-element'>
+                    <span class='spinner-small pa col-xs-1'></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">    
+    $(document).ready(function () {
+        $('.multiple-emails').multiple_emails({ position: "top" });
+        showEmailDocumentPopup();
+    });
+
+    function showEmailDocumentPopup() {
+        $('#spnPopupMsg').addClass('hide').text('');
+        $('#email-document-modal-popup').show();
+    }
+
+    function closeEmailDocumentPopup() {
+        $('#email-document-modal-popup').hide();
+    }
+
+    function saveEmailSendDetails() {
+        $('#spnPopupMsg').addClass('hide').text('');
+        var emailIds = $('#@Html.IdFor(m => m.ToEmailAddress)').val();
+        if (emailIds == null || emailIds == '') {
+            $('#spnPopupMsg').removeClass('hide').text('@Resource.errMessageEmailToRequired');
+            return false;
+        }
+        $(".email-model-loader").show();
+        $("#btnSendEmailDocument").attr("disabled", true);
+        var url = '@Url.Action("SaveEmailDocumentNotification", "Order", new { })';
+        var data = {
+            OrderId: '@Model.OrderId',
+            InvoiceId: '@Model.InvoiceId',
+            InvoiceHeaderId: '@Model.InvoiceHeaderId',
+            PoNumber: '@Model.PoNumber',
+            InvoiceNumber: '@Model.InvoiceNumber',
+            ToEmailAddress: $('#@Html.IdFor(m => m.ToEmailAddress)').val(),
+            EmailBody: $('#@Html.IdFor(m => m.EmailBody)').val(),
+            DocumentName: '@Model.DocumentName',
+            CompanyType: '@Model.CompanyType',
+            IncludeImagesInAttachment: $('#@Html.IdFor(m => m.IncludeImagesInAttachment)').prop('checked'),
+        };
+
+        $.post(url, data, function (response) {
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess(response.StatusMessage);
+                clearEmailPopupControls();
+                closeEmailDocumentPopup();
+            }
+            else {
+                msgerror(response.StatusMessage);
+            }
+        }).always(function () {
+            $(".email-model-loader").hide();
+            $("#btnSendEmailDocument").removeAttr("disabled");
+        });
+    }
+
+    function clearEmailPopupControls() {
+        $('#spnNumber').text('');
+        $('#@Html.IdFor(m => m.ToEmailAddress)').val('');
+        $('#@Html.IdFor(m => m.EmailBody)').val('');
+        $('#@Html.IdFor(m => m.IncludeImagesInAttachment)').prop('checked', false);
+        $('#spnPopupMsg').text('');
+    }
+</script>

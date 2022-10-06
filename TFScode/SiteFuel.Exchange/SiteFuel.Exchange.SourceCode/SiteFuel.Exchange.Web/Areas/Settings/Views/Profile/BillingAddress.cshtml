@@ -1,0 +1,198 @@
+﻿@model CompanyAddressViewModel
+    <div class="col-sm-12">
+        @using (Html.BeginForm("BillingAddress", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form", id = "billingaddress-form" }))
+        {
+            @Html.AntiForgeryToken()
+            <div class="@(Model.IsActive && (CurrentUser.IsSupplierAdmin || CurrentUser.IsBuyerAdmin || CurrentUser.IsCarrierAdmin || CurrentUser.IsAccountingPerson) ? "" : "disable-controls")">
+               <div id="company-address-container" class="row well mb15">
+                        <div class="col-sm-12">
+                            <h4>@Resource.headingCompanyAddress</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    @Html.PartialFor("_PartialCompanyAddressSettings", m => m)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+               <div class="row well">
+                        <div class="col-sm-12">
+                            <h4>@Resource.headingBillingAddress</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    @Html.PartialFor("_PartialBillingAddress", m => m.BillingAddress)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <div class="col-sm-12 text-right pb20 btn-wrapper">
+                    <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="window.history.go(-1);" />
+                    <input type="button" class="btn btn-lg btn-primary" id="btnSave" data-url="@Url.Action("IsValidFullAddress", "Validation" , new { area="" })" value="@Resource.btnLabelSave" />
+                </div>
+            </div>
+        }
+    </div>
+
+
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+@Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/gridmvc")
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/gridmvc")
+<script type="text/javascript">
+    var allStates = @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+    var stateId = @Model.State.Id; // for state autofill
+    $(document).ready(function () {
+        //compareAddresses();
+        $('#btnSave').click(function () {
+            if (!$('#billingaddress-form').valid()) {
+                return;
+            }
+            var url = $(this).data("url");
+            var isValid = validateLocationAddress();
+            if (isValid) {
+                submitAddressForm();
+            }
+        });
+
+        $(".clone-default-address-as-billing :input").keyup(function () {
+            cloneDefaultAddressToBilling();
+        });
+
+        $(".clone-default-address-as-billing :input").change(function () {
+            cloneDefaultAddressToBilling();
+        });
+
+        $(".clone-default-address-as-billing").change(function () {
+            if ($("#chk-billing-as-default-address").prop("checked")) {
+                cloneDefaultAddressToBilling();
+            }
+            else {
+                clearBillingAddress();
+            }
+        });
+
+        $('#company-address-container :input').each(function () {
+            $(this).attr('readonly', 'readonly');
+        });
+
+        $(document).on('blur', '.mandatory-input', function () {
+            var eleValue = $.trim($(this).val());
+            if (eleValue != '') {
+                $(this).closest('div').find('.field-validation-error').text('');
+            }
+        });
+
+        $("#@Html.IdFor(m => m.BillingAddress.State.Code)").val('@Resource.lblDummy');
+        $("#@Html.IdFor(m => m.BillingAddress.State.Id)").val(0);
+        $("#@Html.IdFor(m => m.BillingAddress.Country.Code)").val('@Resource.lblDummy');
+        $("#@Html.IdFor(m => m.BillingAddress.Country.Id)").val(0);
+        $("#@Html.IdFor(m => m.BillingAddress.CompanyId)").val(@CurrentUser.CompanyId);
+    });
+
+    function compareAddresses() {
+        var compAddress = $("#@Html.IdFor(m => m.Address)").val();
+        var compZip = $("#@Html.IdFor(m => m.ZipCode)").val();
+        var compPhoneNo = $("#@Html.IdFor(m => m.Phone.PhoneNumber)").val();
+
+        var bilAddress = $("#@Html.IdFor(m => m.BillingAddress.Address)").val();
+        var bilZip = $("#@Html.IdFor(m => m.BillingAddress.ZipCode)").val();
+        var bilPhoneNo = $("#@Html.IdFor(m => m.BillingAddress.Phone.PhoneNumber)").val();
+
+        if (compAddress == bilAddress && compZip == bilZip && compPhoneNo == bilPhoneNo) {
+            $("#chk-billing-as-default-address").prop('checked', true);
+        }
+        else {
+            $("#chk-billing-as-default-address").prop('checked', false);
+        }
+    }
+
+    function clearBillingAddress() {
+        $(".company-billing-address :input").val("");
+        
+        $("#@Html.IdFor(m => m.BillingAddress.Phone.PhoneType)").prop("selectedIndex", 0);
+        $("#@Html.IdFor(m => m.BillingAddress.State.Code)").val('@Resource.lblDummy');
+        $("#@Html.IdFor(m => m.BillingAddress.State.Name)").val('');
+        $("#@Html.IdFor(m => m.BillingAddress.Country.Code)").val('@Resource.lblDummy');
+        $("#@Html.IdFor(m => m.BillingAddress.Country.Name)").val('');
+        $("#@Html.IdFor(m => m.BillingAddress.Id)").val('0');
+        $("#@Html.IdFor(m => m.BillingAddress.State.Code)").val('@Resource.lblDummy');
+        $("#@Html.IdFor(m => m.BillingAddress.State.Id)").val(0);
+        $("#@Html.IdFor(m => m.BillingAddress.Country.Code)").val('@Resource.lblDummy');
+        $("#@Html.IdFor(m => m.BillingAddress.Country.Id)").val(0);
+    }
+
+    @*function validateCompanyBillingAddress(url) {
+        var model = {
+            address: {
+                Address: $('#@Html.IdFor(m => m.BillingAddress.Address)').val(),
+                City: $('#@Html.IdFor(m => m.BillingAddress.City)').val(),
+                StateCode: $('#@Html.IdFor(m => m.BillingAddress.State.Id)').find("option:selected").text(),
+                CountryCode: $('#@Html.IdFor(m => m.BillingAddress.Country.Id)').find("option:selected").text(),
+                ZipCode: $('#@Html.IdFor(m => m.BillingAddress.ZipCode)').val()
+            }
+        };
+
+        $.post(url, model, function (response) {
+            if (response == true) {
+                submitAddressForm();
+            }
+            else {
+                showInvalidAddressMessage("@Html.NameFor(m => m.BillingAddress.Address)");
+                $('#btnSave').removeAttr('disabled');
+            }
+        });
+    }*@
+
+    function cloneDefaultAddressToBilling() {
+        if ($(".clone-default-address-as-billing input").prop("checked")) {
+            var address = $("#@Html.IdFor(m => m.Address)").val();
+            var city = $("#@Html.IdFor(m => m.City)").val();
+            var state = $("#@Html.IdFor(m => m.State.Id) option:selected").text();
+            var country = $("#@Html.IdFor(m => m.Country.Id) option:selected").text();
+            var zip = $("#@Html.IdFor(m => m.ZipCode)").val();
+            var phoneType = $("#@Html.IdFor(m => m.Phone.PhoneType)").val();
+            var phoneNo = $("#@Html.IdFor(m => m.Phone.PhoneNumber)").val();
+
+            $("#@Html.IdFor(m => m.BillingAddress.ZipCode)").val(zip);
+            $("#@Html.IdFor(m => m.BillingAddress.Address)").val(address);
+            $("#@Html.IdFor(m => m.BillingAddress.City)").val(city);
+            $("#@Html.IdFor(m => m.BillingAddress.Country.Name)").val(country);
+            $("#@Html.IdFor(m => m.BillingAddress.State.Name)").val(state);
+            $("#@Html.IdFor(m => m.BillingAddress.Phone.PhoneType)").val(phoneType);
+            $("#@Html.IdFor(m => m.BillingAddress.Phone.PhoneNumber)").val(phoneNo);
+        }
+
+        $("#@Html.IdFor(m => m.BillingAddress.State.Code)").val('@Resource.lblDummy');
+        $("#@Html.IdFor(m => m.BillingAddress.State.Id)").val(0);
+        $("#@Html.IdFor(m => m.BillingAddress.Country.Code)").val('@Resource.lblDummy');
+        $("#@Html.IdFor(m => m.BillingAddress.Country.Id)").val(0);
+    }
+
+    function showInvalidAddressMessage(elementName) {
+        validationMessageFor(elementName, '@ResourceMessages.GetMessage(Resource.valMessageFullAddressInvalid
+        , new object[] { Resource.lblAddress, Resource.lblCity, Resource.lblState, Resource.lblCountry, Resource.lblZipcode })');
+    }
+
+    function submitAddressForm() {
+        $("#@Html.IdFor(m => m.BillingAddress.CompanyId)").val(@CurrentUser.CompanyId);
+        $form = $('#billingaddress-form');
+        if ($form.valid()) {
+            localStorage.setItem("IsBillingAddressTabView", "True");
+            $('div').find(".disable-controls :input").removeAttr('disabled');
+            $form.submit();
+        }
+        else {
+            $('#btnSave').removeAttr('disabled');
+        }
+    }
+    function validateLocationAddress() {
+        var isValid = true;
+        var address = $('#@Html.IdFor(m => m.BillingAddress.Address)').val();
+
+        validationMessageFor('@Html.NameFor(m => m.BillingAddress.Address)', '');       
+        if (address == undefined || address == null || address == '') {
+            validationMessageFor('@Html.NameFor(m => m.BillingAddress.Address)', '@(string.Format(Resource.valMessageRequired, "Address"))');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+</script>

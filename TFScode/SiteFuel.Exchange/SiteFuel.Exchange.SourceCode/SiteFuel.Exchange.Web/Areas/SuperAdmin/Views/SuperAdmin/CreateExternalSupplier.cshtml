@@ -1,0 +1,168 @@
+﻿@model ExternalSupplierViewModel
+
+@{
+    ViewBag.Title = "External Supplier";
+    SelectList externalSupplierTypes = new SelectList(
+                                    new List<SelectListItem>
+                                            {
+												new SelectListItem { Text = "Supplier", Value = ((int)ExternalSupplierType.Supplier).ToString()},
+												new SelectListItem { Text = "Broker", Value = ((int)ExternalSupplierType.Broker).ToString()},
+												new SelectListItem { Text = "Wholesaler", Value = ((int)ExternalSupplierType.Wholesaler).ToString()},
+												new SelectListItem { Text = "Channel Partner", Value = ((int)ExternalSupplierType.ChannelPartner).ToString()},
+												new SelectListItem { Text = "Distributor", Value = ((int)ExternalSupplierType.Distributor).ToString()},
+                                            },
+                                    "Value", "Text");
+}
+
+<div class="row">
+    <div class="col-sm-12">
+            <h4 class="dib">@Resource.headingSupplierInformation</h4>
+            <div class="dib pull-right mt10">
+                <div class="btn-group">
+                    @using (Html.BeginForm("ExternalSuppliersBulkUpload", "SuperAdmin", new { area = "SuperAdmin" }, FormMethod.Post, new { @id = "externalSuppliersBulkUploadForm", enctype = "multipart/form-data" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.Partial("_PartialExternalSuppliersBulkUpload")
+                    }
+                </div>
+            </div>
+    </div>
+</div>
+@using (Html.BeginForm("CreateExternalSupplier", "SuperAdmin", new { area = "SuperAdmin" }, FormMethod.Post, new { role = "form", id = "external-supplier-form" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.CompanyDetails.Id)
+        <div class="col-sm-12">
+            <div class="row well mb15">
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.CompanyDetails.Name)
+                        @Html.TextBoxFor(m => m.CompanyDetails.Name, new { @class = "form-control", autofocus = "autofocus" })
+                        @Html.ValidationMessageFor(m => m.CompanyDetails.Name)
+                        <div class="checkbox mt5">
+                            <label>
+                                @Html.CheckBoxFor(m => m.CompanyDetails.InPipedrive) @Resource.lblInPipedrive
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.CompanyDetails.CompanyTypeId)
+                        @Html.DropDownListFor(m => m.CompanyDetails.CompanyTypeId, externalSupplierTypes, new { @class = "form-control onchange-select-showhide" })
+                        @Html.ValidationMessageFor(m => m.CompanyDetails.CompanyTypeId)
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.CompanyDetails.Website)
+                        @Html.TextBoxFor(m => m.CompanyDetails.Website, new { @class = "form-control", autofocus = "autofocus" })
+                        @Html.ValidationMessageFor(m => m.CompanyDetails.Website)
+                    </div>
+                </div>
+            </div>
+        </div>
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingContactPerson</h4>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.ContactPersonDetails.Name)
+                            @Html.TextBoxFor(m => m.ContactPersonDetails.Name, new { @class = "form-control", autofocus = "autofocus" })
+                            @Html.ValidationMessageFor(m => m.ContactPersonDetails.Name)
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.ContactPersonDetails.PhoneNumber)
+                            @Html.TextBoxFor(m => m.ContactPersonDetails.PhoneNumber, new { @class = "form-control input-phoneformat", autofocus = "autofocus" })
+                            @Html.ValidationMessageFor(m => m.ContactPersonDetails.PhoneNumber)
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.ContactPersonDetails.Email)
+                            @Html.TextBoxFor(m => m.ContactPersonDetails.Email, new { @class = "form-control", autofocus = "autofocus" })
+                            @Html.ValidationMessageFor(m => m.ContactPersonDetails.Email)
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-4">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.CompanyDetails.Notes)
+                            @Html.TextAreaFor(m => m.CompanyDetails.Notes, new { @class = "form-control", @rows = 4 })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingAddressAndServices</h4>
+                <div class="row">
+                    @Html.PartialFor("_PartialOtherLocationsAndServices", m => Model.CompanyAddress)
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="row well">
+            <div id="otherLocations" class="col-sm-12 col-md-12 partial-section">
+                <h4>@Resource.headingOtherCompanyLocationsAndServices</h4>
+                <div class="row partial-block-collection-section">
+                    @if (Model.CompanyDetails.Id > 0 || Model.OtherLocationsAndServices.Skip(1).ToList().Count > 0)
+                    {
+                        foreach (var OtherLocationsAndServices in Model.OtherLocationsAndServices.Skip(1).ToList())
+                        {
+                            @Html.PartialFor("_PartialOtherLocationsAndServices", m => OtherLocationsAndServices)
+                        }
+                    }
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <a href="javascript:void(0)" class="add-partial-block" data-url="@Url.Action("AddLocationAndServices", "SuperAdmin", new { area = "SuperAdmin" })"><i class="fas fa-plus-circle"></i> @Resource.btnLabelAddAnotherLocation</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row text-right pb20 btn-wrapper">
+        <div class="col-sm-12 text-right">
+            <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="window.history.go(-1);" />
+            <input type="submit" class="btn btn-primary btn-lg" id="btnSaveExternalSupplier" value="@Resource.btnLabelSave" />
+        </div>
+    </div>
+}
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+
+    <script type="text/javascript">
+         var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = @Model.CompanyAddress.StateId; // for state autofill
+
+        $(document).ready(function () {
+            if (@Model.OtherLocationsAndServices.Count > 1)
+                $('.remove-partial-link').show();
+            else
+                $('.remove-partial-link').hide();
+        });
+
+        $("#btnSaveExternalSupplier").click(function () {
+            $form = $('#external-supplier-form');
+            if ($form.valid()) {
+                $form.submit();
+            }
+        });
+
+        $(".remove-partial-link").click(function () {
+            if (@Model.OtherLocationsAndServices.Count > 1)
+                $('.remove-partial-link').show();
+            else
+                $('.remove-partial-link').hide();
+        });
+    </script>
+}

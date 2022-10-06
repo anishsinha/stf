@@ -1,0 +1,132 @@
+
+
+<app-bol-detail #bolDetail
+                [IsBadgeMandatory]="IsBadgeMandatory"
+                (onBolDetailAdded)="bolList.bolDetailAdded($event)"
+                (onBolDetailUpdated)="bolList.bolDetailUpdated($event)"></app-bol-detail>
+
+<app-lift-detail #liftDetail
+                 [IsBadgeMandatory]="IsBadgeMandatory"
+                 [IsFrieghtPricingMethodAuto]="IsFrieghtPricingMethodAuto"
+                 (onTicketDetailAdded)="ticketList.ticketDetailAdded($event)"
+                 (onTicketDetailUpdated)="ticketList.ticketDetailUpdated($event)"></app-lift-detail>
+
+<form [formGroup]="invoiceForm" (ngSubmit)="onSubmit()">
+    <div class="row">
+        <div class="col-sm-3">
+            <div class="form-group">
+                <fieldset [ngClass]="{'pntr-none': disableInputControls}" [disabled]="disableInputControls ? true : null">
+                    <ng-multiselect-dropdown formControlName="SelectedOrders" [placeholder]="'Search Another PO'" [settings]="PoDdlSettings" [data]="PoList"
+                                             (onSelect)="onOrderSelect($event)" (onDeSelect)="onOrderDeSelect($event)">
+                    </ng-multiselect-dropdown>
+                </fieldset>
+            </div>
+        </div>
+        <div class="col-sm-6 text-right">
+            <div class="form-group">
+                <button type="button" class="btn btn-primary mr5" id="bol_button" value="+ BOL"
+                        (click)="bolDetail.initDrops(invoiceForm.get('Drops').value,InvoiceModel?.Drops);bolDetail.toggleOpen(true, null);bolDetail.getAddedProductDetails(invoiceForm.get('Drops').value)">
+                    <i class="fa fa-plus-circle"></i> BOL
+                </button>
+                <button type="button" class="btn btn-warning" id="lift_button" value="+ BOL"
+                        (click)="liftDetail.initDrops(InvoiceModel?.Drops);liftDetail.toggleOpen(true, null);liftDetail.getAddedProductDetails(invoiceForm.get('Drops').value)">
+                    <i class="fa fa-plus-circle"></i> Lift
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-9">
+            <app-bol-list #bolList [invoiceForm]="invoiceForm" [BolDetails]="invoiceForm.get('BolDetails')" [Model]="InvoiceModel?.BolDetails"
+                          [IsImageRequired]="IsBOLImageRequired" (onBolEditRequest)="bolDetail.initDrops(invoiceForm.get('Drops').value,InvoiceModel?.Drops);bolDetail.toggleOpen(true, $event)" (onBolAdded)="bolDetail.getAddedBols($event)"
+                          (OnBolDeleted)="bolDetail.getDeletedBol($event)" (onBolEdit)="bolDetail.getEditedBol($event)" (OnBolQuantitiesAdded)="productDetail.getBolLiftQuantities()"></app-bol-list>
+
+            <app-lift-tickets #ticketList [invoiceForm]="invoiceForm" [TicketDetails]="invoiceForm.get('TicketDetails')" [Model]="InvoiceModel?.TicketDetails"
+                              (onTicketEditRequest)="liftDetail.initDrops(InvoiceModel?.Drops);liftDetail.initDrops(InvoiceModel?.Drops);liftDetail.toggleOpen(true, $event)" [IsImageRequired]="IsBOLImageRequired"
+                              (onLiftTicketAdded)="liftDetail.getAddedLiftTickets($event)" (OnLiftTicketDeleted)="liftDetail.getDeletedLift($event)" (onLiftTicketEdit)="liftDetail.getEditedLiftTickets($event)" (OnLiftQuantitiesAdded)="productDetail.getBolLiftQuantities()"></app-lift-tickets>
+
+            <fieldset [ngClass]="{'pntr-none': disableInputControls}" [disabled]="disableInputControls ? true : null">
+                <app-produc-detail #productDetail [invoiceForm]="invoiceForm" [Drops]="InvoiceModel?.Drops"
+                                   (onBulkplantUpdated)="ticketList.updateBulkPlantDetail($event)" (onBulkplantPickupReceived)="ticketList.updateBulkPlantDetail($event)"
+                                   (OnScheduleReceived)="OnScheduleReceived($event)"></app-produc-detail>
+
+                <app-various-drop-location formControlName="FuelDropLocation" [IsVariousOrigin]="InvoiceModel?.IsVariousOrigin"></app-various-drop-location>
+
+                <app-fee-list [Parent]="invoiceForm" [IsFrieghtPricingMethodAuto]="IsFrieghtPricingMethodAuto"  [Fees]="InvoiceFees" [InputAccessorialFeeDetails]="AccessorialTableDetails" [NoOrders]="NoOrders"
+                              [Currency]="Currency" *ngIf="!IsSupressOrderPricing"></app-fee-list>
+
+                <app-other-product-taxes #otherProductTax [invoiceForm]="invoiceForm" [Currency]="Currency"
+                                         [Taxes]="OtherProductTaxes" *ngIf="OtherProductAdded && !IsSupressOrderPricing"></app-other-product-taxes>
+            </fieldset>
+
+            <div class="text-right">
+                <input type="button" class="btn" value="Cancel" (click)="onCancel()" />
+                <input class="btn btn-success btn-lg no-disable" type="submit" value="Submit" />
+            </div>
+        </div>
+                <div class="col-sm-3">
+                    <div class="well box-shadow">
+                        <app-customer-detail formControlName="Customer" [IsVariousOrigin]="InvoiceModel?.IsVariousOrigin"></app-customer-detail>
+                    </div>
+                    <fieldset [ngClass]="{'pntr-none': disableInputControls}" [disabled]="disableInputControls ? true : null">
+                        <div class="well box-shadow">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="form-group">
+                                        <input type="text" placeholder="Invoice #" formControlName="SupplierInvoiceNumber" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-sm-12">
+                                    <div class="form-group">
+                                        <ng-multiselect-dropdown formControlName="SelectedDriver" [(ngModel)]="SelectedDriver" [placeholder]="'Select Driver'"
+                                                                 [settings]="DriverDdlSettings" [data]="DriverList" (onSelect)="OnDriverSelect($event)" (onDeSelect)="OnDriverDeSelect($event)">
+                                        </ng-multiselect-dropdown>
+                                        <input type="hidden" formControlName="Driver" />
+                                    </div>
+                                </div>
+                                <div class="col-sm-12">
+                                    <div class="form-group">
+                                        <input type="text" placeholder="Carrier Name " formControlName="Carrier" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-sm-12">
+                                    <textarea formControlName="InvoiceNotes" class="form-control" placeholder="Invoice Notes"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="well box-shadow" *ngIf="!IsSupressOrderPricing">
+                            <app-payment-terms formControlName="PaymentTerm"></app-payment-terms>
+                        </div>
+                        <div class="well box-shadow">
+                            <app-imageupload [fileType]="'InvFile'" [orderId]="orderId" formControlName="InvoiceImages" [inputFile]="InvoiceImages" [invoice]="true" [requiredIfTrue]="IsDropImageRequired"></app-imageupload>
+                            <app-imageupload [fileType]="'additionalFile'" [orderId]="orderId" formControlName="AdditionalImages" [inputFile]="AdditionalImages" [additional]="true"></app-imageupload>
+                            <app-imageupload [fileType]="'signatureFile'" [orderId]="orderId" formControlName="SignatureImages" [inputFile]="SignatureImages" [signature]="true" [requiredIfTrue]="IsSignatureRequired"></app-imageupload>
+                            <div *ngIf="products?.IsMarineLocation">
+                                <app-imageupload [fileType]="'BDNImage'" [orderId]="orderId" formControlName="BDNImages" [inputFile]="BDNImages" [BDNImage]="true"></app-imageupload>
+                                <app-imageupload [fileType]="'TaxAffidavit'" [orderId]="orderId" formControlName="TaxAffidavitImages" [inputFile]="TaxAffidavitImages" [TaxAffidavit]="true"></app-imageupload>
+                                <app-imageupload [fileType]="'CoastGuardInspection'" [orderId]="orderId" formControlName="CoastGuardInspectionImages" [inputFile]="CoastGuardInspectionImages" [CoastGuardInspection]="true"></app-imageupload>
+                                <app-imageupload [fileType]="'InspectionRequestVoucher'" [orderId]="orderId" formControlName="InspectionRequestVoucherImages" [inputFile]="InspectionRequestVoucherImages" [InspectionRequestVoucher]="true"></app-imageupload>
+                            </div>
+
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+</form>
+
+<div class="loader" *ngIf="IsLoading">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Submitting Invoice...</div>
+    </div>
+</div>
+
+<div class="loader" *ngIf="IsLoadingImages">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Uploading images...</div>
+    </div>
+</div>
+
+<!--[IsImageRequired]="IsBOLImageRequired"-->
+<!---->

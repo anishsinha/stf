@@ -1,0 +1,129 @@
+﻿@model InvoiceFilterViewModel
+<div class="col-md-12 pr0 pl0">
+    <div class="col-md-12 pr0 pl0">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="completedDeliveries-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr class="no-break">
+                                    <th>@Resource.gridColumnDdtOrInvoiceNumber</th>
+                                    <th>@Resource.gridColumnScheduledDate</th>
+                                    <th>@Resource.gridColumnDropDate</th>
+                                    <th>@Resource.gridColumnDeliveryScheduledTime</th>
+                                    <th>@Resource.gridColumnDropTime</th>
+                                     @*<th class="grid-header-uom-delivered">@Resource.gridColumnGallonsScheduled</th>*@
+                                    <th class="grid-header-uom-delivered uom-by-country"><span class="uom-lbl"></span>&nbsp;@Resource.lblScheduled</th>
+                                    <th class="grid-header-uom-delivered uom-by-country"><span class="uom-lbl"></span>&nbsp;@Resource.lblDelivered</th>
+                                    <th>@Resource.lblAssignedDriver</th>
+                                    <th>@Resource.gridColumnDriver</th>
+                                    <th>@Resource.gridColumnOverage</th>
+                                    <th>@Resource.lblOverageAllowed</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+        var supplierinvoice, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] };
+    SetUoMCurrencyAndRacklables();
+        supplierinvoice = $('#completedDeliveries-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("DeliveryCompletedGridAsync", "Order", new { area = CurrentUser.IsBuyerCompany ? "Buyer" : "Supplier" })",
+                "type": "GET",
+                "datatype": "json",
+                "data": function () {
+                    var invoiceFilter = {
+                        OrderId : '@(ViewContext.RouteData.Values["id"] ?? Request.QueryString["id"])',
+                        Filter: '@Model.Filter',
+                        StartDate: $('#txtFromDate').val(),
+                        EndDate: $('#txtToDate').val()
+                    };
+                    return invoiceFilter;
+                },
+                "dataSrc": ""
+            },
+            "columns": [
+              {
+                    "data": function (data, type, row, meta) {
+                        if (isBuyerCompanyWebNotification == 'True') {
+                            return '<a href="@Url.Action("Details", "Invoice")/' + data.InvoiceId + '">' + data.Number + '</a>';
+                        }
+                        else {
+                            return '<a onclick="slideInvoiceDetails(' + data.InvoiceId + ')">' + data.Number + '</a>';
+                        }
+                            }, "autoWidth": true
+                        },
+                { "data": "ScheduledDate", "autoWidth": true },
+                 {
+                                "data": function (data, type, row, meta) {
+                                    return '<label class=' + (data.IsDropDateLate == 1 ? "color-red" : "") +'>' + data.DropDate + '</label>';
+                                }, "autoWidth": true
+                            },
+                { "data": "ScheduledTime", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<label class=' + (data.IsDropTimeLate == 1 ? "color-red" : "") + '>' + data.DroppedTime + '</label>';
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.QuantityTypeId != @((int)QuantityType.NotSpecified)) {
+                            return data.QuantityScheduled;
+                        }
+                        else {
+                            return '@Resource.lblNotSpecified';
+                        }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<label class=' + (data.Overage > 0 || data.Overage < -5 ? "color-red" : "") + '>' + data.QuanityDropped + '</label>';
+                    }, "autoWidth": true
+                },
+                { "data": "ScheduledDriver", "autoWidth": true },
+                { "data": "Driver", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        return (data.Overage > 0 ? data.Overage : 0 ) + '@Resource.constSymbolPercent';
+                    }, "autoWidth": true
+                },
+                { "data": "IsOverageAllowed", "autoWidth": true },
+                { "data": "ScheduleStatus", "autoWidth": true }
+            ],
+            pageLength: 10,
+            responsive: true,
+            fixedHeader:false,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.headingCompletedDeliveries', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.headingCompletedDeliveries', exportOptions: exportColumns },
+                { extend: 'pdf', title: '@Resource.headingCompletedDeliveries', exportOptions: exportColumns, orientation: 'landscape' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+
+</script>

@@ -1,0 +1,95 @@
+﻿@model Int32
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="buyerdroptickethistory-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnDropTicketNumber</th>
+                                    <th>@Resource.gridColumnVersion</th>
+                                    <th>@Resource.gridColumnDropTicketDate</th>
+                                    <th>@Resource.gridColumnDropDate</th>
+                                    <th>@Resource.gridColumnDropTime</th>
+                                    <th>@Resource.gridColumnGallonsDelivered</th>
+                                    <th>@Resource.lblRackPPG (@Resource.lblCurrencyCode)</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th>@Resource.gridColumnModifiedBy</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8] };
+    $('#buyerdroptickethistory-datatable').dataTable({
+        "ajax": {
+            "url": "@Url.Action("InvoiceHistoryGrid", "Invoice", new { area = "Buyer" })/" + @Model,
+            "type": "GET",
+            "datatype": "json",
+            "dataSrc": ""
+        },
+        "columns": [
+                    { "data": "InvoiceNumber", "autoWidth": true },
+                    { "data": "Version", "autoWidth": true },
+                    { "data": "InvoiceDate", "autoWidth": true },
+                    { "data": "DropDate", "autoWidth": true },
+                    { "data": "DropTime", "autoWidth": true },
+                    { "data": "Quantity", "autoWidth": true },
+                    { "data": "PricePerGallon", "autoWidth": true },
+                    { "data": "Status", "autoWidth": true },
+                    { "data": "ModifiedBy", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            var url = "location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Buyer" })" + "/" + data.InvoiceHeaderId + "'";
+                            return '<input type="button" class="btn btn-warning download-pdf btn-xs" value="@Resource.btnLabelDownload" onclick=' + url+' />';
+                        }, "autoWidth": true
+                    },
+        ],
+        pageLength: 10,
+        responsive: true,
+        "order": [],
+        "initComplete": function (settings, json) {
+            wrapperHeight();   
+        },
+        "draw.dt": function () {
+            activelink($('#history-tab'));
+            inputBoxShowHide(null, 'download-images');
+            inputBoxShowHide(null, 'download');
+        },
+        dom: '<"html5buttons"B>lTfgitp',
+        buttons: [
+            { extend: 'csv', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+            { extend: 'excel', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+            { extend: 'pdf', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+            {
+                extend: 'print',
+                customize: function (win) {
+                    $(win.document.body).addClass('white-bg');
+                    $(win.document.body).css('font-size', '10px');
+
+                    $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                }
+            }
+        ],
+        language: {
+            sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+        },
+        'aoColumnDefs': [{
+            'bSortable': false,
+            'aTargets': [-1]
+        }]
+    });
+    $("#buyerdroptickethistory-datatable").on("click", ".download-pdf", function () {
+        hideLoader();
+    });
+</script>

@@ -1,0 +1,146 @@
+﻿@model PricingCodeDetailViewModel
+<div class="col-sm-12 pricing-codes">
+    @Html.Label(Resource.lblPricingCode)<span class="required pl4">*</span>
+    @Html.HiddenFor(m => m.Id, new { @class = "pricingCodeId" })
+    @Html.HiddenFor(m => m.Description, new { @class = "pricingCodeDescription" })
+</div>
+<div class="col-sm-6">
+    <div class="form-group">
+        <div class="pa bg-white top0 left0 loading-wrapper pricingcode-loader hide-element mt5"><span class='spinner-dashboard pa'></span></div>
+        @Html.TextBoxFor(m => m.Code, new { @class = "form-control pricingCode", @placeholder = Resource.lblPricingCode })
+        @Html.ValidationMessageFor(m => m.Code)
+    </div>
+</div>
+<div id="modal-tier-pricing-codes" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-lg modal-pricingcode-details" role="document">
+        <div class="modal-content">
+            <div class="modal-body" id="tier-pricing-code-detail">
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">@Resource.lblPricingCode</h4>
+                <button _ngcontent-nsf-c1="" aria-label="Close" class="close color-grey pull-right pa" data-dismiss="modal" type="button"><i _ngcontent-nsf-c1="" class="fa fa-close fs21"></i></button>
+                </div>
+                <div class="mt10">
+                    @Html.Partial("_PartialPricingCodesGridForTierPricing")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var pricingUrl = "@Url.Action("GetPricingCodes", "Profile", new { area = "Settings" })";
+    $(document).ready(function () {
+        var displayPricingCode = $("#@Html.IdFor(m => m.Description)").val();
+        if (displayPricingCode != undefined ) {
+            showTierPricingCodeDetails(displayPricingCode);
+        }
+        else {
+            showTierPricingCodeDetails("");
+        }
+
+        autoCompleteTierPricingCodes("#@Html.IdFor(m => m.Code)", pricingUrl);
+        function autoCompleteTierPricingCodes(element, url) {
+            var target = $(element);
+            target.focus(function () {
+                target.autocomplete("search", "  ");
+            });
+            var pricingCodeId = 0;
+            target.autocomplete({
+                source: function (request, response) {
+                    $(".pricingcode-loader").show();
+                    var filterData = getTierPricingFilter();
+                    filterData["Prefix"] = request.term;
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        dataType: "json",
+                        data: filterData,
+                        success: function (result) {
+                            response($.map(result.PricingCodes, function (item) {
+                                return {
+                                    label: item.Code,
+                                    id: item.Id,
+                                    value: { displayData: getTierPricingDisplayData(item), sourceId: item.PricingSourceId }
+                                };
+                            }));
+                        },
+                        complete: function (event, xhr, settings) {
+                            $(".pricingcode-loader").hide();
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    isSelected = true;
+                    $(target).val(ui.item.label); // display the selected text
+                    pricingCodeId = ui.item ? ui.item.id : 0;
+                    var pricingSourceId = ui.item.value.sourceId;
+                    displayData = (ui.item.label == ui.item.value.displayData) ? "" : ui.item.value.displayData;
+                    if (pricingCodeId != 0) {
+                        $(".pricingCodeId").val(pricingCodeId);
+                        $(".pricingCodeDescription").val(displayData);
+                        $(".SelectedPricingSource").val(pricingSourceId);
+                        showTierPricingCodeDetails(displayData);
+                        setTierPricingIndices();
+                        var cityGroupId = $('.tiercityrackterminallist').val();
+                        var stateId = $('.SelectedCityGroupTerminalStateId').val();
+                         fillTierCityGroupTerminals(stateId, cityGroupId);
+                    }
+                    else {
+                        showTierPricingCodeDetails("");
+                    }
+                    return false;
+                },
+                change: function (ev, ui) {
+                    if (!ui.item) {
+                        $(this).val('');
+                        $("#@Html.IdFor(m => m.Id)").val(0);
+                        $("#@Html.IdFor(m => m.Description)").val('');
+                        showTierPricingCodeDetails("");
+                        validationMessageFor($("#@Html.IdFor(m => m.Code)").attr('name'),
+                            '@ResourceMessages.GetMessage(Resource.lblSelectPricingCode)');
+                    }
+                },
+                messages: {
+                    noResults: '',
+                    results: function () { }
+                },
+                minLength: 2,
+                maxShowItems: 10,
+                scroll: true
+            });
+            $.ui.autocomplete.prototype._resizeMenu = function () {
+                var ul = this.menu.element;
+                ul.outerWidth(this.element.outerWidth());
+            }
+            $(".ui-autocomplete").attr("data-pricing-code", "dropdown");//for automation mapping
+        }
+    });
+
+    function updateTierPricingCodeDetails(id, code, displayData, sourceId) {
+        hideTierPricingPopUp();
+        $(".pricingCodeId").val(id);
+        $(".pricingCode").val(code);
+        $(".pricingCodeDescription").val(displayData);
+        $(".SelectedPricingSource").val(sourceId);
+        showTierPricingCodeDetails(displayData);
+        setTierPricingIndices();
+        var cityGroupId = $('.tiercityrackterminallist').val();
+        var stateId = $('.SelectedCityGroupTerminalStateId').val();
+        fillTierCityGroupTerminals(stateId, cityGroupId);
+    }
+
+    function hideTierPricingPopUp() {
+        $("#modal-tier-pricing-codes button").trigger('click');
+    }
+
+    function showTierPricingCodeDetails(displayData) {
+        if (displayData != "" && displayData != undefined) {
+            var data = "Code Details: " + displayData;
+            $("#tier-pricing-code-info label").html(data);
+            $("#tier-pricing-code-info").show();
+            $('#modal-tier-pricing-codes').modal('hide');
+        }
+        else {
+            $("#tier-pricing-code-info").hide();
+        }
+    }
+</script>

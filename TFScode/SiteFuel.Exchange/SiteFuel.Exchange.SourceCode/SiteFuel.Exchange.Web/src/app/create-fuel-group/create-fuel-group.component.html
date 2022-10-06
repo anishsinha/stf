@@ -1,0 +1,134 @@
+﻿<div>
+    <form [formGroup]="rcForm" (ngSubmit)="onSubmit()">
+        <div *ngIf="(isLoadingSubject | async)" class='pa bg-white top0 left0 z-index5 loading-wrapper'>
+            <span class='spinner-dashboard pa'></span>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" formControlName="FuelGroupType" id="occurance-standard" [name]="'FuelGroupType'" [value]="1"
+                               (change)="FuelGroupTypeChange()" [attr.disabled]="!IsEditable || ViewOrEdit=='EDIT'?false:null">
+                        <label class="form-check-label" for="occurance-standard">Standard</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" formControlName="FuelGroupType" id="occurance-custom" [name]="'FuelGroupType'" [value]="2"
+                               (change)="FuelGroupTypeChange()" [attr.disabled]="!IsEditable || ViewOrEdit=='EDIT'?false:null">
+                        <label class="form-check-label" for="occurance-custom">Custom</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6 form-group">
+                <label for="groupName">Group Name</label>
+                <span class="color-maroon">*</span>
+                <input id="groupName" type="text" [readonly]="ViewOrEdit=='EDIT' || ViewOrEdit=='VIEW'?true:null" formControlName="GroupName" class="form-control" />
+                <div *ngIf="rcForm.get('GroupName').invalid && rcForm.get('GroupName').touched" class="color-maroon">
+                    <div *ngIf="rcForm.get('GroupName').errors.required">
+                        Required.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row" formGroupName="GroupTypeCustom" *ngIf="rcForm.get('FuelGroupType').value==2">
+            <div class="col-sm-6 form-group">
+                <label for="TableTypes">Custom Fuel Group for</label>
+                <span class="color-maroon">*</span>
+                <ng-multiselect-dropdown formControlName="TableTypes"
+                                         [disabled]="!IsEditable"
+                                         class="single-select"
+                                         id="TableTypes"
+                                         [placeholder]="'Select group for'"
+                                         [settings]="SingleSelectSettingsById" [data]="TableTypeList"></ng-multiselect-dropdown>
+                <div *ngIf="rcForm.controls.GroupTypeCustom.get('TableTypes').invalid && rcForm.controls.GroupTypeCustom.get('TableTypes').touched" class="color-maroon">
+                    <div *ngIf="rcForm.controls.GroupTypeCustom.get('TableTypes').errors.required">
+                        Required.
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 form-group">
+                <div [ngClass]="{'pntr-none subSectionOpacity': !IsCustomerSelected}">
+                    <label for="Customer">Customer</label>
+                    <span class="color-maroon">*</span>
+                    <ng-multiselect-dropdown formControlName="Customers"
+                                             [disabled]="!IsEditable"
+                                             class="single-select"
+                                             id="Customer"
+                                             [placeholder]="'Select Customer'"
+                                             [settings]="SingleSelectSettingsById" [data]="CustomerList">
+                    </ng-multiselect-dropdown>
+                    <div *ngIf="IsCustomerSelected && rcForm.controls.GroupTypeCustom.get('Customers').invalid && rcForm.controls.GroupTypeCustom.get('Customers').touched" class="color-maroon">
+                        <div *ngIf="rcForm.controls.GroupTypeCustom.get('Customers').errors.required">
+                            Required.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 form-group">
+                <div [ngClass]="{'pntr-none subSectionOpacity': !IsCarrierSelected}">
+                    <label for="Carrier">Carrier</label>
+                    <span class="color-maroon">*</span>
+                    <ng-multiselect-dropdown formControlName="Carriers"
+                                             [disabled]="!IsEditable"
+                                             class="single-select"
+                                             id="Carrier"
+                                             [placeholder]="'Select Carrier'"
+                                             [settings]="SingleSelectSettingsById" [data]="CarrierList">
+                    </ng-multiselect-dropdown>
+                    <div *ngIf="IsCarrierSelected && rcForm.controls.GroupTypeCustom.get('Carriers').invalid && rcForm.controls.GroupTypeCustom.get('Carriers').touched" class="color-maroon">
+                        <div *ngIf="rcForm.controls.GroupTypeCustom.get('Carriers').errors.required">
+                            Required.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row" formGroupName="GroupTypeStandard">
+            <div class="col-sm-6 form-group">
+                <div class="">
+                    <label for="ProductTypes">Product Types</label>
+                    <span class="color-maroon">*</span>
+                    <ng-multiselect-dropdown formControlName="ProductTypes"
+                                             [disabled]="!IsEditable"
+                                             id="ProductTypes"
+                                             [placeholder]="'Select Product Types(s)'"
+                                             [settings]="MultiSelectSettingsById" [data]="ProductTypeList">
+                    </ng-multiselect-dropdown>
+                    <div *ngIf="rcForm.controls.GroupTypeStandard.get('ProductTypes').invalid && rcForm.controls.GroupTypeStandard.get('ProductTypes').touched" class="color-maroon">
+                        <div *ngIf="rcForm.controls.GroupTypeStandard.get('ProductTypes').errors.required">
+                            Required.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 form-group">
+                <div [ngClass]="{'pntr-none subSectionOpacity': !IsProductTypeSelected}">
+                    <label for="FuelTypes">Fuel Types</label>
+                    <span class="color-maroon">*</span>
+                    <ng-multiselect-dropdown formControlName="FuelTypes"
+                                             [disabled]="!IsEditable"
+                                             id="FuelTypes"
+                                             [placeholder]="'Select Fuel Type(s)'"
+                                             [settings]="MultiSelectSettingsById" [data]="FuelTypeList">
+                    </ng-multiselect-dropdown>
+                    <div *ngIf="rcForm.controls.GroupTypeStandard.get('FuelTypes').invalid && rcForm.controls.GroupTypeStandard.get('FuelTypes').touched" class="color-maroon">
+                        <div *ngIf="rcForm.controls.GroupTypeStandard.get('FuelTypes').errors.required">
+                            Required.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="col-sm-12 text-right">
+                <input type="button" class="btn btn-lg btn-light" value="Cancel" (click)="onCancel()" />
+                <button class="btn btn-lg btn-primary" type="submit" [disabled]="!IsEditable">Submit</button>
+            </div>
+
+        </div>
+    </form>
+</div>

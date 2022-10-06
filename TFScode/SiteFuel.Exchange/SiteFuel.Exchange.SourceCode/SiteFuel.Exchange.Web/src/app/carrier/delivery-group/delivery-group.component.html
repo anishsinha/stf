@@ -1,0 +1,1049 @@
+<div id="delivery_group_panel" class="border radius-5  delivery-panel hide-element" [formGroup]="DelGroupForm">
+    <div class="row delivery-group-heading">
+        <div class="col-sm-12 pl0 pr0">
+            <a id="delivery_group_icon" class="color-white dg-header" title="Close Delivery Group">
+                <i class="fa fa-chevron-up mr10"></i><h1 class="fs18 f-normal mt0 dib ">Delivery Group</h1>
+            </a>
+            <a class="pull-right pa10 text-center" title="Reset" data-toggle="modal" data-target="#confirm-reset" data-backdrop="static" data-keyboard="false"><i class="fa fa-trash-alt color-maroon fs14 radius-circle bg-white"></i></a>
+        </div>
+    </div>
+    <div class="row delivery-panel_body pa5">
+        <div class="col-sm-12 overflow-y-60">
+            <ng-container [formArrayName]="'DeliveryRequests'">
+                <ng-container *ngFor="let tdr of DelGroupForm.controls['DeliveryRequests']['controls']; let i = index;">
+                    <div class="border-dash-dark radius-5 pa15 dr-wrapper mt5" [ngClass]="setBlendClass(tdr.value, i)">
+                        <div [formGroupName]="i">
+                            <div class="row">
+                                <!-- parent blend request  -->
+                                <div *ngIf="tdr.get('IsBlendedRequest').value && tdr.get('IsBlendedDrParent').value" class="col-sm-12 fs15">
+
+                                    <a (click)="editBlendedSchedule(i,DelGroupForm)" placement="right" ngbTooltip="Edit Blended Requests">
+                                        Blend&nbsp;<i class="fas fa-edit ml-2"></i>
+                                    </a>
+
+                                    <a *ngIf="DoNotShowCancelICON(tdr.value)" (click)="deleteSchedule({index:i,trip:DelGroupForm})" placement="bottom" ngbTooltip="Remove Blended Requests" class="color-maroon pull-right ml30">
+                                        <i class="fa fa-close"></i>
+                                    </a>
+
+                                    <a *ngIf="tdr.get('IsBlendedRequest').value && tdr.get('IsBlendedDrParent').value && DoNotShowCancelButton(tdr.value) && CheckSubDrStatus(tdr.value)" class="ml5 pull-right" placement="top" ngbTooltip="cancel DS" container="body" (click)="CancelDS(tdr);" style="color: #ff7575;">
+                                        Cancel DS
+                                    </a>
+                                </div>
+                                <div class="col-sm-11" *ngIf="tdr.controls['JobId'].value > 0">
+                                    <!-- non blend or parent blend-->
+                                    <ng-container *ngIf="(!tdr.get('IsBlendedRequest').value) || tdr.get('IsBlendedRequest').value && tdr.get('IsBlendedDrParent').value">
+                                        {{tdr.controls['CustomerCompany'].value}} | {{tdr.controls['JobName'].value}},
+                                        {{tdr.controls['JobAddress'].value}} - {{tdr.controls['ProductType'].value}}
+                                        <span class="color-white fs10 blinking" *ngIf="tdr.controls['PreLoadedFor']"><i>Pre-Load</i></span>
+                                        <span class="color-white fs10 blinking" *ngIf="tdr.controls['PostLoadedFor']"><i>Post-Load</i></span>
+                                        <span class="color-white fs10 blinking" *ngIf="tdr.controls['isRecurringSchedule'].value==true"><i>Recurring</i></span>
+                                    </ng-container>
+
+                                    <!-- blend childs -->
+                                    <ng-container *ngIf="tdr.get('IsBlendedRequest').value && !tdr.get('IsBlendedDrParent').value">
+                                        {{tdr.controls['ProductType'].value}}
+                                    </ng-container>
+
+                                </div>
+                                <div class="col-sm-11" *ngIf="tdr.controls['JobId'].value == 0">
+                                    <div class="row mt5">
+                                        <div class="col-sm-5 form-group mb0">
+                                            <label class="fs12">TBD - {{tdr.controls['ProductType'].value}}</label>
+                                        </div>
+                                        <div class="col-sm-7 form-group mb0 text-right">
+                                            <a (click)="createOnTheFlyLocation(tdr)" *ngIf="isSupplierCompany"><i class="fa fa-plus-circle fs14 ml5"></i> New Location</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-1 text-center mt6 pl-0" *ngIf="(tdr.controls['PostLoadedFor']==null || tdr.controls['PostLoadedFor']==undefined) && !tdr.get('IsBlendedRequest').value && DoNotShowCancelICON(tdr.value)">
+                                    <a (click)="deleteSchedule({index:i,trip:DelGroupForm})" title="Remove" class="color-maroon"><i class="fa fa-close"></i></a>
+                                </div>
+                                <div class="col-sm-11" *ngIf="tdr.controls['IsMarine'].value ==true">
+                                    {{tdr.controls['DeliveryDateStartTime'].value}}
+                                    {{tdr.controls['Vessel'].value}} - {{tdr.controls['Berth'].value}}
+                                </div>
+                            </div>
+
+                            <div class="row mt5" *ngIf="tdr.controls['IsTBD'].value==true && checkScheduleEditStatus(tdr) == true">
+                                <div class="col-md-6">
+                                    <ng-multiselect-dropdown class="single-select"
+                                                             [placeholder]="'Customer (Optional)'"
+                                                             [settings]="CustomerSettings"
+                                                             [data]="TbdCustomerList[tdr.controls['Id'].value]"
+                                                             (onSelect)="onCustomerSelect_TBD($event, tdr)"
+                                                             (onDeSelect)="onCustomerDeSelect_TBD($event, tdr)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                                <div class="col-md-6">
+                                    <ng-multiselect-dropdown formControlName="TBDLocations" class="single-select"
+                                                             [placeholder]="'Location'"
+                                                             [settings]="SiteddlSettings"
+                                                             [data]="TbdLocationList[tdr.controls['Id'].value]"
+                                                             (onSelect)="onSiteSelect_TBD($event, tdr)"
+                                                             (onDeSelect)="onSiteDeSelect_TBD($event)">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                            </div>
+                            <div class="row mt5">
+                                <div class="col-sm-6 form-group mb0">
+                                    <div class="input-group">
+                                        <span class="f-bold mt7" *ngIf="tdr.controls['ScheduleQuantityType'].value>1"><i>{{tdr.controls['ScheduleQuantityTypeText'].value}}</i></span>
+                                        <input type="number" class="form-control" *ngIf="tdr.controls['ScheduleQuantityType'].value==1 ||tdr.controls['ScheduleQuantityType'].value==0" formControlName="RequiredQuantity" (change)="onDeliveryRequestChange(tdr);"
+                                               [readonly]="!(tdr.controls['PostLoadedFor']==null || tdr.controls['PostLoadedFor']==undefined) || (tdr.controls['ScheduleQuantityType'].value>1) || (tdr.get('IsBlendedRequest').value)" />
+                                        <span class="input-group-addon" *ngIf="tdr.controls['ScheduleQuantityType'].value==1">
+                                            <span *ngIf="tdr.controls['UoM'].value==1; else litres">G</span>
+                                            <ng-template #litres>L</ng-template>
+                                        </span>
+                                    </div>
+                                    <div *ngIf="tdr.controls['RequiredQuantity'].invalid && (tdr.controls['RequiredQuantity'].dirty || tdr.controls['RequiredQuantity'].touched)">
+                                        <label class="fs12" style="color:red" *ngIf="tdr.controls['RequiredQuantity'].errors.required">
+                                            Required
+                                        </label>
+                                        <label class="fs12" style="color:red" *ngIf="tdr.controls['RequiredQuantity'].errors?.max">
+                                            Should not exceed max fill
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [class]="tdr.get('IsBlendedRequest').value? 'pntr-none subSectionOpacity' : ''">
+                                        <select class="form-control" [ngClass]="{'pntr-none':(tdr.controls['IsTBD'].value == false && (tdr.controls['DeliveryRequestFor'].value != 3 && tdr.controls['TankId'].value== null && tdr.controls['StorageId'].value== null))}" formControlName="OrderId" (change)="updateDrForm(tdr,$event);changeTerminal(tdr, $event)"
+                                                [disabled]="(tdr.controls['DeliveryRequestFor'].value != 3 && tdr.controls['TankId'].value == null && tdr.controls['StorageId'].value == null) ? 'true' : null"
+                                                [attr.readonly]="(tdr.controls['PostLoadedFor']==null || tdr.controls['PostLoadedFor']==undefined)?null:'true'">
+                                            <option [ngValue]="null">Select Order</option>
+                                            <ng-container *ngIf="!tdr.get('IsAdditive').value">
+                                                <ng-container *ngFor="let order of OrderList[tdr.controls['JobId'].value.toString() + '_' + tdr.controls['ProductTypeId'].value.toString() + '_' + (tdr.controls['IsBlendedRequest'].value ? 1 : 0)]||[]">
+                                                    <ng-container *ngIf="!tdr.controls['FuelType'].value || tdr.controls['IsBlendedRequest'].value">
+                                                        <option [ngValue]="order.OrderId">
+                                                            {{
+                                                                    order.PoNumber
+                                                            }}
+                                                        </option>
+                                                    </ng-container>
+                                                </ng-container>
+                                                <ng-container *ngFor="let order of  TbdOrderList[tdr.controls['Id'].value]||[]">
+                                                    <ng-container *ngIf="tdr.controls['FuelType'].value">
+                                                        <option [ngValue]="order.Id" [selected]="order.Id==tdr.controls['OrderId'].value">
+                                                            {{
+                                                                    order.Name
+                                                            }}
+                                                        </option>
+                                                    </ng-container>
+                                                </ng-container>
+                                                <ng-container *ngIf="tdr.controls['OrderId'].invalid && (tdr.controls['OrderId'].dirty || tdr.controls['OrderId'].touched)">
+                                                    <option>No orders found </option>
+                                                </ng-container>
+                                            </ng-container>
+                                            <ng-container *ngIf="tdr.get('IsAdditive').value">
+                                                <ng-container *ngFor="let additiveOrder of additiveOrders">
+                                                    <option *ngIf="additiveOrder.JobId == tdr.get('JobId').value" [ngValue]="additiveOrder.Id" [selected]="additiveOrder.Id==tdr.controls['OrderId'].value">
+                                                        {{additiveOrder.Name}}
+                                                    </option>
+                                                </ng-container>
+                                            </ng-container>
+
+                                        </select>
+                                    </div>
+                                    <div *ngIf="tdr.controls['OrderId'].invalid && (tdr.controls['OrderId'].dirty || tdr.controls['OrderId'].touched)">
+                                        <label class="fs12" style="color:red" *ngIf="tdr.controls['OrderId'].errors.required">
+                                            Required
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt5" *ngIf="!this.DelGroupForm.controls['IsCommonPickup'].value && !tdr.controls['IsAdditive'].value">
+                                <div class="col-sm-12">
+                                    <div class="clearfix color-lightgrey col-sm-12 pa0">
+                                        <div class="pull-left">
+                                            Pickup From:
+                                            <span class="pr5" *ngIf="tdr.controls['PickupLocationType'].value!=2; else location;">
+                                                Terminal
+                                            </span>
+                                            <ng-template #location>
+                                                <span class="pr5">
+                                                    Location
+                                                </span>
+                                            </ng-template>
+                                        </div>
+                                        <div class="pull-left pr5" *ngIf="tdr.controls['PickupLocationType'].value!=2; else bulkPlant;">
+
+                                            {{tdr.controls['Terminal'].controls['Name'].value}}
+
+                                            <!-- <div *ngIf="tdr.controls['Terminal'].invalid && (tdr.controls['Terminal'].dirty || tdr.controls['Terminal'].touched)">
+                        <label class="fs12" style="color:red" *ngIf="tdr.controls['Terminal'].controls['Name'].errors.required">
+                            Required
+                        </label>
+                    </div> -->
+                                        </div>
+                                        <ng-template #bulkPlant class="pull-left pr5">
+                                            <span class="pull-left pl5 pr5">
+                                                {{tdr.controls['BulkPlant'].controls['SiteName'].value}}, {{tdr.controls['BulkPlant'].controls['City'].value}},
+                                                {{tdr.controls['BulkPlant'].controls['State'].controls['Code'].value}} {{tdr.controls['BulkPlant'].controls['ZipCode'].value}}
+                                            </span>
+                                            <!-- <div *ngIf="tdr.controls['BulkPlant'].invalid && (tdr.controls['BulkPlant'].dirty || tdr.controls['BulkPlant'].touched)">
+                        <label class="fs12" style="color:red" *ngIf="tdr.controls['BulkPlant'].invalid">
+                            Required
+                        </label>
+                    </div> -->
+                                        </ng-template>
+                                        <span *ngIf="(tdr.controls['PostLoadedFor']==null || tdr.controls['PostLoadedFor']==undefined) && (!tdr.get('IsBlendedRequest').value)">
+                                            <a class="pull-left" (click)="editPickupLocation(tdr)" data-toggle="modal" data-target="#pickup-location"><i class="fa fa-edit fs18 ml5 mt2"></i></a>
+                                        </span>
+                                        <span *ngIf="(tdr.controls['PostLoadedFor']==null || tdr.controls['PostLoadedFor']==undefined) && (!tdr.get('IsBlendedRequest').value)">
+                                            <a class="pull-left color-maroon" (click)="RemovePickupLocation(tdr)" title="Remove pickup location"><i class="fa fa-close ml5 mt2"></i></a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- [class.mt25]="(tdr.get('IsBlendedRequest').value && !tdr.get('IsBlendedDrParent').value && isLastDrOfBlendGroup(tdr.value, i))" -->
+                            <div class="row mt5" *ngIf="!tdr.get('IsBlendedRequest').value || (tdr.get('IsBlendedRequest').value && !tdr.get('IsBlendedDrParent').value && isLastDrOfBlendGroup(tdr.value, i))">
+                                <div class="col-sm-12">
+                                    <div class="form-check form-check-inline float-left checkbox mt0 mb0">
+                                        <input class="form-check-input" type="checkbox" id="CheckboxCommonBadge-{{i}}" formControlName="IsCommonBadge" (change)="setCommonBadgeForBlendGroup(tdr);">
+                                        <label class="form-check-label" for="CheckboxCommonBadge-{{i}}">Common Badge #</label>
+                                    </div>
+                                    <div class="form-check form-check-inline float-right checkbox mt0 mb0">
+                                        <input class="form-check-input" type="checkbox" [id]="'CheckboxFilldInvoke-'+i" formControlName="IsFilldInvoke" (change)="onDeliveryRequestChange(tdr)">
+                                        <label class="form-check-label" [for]="'CheckboxFilldInvoke-'+i">TrueFill Inc. Compatible</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt5" *ngIf="!tdr.controls['IsCommonBadge'].value && (!tdr.get('IsBlendedRequest').value || (tdr.get('IsBlendedRequest').value && !tdr.get('IsBlendedDrParent').value && isLastDrOfBlendGroup(tdr.value, i)))">
+                                <div class="col-sm-4 form-group mb0 pr5">
+                                    <input type="text" class="form-control" placeholder="Badge #1" formControlName="BadgeNo1" (change)="setBadgeForBlendGroup(tdr, 1);" />
+                                </div>
+                                <div class="col-sm-4 form-group mb0 pl10 pr10">
+                                    <input type="text" class="form-control" placeholder="Badge #2" formControlName="BadgeNo2" (change)="setBadgeForBlendGroup(tdr, 2);" />
+                                </div>
+                                <div class="col-sm-4 form-group mb0 pl5">
+                                    <input type="text" class="form-control" placeholder="Badge #3" formControlName="BadgeNo3" (change)="setBadgeForBlendGroup(tdr, 3);" />
+                                </div>
+                            </div>
+                            <div *ngIf="!tdr.get('IsBlendedRequest').value || (tdr.get('IsBlendedRequest').value && !tdr.get('IsBlendedDrParent').value && isLastDrOfBlendGroup(tdr.value, i))" class="row mt10">
+                                <div class="col-sm-12">
+                                    <a (click)="viewNotes(tdr)" class="font-bold" data-toggle="collapse" [attr.data-target]="'#collapseDispatcher'+i" [attr.aria-controls]="'collapseDispatcher'+i" role="button" [attr.aria-expanded]="false">
+                                        Note <i class="fa fa mr10 " [ngClass]=" selectedViewNote == tdr.value.Id ? 'fa-chevron-up' : 'fa-chevron-down'"> </i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="collapse" [attr.id]="'collapseDispatcher'+i">
+                                <div class="form-group mb0">
+                                    <textarea class="form-control" formControlName="Notes" placeholder="Dispatcher Note" (change)="onDeliveryRequestChange(tdr);setNoteForBlendGroup(tdr);"></textarea>
+                                </div>
+                            </div>
+                            <div *ngIf="!tdr.get('IsBlendedRequest').value || (tdr.get('IsBlendedRequest').value && !tdr.get('IsBlendedDrParent').value && isLastDrOfBlendGroup(tdr.value, i))">
+                                <div class="row mt-3">
+                                    <div class="col-sm-10 form-group">
+                                        <div class="form-group">
+                                            <label for="Delivery-Level-PO#">Delivery-Level PO#</label><br>
+                                            <input type="text"  formControlName="DeliveryLevelPO" class="form-control" id="Delivery-Level-PO#" (change)="onDeliveryRequestChange(tdr);setDeliveryLevelPOForBlendGroup(tdr)" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt10">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label for="name" class="form-check-label">
+                                                    <span>Schedule Date</span>
+                                                </label>
+                                                <input type="text" placeholder="Select Date" formControlName="SelectedDate" class="form-control datepicker" myDatePicker [format]="'MM/DD/YYYY'" [minDate]="MinDate" [maxDate]="MaxDate" (onDateChange)="onDeliveryRequestChange(tdr);setScheduleSelectedDate($event,tdr) "/> 
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group mb0">
+                                                <label class="form-check-label">Start Time</label>
+                                                <input type="text" placeholder="Start Time"formControlName="ScheduleStartTime" class="form-control"  myTimePicker [format]="'hh:mm A'" (onTimeChange)="onDeliveryRequestChange(tdr); setScheduleStartTime($event,tdr);"/>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group mb0">
+                                                <label class="form-check-label">End Time</label>
+                                                <input type="text" placeholder="End Time" formControlName="ScheduleEndTime" class="form-control"  myTimePicker [format]="'hh:mm A'" (onTimeChange)=" onDeliveryRequestChange(tdr); setScheduleEndTime($event,tdr);"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt10">
+                                <div class="col-sm-12" style="text-align: right;">
+                                    <a *ngIf="!tdr.get('IsBlendedRequest').value && tdr.controls['GroupParentDRId'].value!=''" (click)="AddSubDR(tdr)" data-toggle="modal" data-target="#addsub-dr" style="color: #188c90;">
+                                        Add Sub DR(s)
+                                    </a>
+                                    <a *ngIf="!tdr.get('IsBlendedRequest').value && DoNotShowCancelButton(tdr.value) && CheckSubDrStatus(tdr.value)" class="ml5" placement="top" ngbTooltip="cancel DS" container="body" (click)="CancelDS(tdr);" style="color: #ff7575;">
+                                        Cancel DS
+                                    </a>
+                                </div>
+                                <!-- <div class="col-sm-6" *ngIf="DoNotShowCancelButton(tdr) && CheckSubDrStatus(tdr.value)">
+            <button class="btn btn-default" style="float:right" placement="right" ngbTooltip="cancel DS" container="body" (click)="CancelDS(tdr);">
+                <i class="fas fa-remove fs13"></i>
+                Cancel DS
+            </button>
+        </div> -->
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
+            </ng-container>
+            <div class="mt10">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <input type="text" formControlName="Carrier" class="form-control" placeholder="Carrier" (change)="onDeliveryGroupChange();" />
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <input type="text" formControlName="SupplierSource" placeholder="Supplier Source" class="form-control" (change)="onDeliveryGroupChange();" />
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+            <div class="mt10" *ngIf="this.DelGroupForm.controls['IsCommonBadge'].value">
+                <div class="row">
+                    <div class="col-sm-4 pr5">
+                        <div class="form-group mb5">
+                            <input type="text" class="form-control" formControlName="BadgeNo1" fom placeholder="Badge #1" (change)="onDeliveryGroupChange();">
+                        </div>
+                    </div>
+                    <div class="col-sm-4 pr10 pl10">
+                        <div class="form-group mb5 ">
+                            <input type="text" class="form-control" formControlName="BadgeNo2" placeholder="Badge #2" (change)="onDeliveryGroupChange();">
+                        </div>
+                    </div>
+                    <div class="col-sm-4 pl5">
+                        <div class="form-group mb5 ">
+                            <input type="text" class="form-control" formControlName="BadgeNo3" placeholder="Badge #3" (change)="onDeliveryGroupChange();">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--*ngIf="this.DelGroupForm.controls['IsCommonBadge'].value"-->
+            <div class="mt10">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="form-group mb0">
+                            <textarea class="form-control" formControlName="RouteInfo" placeholder="Common Note" (change)="onDeliveryGroupChange();"></textarea>
+                            <div *ngIf="DelGroupForm.controls['RouteInfo'].invalid && (DelGroupForm.controls['RouteInfo'].dirty || DelGroupForm.controls['RouteInfo'].touched)">
+                                <label class="fs12" style="color:red" *ngIf="DelGroupForm.controls['RouteInfo'].errors.required">
+                                    Required
+                                </label>
+                            </div>
+                        </div>
+                       
+                    </div>
+                </div>
+            </div>
+            <div class="mt10">
+                <div class="row">
+                    <div class="col-sm-4">
+                        <div class="form-group mb5">
+                            <input type="text" class="form-control timepicker" formControlName="StartTime" myTimePicker [format]="'hh:mm A'" placeholder="Start Time" (onTimeChange)="DelGroupForm.controls['StartTime'].setValue($event);" />
+                            <div *ngIf="DelGroupForm.controls['StartTime'].invalid && (DelGroupForm.controls['StartTime'].dirty || DelGroupForm.controls['StartTime'].touched)">
+                                <label class="fs12" style="color:red" *ngIf="DelGroupForm.controls['StartTime'].errors.required">
+                                    Required
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-group mb5">
+                            <input type="text" class="form-control datepicker" formControlName="StartDate" myDatePicker [format]="'MM/DD/YYYY'" placeholder="Start Date" [minDate]="MinCalendarDate" [maxDate]="MaxCalendarDate"
+                                   (onDateChange)="setSelectedDate($event);" autocomplete="off" />
+                            <div *ngIf="DelGroupForm.controls['StartDate'].invalid && (DelGroupForm.controls['StartDate'].dirty || DelGroupForm.controls['StartDate'].touched)">
+                                <label class="fs12" style="color:red" *ngIf="DelGroupForm.controls['StartDate'].errors.required">
+                                    Required
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-group mb5">
+                            <input type="text" formControlName="EndTime" myTimePicker [format]="'hh:mm A'" placeholder="End Time" class="form-control timepicker" (onTimeChange)="DelGroupForm.controls['EndTime'].setValue($event);" />
+                            <div *ngIf="DelGroupForm.controls['EndTime'].invalid && (DelGroupForm.controls['EndTime'].dirty || DelGroupForm.controls['EndTime'].touched)">
+                                <label class="fs12" style="color:red" *ngIf="DelGroupForm.controls['EndTime'].errors.required">
+                                    Required
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 mt10">
+                    <div class="float-left mt5" *ngIf="!this.DelGroupForm.controls['IsPreLoadInfo'].value">
+                        <!--<label>
+                    <input type="checkbox" formControlName="IsCommonPickup" (change)="onCommonPickupChkChange()" />Common Pick-up Location
+                </label>-->
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="comm-pick-Ckbox1" formControlName="IsCommonPickup" (change)="onCommonPickupChkChange()">
+                            <label class="form-check-label" for="comm-pick-Ckbox1">Common Pick-up Location</label>
+                        </div>
+                    </div>
+                    <button *ngIf="!this.DelGroupForm.controls['IsPreLoadInfo'].value" class="btn btn-default btn-sm float-left ml10" (click)="editPickupLocation(null)"
+                            [disabled]="!this.DelGroupForm.controls['IsCommonPickup'].value" data-toggle="modal" #idCommonPickUpBtn data-target="#pickup-location">
+                        <i class="fas fa-map-marker-alt"></i> Choose Pick-up
+                    </button>
+                    <div class="pr5 clearboth">
+                        <div *ngIf="DelGroupForm.controls['PickupLocationType'].value!=2; else bulkPlant;">
+                            {{DelGroupForm.controls['Terminal']['controls'].Name.value}}
+                            <div *ngIf="DelGroupForm.controls['Terminal'].invalid && (DelGroupForm.controls['Terminal'].dirty || DelGroupForm.controls['Terminal'].touched)">
+                                <label class="fs12" style="color:red" *ngIf="DelGroupForm.controls['Terminal']['controls'].Name.errors.required">
+                                    Required
+                                </label>
+                            </div>
+                        </div>
+                        <ng-template #bulkPlant>
+                            {{DelGroupForm.controls['BulkPlant']['controls'].SiteName.value}}  {{DelGroupForm.controls['BulkPlant']['controls'].City.value}}
+                            {{DelGroupForm.controls['BulkPlant']['controls'].State['controls'].Code.value}} {{DelGroupForm.controls['BulkPlant']['controls'].ZipCode.value}}
+                            <div *ngIf="DelGroupForm.controls['BulkPlant'].invalid && (DelGroupForm.controls['BulkPlant'].dirty || DelGroupForm.controls['BulkPlant'].touched)">
+                                <label class="fs12" style="color:red" *ngIf="DelGroupForm.controls['BulkPlant'].invalid">
+                                    Required
+                                </label>
+                            </div>
+                        </ng-template>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-sm-12 text-right mt15">
+            <!--<button type="button" class="btn btn-lg" (click)="cancelDeliveryGroupChanges()">Cancel</button>-->
+            <button type="button" [disabled]="!validStartDate" *ngIf="DelGroupForm.controls['DeliveryGroupPrevStatus'].value!=2" class="btn btn-default btn-lg" (click)="draftDeliveryGroup()">Save</button>
+            <button type="button" [disabled]="DelGroupForm.invalid || !validStartDate" class="btn btn-success btn-lg" (click)="publishDeliveryGroup()"><i class="fas fa-paper-plane mr5 fs13"></i> Publish</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation -->
+<div class="modal fade confirm-box" id="confirm-reset" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Reset Load?</h2>
+                <p class="pb10">Are you sure?</p>
+                <div class="text-right">
+                    <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="deleteDeliveryGroup(true)" data-dismiss="modal" class="btn btn-danger btn-lg">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="pickup-location" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" style="z-index: 1051!important;">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" [formGroup]="PickupForm">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <div class="dib border pa5 radius-capsule">
+                        <!--<div class="btn-group btn-filter" data-toggle="buttons">
+                            <input type="radio" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="1">
+                            Terminal &nbsp;
+                            <input type="radio" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="2">
+                            Bulk Plant
+                        </div>-->
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="inlineTerminal1" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="1">
+                            <label class="form-check-label" for="inlineTerminal1">Terminal</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="inlineBlukplant2" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="2">
+                            <label class="form-check-label" for="inlineBlukplant2">Bulk Plant</label>
+                        </div>
+                    </div>
+                    <button type="button" (click)="updatePickupLocation()" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mt10 mb10">
+                    <!-- terminal start -->
+                    <div class="row" [formGroup]="PickupForm.controls['Terminal']" *ngIf="LocationType==1">
+                        <div class="col-sm-10">
+                            <div class="form-group">
+                                <input type="text" formControlName="Name" class="form-control" (input)="onTerminalSearched($event);PickupForm.controls['Terminal']['controls'].Id.patchValue(0)" (focus)="onTerminalSearched($event);" (blur)="validateTerminal(PickupForm.controls['Terminal'],$event)" placeholder="Terminal Name" (change)="onDeliveryRequestChange(SelectedDRForEditPickup);" />
+
+                                <ul class="auto-select border-dash">
+                                    <li class="form-text" *ngIf="minCharRequired"><small>Enter minimum 3 characters to search.</small></li>
+                                    <li class="form-text" *ngIf="searchError"><small>Something went wrong.</small></li>
+                                    <li class="form-text" *ngIf="_loadingTerminals"><small>Loading...</small></li>
+                                    <li class="form-text" *ngIf="noTerminalFound && !minCharRequired && !searchError && !_loadingTerminals "><small>{{SearchTerminalKey.length > 0 ? "Matching terminal" : "Terminal"}} not found for Fuel Type : {{SearchTerminalFuelType}}</small></li>
+                                    <li *ngFor="let terminal of Terminals;" (click)="onTerminalSelected(terminal)"
+                                        [attr.selected]="terminal.Id==PickupForm.controls['Terminal']['controls'].Id.value">{{terminal.Name}}</li>
+                                </ul>
+                                <ng-container *ngIf="PickupForm.controls['Terminal']['controls'].Name.invalid
+                                      && (PickupForm.controls['Terminal']['controls'].Name.touched || PickupForm.controls['Terminal']['controls'].Name.dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.controls['Terminal']['controls'].Name.errors.required">
+                                        Required
+                                    </label>
+                                </ng-container>
+                                <!--<div class="ng-autocomplete">
+                                    <ng-autocomplete #terminal_AutoComplete
+                                                     [data]="Terminals"
+                                                     [searchKeyword]="keyword"
+                                                     [initialValue]="initialValue"
+                                                     placeholder="Terminal Name"
+                                                     (inputChanged)="onTerminalSearched($event)"
+                                                     (selected)='onTerminalSelected($event)'
+                                                     [itemTemplate]="itemTemplate"
+                                                     [notFoundTemplate]="notFoundTemplate">
+                                    </ng-autocomplete>
+
+                                    <ng-template #itemTemplate let-item>
+                                        <a [innerHTML]="item.Name"></a>
+                                    </ng-template>
+
+                                    <ng-template #notFoundTemplate let-notFound>
+                                        <div [innerHTML]="notFound"></div>
+                                    </ng-template>
+                                </div>-->
+                            </div>
+                        </div>
+                        <div style="padding-left: 10px;padding-top:7px;">
+                            <a (click)="deletePickupInfo(PickupForm.controls['Terminal'])" title="Remove" class="color-maroon"><i class="fa fa-close"></i></a>
+                        </div>
+                    </div>
+                    <!-- terminal ends -->
+                    <!-- bulk plant starts -->
+                    <div class="row pr" [formGroup]="PickupForm.controls['BulkPlant']" *ngIf="LocationType==2">
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Bulk Plant</label>
+                                        <input type="text" formControlName="SiteName" class="form-control" (input)="onBulkPlantSearched($event)" placeholder="Bulk Plant Name" (blur)="onBulkPlantBlur($event)" (change)="onDeliveryRequestChange(SelectedDRForEditPickup);" />
+                                        <ul class="auto-select border-dash">
+                                            <li *ngFor="let plant of BulkPlants;" (click)="onBulkPlantSelected(plant)"
+                                                [attr.selected]="plant.Name==PickupForm.controls['BulkPlant']['controls'].SiteName.value">{{plant.Name}}</li>
+                                        </ul>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].SiteName.touched || PickupForm.controls['BulkPlant']['controls'].SiteName.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Address</label>
+                                        <input type="text" class="form-control" formControlName="Address" (change)="onDeliveryRequestChange(SelectedDRForEditPickup);" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Address.touched || PickupForm.controls['BulkPlant']['controls'].Address.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>{{ CountryBasedZipcodeLabel }}</label>
+                                        <input type="text" class="form-control zip-code" formControlName="ZipCode" (input)="getAddressByZip($event)" (change)="onDeliveryRequestChange(SelectedDRForEditPickup)" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].ZipCode.touched || PickupForm.controls['BulkPlant']['controls'].ZipCode.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.pattern">
+                                                Invalid {{ CountryBasedZipcodeLabel }}
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>City</label>
+                                        <input type="text" class="form-control" formControlName="City" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].City.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].City.touched || PickupForm.controls['BulkPlant']['controls'].City.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].State">
+                                        <label>State</label>
+                                        <select *ngIf="isReadOnly" formControlName="Id" class="form-control" placeholder="Select State" (change)="setStateCode($event)" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select State</option>
+                                            <option *ngFor="let st of StatesListByCountry" [value]="st.Id">
+                                                {{st.Name}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Id" class="form-control" placeholder="Select State" (change)="setStateCode($event)">
+                                            <option [value]="null">Select State</option>
+                                            <option *ngFor="let st of StatesListByCountry" [value]="st.Id">
+                                                {{st.Name}}
+                                            </option>
+                                        </select>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.touched || PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].Country">
+                                        <label>Country/Group</label>
+                                        <select *ngIf="isReadOnly" formControlName="Code" class="form-control" placeholder="Select Country" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select Country</option>
+                                            <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                {{ct.Code}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Code" class="form-control" placeholder="Select Country" (change)="OnCountryChanged($event)">
+                                            <option [value]="null">Select Country</option>
+                                            <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                {{ct.Code}}
+                                            </option>
+                                        </select>
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.touched || PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.errors.required">
+                                                Required
+                                            </label>
+                                        </ng-container>
+                                    </div>
+
+                                    <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].CountryGroup" *ngIf="PickupForm.controls['BulkPlant']['controls'].Country.get('Code').value=='CAR'">
+                                        <label>Country Group</label>
+                                        <select *ngIf="isReadOnly" formControlName="Id" class="form-control" placeholder="Select Country Group" [attr.readonly]="isReadOnly">
+                                            <option [value]="null">Select Country Group</option>
+                                            <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                                {{ct.Name}}
+                                            </option>
+                                        </select>
+                                        <select *ngIf="!isReadOnly" formControlName="Id" class="form-control" placeholder="Select Country Group">
+                                            <option [value]="null">Select Country Group</option>
+                                            <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                                {{ct.Name}}
+                                            </option>
+                                        </select>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>County</label>
+                                        <input type="text" class="form-control" formControlName="CountyName" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].CountyName.touched || PickupForm.controls['BulkPlant']['controls'].CountyName.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.pattern">
+                                                Invalid (alphanumeric with comma spaces only)
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Latitude</label>
+                                        <input type="text" class="form-control" formControlName="Latitude" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Latitude.touched || PickupForm.controls['BulkPlant']['controls'].Latitude.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.pattern">
+                                                Invalid
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group mb0">
+                                        <label>Longitude</label>
+                                        <input type="text" class="form-control" formControlName="Longitude" [readonly]="isReadOnly" />
+                                        <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Longitude.touched || PickupForm.controls['BulkPlant']['controls'].Longitude.dirty)">
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.required">
+                                                Required
+                                            </label>
+                                            <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.pattern">
+                                                Invalid
+                                            </label>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingAddress">
+                            <span class='spinner-dashboard pa'></span>
+                        </div>
+                    </div>
+                    <!-- bulk plant ends -->
+                </div>
+                <div class="text-right">
+                    <button type="button" class="btn" data-dismiss="modal" id="btnPickupClose">Cancel</button>
+                    <button type="button" *ngIf="IsPickupForBlendRequest;" [disabled]="!PickupForm.valid" (click)="updatePickupLocationForBlend()" class="btn btn-primary">Add</button>
+                    <button type="button" *ngIf="!IsPickupForBlendRequest;" [disabled]="!PickupForm.valid" (click)="updatePickupLocation()" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation -->
+<button type="button" id="btnconfirm-delete-dr" class="hide-element" data-toggle="modal" data-target="#confirm-delete-dr" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade confirm-box" id="confirm-delete-dr" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0" id="deleteDrHeading">Driver is on the way to job.</h2>
+                <p class="pb10">Are you sure?</p>
+                <div class="text-right">
+                    <button type="button" (click)="deleteDeliveryRequestFromLoadNo()" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="deleteDeliveryRequestFromLoad()" data-dismiss="modal" class="btn btn-danger btn-lg">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="addsub-dr" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body">
+                <form #form="ngForm" novalidate>
+                    <div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">Create Sub DR(s)</h4>
+                        <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fa fa-close fs21"></i></button>
+                    </div>
+                    <!--Spilt DR Logic-->
+                    <ng-container>
+                        <div *ngFor="let spiltDR of addSubDrModel.SpiltDRs;let i = index;">
+                            <div class="row mt5">
+                                <div class="col-sm-5">
+                                    <div class="form-group">
+                                        <label for="ScheduleQuantityType" class="mr5">
+                                            <span>Quantity Type</span>
+                                        </label>
+                                        <select class="form-control" [(ngModel)]="spiltDR.ScheduleQuantityType" name="ScheduleQuantityType_{{i}}" #ScheduleQuantityType="ngModel">
+                                            <option [id]="1" [value]="1">
+                                                Quantity
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <label for="name" class="mr5">
+                                            <span>Required Quantity</span>
+                                            <span *ngIf="addSubDrModel?.UoM==1; else litres"> (G)</span>
+                                            <ng-template #litres> (L)</ng-template>
+                                        </label>
+                                        <input type="text" class="form-control" name="SpiltRequiredQuantity_{{i}}" [(ngModel)]="spiltDR.RequiredQuantity" #RequiredQuantity="ngModel" required>
+                                    </div>
+                                </div>
+                                <div class="col-sm-1"><a class="fa fa-trash-alt fs18 color-maroon mt7" title="Remove" (click)="removeItem(i)"></a></div>
+                            </div>
+                        </div>
+                    </ng-container>
+                    <div class="row mt10">
+                        <div class="col-sm-12">
+                            <a class="fs18 pull-left" (click)="addEmptySubDR()">
+                                <i class="fa fa-plus-circle fs18 mt4 mr5 float-left"></i><span class="fs14 mt1 pull-left">Add Sub DR</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="text-right ">
+                        <button type="button" class="btn btn-lg" data-dismiss="modal" id="closeSubDrPanel">Cancel</button>
+                        <button type="submit" (click)="onSubDrCreate()" class="btn btn-primary btn-lg">Create</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Confirmation -->
+<button type="button" id="btn-group-cancel-ds" class="hide-element" data-toggle="modal" data-target="#confirm-group-cancel-ds" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade confirm-box" id="confirm-group-cancel-ds" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                <h2 class="fs18 f-bold mt0">Do you want to cancel DS(s)?</h2>
+                <div class="text-right">
+                    <button type="button" (click)="CancelDSGroupDriverSchedule()" class="btn btn-primary" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="RejectDSGroupDriverSchedule()" data-dismiss="modal" class="btn btn-danger btn-lg">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--Cancel DS Infomration-->
+<button type="button" id="btn-group-cancel-ds-info" class="hide-element" data-toggle="modal" data-target="#confirm-group-cancel-ds-info" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-group-cancel-ds-info" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">Delivery Schedule Information</h4>
+                    <button type="button" class="close color-grey pull-right pa" id="confirm-group-cancel-ds-dismiss" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mt10 mb10" *ngIf="cancelDSDeliveryScheduleViewModel.length>0">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <table class="table fs12 table-sm table-borderless mb0">
+                                <thead>
+                                    <tr class="f-bold">
+                                        <th><input id="selectAllDSBGroupCancel" type="checkbox" class="form-check-input" (change)="checkAll()" /></th>
+                                        <th>Driver Name</th>
+                                        <th>Quantity</th>
+                                        <th>Fuel Type</th>
+                                        <th>Current State</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let dsInfo of cancelDSDeliveryScheduleViewModel;let j = index">
+                                        <td><input type="checkbox" class="form-check-input" id="dsCheck{{j}}" (change)="checkDSChange(j,dsInfo)" [(ngModel)]='dsInfo.IsChecked'></td>
+                                        <td>{{dsInfo.DriverName}}</td>
+                                        <td>{{dsInfo.Quantity}}</td>
+                                        <td>{{dsInfo.FuelType}}</td>
+                                        <td>{{dsInfo.CurrentState}}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div class="text-right mt-2" *ngIf="this.cancelDSDeliveryScheduleViewModel.length>0">
+                    <button type="button" (click)="CancelSelectedDS()" class="btn btn-primary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- blend dr modal -->
+<div id="_openBlendModalButton" [hidden]="true" data-toggle="modal" data-target="#_blendModal"></div>
+<div class="modal fade" id="_blendModal" data-backdrop="static" tabindex="-1" role="dialog"
+     aria-labelledby="blendModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header py-1">
+                <h4 class="modal-title">Blend Details</h4>
+                <button type="button" class="close mt-n2" data-dismiss="modal" (click)="IsPickupForBlendRequest=false">&times;</button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body" *ngIf="DelGroupForm.get('DeliveryRequests') && DelGroupForm.get('DeliveryRequests').value && DelGroupForm.get('DeliveryRequests').value.length>0">
+                <!-- parent/total blend quantity -->
+                <div class="row" *ngIf="blendRequestForm.get('BlendedRequests').value && blendRequestForm.get('BlendedRequests').value.length>0">
+                    <div class="col-sm-3">
+                        <label class="form-check-label">Total Quantity</label>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <input type="number" name="_totalBlendedQuantity" [(ngModel)]="totalBlendedQuantity" #_totalBlendedQuantity="ngModel"
+                                       numberWithDecimal class="form-control" placeholder="Total Quantity" (input)="onBlendTotalQuantityChange($event.target.value)" required />
+                                <div class="input-group-addon">
+                                    <span *ngIf="blendRequestForm.get('BlendedRequests').value[0].UoM==1; else litres">G</span>
+                                    <ng-template #litres>L</ng-template>
+                                </div>
+                            </div>
+
+                            <div class="color-maroon"
+                                 *ngIf="_totalBlendedQuantity.errors">
+                                <div>Total quantity is required</div>
+                            </div>
+
+                            <div class="color-maroon"
+                                 *ngIf="!isTankMaxFillValid()">
+                                <div>Required quantity is more than Max Fill.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-check-label fs18">Products</label>
+                    <a type="button" title="Add" class="fa fa-plus-circle mt9 mr10 fs15 ml10" (click)="addRemoveBlendedProduct(true, 0)"></a>
+                </div>
+
+                <ng-container *ngIf="blendRequestForm.get('BlendedRequests').value && blendRequestForm.get('BlendedRequests').value.length>0">
+                    <form [formGroup]="blendRequestForm">
+                        <ng-container *ngFor="let blendedRequest of blendRequestForm.get('BlendedRequests')['controls']; let x = index;let first = first;let last = last;">
+
+                            <ng-container formArrayName="BlendedRequests">
+                                <ng-container [formGroupName]="x">
+                                    <!-- additive label -->
+                                    <ng-container *ngIf="blendedRequest.get('IsAdditive').value && (first || !blendRequestForm.get('BlendedRequests')['controls'][+x - 1].get('IsAdditive').value)">
+
+                                        <!-- validation -->
+                                        <div class="" *ngIf="blendRequestForm.valid">
+                                            <div *ngIf="totalBlendedQuantity && blendRequestForm.valid && blendRequestForm.get('BlendedRequests')['controls'].length>0 && !isBlendedRequestQuantityValid()" class="alert alert-danger mb-2 p-2 mt-2">Sum of entered quantity should match with {{totalBlendedQuantity}}.</div>
+                                        </div>
+
+                                        <div class="row mt-3">
+                                            <div class="col-sm-12">
+                                                <label class="form-check-label fs18">Additive</label>
+                                                <a type="button" title="Add" class="fa fa-plus-circle mt9 mr10 fs15 ml10" (click)="addRemoveBlendedProduct(true, x, true)"></a>
+                                            </div>
+                                        </div>
+                                    </ng-container>
+                                    <div class="row mt-2">
+                                        <div class="col-sm-4">
+                                            <div>
+                                                <!-- order ddl -->
+                                                <select *ngIf="!blendedRequest.get('IsAdditive').value" class="form-control" formControlName="OrderId"
+                                                        (change)="orderChangedForBlendRequest($event.target.value, blendedRequest)">
+                                                    <option disabled value="null">Select Order</option>
+                                                    <option *ngFor="let order of getUnUsedOrdersForBlendedRequest(blendedRequest)" [value]="order.OrderId">
+                                                        {{order.PoNumber}}
+                                                    </option>
+                                                </select>
+
+                                                <!-- additive order ddl -->
+                                                <select *ngIf="blendedRequest.get('IsAdditive').value" class="form-control" formControlName="OrderId">
+
+                                                    <option disabled value="null">Select Order</option>
+                                                    <ng-container *ngFor="let additiveOrder of getUnUsedBlendOrders(blendedRequest.get('OrderId').value)">
+                                                        <option *ngIf="additiveOrder.JobId == blendedRequest.get('JobId').value" [ngValue]="additiveOrder.Id" [selected]="additiveOrder.Id==blendedRequest.controls['OrderId'].value">
+                                                            {{additiveOrder.Name}}
+                                                        </option>
+                                                    </ng-container>
+                                                </select>
+                                            </div>
+
+                                            <div class="color-maroon" *ngIf="blendedRequest.get('OrderId').touched && blendedRequest.get('OrderId').errors">
+                                                <div>Order is required </div>
+                                            </div>
+                                        </div>
+                                        <!-- required quantity -->
+                                        <div class="col-sm-3">
+                                            <div class="form-group mb0">
+                                                <div class="input-group">
+                                                    <input type="number" formControlName="RequiredQuantity"
+                                                           numberWithDecimal class="form-control" placeholder="Quantity" (change)="onDeliveryRequestChange(blendedRequest);" (input)="blendDrQuantityChanged($event.target.value,x);" />
+                                                    <div class="input-group-addon">
+                                                        <span *ngIf="blendedRequest.controls['UoM'].value==1; else litres">G</span>
+                                                        <ng-template #litres>L</ng-template>
+                                                    </div>
+                                                </div>
+
+                                                <div class="color-maroon"
+                                                     *ngIf="((blendRequestForm.touched && blendedRequest.get('IsAdditive').value) || blendedRequest.get('RequiredQuantity').touched || blendedRequest.get('QuantityInPercent').touched) && blendedRequest.get('RequiredQuantity').errors">
+                                                    <div> Quantity is required </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-3" *ngIf="!blendedRequest.get('IsAdditive').value">
+                                            <div class="form-group mb0">
+                                                <div class="input-group">
+                                                    <input type="number" formControlName="QuantityInPercent"
+                                                           numberWithDecimal class="form-control"
+                                                           placeholder="Quantity In Percent" (input)="blendDrPercentChanged($event.target.value,x);" />
+                                                    <div class="input-group-addon">%</div>
+                                                </div>
+
+                                                <div class="color-maroon"
+                                                     *ngIf="(blendedRequest.get('QuantityInPercent').touched || blendedRequest.get('RequiredQuantity').touched) && blendedRequest.get('QuantityInPercent').invalid">
+                                                    <div>Invalid percentage</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- remove row -->
+                                        <div class="col-sm-2 input-group">
+                                            <a type="button" title="Remove" class="fa fa-trash-alt mt7 color-maroon remove-partial-block tier" (click)="addRemoveBlendedProduct(false, x)"></a>
+                                        </div>
+
+                                    </div>
+
+                                    <!-- pickup loc -->
+                                    <div class="row">
+                                        <div class="col-sm-12 mt-1" *ngIf="DelGroupForm.controls['DeliveryRequests']['controls'].length>0 && !DelGroupForm.controls['DeliveryRequests']['controls']['IsCommonPickup']?.value && !blendedRequest.get('IsAdditive').value && !DelGroupForm.controls['DeliveryRequests']['controls'][DrForEditBlendedRequestIndex].get('IsCommonPickupForBlend').value">
+                                            <div class="input-group">
+                                                <div class="pull-left">
+                                                    <i class="fas fa-map-marker-alt"></i>&nbsp; Pickup :
+                                                    <span class="pr5" *ngIf="blendedRequest.controls['PickupLocationType']?.value!=2; else location;">Terminal</span>
+                                                    <ng-template #location><span class="pr5">Location</span></ng-template>
+                                                </div>
+                                                <div class="pull-left pr5" *ngIf="blendedRequest.controls['PickupLocationType']?.value!=2; else bulkPlant;">
+                                                    {{blendedRequest.controls['Terminal']?.controls['Name']?.value}}
+                                                    <div *ngIf="blendedRequest.controls['Terminal']?.invalid && (blendedRequest.controls['Terminal']?.dirty || blendedRequest.controls['Terminal']?.touched)">
+                                                        <label class="fs12" style="color:red" *ngIf="blendedRequest.controls['Terminal']?.controls['Name'].errors.required">Required</label>
+                                                    </div>
+                                                </div>
+                                                <ng-template #bulkPlant class="pull-left pr5">
+                                                    <span class="pull-left pl5 pr5">
+                                                        {{blendedRequest.controls['BulkPlant']?.controls['SiteName'].value}}, {{blendedRequest.controls['BulkPlant']?.controls['City'].value}},
+                                                        {{blendedRequest.controls['BulkPlant']?.controls['State']?.controls['Code'].value}} {{blendedRequest.controls['BulkPlant']?.controls['ZipCode'].value}}
+                                                    </span>
+                                                    <div *ngIf="blendedRequest.controls['BulkPlant'].invalid && (blendedRequest.controls['BulkPlant'].dirty || blendedRequest.controls['BulkPlant'].touched)">
+                                                        <label class="fs12" style="color:red" *ngIf="blendedRequest.controls['BulkPlant'].invalid">Required</label>
+                                                    </div>
+                                                </ng-template>
+                                                <span *ngIf="(blendedRequest.controls['PostLoadedFor']==null || blendedRequest.controls['PostLoadedFor']==undefined)">
+                                                    <a class="float-left" (click)="IsPickupForBlendRequest=true;editPickupLocationForBlend(x);" data-toggle="modal" data-target="#pickup-location" placement="bottom" ngbTooltip="Edit Pickup Location"><i class="fa fa-edit fs18 ml-3 mt2"></i></a>
+                                                </span>
+                                                <span *ngIf="(blendedRequest.controls['PostLoadedFor']==null || blendedRequest.controls['PostLoadedFor']==undefined)">
+                                                    <a (click)="RemoveBlendPickupLocation(blendedRequest)" placement="bottom" ngbTooltip="Remove Pickup Location" class="float-left color-maroon"><i class="fa fa-close fs18 ml-2 mt2"></i></a>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- additive label -->
+                                    <ng-container *ngIf="(last && !blendedRequest.get('IsAdditive').value)">
+
+                                        <!-- validations -->
+                                        <div class="mt10" *ngIf="blendRequestForm.valid">
+                                            <div *ngIf="totalBlendedQuantity && blendRequestForm.valid && blendRequestForm.get('BlendedRequests')['controls'].length>0 && !isBlendedRequestQuantityValid()" class="alert alert-danger mb-2 p-2 mt-2">Sum of entered quantity should match with {{totalBlendedQuantity}}.</div>
+                                        </div>
+
+                                        <div class="row mt-3">
+                                            <div class="col-sm-12">
+                                                <label class="form-check-label fs18">Additive</label>
+                                                <a type="button" title="Add" class="fa fa-plus-circle mt9 mr10 fs15 ml10" (click)="addRemoveBlendedProduct(true, x, true)"></a>
+                                            </div>
+                                        </div>
+                                    </ng-container>
+
+                                </ng-container>
+                            </ng-container>
+                        </ng-container>
+
+                        <!-- validations -->
+                        <ng-container *ngIf="blendRequestForm.valid">
+                            <div class="mt10">
+                                <div *ngIf="blendRequestForm.get('BlendedRequests')['controls'].length<2" class="alert alert-danger mb-2 p-2">Please add at least two rows.</div>
+                            </div>
+                        </ng-container>
+
+                        <div class="text-right">
+                            <button type="button" data-dismiss="modal" class="btn btn-lg" (click)="IsPickupForBlendRequest=false">Cancel</button>
+                            <button type="button" class="btn btn-primary btn-lg" [disabled]="blendRequestForm.invalid || blendRequestForm.get('BlendedRequests')['controls'].length<2 || !isBlendedRequestQuantityValid() || !isTankMaxFillValid()" (click)="submitBlendedForm()" data-dismiss="modal">Submit</button>
+                        </div>
+                    </form>
+                </ng-container>
+            </div>
+        </div>
+    </div>
+</div>

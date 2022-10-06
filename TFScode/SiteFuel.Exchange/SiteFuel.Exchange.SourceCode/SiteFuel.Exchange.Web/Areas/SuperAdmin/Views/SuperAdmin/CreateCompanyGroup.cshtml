@@ -1,0 +1,276 @@
+﻿@model CompanyGroupViewModel
+
+@{
+    ViewBag.Title = "Create Account Group";
+}
+
+@using (Html.BeginForm("CreateCompanyGroup", "SuperAdmin", new { area = "SuperAdmin" }, FormMethod.Post, new { role = "form" }))
+{
+    @Html.HiddenFor(m => m.SeletedChildCompanies)
+    @Html.HiddenFor(m => m.OwnerCompanyType)
+    @Html.HiddenFor(m => m.IsSubGroupExist)
+<div class="col-sm-12">
+    <div id="parent-company-section">
+        <div class="row well">
+            <div class="col-sm-12">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <h4>@Resource.lblCreateAccountGroup</h4>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            <label>@Resource.lblSelectParentAccount</label><span class="required pl4" aria-required="true">*</span>
+                            @if (Model.IsEditAccount)
+                            {
+                                @Html.DropDownListFor(m => m.OwnerCompanyId, new SelectList(CommonHelperMethods.GetParentCompanies(Model.OwnerCompanyId), "Id", "Name", Model.OwnerCompanyId), string.Format(Resource.valMessageSelect, Resource.lblAccount), new { @class = "form-control", @readonly = "readonly" });
+                            }
+                            else
+                            {
+                                @Html.DropDownListFor(m => m.OwnerCompanyId, new SelectList(CommonHelperMethods.GetParentCompanies(Model.OwnerCompanyId), "Id", "Name", Model.OwnerCompanyId), string.Format(Resource.valMessageSelect, Resource.lblAccount), new { @class = "form-control" });
+                            }
+                            <span class="field-validation-error hide-element" id="parent-account-error"><span>@string.Format(Resource.valMessageRequired, Resource.gridParentCompany)</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="dib pr @(Model.IsEditAccount ? "" : "hide-element")" id="divCompanyType">
+                    <div class="form-group pt5">
+                        <label>@Resource.lblCompanyType</label>
+                        <div class="font-bold" id="spnMainAccountSelectedCompanyType">@Model.CompanyType</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div id="child-company-section" class="partial-section clearboth">
+                    <div class="mt10">
+                        <label>@Resource.lblSelectChildAccount</label>
+                    </div>
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class="spinner-dashboard pa"></span></div>
+                    <div id="child-company-collection" class="mt5">
+                    </div>
+                    <div id="divAddNewChild">
+                        <a href="javascript:void(0)" onclick="addChildCompany();"><span class="fa fa-plus-circle"></span> @Resource.btnLabelAddNew</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+   
+</div>
+    <div class="col-sm-12 text-right pb30 form-buttons">
+        <input type="button" value="@Resource.btnLabelCancel" class="btn" onclick="location.href='@Url.Action("GroupCompanies", "SuperAdmin", new { area = "SuperAdmin"})'" />
+        <input type="submit" id="submit" value="@Resource.btnLabelSave" onclick="return saveCompanyGroup();" class="btn btn-primary btn-lg submit-form" />
+    </div>
+}
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var idx = 0;
+        var selectedChildCompaniesArr = [];
+
+        $(document).ready(function () {
+            loadGroupDetails();
+            if('@Model.IsEditAccount' == 'False')
+                $('#divAddNewChild').attr('readonly', 'readonly');
+            $(document).on('change', '#OwnerCompanyId', function () {
+                checkValidations(this);
+            });
+        });
+
+        function loadGroupDetails() {
+            var parentCmpId = parseInt('@Model.OwnerCompanyId');
+            var optionsFinal;
+            if (parentCmpId > 0) {
+                $('#@Html.IdFor(m => m.OwnerCompanyId)').val(parentCmpId);
+                var childCompanies = @Html.Raw(Json.Encode(Model.Companies));
+                if (childCompanies != null && childCompanies != undefined && childCompanies.length > 0) {
+                    var companyType = $('#@Html.IdFor(m => m.OwnerCompanyType)').val();
+                    $('#child-company-section').find(".loading-wrapper").show();
+                    var url = "@Url.Action("GetChildCompanies", "SuperAdmin", new { area = "SuperAdmin" })?companyType=" + companyType + "&parentCompanyId=" + parentCmpId;
+                    $.ajax({
+                        type: "GET",
+                        url: url,
+                        dataType: "json",
+                        success: function (data) {
+                            $('#child-company-section').find(".loading-wrapper").hide();
+                            if (data != null && data.length > 0) {
+                                optionsFinal = data.filter(function (option, index) {
+                                    return option.Id.toString() != parentCmpId && $.inArray(option.Id.toString(), selectedChildCompaniesArr) === -1;
+                                });
+                                var isSubGroupExist = $('#@Html.IdFor(m => m.IsSubGroupExist)').val();
+                                $.each(childCompanies, function (index, cmp) {
+                                    idx++;
+                                    var childId = parseInt(cmp.Id);
+                                    selectedChildCompaniesArr.push(childId);
+                                    $('#ddl' + idx).empty();
+                                    $('<div class="row mb10 pr" id="child' + idx + '"><div class="col-sm-3"><select class="form-control" id="ddl' + idx + '" onchange="setCompanyIndex(this);"></select></div><div class="col-sm-1" id="div-remove-' + idx + '"><a href="javascript:void(0)" name="remove-child" class="fa fs18 fa-trash-alt mt10 color-maroon remove-child-company" title="Remove" onclick="removeChildCompany(' + idx + ');"></a></div><div class="field-validation-error ml15 clearboth hide-element" id="div-error-' + idx + '">Sub account is required</div></div>').appendTo('#child-company-collection');
+                                    $('#ddl' + idx).append($("<option></option>").val('').html('Select Account'));
+                                    $.each(optionsFinal, function (key, value) {
+                                        $('#ddl' + idx).append($("<option></option>").val(value.Id).html(value.Name));
+                                    });
+                                    if (childId > 0)
+                                        $('#ddl' + idx).val(childId);
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function addChildCompany() {
+            $('#div-error-' + idx).addClass('hide-element');
+            var parentCmpId = $('#@Html.IdFor(m => m.OwnerCompanyId)').val();
+            $('#parent-account-error').addClass('hide-element');
+            if (parentCmpId != '' && parentCmpId > 0) {
+                var selectedChildCompanies = $('#child-company-collection').find('select');
+                var hasError = false;
+
+                $.each(selectedChildCompanies, function (key, value) {
+                    $('#div-error-' + key).addClass('hide-element');
+                    var cmpId = $(this).val();
+                    if (cmpId == '' && cmpId <= 0) {
+                        $('#div-error-' + (++key)).removeClass('hide-element');
+                        hasError = true;
+                    }
+                });
+
+                if (!hasError) {
+                    idx = ++idx;
+                    addChild(parentCmpId, 0);
+                }
+            }
+            else {
+                $('#parent-account-error').removeClass('hide-element');
+            }
+        }
+
+        function addChild(parentCmpId, childCmpId) {
+            $('#ddl' + idx).empty();
+            $('<div class="row mb10 pr" id="child' + idx + '"><div class="col-sm-3"><div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class="spinner-dashboard pa"></span></div><select class="form-control" id="ddl' + idx + '" onchange="setCompanyIndex(this);"></select></div><div class="col-sm-1" id="div-remove-' + idx + '"><a href="javascript:void(0)" name="remove-child" class="fa fs18 fa-trash-alt mt10 color-maroon remove-child-company" title="Remove" onclick="removeChildCompany(' + idx + ');"></a></div><div class="field-validation-error ml15 clearboth hide-element" id="div-error-' + idx + '">Sub account is required</div></div>').appendTo('#child-company-collection');
+            var companyType = $('#@Html.IdFor(m => m.OwnerCompanyType)').val();
+            var url = "@Url.Action("GetChildCompanies", "SuperAdmin", new { area = "SuperAdmin" })?companyType=" + companyType + "&parentCompanyId=" + parentCmpId;
+            $.ajax({
+                type: "GET",
+                url: url,
+                dataType: "json",
+                success: function (data) {
+                    if (data != null && data.length > 0) {
+                        var optionsFinal = data.filter(function (option, index) {
+                            return option.Id.toString() != parentCmpId && $.inArray(option.Id.toString(), selectedChildCompaniesArr) === -1;
+                        });
+
+                        $('#ddl' + idx).append($("<option></option>").val('').html('Select Account'));
+                        $.each(optionsFinal, function (key, value) {
+                            $('#ddl' + idx).append($("<option></option>").val(value.Id).html(value.Name));
+                        });
+                        if (childCmpId > 0)
+                            $('#ddl' + idx).val(childCmpId);
+                    }
+                    $("#child" + idx).find(".loading-wrapper").hide();
+                }
+            });
+        }
+
+        function setCompanyIndex(ele) {
+            var cmpId = $(ele).val();
+            selectedChildCompaniesArr.push(cmpId);
+
+            $('#parent-account-error').addClass('hide-element');
+            $.each(selectedChildCompaniesArr, function (key, value) {
+                $('#div-error-' + (++key)).addClass('hide-element');
+            });
+        }
+
+        function checkValidations(ele) {
+            var cmpId = $(ele).val();
+
+            if (cmpId == '') {
+                $('#divAddNewChild').attr('readonly', 'readonly');
+            }
+
+            $('.remove-child-company').each(function (index, ele) {
+                $(this).trigger('click');
+            });
+
+            var url = "@Url.Action("GetParentCompanyDetails", "SuperAdmin", new { area = "SuperAdmin" })?parentCompanyId=" + cmpId;
+            $.ajax({
+                type: "GET",
+                url: url,
+                dataType: "json",
+                success: function (data) {
+                    if (data != null && data.length > 0) {
+                        $('#spnMainAccountSelectedCompanyType').text(data[0].CompanyType);
+                        $('#@Html.IdFor(m => m.OwnerCompanyType)').val(data[0].ChildCompanyType)
+                        $('#divCompanyType').removeClass('hide-element');
+                        $("#divCompanyType .loading-wrapper").hide();
+                    }
+                    else {
+                        $('#divCompanyType').addClass('hide-element');
+                    }
+
+                    if (cmpId != '')
+                        $('#divAddNewChild').removeAttr('readonly');
+                    else {
+                        $('#divCompanyType').addClass('hide-element');
+                    }
+                }
+            });
+
+            $('#parent-account-error').addClass('hide-element');
+            $.each(selectedChildCompaniesArr, function (key, value) {
+                $('#div-error-' + (++key)).addClass('hide-element');
+            });
+        }
+
+        function removeChildCompany(idx) {
+            selectedChildCompaniesArr = $.grep(selectedChildCompaniesArr, function (value) {
+                return value != selectedChildCompaniesArr[idx-1];
+            });
+            $('#child' + idx).remove();
+            idx--;
+        }
+
+        function saveCompanyGroup() {
+            var parentCmpId = $('#@Html.IdFor(m => m.OwnerCompanyId)').val();
+            if (parentCmpId == '' || parentCmpId <= 0) {
+                $('#parent-account-error').removeClass('hide-element');
+                return false;
+            }
+            else {
+                $('#parent-account-error').addClass('hide-element');
+            }
+
+            if (idx == 0 || selectedChildCompaniesArr.length == 0) {
+                msgerror('@Resource.errMessageGroupShouldHaveSubCompanies');
+                return false;
+            }
+
+            var selectedChildCompanies = $('#child-company-collection').find('select');
+            var selectedCompaniesInGroupArr = [];
+            var hasError = false;
+            $.each(selectedChildCompanies, function (key, value) {
+                var cmpId = $(this).val();
+                if (cmpId == '' && cmpId <= 0) {
+                    $('#div-error-' + (++key)).removeClass('hide-element');
+                    hasError = true;
+                }
+                else {
+                    $('#div-error-' + (++key)).addClass('hide-element');
+                    selectedCompaniesInGroupArr.push(cmpId);
+                }
+            });
+
+            if (!hasError && selectedCompaniesInGroupArr.length > 0) {
+                var commaSeperatedIds = selectedCompaniesInGroupArr.join(",");
+                $('#@Html.IdFor(m => m.SeletedChildCompanies)').val(commaSeperatedIds);
+                return true;
+            }
+            else {
+                $('#div-error-' + idx).removeClass('hide-element');
+                return false;
+            }
+        }
+    </script>
+}

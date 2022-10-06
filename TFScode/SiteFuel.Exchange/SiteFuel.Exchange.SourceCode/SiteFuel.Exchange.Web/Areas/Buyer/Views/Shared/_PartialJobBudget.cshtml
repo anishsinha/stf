@@ -1,0 +1,133 @@
+﻿@model JobBudgetViewModel
+
+@Html.HiddenFor(m => m.Id)
+<div class="form-check form-check-inline radio">
+    @Html.RadioButtonFor(m => m.BudgetCalculationTypeId, (int)BudgetCalculationType.NoBudget, new { @id = "no-budget", onclick = "radioChange(this, null, 'gallonsInput,amountInput,budgetInfo'),checkBoxUncheck('budgetInfo');", @class = "revalidate form-check-input" })
+    <label class="form-check-label" for="no-budget">@Resource.lblNoBudget</label>
+</div>
+<div class="form-check form-check-inline radio">
+    @Html.RadioButtonFor(m => m.BudgetCalculationTypeId, (int)BudgetCalculationType.Fuel, new { @id = "budget-quantity", onclick = "radioChange(this, 'gallonsInput,budgetInfo', 'amountInput')", onchange = "focusOnFirst(this, 'gallonsInput');checkBoxUncheck('budgetInfo');", @class = "revalidate form-check-input" })
+    <label class="form-check-label" for="budget-quantity">@Resource.lblQuantityOrPrice</label>
+</div>
+<div class="form-check form-check-inline radio">
+    @Html.RadioButtonFor(m => m.BudgetCalculationTypeId, (int)BudgetCalculationType.Budget, new { @id = "budget-amount", onclick = "radioChange(this, 'amountInput,budgetInfo', 'gallonsInput')", onchange = "focusOnFirst(this, 'amountInput');checkBoxUncheck('budgetInfo')", @class = "revalidate form-check-input" })
+    <label class="form-check-label" for="budget-amount">@Resource.lblAmount</label>
+</div>
+<div class="row">
+    <div class="col-sm-5 col-md-4">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group mb0">
+                    <div class="row mt5 gallonsInput defaultDisabled">
+                        <div class="col-xs-6 col-sm-6 col-md-7">
+                            <div class="input-group mb-3">
+                                @Html.TextBoxFor(m => m.Gallons, new { @class = "form-control datatype-decimal mask-decimal" })
+                                <div class="input-group-append">
+                                    <span class="input-group-text fs11">@Model.UoM</span>
+                                </div>
+                            </div>
+                            @Html.ValidationMessageFor(m => m.Gallons)
+                        </div>
+                        <div class="col-xs-6 col-sm-6 col-md-5 pl0 resetleftspace">
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text currency-symbol fs11">@Model.Currency</span>
+                                </div>
+                                @Html.TextBoxFor(m => m.PricePerGallon, new { @class = "form-control datatype-decimal mask-decimal", @placeholder = "PPU" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.PricePerGallon)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-5 col-md-4">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group mb0">
+                    <div class="row mt5 amountInput defaultDisabled">
+                        <div class="col-xs-6">
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text currency-symbol fs11">@Model.Currency</span>
+                                </div>
+                                @Html.HiddenFor(m => m.Id)
+                                @Html.TextBoxFor(m => m.Budget, new { @class = "form-control datatype-decimal mask-decimal" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.Budget)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt10">
+    <div class="col-md-12">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group mb0 budgetInfo defaultDisabled">
+                    <div class="checkbox">
+                        <label>
+                            @Html.CheckBoxFor(m => m.IsBudgetTracked, new { onclick = "checkBoxChange(this,'trackByInput')", onchange = "clickEventTrigger(this,'spotHedgeInput')" })
+                            @Resource.lblTrackBy
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="budgetInfo trackByCntrls amountInput gallonsInput defaultDisabled">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="spotHedgeInput mb5">
+                                <label class="radio-inline">
+                                    @Html.RadioButtonFor(m => m.IsHedgeAmountTracked, true, new { @class = "trackByInput revalidate", onclick = "radioChange(this, 'hedgeInput', 'spotInput')", onchange = "focusOnFirst(this, 'hedgeInput');" })
+                                    @Resource.lblHedge
+                                </label>
+                                <label class="radio-inline ml10">
+                                    @Html.RadioButtonFor(m => m.IsHedgeAmountTracked, false, new
+                               {
+                                   @class = "trackByInput revalidate",
+                                   onclick = "radioChange(this, 'spotInput', 'hedgeInput')",
+                                   onchange = "focusOnFirst(this, 'spotInput');"
+                               })
+                                    @Resource.lblSpot
+                                </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-2">
+                        <div class="input-group mb-3 hedgeInput">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text currency-symbol fs11">@Model.Currency</span>
+                            </div>
+                            @Html.TextBoxFor(m => m.HedgeAmount, new { @class = "form-control datatype-decimal mask-decimal trackByInput" })
+                        </div>
+                        @Html.ValidationMessageFor(m => m.HedgeAmount)
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="input-group mb-3 spotInput">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text currency-symbol fs11">@Model.Currency</span>
+                            </div>
+                            @Html.TextBoxFor(m => m.SpotAmount, new { @class = "form-control datatype-decimal mask-decimal trackByInput" })
+                        </div>
+                        @Html.ValidationMessageFor(m => m.SpotAmount)
+                    </div>
+                </div>
+        </div>
+    </div>
+</div>
+<div class="row mt10">
+    <div class="col-sm-12">
+        <div class="mb0">
+            <div class="checkbox form-group mb0 budgetInfo defaultDisabled">
+                <label>
+                    @Html.CheckBoxFor(m => m.IsExceededBudget) @Resource.lblExceededBudget
+                </label>
+            </div>
+        </div>
+    </div>
+</div>

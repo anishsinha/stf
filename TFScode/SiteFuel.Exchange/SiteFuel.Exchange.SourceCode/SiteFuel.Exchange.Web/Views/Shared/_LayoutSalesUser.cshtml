@@ -1,0 +1,210 @@
+﻿@using SiteFuel.Exchange.Web.Common
+@using System.Web.Optimization
+<!DOCTYPE html>
+<html>
+<head>
+    @RenderSection("header", required: false)
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="TrueFill Exchange Application">
+    <meta name="author" content="TrueFill, Inc.">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800" rel="stylesheet">
+    <link rel="icon" href="~/Content/images/logo-favicon.png">
+
+    <title>TrueFill - @ViewBag.Title</title>
+
+    <!-- CSS -->
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/common")
+    @RenderSection("styles", required: false)
+
+    <!-- JS -->
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/common")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/bootbox")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/unobtrusive-ajax")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/partial-collection")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/supplierbranding")
+    @RenderSection("scripts", required: false)
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css">
+</head>
+<body>
+    <!-- Modal -->
+    <div class="modal fade" id="demandCapture" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+
+    </div>
+    <div id="fr-incoming-alert" class="mb20"></div>
+    @*<a href="javascript:void(0)" class="scroll-to-top text-center animated fixed hide-element"><i class="fa fa-arrow-circle-up fa-2x"></i></a>*@
+    <div class="loader">
+        <div class="loading-content text-center">
+            <div class="spinner"></div>
+        </div>
+    </div>
+    <div class="icon-wrapper">
+        @if (CurrentUser.IsSalesCalculatorAllowed)
+        {
+            <div class="right0 btn-calculator z-index5 mb10">
+                <a id="auto-SalesCalculator" class="btn btn-circle btn-sm color-white"
+                   onclick='LoadSalesCalculator(); ' @*data-toggle='modal' data-target='#sales-calculator-modal'*@
+                   title="@Resource.headingSalesCalculator">
+                    <i class="fa fa-calculator fs16"></i>
+                </a>
+            </div>
+        }
+        @if (CurrentUser.IsImpersonated)
+        {
+            <div class="right0 btn-switch z-index5 mb10">
+                <a id="auto-IsImpersonated" href="@Url.Action("ToggleUser", "Account", new { area = "" })" onclick="removeCompanyGroup();" class="btn btn-danger btn-circle btn-sm color-white" data-toggle="tooltip" data-placement="bottom" data-html="true" title="@Resource.lblSwitchToSuperAdmin">
+                    <i class="fas fa-toggle-on fs16"></i>
+                </a>
+            </div>
+        }
+        @RenderSection("tilePreferences", required: false)
+    </div>
+    <!-- fixed header starts -->
+    <header class="fixed full-width top0 bg-white" id="layoutHeader">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-6 col-8 pr0">
+                    <div class="mt1">
+                        <div id="mobile-menu-toggle" class="pull-left color-white pr">
+                            <span class="db pa full-width bg-darkgray"></span>
+                            <span class="db pa full-width bg-darkgray"></span>
+                            <span class="db pa full-width bg-darkgray"></span>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(CurrentUser.SupplierLogoPath))
+                    {
+                        <div class="pull-left ml10">
+                            <a href="/"><img src="@CurrentUser.SupplierLogoPath" height="34" role="button" class="mt8"></a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="float-left mt2 ml10 d-sm-block d-none"><a href="/"><img src="~/Content/images/truefill-logo.png" width="125" role="button" alt="TrueFill" class="mt5"></a></div>
+                        <div class="float-left mt3 ml5 d-sm-none d-block"><a href="/"><img src="~/Content/images/truefill-symbol.png" width="25" role="button" alt="TrueFill" class="ml5"></a></div>
+                    }
+                    <div class="mt3 ml5 float-left" id="auto-create">
+                        <div class="btn-group mt7 mr5">
+                            <button data-toggle="dropdown" class="btn btn-default dropdown-toggle" aria-expanded="false">
+                                <span class="float-left fs13"><i class="fa fa-plus float-left mr5 fs13 mt3"></i>@Resource.btnLabelCreate</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menuleft mt20">
+                                <li class="dropdown-item">
+                                    <img src="~/Content/images/ico-droparrow.png" class="left-droparrow pa" />
+                                    <a href="@Url.Action("Create", "SourcingRequest", new { area = "SalesUser" })" class="db">
+                                        <span class="text-center"><i class="fa fa-tint mt4 fs16 ml3"></i></span>
+                                        Create Sourcing Request
+                                    </a>
+                                </li>
+                                
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4 pl0 col-sm-6 text-right float-right">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="float-right">
+                                <ul class="list-inline float-right mt2">
+                                    @*@Html.Partial("_PartialChangeLanguage")*@
+                                    @Html.Partial("_PartialUserAlerts")
+                                    @Html.Partial("_PartialCompanyMenu")
+                                    @Html.Partial("_PartialAuthenticatedUser")
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- fixed header ends -->
+    <!-- left navigation starts -->
+    @Html.Partial("_PartialSideMenu")
+    <!-- left navigation ends -->
+    <main>
+        <div class="col-xs-12 full-width pa0" id="display-custom-message">
+            @Html.Partial("_DisplayCustomMessage")
+        </div>
+        <div class="container-fluid pt8 main-wrapper pb20 page-bg">
+            <div id="breadcrumbs">
+            </div>
+            @RenderSection("pageTabs", required: false)
+            @if (!IsSectionDefined("pageTabs"))
+            {
+                <app-root></app-root>
+            }
+            @RenderBody()
+        </div>
+        <div class="container-fluid bg-footer fs12 text-center color-lightgrey" id="layoutFooter">
+            <div class="footer-wrapper pt25 mt10">
+                <span class="float-left mtm10" id="dynamic-footer-text">@Html.Raw(Resource.txtCopyright) </span>
+                <span class="float-right dib"><img src="~/Content/images/comodo-secure-logo.png" border="0" /></span>
+            </div>
+        </div>
+    </main>
+    <div class="currency-container">
+        <input type="hidden" class="hdn-currency" id="hdnCurrencyCulture" />
+    </div>
+    <div id="sliderpanel" class="side-panel pl5 pr5">
+        <div class="side-panel-wrapper">
+            <div class="pt15 pb15">
+                <a class="ml15 close-panel" onclick="closeSlidePanel()"><i class="fa fa-close fs18"></i></a>
+                <h3 class="dib mt0 mb0 fs18 ml10" id="slider-heading"></h3>
+            </div>
+            <div id="slider-content" class="side-panel-body pl15 pr15"></div>
+            @*<div class="text-right ml15 mr15">
+                    <button type="button" id="close-slider" class="btn btn-secondary close-panel" onclick="closeSlidePanel()">@Resource.btnLabelClose</button>
+                    <button type="button" class="btn btn-primary hide-element slider-data-loader"><div class='spinner-xsmall'></div></button>
+                </div>*@
+            <div id="slider-loader" class="position-abs text-center s-spinner">
+                <div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>
+            </div>
+            <div class='pa bg-white top0 left0 z-index5 loading-wrapper hide-element'><span class='spinner-dashboard pa'></span></div>
+        </div>
+    </div>
+
+    @Html.PageScripts()
+    <script src="~/Scripts/Main/FreightService.js"></script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/SendBird/SendBird")
+<script type="text/javascript">
+        $.ajaxSetup(
+        {
+            beforeSend: function (xhr, settings) {
+                if (settings.url.indexOf('googleapis') == -1)
+                    xhr.setRequestHeader('X-Culture-Header', $("#hdnCurrencyCulture").val());
+            }
+        });
+
+        var isImpersonated = ('@CurrentUser.IsImpersonated' == 'True');
+	    var isSuperAdmin = ('@CurrentUser.IsSuperAdmin' == 'True');
+	    var breadCrumbUrl = '@Url.Action("GetBreadcrumbMapping", "Home", new { area = ""})';
+	    var homePageUrl = '@Url.Action("Index", "Home", new { area = ""})';
+
+        if(window.location.href.toLowerCase().indexOf("dashboard") > -1){
+            if ((isImpersonated || isSuperAdmin)) {
+                PreventBackNavigation();
+            }
+        }
+
+         function LoadSalesCalculator() {
+            var url = '@Url.Action("Calculator", "InternalSales", new { area = "Sales" })';
+            $.get(url, function (response) {
+                if (response != null || response != "") {
+                    $("#slider-heading").text('@Resource.headingSalesCalculator');
+                    $("#slider-content").html(response);
+                    parseForm();
+                    slidePanel("#sliderpanel");
+                }
+            }).always(
+                function () {
+                    $("#slider-loader").hide();
+                }
+            );
+        }
+</script>
+</body>
+</html>
+
+

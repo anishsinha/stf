@@ -1,0 +1,66 @@
+﻿@model JobFilterViewModel
+@{
+    ViewBag.Title = "Job Summary"; ;
+}
+
+@section pageTabs {
+    <div class="row">
+        <div class="col-lg-12 tab-headers hidden-xs visible-lg pr0">
+            @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsDispatcher || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin || CurrentUser.IsSalesUser)
+            {
+                <a id="tab-job-details" href="javascript:void(0)" onclick="showsection('job-details'), activelink(this);inputBoxShowHide('floating-buttons',null)" class="active mr15 locationId">
+                    <div class="step-inprogress fs15">
+                        <span class="f-light step-text float-left">@Resource.headingJobs</span>
+                    </div>
+                </a>
+            }
+            @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsDispatcher)
+            {
+                <a id="tab-job-asset" href="javascript:void(0)" onclick="showsection('job-assigncarrier'), activelink(this);inputBoxShowHide('floating-buttons',null)" class="active mr15 carrierId">
+                    <div class="step-inprogress fs15">
+                        <span class="f-light step-text float-left"> @Resource.headingCarrierAssignment</span>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+}
+<div class="tab-container mt10 readOnlyModeFR">
+    <div id="job-details" data-parent-tab="tab-job-details" class="subTabs">
+        @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsDispatcher || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin || CurrentUser.IsSalesUser)
+        {
+            <div class="text-right mb10">
+                <div class="dib">
+                    @using (Html.BeginForm("TPOAssetBulkUpload", "Order", new { area = "Supplier" }, FormMethod.Post, new { enctype = "multipart/form-data", id = "assetbulk-form" }))
+                    {
+                        @Html.AntiForgeryToken()
+
+                        @Html.Partial("_PartialAssetBulkUpload")
+                    }
+                </div>
+                <div class="dib">
+                    @using (Html.BeginForm("TPOTankBulkUpload", "Order", new { area = "Supplier" }, FormMethod.Post, new { enctype = "multipart/form-data", id = "tankbulk-form" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.Partial("_PartialTPOTankBulkUpload")
+                    }
+                </div>
+            </div>
+            @Html.Partial("~/Areas/Supplier/Views/Shared/_PartialSuppliersJobGrid.cshtml", Model)
+        }
+    </div>
+    <div id="job-assigncarrier" data-parent-tab="tab-job-asset" class="subTabs hide-element">
+        @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsDispatcher)
+        {
+            @Html.Partial("~/Areas/Supplier/Views/Shared/_PartialCarrierAssignment.cshtml")
+        }
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $("#divSFXAssetBulkUploadTemplate").hide();
+        $("#divSunbeltAssetBulkUploadTemplate").hide();
+        $("#divTPOAssetBulkUploadTemplate").show();
+        $("#tpo-asset-message").show();
+    });
+</script>

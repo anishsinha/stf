@@ -1,0 +1,277 @@
+﻿@model DashboardViewModel
+
+<div class="panel-section hide-element bg-white radius-5 animated slideInLeft pa inventory-data-dashboard-panel">
+    <a href="javascript:void(0)" class="pa fs25 right0 top0 color-darkgrey mr15 z-index5" onclick="closePanel()">
+        <i class="fa fa-close fs18"></i>
+    </a>
+    <div class="pa bg-white top0 left0 z-index5 loading-wrapper inventory-data-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+    <div class="p-3">
+        <div class="border-b pb-2">
+            <div class="row">
+                <div class="col-6 form-group">
+                    <label class="fs12">@Resource.lblStateProvince</label>
+                    @Html.ListBoxFor(m => m.InventoryFilter.SelectedStateIds, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", 0), new { @placeholder = "Select State(s)", @class = "form-control" })
+                </div>
+                <div class="col-6 form-group">
+                    <label class="fs12">@Resource.lblRegions</label>
+                    @Html.ListBoxFor(m => m.InventoryFilter.SelectedRegionIds, new SelectList(new List<DropdownDisplayExtendedItem>(), "Code", "Name", 0), new { @placeholder = "Select State(s)", @class = "form-control" })
+                </div>
+                <div class="col-12 mb10">
+                    <div class="form-check form-check-inline checkbox">
+                        @Html.CheckBoxFor(m => m.InventoryFilter.IsCarrierMnagedLocations, new { @class = "form-check-input" })
+                        <label class="form-check-label" for="chk-carriermanaged">@Resource.lblCarrierManagedLocations</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6 form-group">
+                    <label class="fs12">@Resource.lblCustomer</label>
+                    @Html.ListBoxFor(m => m.InventoryFilter.SelectedCustomerIds, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", 0), new { @placeholder = "Select State(s)", @class = "form-control" })
+                </div>
+                <div class="col-6 form-group">
+                    <label class="fs12">@Resource.lblProducts</label>
+                    @Html.ListBoxFor(m => m.InventoryFilter.SelectedProductIds, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", 0), new { @placeholder = "Select State(s)", @class = "form-control" })
+                </div>
+                <div class="col-12 text-right">
+                    <button type="button" class="btn btn-sm btn-link" onclick="clearInventoryFilter();">@Resource.btnLabelCancel</button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="filterInventoryData();">@Resource.lblFilter</button>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-6 mb-0">
+                    <label class="fs12 mb-1">@Resource.lblTotalInventory</label>
+                <div class="m-0 fs18 total-inventory" id="totalInventory">0.0000</div>
+            </div>
+            <div class="col-6 mb-0">
+                    <label class="fs12 mb-1">@Resource.lblTotalUllage</label>
+                <div class="m-0 fs18" id="totalUllage">0.0000</div>
+            </div>
+            <div class="col-12 mb-0">
+                    <label class="fs12 mb-1"># @Resource.lblExistingDeliverySchedule</label>
+                <div class="m-0 fs18" id="existingDeliverySchedule">0</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6 mb-0">
+                    <label class="fs12 mb-1">@Resource.lblAvgWeekAgoSale</label>
+                <div class="m-0 fs18 total-inventory" id="avgWeekAgoSale">0.0000</div>
+            </div>
+            <div class="col-6 mb-0">
+                    <label class="fs12 mb-1">@Resource.lblPrevDaySale</label>
+                <div class="m-0 fs18" id="prevDaySale">0.0000</div>
+            </div>
+            <div class="col-6 mb-0">
+                    <label class="fs12 mb-1"># @Resource.lblDeliveryRequests</label>
+                <div class="m-0 fs18" id="deliveryRequests">0</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6 mb-0">
+                <div>
+                    <span class="fs12 float-left clearboth"># @Resource.lblOverfillTanks</span>
+                    <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgOverfillTanks"></i>
+                </div>
+                <div class="no-margins fs18 float-left total-inventory" id="overfillTanks">0</div>
+            </div>
+            <div class="col-6 mb-0">
+                <div>
+                    <span class="fs12 float-left clearboth"># @Resource.lblRunOutTanks</span>
+                    <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgRunOutTanks"></i>
+                </div>
+                <div class="no-margins fs18 float-left" id="runOutTanks">0</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 mt10 text-right">
+                <a onclick="OpenWindow();" class="overflow-h btn btn-default btn-sm" title="@Resource.btnLabelViewAll">
+                    @Resource.btnLabelViewAll
+                </a>
+            </div>
+        </div>
+    </div>    
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        fillInventoryDropdowns();
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedStateIds)").multiselect({
+            maxHeight: 200,
+            includeSelectAllOption: true,
+            closeOnSelect: false,
+            enableFiltering: true,
+            filterPlaceholder: 'Search',
+            enableCaseInsensitiveFiltering: true,
+            nonSelectedText: 'Select State(s)',
+            buttonWidth: '125px'
+        });
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedCustomerIds)").multiselect({
+            maxHeight: 200,
+            includeSelectAllOption: true,
+            closeOnSelect: false,
+            enableFiltering: true,
+            filterPlaceholder: 'Search',
+            enableCaseInsensitiveFiltering: true,
+            nonSelectedText: 'Select Customer(s)',
+            buttonWidth: '125px'
+        });
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedRegionIds)").multiselect({
+            maxHeight: 200,
+            includeSelectAllOption: true,
+            closeOnSelect: false,
+            enableFiltering: true,
+            filterPlaceholder: 'Search',
+            enableCaseInsensitiveFiltering: true,
+            nonSelectedText: 'Select Region(s)',
+            buttonWidth: '125px'
+        });
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedProductIds)").multiselect({
+            maxHeight: 200,
+            includeSelectAllOption: true,
+            closeOnSelect: false,
+            enableFiltering: true,
+            filterPlaceholder: 'Search',
+            enableCaseInsensitiveFiltering: true,
+            nonSelectedText: 'Select Product(s)',
+            buttonWidth: '125px'
+        });
+    });
+
+    function fillInventoryDropdowns() {
+        var countryId = getSelectedCountryAndCurrency().countryId;
+
+        var url = '@Url.Action("GetInventoryDropdownData", "Dashboard", new { area = "Supplier"})?countryId=' + countryId;
+        $('.inventory-data-loader').removeClass("hide-element");
+        $.ajax({
+            type: 'GET',
+            url: url,
+            dataType: "json",
+            contentType: 'application/json; charset=utf-8',
+            success: function (result) {
+                if (result != null && result != undefined && result.StatusCode == '@((int)Status.Success)') {
+                    var response = result.ResponseData;
+                    if (response.States != null && response.States.length > 0) {
+                        $.each(response.States, function (i, state) {
+                            $("#@Html.IdFor(m => m.InventoryFilter.SelectedStateIds)").append($("<option></option>").val(state.Id).html(state.Name));
+                        });
+                        $("#@Html.IdFor(m => m.InventoryFilter.SelectedStateIds)").multiselect('rebuild');
+                    }
+                    if (response.Regions != null && response.Regions.length > 0) {
+                        $.each(response.Regions, function (i, region) {
+                            $("#@Html.IdFor(m => m.InventoryFilter.SelectedRegionIds)").append($("<option></option>").val(region.Code).html(region.Name));
+                        });
+                        $("#@Html.IdFor(m => m.InventoryFilter.SelectedRegionIds)").multiselect('rebuild');
+                    }
+                    if (response.Customers != null && response.Customers.length > 0) {
+                        $.each(response.Customers, function (i, customer) {
+                            $("#@Html.IdFor(m => m.InventoryFilter.SelectedCustomerIds)").append($("<option></option>").val(customer.Id).html(customer.Name));
+                        });
+                        $("#@Html.IdFor(m => m.InventoryFilter.SelectedCustomerIds)").multiselect('rebuild');
+                    }
+                    if (response.Products != null && response.Products.length > 0) {
+                        $.each(response.Products, function (i, prd) {
+                            $("#@Html.IdFor(m => m.InventoryFilter.SelectedProductIds)").append($("<option></option>").val(prd.Id).html(prd.Name));
+                        });
+                        $("#@Html.IdFor(m => m.InventoryFilter.SelectedProductIds)").multiselect('rebuild');
+                    }
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(jqXHR, textStatus, errorThrown);
+            }
+        }).always(function () {
+            $('.inventory-data-loader').addClass("hide-element");
+        });
+    }
+
+    function filterInventoryData() {
+        var panel = $('.inventory-data-dashboard-panel');
+        if (panel.hasClass('hide-element'))
+            return;
+
+        var countryId = getSelectedCountryAndCurrency().countryId;
+
+        var regionIds = $('#@Html.IdFor(m => m.InventoryFilter.SelectedRegionIds) option:selected')
+            .toArray().map(item => item.value);
+        var customerIds = $('#@Html.IdFor(m => m.InventoryFilter.SelectedCustomerIds) option:selected')
+            .toArray().map(item => parseInt(item.value));
+        var stateIds = $('#@Html.IdFor(m => m.InventoryFilter.SelectedStateIds) option:selected')
+            .toArray().map(item => parseInt(item.value));
+        var productIds = $('#@Html.IdFor(m => m.InventoryFilter.SelectedProductIds) option:selected')
+            .toArray().map(item => parseInt(item.value));
+        var isCarrierManagedLocation = $("#@Html.IdFor(m => m.InventoryFilter.IsCarrierMnagedLocations)").is(":checked");
+
+        var inputModel = {
+            CountryId: countryId,
+            SelectedStateIds: stateIds,
+            SelectedRegionIds: regionIds,
+            SelectedCustomerIds: customerIds,
+            SelectedProductIds: productIds,
+            IsCarrierMnagedLocations: isCarrierManagedLocation
+        };
+
+        var url = '@Url.Action("GetInventoryDataForDashboard", "Dashboard", new { area = "Supplier"})';
+        $('.inventory-data-loader').removeClass("hide-element");
+        $.ajax({
+            type: 'POST',
+            url: url,
+            dataType: "json",
+            contentType: 'application/json; charset=utf-8',
+            data: '{filter: ' + JSON.stringify(inputModel) + '}',
+            success: function (result) {
+                if (result != null && result != undefined && result.StatusCode == '@((int)Status.Success)') {
+                    var response = result.ResponseData;
+                    if (response != null && response != undefined) {
+                        $('#totalInventory').html(response.TotalInventory);
+                        $('#totalUllage').html(response.TotalUllage);
+                        $('#existingDeliverySchedule').html(response.ExistingDeliverySchedule);
+                        $('#avgWeekAgoSale').html(response.AvgWeekAgoSale);
+                        $('#prevDaySale').html(response.PrevDaySale);
+                        $('#deliveryRequests').html(response.DeliveryRequests);
+                        $('#overfillTanks').html(response.OverfillTanks);
+                        $('#runOutTanks').html(response.RunOutTanks);
+                    }
+                    else {
+                        resetInventory();
+                    }
+                }
+                else {
+                    resetInventory();
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                resetInventory();
+                console.log(jqXHR, textStatus, errorThrown);
+            }
+        }).always(function () {
+            $('.inventory-data-loader').addClass("hide-element");
+        });
+    }
+
+    function clearInventoryFilter() {
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedCustomerIds)").val([]);
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedCustomerIds)").multiselect('rebuild');
+
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedProductIds)").val([]);
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedProductIds)").multiselect('rebuild');
+
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedRegionIds)").val([]);
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedRegionIds)").multiselect('rebuild');
+
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedStateIds)").val([]);
+        $("#@Html.IdFor(m => m.InventoryFilter.SelectedStateIds)").multiselect('rebuild');
+
+        $("#@Html.IdFor(m => m.InventoryFilter.IsCarrierMnagedLocations)").prop('checked', False);
+        closePanel();
+    }
+
+    function resetInventory() {
+        $('#totalInventory').html('0.0000');
+        $('#totalUllage').html('0.0000');
+        $('#existingDeliverySchedule').html('0');
+        $('#avgWeekAgoSale').html('0.0000');
+        $('#prevDaySale').html('0.0000');
+        $('#deliveryRequests').html('0');
+        $('#overfillTanks').html('0');
+        $('#runOutTanks').html('0');
+    }
+</script>

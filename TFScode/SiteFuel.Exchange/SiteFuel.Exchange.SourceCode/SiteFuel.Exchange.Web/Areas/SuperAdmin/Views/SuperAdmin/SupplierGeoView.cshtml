@@ -1,0 +1,130 @@
+﻿@model SupplierGeoViewModel
+@{
+    ViewBag.Title = "Find Suppliers";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-12">
+        <h4 class="f-light fs21 mb5 float-left no-padding mb10">@Resource.lblHeadingSuppliers</h4>
+    </div>
+</div>
+
+@using (Html.BeginForm())
+{
+    <div class="row">
+        <div class="col-md-12">
+            <div class="well well-xs pl20 mb10">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="row">
+                            <div class="col-sm-3 col-md-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.ZipCode)
+                                    @Html.TextBoxFor(m => m.ZipCode, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.ZipCode)
+                                </div>
+                            </div>
+                            <div class="col-sm-4 col-md-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.SupplierFuelTypes)
+                                    @Html.ListBoxFor(m => m.SupplierFuelTypes, new SelectList(CommonHelperMethods.GetProductTypes(), "Id", "Name", 0), new { @class = "form-control multi-select" })
+                                </div>
+                            </div>
+                            <div class="col-sm-4 col-md-2">
+                                <div class="form-group">
+                                    <label>@Resource.lblAccountType</label>
+                                    @Html.DropDownListFor(m => m.AccountTypeId, new SelectList(CommonHelperMethods.GetAccountTypes(), "Id", "Name", 0), string.Format(Resource.valMessageSelect, Resource.lblAccountType), new { @class = "form-control" })
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-md-2">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.SupplierType)
+                                    @{
+                                        var listItems = new List<DropdownDisplayItem> { new DropdownDisplayItem { Name = "All", Id = 0 },
+                                                                                                                                                                                                                                                                                                                            new DropdownDisplayItem { Name = "Internal", Id = 1 },
+                                                                                                                                                                                                                                                                                                                            new DropdownDisplayItem { Name = "External", Id = 2 }
+                                                                                                                                                                                                                                                                                                                          };
+                                        @Html.DropDownListFor(m => m.SupplierType, new SelectList(listItems, "Id", "Name", 0), new { @class = "form-control" })
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-xs-12 col-md-4">
+                                <div class="form-group">
+                                    @Html.HiddenFor(m => m.Radius)
+                                    @Html.HiddenFor(m => m.SearchFlag)
+                                    <input type="submit" id="btnSearch" value="@Resource.lblSearch" class="btn btn-primary float-left" />
+                                    @if (Model.SearchFlag)
+                                    {
+                                        <label id="SeeMoreSuppliers">
+                                            <input type="submit" id="btnSeeMore" value="@Resource.lblSeeAdditional25Miles" class="btn-link color-link float-left" />
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt5">
+                    <div class="col-md-4">
+                        <div class="checkbox mt0 mb0">
+                            <label>
+                                @Html.CheckBoxFor(m => m.IncludeAllLocations) @Resource.lblIncludeAllLocations
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    if (Model.Suppliers.Any())
+    {
+        <div class="row">
+            @Html.Partial("_PartialSupplierMapView", Model.Suppliers)
+        </div>
+    }
+    if (Model.Radius > 0)
+    {
+        <div class="row mt10">
+            <div class="col-sm-12">
+                <div class="alert alert-info mb0 pt5 pb5">
+                  @ResourceMessages.GetMessage(Resource.msgShowingSupplierwithinMiles,new object[] { Model.Radius })
+                </div>
+            </div>
+        </div>
+    }
+    <div class="row mt10">
+        @Html.Partial("_PartialFindSupplierGrid", Model)
+    </div>
+
+}
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#btnSearch").click(function (e) {
+                var url = "@Url.Action("SupplierGeoView", "SuperAdmin")";
+                $("form").attr("action", url);
+                $('#SearchFlag').val(true);
+            });
+
+            $("#btnSeeMore").click(function (e) {
+                setRadius();
+                var url = "@Url.Action("SupplierGeoView", "SuperAdmin")";
+                $("form").attr("action", url);
+            });
+
+            $('#ZipCode').change(function () {
+                $('#SeeMoreSuppliers').hide();
+                $('#Radius').val(50);
+            });
+        });
+
+        function setRadius() {
+            var radius = parseInt($('#Radius').val());
+            if (radius <= 0)
+                $('#Radius').val(50);
+            else
+                $('#Radius').val(radius + 25);
+        }
+    </script>
+}

@@ -1,0 +1,119 @@
+﻿@model InvoiceFilterViewModel
+@Html.HiddenFor(m => m.GroupIds)
+<div class="row mb5">
+    <div class="col-sm-7 col-md-9 overflow-h tab-headers dib">
+        <a id="tab-invoice-container" onclick="resetsection('invoice-container'), activelink(this)" class="active mr20 pull-left"
+           data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoice-grid-container"
+           data-ajax-url="@Url.Action("GetInvoiceTab", "Invoice", new { area = "Buyer", filter = Model.Filter, groupIds = Model.GroupIds })">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text pull-left"><span id="spnGroupName"></span>@Resource.headingInvoices</span>
+            </div>
+        </a>
+        <a id="tab-ddt-container" onclick="resetsection('ddt-container'), activelink(this)" class="mr20"
+           data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#ddt-grid-container"
+           data-ajax-url="@Url.Action("GetDropTicketTab", "Invoice", new { area = "Buyer", filter = Model.Filter, groupIds = Model.GroupIds })">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text pull-left"><span id="spnGroupName"></span>@Resource.tabheadingDigitalDropTicket</span>
+            </div>
+        </a>
+    </div>
+    @if (Model.JobId == 0)
+    {
+        <div class="col-sm-5 col-md-3">
+            <div class="pull-right">
+                @if (CurrentUser.IsAccountingPerson || CurrentUser.IsBuyer || CurrentUser.IsBuyerAdmin)
+                {
+                    <div class="btn-group ml10 mt2  ">
+                        <button data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelUpload <span class="caret"></span></button>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <li class="dropdown-item"><a href="javascript:void(0)" data-toggle="modal" data-target="#upload-ponumber">Po Number <i class="fa fas fa-file-invoice-dollar float-left mt5 mr5"></i></a></li>
+                        </ul>
+                    </div>
+                }
+            </div>
+            @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+        </div>
+    }
+</div>
+
+<br />
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="modal fade" id="invoicefilterassignment-modal" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            @Html.Partial("_PartialBuyerOrderFilter", Model.InputFilterDataViewModel)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tab-container">
+    <div id="invoice-container" class="col-md-12 hide-element">
+        <div class="row mb10" id="invoice-grid-container">
+        </div>
+    </div>
+    <div id="ddt-container" class="col-md-12 hide-element">
+        <div class="row mb10" id="ddt-grid-container">
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="upload-ponumber" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">Po Number</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">×</span></button>
+                </div>
+                @using (Html.BeginForm("PoNumberBulkUpload", "Invoice", new { area = "Buyer" }, FormMethod.Post, new { @id = "poNumberBulkUploadForm", enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.Partial("_PartialPoNumberBulkUpload")
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var filterType = 'invoice-filterType';
+    var locationsFilter = 'invoice-locations';
+    var assetsFilter = 'invoice-assets';
+    var tanksFilter = 'invoice-tanks';
+    var vesselsFilter = 'invoice-vessels';
+
+    $(document).ready(function () {
+        var companyGroup = getCompanyGroup();
+        if (companyGroup.groupIds != "") {
+            $('#spnGroupName').text(companyGroup.groupName + ' ');
+        }
+        else {
+            $('#spnGroupName').text();
+        }
+
+        $('#tab-invoice-container').trigger('click').addClass('active');
+    });
+
+    function ClearFilter() {
+        if ($('#tab-ddt-container').hasClass('active')) {
+            clearDdtFilter();
+        }
+        else {
+            clearInvoiceFilter();
+        }
+    }
+
+    function ReloadDataTable() {
+        if ($('#tab-ddt-container').hasClass('active')) {
+            reloadDdtDataTable();
+        }
+        else {
+            reloadInvoiceDataTable();
+        }
+    }
+</script>

@@ -1,0 +1,105 @@
+<div class="row">
+    <div class="form-group col-sm-3">
+        <!--<ngx-select-dropdown (change)="OnCustomerSelect($event)" [multiple]="false" [config]="configSettings" [options]="CustomerList"></ngx-select-dropdown>-->
+        <label>Customer</label>
+        <ng-multiselect-dropdown [data]="CustomerList" [(ngModel)]="SelectedCustomer" [settings]="SingleDdlSettings" (onSelect)="OnCustomerSelect($event)" (onDeSelect)="OnCustomerDeSelect($event)">
+        </ng-multiselect-dropdown>
+    </div>
+    <div class="form-group col-sm-4">
+        <label>Job</label>
+        <ng-multiselect-dropdown [data]="JobList" [(ngModel)]="SelectedJob" [settings]="SingleDdlSettings" (onSelect)="OnJobSelect($event)" (onDeSelect)="OnJobDeSelect($event)">
+        </ng-multiselect-dropdown>
+    </div>
+    <div class="form-group col-sm-3">
+        <label>Fuel Type</label>
+        <ng-multiselect-dropdown [(ngModel)]="SelectedFuelTypes" [settings]="FuelDdlSettings" [data]="FuelTypeList" 
+                                 (onSelect)="onFuelSelect($event)" (onDeSelect)="onFuelDeSelect($event)">
+        </ng-multiselect-dropdown>
+    </div>
+</div>
+<div [formGroup]="BlendGroupForm">
+    <div class="row">
+        <div class="col-sm-3">
+            <div class="group-height">
+                <div class="clearboth border-dash-dark radius-5" droppable (onDrop)="onItemDrop($event)">
+                    <div class="pa10 ma15 text-center" *ngIf="BlendGroupForm.get('OrderBlendedGroups')['controls'].length == 0">
+                        <i class="far fa-hand-rock fs25"></i>
+                        <h3 class="fs16 ma5 pa0 color-orange">Please drag order here to blend fuel types</h3>
+                    </div>
+                    <div formArrayName="OrderBlendedGroups">
+                        <div class="radius-5 pl10 pr10 ma15" *ngFor="let group of BlendGroupForm.get('OrderBlendedGroups')['controls']; let i = index;">
+                            <div class="row" [formGroupName]="i">
+                                <div class="well mb0 col-sm-12">
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <h3 class="mt0 mb0">{{group.get('TfxPoNumber').value}}<input type="hidden" formControlName="OrderId" value="{{group.get('OrderId').value}}" /></h3>
+                                        </div>
+                                    </div>
+                                    <div class="row mt10">
+                                        <div class="col-sm-4 pt10">
+                                            <span>{{group.get('FuelType').value}}</span>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" formControlName="BlendPercentage" value="{{group.get('BlendPercentage').value}}">
+                                                <span class="input-group-addon">%</span>
+                                            </div>
+                                            <div class="help-block color-maroon" *ngIf="group.get('BlendPercentage').errors && (group.get('BlendPercentage').touched || group.get('BlendPercentage').dirty)">
+                                                <span *ngIf="group.get('BlendPercentage').errors.required">
+                                                    Required.
+                                                </span>
+                                                <span *ngIf="group.get('BlendPercentage').errors.pattern">
+                                                    Invalid.
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-2 pt10">
+                                            <a class="color-maroon pull-right" (click)="removeBlend(i)"><i class="fa fa-trash-alt"></i></a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div *ngIf="i + 1 < BlendGroupForm.get('OrderBlendedGroups')['controls'].length" class="text-center col-sm-12"><i class="fas fa-plus fs21 mt15"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="group-height">
+                <div class="row">
+                    <div class="col-sm-6" *ngFor="let order of orderList" draggable [dragData]="order">
+                        <div class="well">
+                            <h3 class="mt0 mb0">{{order.TfxPoNumber}}</h3>
+                            <span>{{order.FuelType}}</span><br>
+                            <span>{{order.DisplayPrice}}</span><br>
+                            <span>{{order.Quantity}}</span><br>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label for="CustomerPoNumber">Customer Po#</label>
+                <input class="form-control" type="text" formControlName="CustomerPoNumber" />
+            </div>
+
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-sm-12 text-right">
+            <input type="button" value="Cancel" class="btn btn-lg" (click)="clearBlendGroupForm()" onclick="closeSlidePanel()">
+            <input type="button" (click)="OnSubmit()" *ngIf="!isEdit" class="btn btn-primary btn-lg" value="Create">
+            <input type="button" (click)="OnSubmit()" *ngIf="isEdit" class="btn btn-primary btn-lg" value="Submit">
+        </div>
+    </div>
+</div>
+
+<div class="loader" *ngIf="IsLoading">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Submitting Group...</div>
+    </div>
+</div>

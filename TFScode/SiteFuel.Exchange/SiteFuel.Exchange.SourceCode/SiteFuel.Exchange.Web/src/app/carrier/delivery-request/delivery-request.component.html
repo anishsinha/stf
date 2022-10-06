@@ -1,0 +1,169 @@
+<div class="{{TitleClass}} dr-panel-body">
+    <a data-toggle="collapse" data-parent="#accordion" href="#{{CollapaseId}}" [attr.aria-expanded]="CollapaseInClass ? true : false " id="icon_{{CollapaseId}}">
+        <div class="panel-heading  {{TitleClass}}_bg">
+            <h2 class="mt0 ml5 font-weight-600 fs13 {{TitleClass}} d-flex align-items-center justify-content-between">
+                <span class="text-color">{{Title}}</span>
+
+                <span class="fa-stack fa-sm icon-color-b mr5">
+                    <i class="fas fa-circle fa-stack-2x color-lightgrey"></i>
+                    <i class="fas  fa-stack-1x fa-inverse {{CollapaseId}}_icon " [ngClass]="CollapaseInClass == 'show' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </span>
+            </h2>
+
+        </div>
+    </a>
+    <div id="{{CollapaseId}}" class="panel-collapse collapse {{CollapaseInClass}}">
+        <div class="panel-body" [ngClass]="{'max-height-single': PriorityTabCount === 1, 'max-height-twice':PriorityTabCount === 2 }">
+            <ng-container *ngFor="let location of Locations; let i = index;">
+                <div class="dr-queue dr-color-default" [ngClass]="{'mustgo-status': (location.Priority==1 && TitleClass == 'missed') , 'shouldgo-status': (location.Priority==2 && TitleClass == 'missed') ,'couldgo-status': (location.Priority==3 && TitleClass == 'missed')}">
+                    <div *ngIf="!location.IsTBD" class="row"  draggable [dragEnabled]="_dragEnabled" [dragData]="{Data: getDraggedDrs(location, true)}" (onDrag)="onDrag()">
+                        <div class="col-10 dr-info" placement="bottom-left" container="body" ngbTooltip="{{(location.DRQueueAttributes && location.DRQueueAttributes.CustomerName)? location.CustomerCompany +' -'  :''}} {{location.JobName}}- {{location.JobAddress}}, {{location.JobCity}} {{(location.DRQueueAttributes && location.DRQueueAttributes.TrailerCompatibility)? location.TrailerCompatibility :''}}">
+                            <div class="job-location">
+                                {{(location.JobName.length > 8) ? (location.JobName | slice:0:8)+'..':(location.JobName) }}-&nbsp;
+                            </div>
+                            <div class="job-city">
+                                {{(location.JobAddress.length > 8) ? (location.JobAddress | slice:0:8)+'..':(location.JobAddress) }},&nbsp;
+                            </div>
+                            <div class="job-city">
+                                {{(location.JobCity.length > 8) ? (location.JobCity | slice:0:8)+'..':(location.JobCity) }}
+                            </div>
+                            <div class="custom_settings" *ngIf="location.DRQueueAttributes && location.DRQueueAttributes.TrailerCompatibility">
+                                <div class="compability-type">
+                                    {{location.TrailerCompatibility}}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="custom_settings" *ngIf="location.DRQueueAttributes && location.DRQueueAttributes.HoursToCoverDistance">
+                            <span class="duration" *ngIf="location.HoursToCoverDistance">
+                                {{location.HoursToCoverDistance}} hrs
+                            </span>
+                        </div>
+                        <span class="click-icon">
+                            <span class="custom_settings mr5" *ngIf="location.DRQueueAttributes && location.DRQueueAttributes.DeliveryShift">
+                                <i class="fas fa-moon fs12" *ngIf="location.IsOnlyNightDelivery == true"></i>
+                            </span>
+                            <a id="{{TitleClass}}-dr-{{i}}" type="button" [autoClose]="'outside'" placement="bottom" (click)="bindDeliveryRequests(location.JobId)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </span>
+                    </div>
+                    <div *ngIf="location.IsTBD" class="row" draggable [dragEnabled]="_dragEnabled" [dragData]="{Data: getDraggedDrs(location, true)}" (onDrag)="onDrag()">
+                        <div class="col-10 dr-info" placement="bottom-left" container="body" ngbTooltip=" TBD- {{location.ProductType +' -'}} {{ location.RequiredQuantity==0?location.ScheduleQuantityTypeText:location.RequiredQuantity + (( location.UoM == 1 ? ' G' : ' L'))}}">
+                            <!-- <div class="custom_settings" *ngIf="location.DRQueueAttributes && location.DRQueueAttributes.CustomerName"> -->
+                            <div class="brand-name" *ngIf="location.RequiredQuantity > 0;else ScheduleQuantityTypeText">
+                                TBD - {{
+ (location.ProductType.length>10)? (location.ProductType | slice:0:8)+'..':
+                                   (location.ProductType)
+                                }} {{'(' +location.RequiredQuantity + ( location.UoM == 1 ? ' G' : ' L' ) +')'  }}
+
+                                {{ (location.DeliveryRequests.length >1)?': (+'+ (location.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                            </div>
+                            <ng-template #ScheduleQuantityTypeText>
+                                <div class="brand-name">
+                                    TBD - {{ (location.ProductType.length>10)? (location.ProductType | slice:0:8)+'..':(location.ProductType)}} {{'(' +location.ScheduleQuantityTypeText+')' }} {{ (location.DeliveryRequests.length >1)?': (+'+ (location.DeliveryRequests.length -1) +')' : '' }} &nbsp;&nbsp;
+                                </div>
+                            </ng-template>
+                            <!-- </div>                           -->
+                        </div>
+                        <span class="click-icon">
+                            <span class="custom_settings mr5" *ngIf="location.DRQueueAttributes && location.DRQueueAttributes.DeliveryShift">
+                                <i class="fas fa-moon fs12" *ngIf="location.IsOnlyNightDelivery == true"></i>
+                            </span>
+                            <a id="{{TitleClass}}-dr-{{i}}" type="button" [autoClose]="'outside'" placement="bottom" (click)="bindTBDDeliveryRequests(location.TBDGroupId)" [ngbPopover]="popContent" container="body" popoverClass="dr-popover">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </span>
+                    </div>
+                </div>
+            </ng-container>
+            <div class="col-sm-12 text-center" *ngIf="Locations.length==0">
+                <i class="fa fas fa-exclamation-triangle opacity8 fs12"></i>
+                <label class="color-grey fs12 mb0 ml10">No request available</label>
+            </div>
+            <!-- <div class="bg-white z-index5 loading-wrapper2" *ngIf="_showsmallLoder">
+                <span class='spinner-dashboard pa'></span>
+            </div> -->
+        </div>
+    </div>
+</div>
+
+<ng-template #popContent>
+    <div class="popover-details" id="expandDS">
+        <div class="row">
+            <ng-container *ngFor="let dr of DrForm.controls['DeliveryRequests']['controls']; let i = index; trackBy: trackByDrId">
+                <div *ngIf="dr.controls['IsBlendedRequest'].value==false || dr.controls['IsBlendedDrParent'].value==true" class="col-12 product-details" [ngClass]="{'mustgo-status': (dr.controls['Priority'].value==1) , 'shouldgo-status': (dr.controls['Priority'].value==2) ,'couldgo-status': (dr.controls['Priority'].value==3)}" draggable [dragEnabled]="_dragEnabled" [dragData]="{Data: getDraggedDrs(dr, false)}" (onDrag)="onDrag()">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="product-name">
+                                <span *ngIf="dr.controls['IsBlendedRequest'].value === true">{{dr.controls['AdditiveProductName'].value}} {{dr.controls['BlendedProductName'].value}}</span>
+                                <span *ngIf="dr.controls['IsBlendedRequest'].value != true">{{dr.controls['ProductType'].value}}</span>
+                                <span class="recurring_text ml5" *ngIf="dr.controls['GroupParentDRId'].value!=''"><i class="fas fa-unlink color-black" title="Sub DR"></i></span>
+                                <span class="recurring_text ml5" *ngIf="dr.controls['isRecurringSchedule'].value===true"><i class="fas fa-sync color-black" title="Recurring"></i></span>
+                                <span *ngIf="dr.controls['IsAutoCreatedDR'].value==true">
+                                    <i class="fas fa-magic ml10" title="Auto-Generated"></i>
+                                </span>
+                            </div>
+                            <div class="product-sub-text">
+                                <p class="deliverywindow fs10" *ngIf="dr.controls['DeliveryWindow'].value!=''">{{dr.controls['DeliveryWindow'].value}}</p>
+                                <p class="recurring_dr" *ngIf="dr.controls['isRecurringSchedule'].value==true">{{dr.controls['RecurringScheduleInfo'].value}}</p>
+                            </div>
+                            <div class="product-sub-text">
+                                <p class="deliverywindow fs10" *ngIf="dr.controls['IsMarine'].value==true">{{dr.controls['DeliveryDateStartTime'].value}}</p>
+
+                                <ng-container *ngIf="dr.controls['IsMarine'].value">
+
+                                    <p class="recurring_dr" *ngIf="dr.controls['Berth'].value" placement="top" container="body" ngbTooltip="{{dr.controls['Vessel'].value}}-{{dr.controls['Berth'].value}}">
+                                        {{(dr.controls['Vessel'].value.length > 8) ? (dr.controls['Vessel'].value | slice:0:8)+'..':(dr.controls['Vessel'].value) }}
+                                        -
+                                        {{(dr.controls['Berth'].value.length > 8) ? (dr.controls['Berth'].value | slice:0:8)+'..':(dr.controls['Berth'].value) }}
+                                    </p>
+
+                                    <p class="recurring_dr" *ngIf="!dr.controls['Berth'].value" placement="top" container="body" ngbTooltip="{{dr.controls['Vessel'].value}}">
+                                        {{(dr.controls['Vessel'].value.length > 8) ? (dr.controls['Vessel'].value | slice:0:8)+'..':(dr.controls['Vessel'].value) }}
+                                    </p>
+
+                                </ng-container>
+
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <span class="product-qty" *ngIf="dr.controls['RequiredQuantity'].value > 0 && dr.controls['IsBlendedRequest'].value==false">{{dr.controls['RequiredQuantity'].value | number:'1.0-2'}}{{dr.controls['UoM'].value == 1 ? 'G' : 'L'}}</span>
+                            <span class="product-qty" *ngIf="dr.controls['RequiredQuantity'].value > 0 && dr.controls['IsBlendedRequest'].value==true">{{dr.controls['TotalBlendedQuantity'].value | number:'1.0-2'}}{{dr.controls['UoM'].value == 1 ? 'G' : 'L'}}</span>
+                            <span class="product-qty" *ngIf="dr.controls['RequiredQuantity'].value == 0">{{dr.controls['ScheduleQuantityTypeText'].value}}</span>
+                        </div>
+                    </div>
+                    <div class="row" *ngIf="dr.controls['ScheduleStartTime'].value && dr.controls['ScheduleEndTime'].value">
+                            <div class="col-md-6" style="font-size:11px;">
+                                <label >
+                                    {{dr.controls['ScheduleStartTime'].value}} - {{ dr.controls['ScheduleEndTime'].value}}
+                                </label>
+                            </div>
+                    </div>
+                    <div class="icon-tray">
+                        <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Split DR" *ngIf="dr.controls['IsSpiltDRIconVisible'].value && !dr.get('IsBlendedRequest').value">
+                            <a (click)="SpiltDeliveryRequests(dr)" data-toggle="modal" data-target="#splitDR"><i class="fa fa-unlink fs13"></i></a>
+                        </div>
+                        <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Edit">
+                            <a (click)="EditDeliveryRequest(dr)"><i class="fa fa-edit fs13"></i></a>
+                        </div>
+                        <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Delete" *ngIf="!(dr.controls['CreatedByCompanyId'].value != dr.controls['AssignedToCompanyId'].value && dr.controls['CarrierStatus'].value==2)">
+                            <a (click)="DeleteDeliveryRequest(dr)"><i class="fa fa-trash-alt fs13"></i></a>
+                        </div>
+                        <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Move to Clipboard" *ngIf="_showQueueIcon===true">
+                            <a (click)="MoveActiveQueueRequest(dr.controls['Id'].value, dr.controls['JobId'].value, dr.controls['BlendedGroupId'].value)"><i class="fas fa-running fs13"></i></a>
+                        </div>
+                        <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Assign Carrier/Supplier" *ngIf="dr.controls['isRecurringSchedule'].value==false && IsCarrierCompany==false && dr.controls['IsTBD'].value==false">
+                            <a (click)="AssignCarrier(dr)"><img src="/Content/images/frontal-truck.svg" class="color-black mtm5" width="15"></a>
+                        </div>
+                        <div class="circle-icon" placement="bottom" container="body" ngbTooltip="Drop" *ngIf="dr.controls['ParentId'].value != null">
+                            <a (click)="MakeDrop(dr)"><i class="fa fas fa-dollar fs13"></i></a>
+                        </div>
+                    </div>
+                    <div *ngIf="dr.controls['IsBlendedRequest']?.value">
+                        <span class="fs12 pull-right font-weight-bold">Blend</span>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+    </div>
+</ng-template>

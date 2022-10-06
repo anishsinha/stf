@@ -1,0 +1,183 @@
+﻿<div class="col-sm-12">
+    @using (Html.BeginForm("UploadDocuments", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form", enctype = "multipart/form-data", id = "creditapp-documents-form" }))
+    {
+        @Html.AntiForgeryToken()
+        if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson)
+        {
+            <div class="row">
+                <div class="col-xs-10">
+                    <input type="file" name="files" id="files" class="inputfile" data-multiple-caption="{count} files selected" accept=".csv, .pdf, .doc, .docx, .xls, .xlsx" multiple />
+                    <label for="files" class="btn btn-default"><span id="btnName">@Resource.btnChooseFile</span></label>
+                    <input type="submit" data-toggle='confirmation' data-content='@Resource.valMessageFileAlreadyExists' data-popout='true' data-singleton='true' id="uploadFiles" value="@Resource.btnLabelUpload" class="btn btn-primary bulkElements ml5" onclick="SetLocalStorage(window.location.href, true);" disabled />
+                </div>
+            </div>
+            <div class="row">
+                <div class="text-danger col-xs-12 fs12 mt10" id="upload-warning-message"></div>
+            </div>
+            <div class="row">
+                <div class="col-sm-5">
+                    <div class="alert fs12 alert-warning mb5">@Resource.lblCreditAppUploadFileWarning</div>
+                </div>
+            </div> }
+    }
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="well bg-white shadow-b">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-border no-padding">
+                        <div class="table-responsive">
+                            <table id="creditappdocuments-datatable" class="table table-striped table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.gridColumnFileName</th>
+                                        <th>@Resource.gridColumnAddedBy</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function ($, window, document, undefined) {
+        $('.inputfile').each(function () {
+            var $input = $(this),
+                $label = $input.next('label'),
+                labelVal = $label.html();
+
+            $input.on('change', function (e) {
+                var fileName = '';
+
+                if (this.files && this.files.length > 1)
+                    fileName = (this.getAttribute('data-multiple-caption') || '').replace('{count}', this.files.length);
+                else if (e.target.value)
+                    fileName = e.target.value.split('\\').pop();
+
+                if (fileName)
+                    $label.find('span').html(fileName);
+                else
+                    $label.html(labelVal);
+            });
+
+            $input
+                .on('focus', function () { $input.addClass('has-focus'); })
+                .on('blur', function () { $input.removeClass('has-focus'); });
+        });
+    })(jQuery, window, document);
+</script>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var creditappDocumentsDataTable, element, exportColumns = { columns: [0, 1] };
+        $(document).ready(function () {
+			creditappDocumentsDataTable = $('#creditappdocuments-datatable').dataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetCreditAppMaterial", "Profile", new { area ="Settings"})",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                            {
+						"data": function (data, type, row, meta) {
+									var url = '@Url.Action("DownloadCreditAppDocument", "Profile", new { area = "Settings"})/' + data.Id + '';
+									return '<a href="' + url + '" class="download">' + data.FileName + '</a>';
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+
+                                    return data.AddedByName;
+
+                                }, "autoWidth": true
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+
+                                    if ('@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsAccountingPerson' == 'True') {
+                                        var url = '@Url.Action("DeleteCreditAppDocument", "Profile", new { area = "Settings"})/' + data.Id + '';
+										return '<a class="fa fa-trash-alt fs18 color-maroon" data-id="'+ data.Id +'" data-toggle = "confirmation" data-popout = "true" data-singleton = "true" data-confirmation-event="deleteCreditAppDocument" data-url = "' + url + '"></a>'
+                                    }
+                                    else {
+                                        return "";
+                                    }
+                                }, "width": "40px", "bSortable": false
+                            }
+                ],
+                pageLength: 10,
+                responsive: true,
+				"order": [],
+				"paging": false,
+				"initComplete": function (settings, json) {
+					totalFileCount = json.length;
+					filedetails = json;
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]'
+                    });
+					wrapperHeight();
+					$(".download").click(function () {
+						hideLoader();
+					});
+                },
+               "fnDrawCallback": function (settings) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]',
+                        html: true
+                    });
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+					{ extend: 'csv', title: '@Resource.tabHeadingDocuments', exportOptions: exportColumns },
+					{ extend: 'excel', title: '@Resource.tabHeadingDocuments', exportOptions: exportColumns },
+					{ extend: 'pdf', title: '@Resource.tabHeadingDocuments', exportOptions: exportColumns },
+                    {
+						extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        });
+
+		function deleteCreditAppDocument($this) {
+            var url = $this.data('url');
+			element = $this;
+			var id = $this.data('id');
+            $.get(url, function (response) {
+                if (response.StatusCode != 0) {
+                    $('#display-custom-message').html(response);
+                }
+                else {
+                    var currentRow = element.parents('tr');
+					var ipos = creditappDocumentsDataTable.fnGetPosition(currentRow[0]);
+					creditappDocumentsDataTable.fnDeleteRow(ipos);
+					totalFileCount = totalFileCount - 1;
+					filedetails = filedetails.filter(function (item) {
+						return item.Id !== id;
+					});
+                }
+            });
+        }
+
+        $(document).off('deleteCreditAppDocument');
+        $(document).on('deleteCreditAppDocument', function (e) {
+             var targetElem = $(e.target);
+             deleteCreditAppDocument(targetElem);
+        });
+    </script>
+}

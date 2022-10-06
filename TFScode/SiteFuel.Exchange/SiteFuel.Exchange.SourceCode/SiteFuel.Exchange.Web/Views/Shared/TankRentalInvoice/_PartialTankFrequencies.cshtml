@@ -1,0 +1,87 @@
+﻿@model TankRentalFrequencyViewModel
+
+    @using (Ajax.BeginForm("SaveTankSchedules", "Order", new { area = "Supplier" }, new AjaxOptions
+    {
+        HttpMethod = "POST",
+        OnSuccess = "showTankScheduleSuccessMessage",
+        OnFailure = "showTankScheduleFailedMessage"
+    }, new { @class = "tank-schedule-form", autocomplete = "off" }))
+    {
+        <div class="col-sm-12">
+            <!-- billing schedule partial starts -->
+            <div class="row border-dash-dark radius-5 pt20 pb20 mb15 tank-rental-wrapper">
+                <div class="col-sm-12 ">
+                        @Html.HiddenFor(m => m.TankRentalFrequencyId)
+                        @Html.HiddenFor(m => m.FuelRequestId)
+                        @Html.HiddenFor(m => m.ActivationStatusId, new { @class="activationStatusId" })
+                        <div class="row">
+                            <div class="col-sm-4 tankRental-controls">
+                                <div class="form-inline">
+                                    <label class="pull-left mt8 mr5">@Resource.headingSchedule</label>
+                                    @Html.EnumDropDownListFor(m => m.FrequencyTypes, null,
+                                       new
+                                       {
+                                           @class = "form-control frequencyTypes enum-ddl"
+                                       })
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 tankRental-controls">
+                                <div id="tankRental-section-@Guid.NewGuid()" class="partial-section">
+                                    <div class="partial-block-collection-section">
+                                        @if (Model.Tanks != null && Model.Tanks.Count() > 0)
+                                        {
+                                            foreach (var tank in Model.Tanks)
+                                            {
+                                                Html.RenderPartial("~/Views/Shared/TankRentalInvoice/_PartialTankDetails.cshtml", tank);
+                                            }
+                                        }
+                                    </div>
+                                    <div class="row mt10">
+                                        <div class="form-group mb5 col-md-12 tank-schedule-buttons">
+                                            <a id="LinkAddTank" href="javascript:void(0)" class="add-partial-block" data-url="@Url.Action("AddTank", "Order", new { area = "Supplier", tankScheduleId = 0 })"><i class="fas fa-plus-circle"></i> @Resource.lblAnotherTank</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 text-right ">
+                                <div class="dib">
+                                    @*<input type="button" id="CancelTankSchedule" value="@Resource.btnLabelCancel" class="btn btnsubmit-partialcollection" onclick="btnCancel();" />*@
+                                    <input type="button" class="btn btn-sm btn-default label-danger pt5 pb5" value="@Resource.lblRemoveSchedule" onclick="removeParentSection(this, 'tank-rental-wrapper'); removeTankSchedule(this,'@Model.FuelRequestId');" />
+                                    <input type="submit" value="@Resource.lblSaveEnable" onclick="SetActivationStatusToActive(this);" class="tank-schedule-buttons btn btn-sm btn-default btnsubmit-partialcollection btn-save-activate" />
+                                    @*<input type="submit" value="@Resource.btnLabelSave" class="btn btn-sm btn-primary btnsubmit-partialcollection" />*@
+                                    @if (Model.ActivationStatusId == (int)ActivationStatus.Created && Model.CreatedBy > 0)
+                                    {
+                                        <input type="submit" value="@Resource.btnLabelSave" onclick="SetActivationStatusToCreate(this);" class="tank-schedule-buttons btn btn-sm btn-primary btnsubmit-partialcollection btn-save" />
+                                    }
+                                    else
+                                    {
+                                        <input type="submit" value="@Resource.btnLabelSave" onclick="SetActivationStatusToCreate(this);" class="tank-schedule-buttons btn btn-sm btn-primary btnsubmit-partialcollection btn-save" />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                </div>
+            </div>
+            <!-- billing schedule partial ends -->
+        </div>
+    }
+<script>
+    $(document).ready(function () {
+        hidePrevScheduleOption('.frequencyTypes:last');
+        $(document).on('keyup', '.calculated-rental-amount,.tax-percentage', function () { calculateTankTaxAmount(this); });
+        $('.tank-rental-wrapper').each(function (index) {
+            var activationStatusId = parseInt($(this).find('.activationStatusId').val());
+            if (activationStatusId == @((int)ActivationStatus.Active)) {
+                $(this).find('.tank-schedule-buttons,.link-removetank').hide();
+                $(this).find('.tankRental-controls *').attr('readonly', 'readonly');
+            }
+            else {
+                $(this).find('.tankRental-controls *').removeAttr('readonly');
+            }
+        });        
+    });
+</script>

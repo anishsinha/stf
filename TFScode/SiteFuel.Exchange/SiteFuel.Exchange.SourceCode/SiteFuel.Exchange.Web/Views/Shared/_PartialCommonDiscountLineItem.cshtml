@@ -1,0 +1,59 @@
+﻿@model DiscountLineItemViewModel
+
+@Html.HiddenFor(m => m.Id)
+@Html.HiddenFor(m => m.FeeDetails)
+<div class="col-8">
+    <div class="row">
+        <div class="col-sm-4">
+            <div class="form-group">
+                @Html.DropDownListFor(m => m.FeeTypeId, new SelectList(CommonHelperMethods.GetDiscountFeeTypes(Model.InvoiceId), "Id", "Name"), "Select Type", new { @class = "form-control discounttype" })
+                @Html.ValidationMessageFor(m => m.FeeTypeId)
+            </div>
+        </div>
+        <div class="col-sm-5">
+            <div class="form-group">
+                @Html.DropDownListFor(m => m.FeeSubTypeId, new SelectList(CommonHelperMethods.GetDiscountFeeSubTypes(), "Id", "Name"), "Select Rebate Type", new { @class = "form-control rebatetype" })
+                @Html.ValidationMessageFor(m => m.FeeSubTypeId)
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="form-group">
+                <div class="input-group">
+                    <span class="input-group-addon currency-symbol">@Model.Currency</span>
+                    @Html.TextBoxFor(m => m.Amount, new { @class = "form-control datatype-decimal" })
+                    @Html.ValidationMessageFor(m => m.Amount)
+                    <span class="input-group-addon percent-symbol">@Resource.constSymbolPercent</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="col-1 pl0 fs18">
+    <a href="javascript:void(0)" class="fa fa-trash-alt mt8 color-maroon" title="@Resource.btnLabelRemove" onclick="removePartial(this);"></a>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $(".discounttype").change(function () {
+            var feetypename = $(this).find("option:selected").text();
+            $("#@Html.IdFor(m => m.FeeDetails)").val(feetypename);
+        }).trigger('change');
+
+        $(".rebatetype").change(function () {
+            var selectedRebateType = $(this).find("option:selected").val();
+            var spanCurrency = $(this).closest('#discount-item').find('.currency-symbol');
+            var spanPercent = $(this).closest('#discount-item').find('.percent-symbol');
+
+            spanCurrency.hide();
+            spanPercent.hide();
+            if (selectedRebateType == '@((int)FeeSubType.FlatFee)') {
+                spanCurrency.show();
+                spanPercent.hide();
+            }
+            else if (selectedRebateType == '@((int)FeeSubType.Percent)') {
+                spanCurrency.hide();
+                spanPercent.show();
+            }
+        }).trigger('change');
+    });
+</script>

@@ -1,0 +1,113 @@
+﻿@model BrokerFilterViewModel
+
+<div class="row">
+    <div class="col-sm-9 tab-headers">
+        <a id="tab-fuelRequests" href="javascript:void(0)" onclick="GetPartialViewData('tab-contents-fuelRequests'), activelink(this)" class="active mr20 mb10">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.lblFuelRequests</span>
+            </div>
+        </a>
+        <a id="tab-orders" href="javascript:void(0)" onclick="GetPartialViewData('tab-contents-orders'), activelink(this)" class="mr20 mb10">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.lblOrders</span>
+            </div>
+        </a>
+        <a id="tab-invoices" href="javascript:void(0)" onclick="GetPartialViewData('tab-contents-invoices'), activelink(this)" class="mr20 mb10">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.lblInvoices</span>
+            </div>
+        </a>
+        <a id="tab-dropTickets" href="javascript:void(0)" onclick="GetPartialViewData('tab-contents-dropTickets'), activelink(this)" class="mr20 mb10">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.lblDropTickets</span>
+            </div>
+        </a>
+        @if (@ViewBag.IsOrderExist) //When broker order is available
+        {
+            <a id="tab-activity" href="javascript:void(0)" onclick="GetPartialViewData('tab-contents-activity'), activelink(this)" class="mr20 mb10">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.lblActivity</span>
+                </div>
+            </a>
+        }
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb0">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2"><input type="text" id="txtBrokerFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2"><input type="text" id="txtBrokerToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" id="btnBrokerFRFilterApply" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadBrokerFilter()" />
+                    <input type="button" id="btnClearBrokerFRFilter" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearBrokerFilter()" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="tab-container">
+    <div id="tab-contents-fuelRequests" data-parent-tab="tab-fuelRequests" class="subTabs"></div>
+    <div id="tab-contents-orders" data-parent-tab="tab-orders" class="hide-element subTabs"></div>
+    <div id="tab-contents-invoices" data-parent-tab="tab-invoices" class="hide-element subTabs"></div>
+    <div id="tab-contents-dropTickets" data-parent-tab="tab-dropTickets" class="hide-element subTabs"></div>
+    <div id="tab-contents-activity" data-parent-tab="tab-activity" class="hide-element subTabs"></div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        var isOrdersTabActive = '@(Convert.ToBoolean(TempData["IsOrderSummary"]) == false ? false : true)';
+        if (isOrdersTabActive == 'true') {
+            $(".tab-headers a.active").removeClass("active");
+            $("#tab-orders").addClass("active");
+        }
+        else {
+            $("#tab-fuelRequests").addClass("active");
+        }
+        $(".tab-headers a.active").trigger("click");
+	});
+
+    function ReloadBrokerFilter() {
+        $(".tab-headers a.active").trigger("click");
+    }
+
+    function ClearBrokerFilter() {
+        $('#txtBrokerFromDate').val("");
+        $('#txtBrokerToDate').val("");
+        $(".tab-headers a.active").trigger("click");
+    }
+
+    function GetPartialViewData(key) {
+        var url = '';
+        var countryId = getSelectedCountryAndCurrency().countryId;
+        var currency = getSelectedCountryAndCurrency().currencyType;
+        var params = '?currency=' + currency + '&countryId=' + countryId;
+        switch (key) {
+            case 'tab-contents-fuelRequests': url = '@Url.Action("BrokeredFuelRequests", "Broker", new { area = "Supplier" })' + params; break;
+            case 'tab-contents-orders': url = '@Url.Action("BrokeredOrders", "Broker", new { area = "Supplier" })' + params; break;
+            case 'tab-contents-invoices': url = '@Url.Action("BrokeredInvoices", "Broker", new { area = "Supplier" })' + params; break;
+            case 'tab-contents-dropTickets': url = '@Url.Action("BrokeredDropTickets", "Broker", new { area = "Supplier" })' + params; break;
+            case 'tab-contents-activity': url = '@Url.Action("BrokeredActivity", "Broker", new { area = "Supplier" })' + params; break;
+        }
+        $(".tab-container > div").hide();
+        $(".tab-container #" + key).show();
+        $('#' + key).load(url);
+    }
+
+    $(document).ajaxComplete(function () {
+        var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+        var currency = selectedCountryAndCurrency.currencyType;
+        
+        $(".broker-edit-invoice-number").hide();
+       
+        @*if (currency == '@((int)Currency.CAD)') {
+            $('th').each(function () {
+                $(this).text($(this).text().replace('@Resource.lblGallons', '@Resource.lblLitres'));
+                $(this).text($(this).text().replace('@Resource.lblPricePerGallon', '@Resource.lblPricePerLitre'));
+                $(this).text($(this).text().replace('@Currency.USD.ToString()', '@Currency.CAD.ToString()'));
+            });
+        }*@       
+    });
+
+</script>

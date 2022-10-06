@@ -1,0 +1,177 @@
+﻿<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div id="quickupdate-history-div" class="table-responsive">
+                <table id="quickupdate-history" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnName</th>
+                            <th>@Resource.gridColumnOfferType</th>
+                            <th>@Resource.gridColumnTier</th>
+                            <th>@Resource.gridColumnCustomer</th>
+                            <th>@Resource.gridColumnFuelType</th>
+                            <th>@Resource.gridColumnStates</th>
+                            <th>@Resource.gridColumnCities</th>
+                            <th>@Resource.gridColumnZipcodes</th>
+                            <th>@Resource.gridColumnUpdateType</th>
+                            <th>@Resource.gridColumnUpdated</th>
+                            <th>@Resource.gridColumnOperation</th>
+                            <th>@Resource.gridColumnUpdatedBy</th>
+                            <th>@Resource.gridColumnUpdatedDate</th>
+                            <th>@Resource.gridColumnUndoBy</th>
+                            <th>@Resource.gridColumnUndoDate</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade animated" id="modal-updated-items" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header no-border text-center pb5">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h3 class="updated-items-heading mt5 mb5">@Resource.headingQuickUpdatedItems</h3>
+            </div>
+            <div class="modal-body pt0 pb0" id="updated-items">
+                @Html.Partial("_PartialQuickUpdatedItems")
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7] };
+    var offerUpdateHistory;
+    var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+
+    $(document).ready(function () {
+        offerUpdateHistory = $('#quickupdate-history').DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetQuickUpdateHistoryGrid", "Offer", new { area = "Supplier" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data.CountryId = selectedCountryAndCurrency.countryId;
+                    $('#quickupdate-history-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#quickupdate-history-div").find('.loading-wrapper').remove();
+                    return json.data;
+                }
+            },
+            "columns": [
+                {
+                    "data": function (data) {
+                        return '<a class="handpointer" onclick="LoadItemsDataTable(' + data.Id + ')">' + data.Nm + '</a>';
+                    }, "autoWidth": true
+                },
+                { "data": "OTyp", "autoWidth": true },
+                { "data": "Trs", "autoWidth": true },
+                { "data": "Cstmrs", "autoWidth": true },
+                { "data": "FTyp", "autoWidth": true },
+                { "data": "Sts", "autoWidth": true },
+                { "data": "Cts", "autoWidth": true },
+                { "data": "ZpCds", "autoWidth": true },
+                { "data": "UTyp", "autoWidth": true },
+                { "data": "UNm", "autoWidth": true },
+                { "data": "Oprn", "autoWidth": true },
+                { "data": "UpdtdBy", "autoWidth": true },
+                { "data": "UDt", "autoWidth": true },
+                { "data": "UndoBy", "autoWidth": true },
+                { "data": "UndoDt", "autoWidth": true },
+                {
+                    "data": function (data) {
+                        if (data.UndoBy !== '--' || data.IsVld == null) {
+                            return '';
+                        }
+                        if (data.IsVld) {
+                            return '<a class="handpointer" data-toggle="confirmation" data-content="' + '@Resource.warningMessageUndo'
+                                + '" data-popout="true" data-singleton="true" data-confirmation-event="executeUndo" data-command-id="' + data.Id + '"><i class="fa fa-undo"></i></a>';
+                        }
+                        else {
+                            return '<i class="fa fa-undo"></i>';
+                        }
+                    }
+                }
+            ],
+            "columnDefs": [
+                { "data": "Nm", "targets": 0, },
+                { "data": "OTyp", "targets": 1 },
+                { "data": "Trs", "targets": 2 },
+                { "data": "Cstmrs", "targets": 3 },
+                { "data": "FTyp", "targets": 4 },
+                { "data": "Sts", "targets": 5 },
+                { "data": "Cts", "targets": 6 },
+                { "data": "ZpCds", "targets": 7 },
+                { "data": "UTyp", "targets": 8 },
+                { "data": "UNm", "targets": 9 },
+                { "data": "Oprn", "targets": 10 },
+                { "data": "UpdtdBy", "targets": 11 },
+                { "data": "UDt", "targets": 12 },
+                { "data": "UndoBy", "targets": 13 },
+                { "data": "UndoDt", "targets": 14 },
+                { "targets": [15], "searchable": false, "sortable": false, "className": "text-center" }
+            ],
+            'lengthMenu': [[10, 25, 50, 100], [10, 25, 50, 100]],
+            aaSorting: [[]],
+            "serverSide": true,
+            "searchDelay": 500,
+            processing: true,
+            "searching": { "regex": false },
+            "bProcessing": true,
+            lengthChange: true,
+            pageLength: 10,
+            responsive: false,
+            "order": [0, 'desc'],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "drawCallback": function (settings, json) {
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true
+                });
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.headingQuickUpdateHistory', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.headingQuickUpdateHistory', exportOptions: exportColumns },
+                { extend: 'pdf', title: '@Resource.headingQuickUpdateHistory', exportOptions: exportColumns, orientation: 'landscape', pageSize: 'LETTER' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+
+    });
+    function executeUndo($this) {
+        var commandId = $this.data('command-id');
+        $.post('@Url.Action("UndoQuickUpdate", "Offer", new { area = "Supplier" })',
+        { commandId: commandId }, function (res) {
+            if (res.StatusCode == 0) {
+                msgsuccess(res.StatusMessage);
+                offerUpdateHistory.ajax.reload();
+            }
+            else {
+                msgerror(res.StatusMessage);
+            }
+        });
+    }
+    $(document).on('executeUndo', function (e) {
+         var targetElem = $(e.target);
+        executeUndo(targetElem);
+    });
+</script>

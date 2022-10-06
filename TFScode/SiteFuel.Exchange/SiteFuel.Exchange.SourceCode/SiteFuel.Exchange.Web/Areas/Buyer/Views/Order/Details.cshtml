@@ -1,0 +1,318 @@
+﻿@model OrderDetailsViewModel
+@using System.Threading
+
+@{
+    ViewBag.Title = "Order Details";
+    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(Model.Culture);
+}
+<div class="row">
+    <div class="col-sm-12">
+        <div class="row">
+            <div class="col-sm-8 mb10 tab-headers dib">
+                <a id="tab-details" onclick="showsection('tab-contents-details'), activelink(this), inputBoxShowHide(null, 'download')" class="active mr20"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-details"
+                   data-ajax-url="@Url.Action("DetailsTab", "Order", new { area = "Buyer", id = Model.Id })">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">@Resource.tabheadingDetails</span>
+                    </div>
+                </a>
+                @if (Model.FuelDeliveryDetails.DeliveryTypeId == (int)DeliveryType.MultipleDeliveries)
+                {
+                    <a id="tab-schedules" onclick="showsection('tab-contents-deliveryschedules'), activelink(this), inputBoxShowHide('btnSubmit', 'download')" class="mr20 schedule-tab"
+                       data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-deliveryschedules" data-ajax-complete="parseFormAfterAjax"
+                       data-ajax-url="@Url.Action("DeliveryTab", "Order", new { area = "Buyer", id = Model.Id })">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text float-left">@Resource.tabHeadingSchedules</span>
+                        </div>
+                    </a>
+                    if (Model.IsProFormaPo)
+                    {
+                        <a id="tab-dropinformation" onclick="showsection('tab-contents-dropinformation'), activelink(this), inputBoxShowHide('btnSubmit', 'download')" class="mr20 schedule-tab"
+                           data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-dropinformation" data-ajax-complete="parseFormAfterAjax"
+                           data-ajax-url="@Url.Action("DropInformationTab", "Order", new { area = "Buyer", id = Model.Id })">
+                            <div class="step-inprogress fs16">
+                                <span class="f-light step-text float-left">@Resource.tabHeadingDropInformation</span>
+                            </div>
+                        </a>
+                    }
+                }
+                <a id="tab-history" onclick="showsection('tab-contents-history'), activelink(this), inputBoxShowHide(null, 'download')" class="mr20 hide-element"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-history"
+                   data-ajax-url="@Url.Action("HistoryTab", "Order", new { area = "Buyer", id = Model.Id })">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">
+                            @Resource.tabHeadingHistory
+                        </span>
+                    </div>
+                </a>
+                <a id="tab-version" onclick="showsection('tab-contents-version'), activelink(this), inputBoxShowHide(null, 'download')" class="mr20"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-version"
+                   data-ajax-url="@Url.Action("OrderVersionView", "OrderBase", new { area = "", id = Model.Id })">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">
+                            @Resource.gridColumnVersion
+                        </span>
+                    </div>
+                </a>
+                <a id="tab-po" onclick="showsection('tab-contents-po'), activelink(this), inputBoxShowHide('download', null)"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-po"
+                   data-ajax-url="@Url.Action("OrderPoView", "Order", new { area = "Buyer", id = Model.Id })">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">
+                            @Resource.tabHeadingPO
+                        </span>
+                    </div>
+                </a>
+            </div>
+            <div id="auto-divorderaction" class="col-sm-4 text-right xs-left">
+                @if (Model.StatusId == (int)OrderStatus.Open)
+                {
+                    if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+                    {
+                        <div class="btn-group">
+                            <button data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                <li class="dropdown-item">
+                                    @Html.ActionLinkIcon(Resource.btnLabelCancelOrder, "Cancel", "Order",
+                                                                       new { area = "Buyer", id = Model.Id },
+                                                                       new
+                                                                       {
+                                                                           data_toggle = "confirmation",
+                                                                           data_popout = "true",
+                                                                           data_singleton = "true",
+                                                                           data_placement = "bottom"
+                                                                       }, "fa fa-times color-maroon float-left mt7 mr5")
+                                </li>
+                                <li role="separator" class="divider"></li>
+                                <li class="dropdown-item">
+                                    @Html.ActionLinkIcon(Resource.btnLabelClose, "Close", "Order",
+                                                                           new { area = "Buyer", id = Model.Id },
+                                                                           new
+                                                                           {
+                                                                               data_toggle = "confirmation",
+                                                                               data_popout = "true",
+                                                                               data_singleton = "true",
+                                                                               data_placement = "bottom",
+                                                                               data_content = Resource.confirmTextCloseOrder
+                                                                           }, "fa fa-check color-green float-left mt7 mr5")
+                                </li>
+                                <li role="separator" class="divider"></li>
+                                <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "OrderBase", new { area = "", id = Model.Id })'">@Resource.lblDownloadPO <i class="fa fas fa-download float-left mt5 mr5"></i></a></li>
+                                @{ var emailUrl = Url.Action("EmailDocumentPopup", "Order", new { area = "Buyer" }); }
+                                <li role="separator" class="divider"></li>
+                                <li class="dropdown-item"><a href="javascript:void(0)" id="btnEmailPo" onclick="return showEmailPOPopup('@Model.Id', '@Model.PoNumber', null, '@((int)CompanyType.Buyer)', '@((int)DocumentName.PO)', '@emailUrl');">@Resource.lblEmailPO <i class="fa fas fa-envelope float-left mt5 mr5"></i></a></li>
+                            </ul>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+        <div class="panel-section hide-element bg-white radius-5 animated slideInLeft pa">
+            <a href="javascript:void(0)" class="pa fs25 right0 top0 color-darkgrey mr15 mt5 z-index5" onclick="closePanel()">×</a>
+            <div class="pt15 pb15 ph20">
+                <div class="row mt15">
+                    <div class="col-md-6 mb10">
+                        <div class="no-margins fs18 float-left" id="gallons-ordered"></div>
+                        @if (Model.FuelDetails.FuelQuantity.QuantityTypeId != (int)QuantityType.NotSpecified)
+                        {
+                            <span class="float-left fs11 pt8 pl2">@Resource.lblUnitOfMeasurement</span>
+                        }
+                        <span class="fs12 float-left clearboth">@Resource.lblOrdered</span>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <div class="no-margins fs18 float-left" id="gallons-remaining"></div>
+                        @if (Model.FuelDetails.FuelQuantity.QuantityTypeId != (int)QuantityType.NotSpecified)
+                        {
+                            <span class="float-left fs11 pt8 pl2">@Resource.lblUnitOfMeasurement</span>
+                        }
+                        <span class="fs12 float-left clearboth">@Resource.lblRemaining</span>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <div class="no-margins fs18 float-left" id="gallons-delivered"></div>
+                        <span class="float-left fs11 pt8 pl2">@Resource.lblUnitOfMeasurement</span>
+                        <span class="fs12 float-left clearboth">@Resource.lblDelivered</span>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <div class="no-margins fs18 float-left" id="avg-gallons"></div>
+                        <span class="float-left fs11 pt8 pl2">@Resource.lblUnitOfMeasurement</span>
+                        <span class="fs12 float-left clearboth">@Resource.lblAvgGallonsDrop</span>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <div class="clear">
+                            <span class="float-left">@Resource.constSymbolCurrency</span>
+                            <div class="no-margins fs18 float-left" id="total-amount"></div>
+                            <span class="currency-symbol float-left fs11 pt8 pl2">@Resource.lblCurrencyCode</span>
+                        </div>
+                        <span class="fs12">@Resource.lblTotalAmount</span>
+                    </div>
+                    <div class="col-md-6 mb10">
+                        <div class="clear">
+                            <span class="float-left">@Resource.constSymbolCurrency</span>
+                            <div class="no-margins fs18 float-left" id="avg-ppg"></div>
+                            <span class="currency-symbol float-left fs11 pt8 pl2">@Resource.lblCurrencyCode</span>
+                        </div>
+                        <span class="fs12 avg-ppg">@(string.Format(Resource.lblAvgPricePerDrop, Resource.gridColumnPPG))</span>
+                    </div>
+                </div>
+            </div>
+            <div class="border-b-dash ml20 mr20 clearboth"></div>
+            <div class="pt15 ph20">
+                <h4>@Resource.lblNextScheduledDelivery</h4>
+                <div class="row">
+                    <div class="text-center" id="next-Schedule">
+                        <h3 class="l-height22 mt0 f-normal fs16">@Resource.lblHyphen</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="border-b-dash ml20 mr20 clearboth"></div>
+            <div class="pt15 pb25 ph20">
+                @Html.Partial("_PartialNewsfeeds")
+            </div>
+        </div>
+        <div class="tab-container">
+            <div class="mb10 panel-icon">
+                <a href="javascript:void(0)" id="auto-lblOrderInfo" class="radius-5 dib text-center" onclick="loadSidePanel();">
+                    @Resource.lblOrderInfo
+                </a>
+            </div>
+            <div id="tab-contents-details">
+            </div>
+            @if (Model.FuelDeliveryDetails.DeliveryTypeId == (int)DeliveryType.MultipleDeliveries)
+            {
+                <div id="tab-contents-deliveryschedules" class="hide-element">
+                </div>
+                <div id="tab-contents-dropinformation" class="hide-element">
+                </div>
+            }
+            <div id="tab-contents-history" class="hide-element">
+            </div>
+            <div id="tab-contents-version" class="hide-element">
+            </div>
+            <div id="tab-contents-po" class="hide-element">
+            </div>
+            <div class="position-abs mt15 text-center hide-element" id="ajax-loading">
+                <span class='spinner-small ml10 mt5'></span>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="email-document-popup-container"></div>
+@section Scripts {
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/multiple-emails")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/multiple-emails")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/js/news-feed")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/NextDeliverySchedules")
+}
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        SetPageCulture('@Model.Culture');
+        $(document).ready(function () {
+            SetQuickMessageURL('@AppMessageQueryType.Order',@Model.Id);
+            $("#hdnCurrencyCulture").val('@Model.Culture');
+
+            if (@Model.FuelDeliveryDetails.DeliveryTypeId == @((int)DeliveryType.MultipleDeliveries)) {
+                $.get("@Url.Action("GetNextDeliverySchedules", "Order", new { area = "Buyer", orderId = Model.Id })",
+                function (response) {
+                    var nextSchedules = new NextDeliverySchedule.NextSchedules(response);
+                    $('#next-Schedule').html(nextSchedules.getAllSchedules());
+                });
+            }
+
+            $.get("@Url.Action("GetBuyerOrderStat", "Order", new { area = "Buyer", orderId = Model.Id })",
+            function (response) {
+                $("#gallons-ordered").text(thousandSeperator(response.GallonsOrdered));
+                $("#gallons-remaining").text(thousandSeperator(response.GallonsRemaining));
+                $("#gallons-delivered").text(thousandSeperator(response.GallonsDelivered));
+                $("#avg-gallons").text(thousandSeperator(response.AvgGallonsPerDelivery));
+                $("#total-amount").text(thousandSeperator(response.TotalInvoicedAmount));
+                $("#avg-ppg").text(thousandSeperator(response.AvgPricePerGallon));
+                if (response.IsInvoicesCreated || response.TotalInvoicedAmount > 0 || response.GallonsDelivered > 0) {
+                    $("#tab-history").removeClass('hide-element');
+                }
+            });
+        });
+
+        function parseFormAfterAjax() {
+            initDateTimePicker(); initMultiSelect();
+            form = $("#deliveryschedule-form");
+            $.validator.unobtrusive.parse(form);
+        }
+
+        function btnCancel() {
+           location.href = "@Url.Action("Details", "Order", new { area = "Buyer", id = Model.Id })";
+        }
+
+        var currentEntityId = @Model.Id; // for newsfeed
+        var newsfeedUrl = "@Url.Action("GetNewsfeed", "Order", new { area = "Buyer" })";
+
+        $(document).on("click", ".saveData", function () {
+            var editSection = $(this).closest(".edit-section");
+            var poNumber = editSection.find("input[type='text']").val();
+            var invoiceId = editSection.find("input[type='hidden']").val();
+            var valElem = editSection.find('span[data-valmsg-for]');
+            var selector = valElem.attr('data-valmsg-for');
+            editSection.find(".loading-wrapper").show();
+
+            if ($.trim(poNumber) == '') {
+                validationMessageFor(selector, '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { Resource.lblPoNumber })');
+                editSection.find('span[data-valmsg-for]').show();
+                return false;
+            }            
+            var targetUrl = '@Url.Action("EditInvoicePoNumber", "Invoice", new { area = "Buyer" })?invoiceId=' + invoiceId + '&poNumber=' + poNumber;
+            $.post(targetUrl, function (response) {
+                if (response.StatusCode == 0) { // 0=Success, 1=Failed
+                    editSection.find("label").show();
+                    editSection.find("input").hide();
+                    editSection.find("label").text(poNumber);
+                    editSection.find("input[type='hidden']").val(response.EntityId);
+                    editSection.find("a").show();
+                    msgsuccess(response.StatusMessage);
+                    editSection.find(".loading-wrapper").hide();
+                    editSection.find('span[data-valmsg-for]').hide();
+                    location.reload();
+                }
+            });
+        });
+        //$(document).off("confirmed.bs.confirmation");
+        $(document).on("confirmed.bs.confirmation", '[data-toggle=confirmation]', function (event) {
+            savePoNumber();
+        });
+
+        function savePoNumber() {
+            var poNumber = $('#@Html.IdFor(m => m.PoNumber)').val();
+            if ($.trim(poNumber) == '') {
+                validationMessageFor("@Html.NameFor(m => m.PoNumber)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid,
+																   new object[] { Resource.lblPoNumber })');
+                return false;
+            }
+            var validationUrl = '@Url.Action("IsValidPONumberInOrder", "Validation", new { area = "" })?orderId=@Model.Id&companyId=@Model.BuyerCompanyId&poNumber=' + poNumber;
+            var targetUrl = '@Url.Action("EditPoNumber", "Order", new { area = "Buyer" })?id=@Model.Id&fuelRequestId=@Model.FuelRequestId&isProFormaPo=@Model.IsProFormaPo&poNumber=' + escape(poNumber);
+            var lblPoNumberVal = $('#lblPoNumber').text();
+            $.post(validationUrl, function (response) {
+                if (response == true) {
+                    $("#po-edit-modal").find('.loading-wrapper').show();
+                    $.post(targetUrl, function (response) {
+                        if (response.StatusCode == 0) { // 0=Success, 1=Failed
+                            toggleEditWindow('po-edit');
+                            lblPoNumberVal = poNumber;
+                            $('#lblPoNumber').text(lblPoNumberVal);
+                            msgsuccess(response.StatusMessage);
+                        }
+                    }).always(function () { $("#po-edit-modal").find('.loading-wrapper').hide(); });
+                }
+                else {
+                    validationMessageFor("@Html.NameFor(m => m.PoNumber)", '@ResourceMessages.GetMessage(Resource.valMessageAlreadyExist,
+																	   new object[] { Resource.lblPoNumber })');
+                }
+            });
+        }
+
+        function showEmailPOPopup(id, number, desc, companyTypeId, docName, url) {
+            var poNumber = $('#@Html.IdFor(m => m.PoNumber)').val();
+            showEmailDocPopup(id, poNumber, desc, companyTypeId, docName, url);
+        }
+    </script>
+}
+

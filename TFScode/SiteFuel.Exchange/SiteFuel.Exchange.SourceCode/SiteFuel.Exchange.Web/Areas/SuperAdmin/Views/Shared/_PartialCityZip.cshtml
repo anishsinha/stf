@@ -1,0 +1,126 @@
+﻿@model SuperAdminLocationViewModel
+@using (Html.BeginForm())
+{
+    <div class="row well">
+        <div class="col-md-12">
+            <h4>@Resource.headingCityZip</h4>
+            <div class="row">
+                <div class="form-group mb10 partial-block quantity-range col-sm-12" id="superadmin-cityzip-list">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element superadmin-cityZipServiceCall"><span class='spinner-dashboard pa'></span></div>
+                    <div class="row">
+                        <div class="col-sm-4 col-md-3">
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.StateId)
+                                @Html.DropDownListFor(m => m.StateId, new SelectList(CommonHelperMethods.GetStatesForOffer(false), "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control superadminstate" })
+                                @Html.ValidationMessageFor(m => m.StateId)
+                            </div>
+                        </div>
+                        <div class="col-sm-4 col-md-3">
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.CityId)
+                                @Html.DropDownListFor(model => model.CityId, new SelectList(CommonHelperMethods.GetCities(Model.StateId), "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblCity), new { @class = "form-control superadmincity" })
+                                @Html.ValidationMessageFor(m => m.CityId)
+                            </div>
+                        </div>
+                    </div>
+               
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-4 col-md-3">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.City)
+                        @Html.TextBoxFor(m => m.City, new { @class = "form-control", autofocus = "autofocus", rows = "20" })
+                        @Html.ValidationMessageFor(m => m.City)
+                    </div>
+                </div>
+                <div class="col-sm-8 col-md-6">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ZipCodes)
+                        @Html.TextAreaFor(m => m.ZipCodes, new { @class = "form-control zip-settings", autofocus = "autofocus" })
+                        @Html.ValidationMessageFor(m => m.ZipCodes)
+                    </div>
+                    <div class="alert alert-warning pt10 pb10"><b>Note:</b> @Resource.lblZipCodeNote</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb10">
+        <div class="col-sm-12 text-right">
+            <input type="button" id="btnSaveCityZip" value="@Resource.btnLabelSave" class="btn btn-primary btn-lg submit-form" />
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+    var selectedState;
+    $(document).ready(function () {
+        $(".superadminstate").on("change", function (e) {
+            selectedState = $(e.target).closest("#superadmin-cityzip-list").find(".superadminstate").val();
+            var cityDropDown = $(e.target).closest("#superadmin-cityzip-list").find(".superadmincity");
+            if (selectedState != "") {
+                getCityList(cityDropDown, selectedState);
+                $("#@Html.IdFor(m => m.City)").val('');
+                $("#@Html.IdFor(m => m.ZipCodes)").val('');
+            }
+        });
+
+        $(".superadmincity").on("change", function (e) {
+            var selectedState = $(e.target).closest("#superadmin-cityzip-list").find(".superadminstate :selected").text();
+            var cityName = $(e.target).closest("#superadmin-cityzip-list").find(".superadmincity :selected").text();
+            $("#@Html.IdFor(m => m.City)").val(cityName);
+            if (selectedState != "" && cityName != "" && cityName != "Select City") {
+                getZipcodeList(selectedState, cityName);
+            }
+        });
+        //parseForm();
+    });
+
+    function getCityList(target, selectedState) {
+        $(".superadmin-cityZipServiceCall").show();
+        $.get("@Url.Action("GetCitesOfState", "SuperAdmin")", { stateId: selectedState }, function (response) {
+            target.find('option').not(':first').remove(), $.each(response, function (i, element) {
+                target.append($('<option></option>').val(element.Id).html(element.Name));
+            });
+            $(".superadmin-cityZipServiceCall").hide();
+        });
+    }
+
+    function getZipcodeList(selectedState, cityName) {
+        $(".superadmin-cityZipServiceCall").show();
+        $.get("@Url.Action("GetZipCodes", "SuperAdmin")", { stateCode: selectedState, city: cityName }, function (response) {
+            $("#@Html.IdFor(m => m.ZipCodes)").val(response);
+            $(".superadmin-cityZipServiceCall").hide();
+        });
+    }
+
+    $("#btnSaveCityZip").on("click", function () {
+        var isvalid = $("form").valid();
+        if (isvalid) {
+            var previousCity = $('#@Html.IdFor(m => m.CityId)').find("option:selected").text();
+            var cityName = $("#@Html.IdFor(m => m.City)").val();
+            var zipCodes = $("#@Html.IdFor(m => m.ZipCodes)").val();
+            var url = '@Url.Action("SaveCityZip", "SuperAdmin", new { area = "SuperAdmin" })';
+
+            var data = { stateId: selectedState, previousCity: previousCity, city: cityName, zipCodes: zipCodes };
+            $.post(url, data).done(function (response) {
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.StatusMessage);
+
+                    var citydropdowntarget = $("#@Html.IdFor(m => m.CityId)");
+                    $.get("@Url.Action("GetCitesOfState", "SuperAdmin")", { stateId: selectedState }, function (cityresponse) {
+                        citydropdowntarget.find('option').not(':first').remove(), $.each(cityresponse, function (i, element) {
+                            citydropdowntarget.append($('<option></option>').val(element.Id).html(element.Name));
+                        });
+                    });
+
+                    $("#@Html.IdFor(m => m.City)").val('');
+                    $("#@Html.IdFor(m => m.ZipCodes)").val('');
+                }
+            });
+        }
+    });
+    </script>
+}

@@ -1,0 +1,1208 @@
+﻿@model InvoiceDetailViewModel
+<div class="well" id="details-bg">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="col-md-12">
+                @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                {
+                    <h4 class="dib">@Resource.tabheadingDropTicket</h4>
+                }
+                else if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.PartialCredit)
+                {
+                    <h4 class="dib">@Resource.headingCreditInvoice</h4>
+                }
+                else if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && !String.IsNullOrEmpty(Model.OriginalInvoiceNumber))
+                {
+                    @*rebilled invoice*@
+                    <h4 class="dib">@Resource.headingRebilledInvoice</h4>
+                }
+                else
+                {
+                    <h4 class="dib">@(Model.Invoice.InvoiceTypeId == (int)InvoiceType.CreditInvoice ? Resource.headingCreditInvoice : Resource.tabheadingInvoice)</h4>
+                }
+                <div class="dib pull-right pt5">
+                    <div class="dib mt3" id="auto-lblStatus">
+                        @if (Model.Invoice.StatusId == (int)InvoiceStatus.WaitingForApproval)
+                        {
+                            <label class="label label-warning break-word">@(Model.Invoice.StatusName)</label>
+                        }
+                        else if (Model.Invoice.StatusId == (int)InvoiceStatus.Received)
+                        {
+                            <label class="label label-primary break-word">@(Model.Invoice.StatusName)</label>
+                        }
+                        else if (Model.Invoice.StatusId == (int)InvoiceStatus.Approved || Model.Invoice.StatusId == (int)InvoiceStatus.Paid || Model.Invoice.StatusId == (int)InvoiceStatus.Confirmed)
+                        {
+                            <label class="label label-primary">@(Model.Invoice.StatusName)</label>
+                        }
+                        else if (Model.Invoice.StatusId == (int)InvoiceStatus.Unconfirmed)
+                        {
+                            <label class="label label-default">@(Model.Invoice.StatusName)</label>
+                        }
+                        else if (Model.Invoice.StatusId == (int)InvoiceStatus.PartiallyPaid)
+                        {
+                            <label class="label label-primary break-word">@(Model.Invoice.StatusName)</label>
+                        }
+                        else if (Model.Invoice.StatusId == (int)InvoiceStatus.Paid)
+                        {
+                            <label class="label label-primary break-word">@(Model.Invoice.StatusName)</label>
+                        }
+                        else if (Model.Invoice.StatusId == (int)InvoiceStatus.CreditedAndRebilled)
+                        {
+                            <label class="label label-primary break-word">@(Model.Invoice.StatusName)</label>
+                        }
+                        else
+                        {
+                            <label class="label label-danger">@(Model.Invoice.StatusName)</label>
+                        }
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        @if ((Model.Invoice.InvoiceTypeId == (int)InvoiceType.Manual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.MobileApp) && Model.Invoice.IsPendingInvoiceAdjustment)
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessagePendingInvoiceAdjustment
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @if (Model.Invoice.WaitingForAction == (int)WaitingAction.UpdatedPrice)
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @if (Model.Invoice.IsSupplierPreferenceDDT)
+                                        {
+                                            @Resource.warningMessageDDTUpdatedPriceNotAvailable
+                                        }
+                                        else
+                                        {
+                                            @Resource.warningMessageDDTWaitingForUpdatedPrice
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.PrePostDipData)
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @if (Model.Invoice.IsSupplierPreferenceDDT)
+                                        {
+                                            @Resource.warningMessageDDTWaitingForPrePostData
+                                        }
+                                        else
+                                        {
+                                            @Resource.warningMessageWaitingForPrePostData
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.BolDetails)
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @if (Model.Invoice.IsSupplierPreferenceDDT)
+                                        {
+                                            @Resource.warningMessageDDTWaitingForBolDetails
+                                        }
+                                        else
+                                        {
+                                            @Resource.warningMessageDDTWaitingForBolDetails
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.Images)
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMsgWaitingForImages
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.AvalaraTax && Model.Invoice.IsDigitalDropTicket())
+                        {
+                            if (Model.Invoice.DDTConversionReason == (int)DDTConversionReason.AvalaraProductNotMapped)
+                            {
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="alert alert-warning mb10 pt5 pb5">
+                                            @Resource.warningMessageDDTWaitingForAvalaraTaxProductNotMapped
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                if (Model.Invoice.DDTConversionReason == (int)DDTConversionReason.AvalaraTaxFailed)
+                                {
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="alert alert-warning mb10 pt5 pb5">
+                                                @Resource.warningTFXTaxFailed
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="alert alert-warning mb10 pt5 pb5">
+                                                @Resource.warningMessageDDTWaitingForAvalaraTax
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.ExceptionApproval && Model.Invoice.IsDigitalDropTicket())
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessageWaitingForExceptionApproval
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.InventoryVerification && Model.Invoice.IsDigitalDropTicket())
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessageWaitingForInventoryVerification
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.AllDRCompletion && Model.Invoice.IsDigitalDropTicket())
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessageAllDRCompletion
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.BDNConfirmation && Model.Invoice.IsDigitalDropTicket())
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessageDDTWaitingForBDNConfirmation
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.InvoiceConfirmation && Model.Invoice.IsDigitalDropTicket())
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessageDDTWaitingForInvoiceConfirmation
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.PDITaxes && Model.Invoice.IsDigitalDropTicket())
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessagePDIETax
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Invoice.WaitingForAction == (int)WaitingAction.FilldResponse)
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        DDT is waiting for Filld response
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @if (Model.Invoice.DDTConversionReason == (int)DDTConversionReason.AutoCreditRebill)
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessageAutoCreditRebill
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Invoice.StatementNumber))
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessageInvoiceStatement <a href="@Url.Action("Details", "BillingStatement" , new { area="Supplier" , id=Model.Invoice.StatementId })">@Html.DisplayFor(m => m.Invoice.StatementNumber)</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit && !String.IsNullOrEmpty(Model.OriginalInvoiceNumber) && !Model.CreditInvoiceId.HasValue) // Rebilled invoice
+                        {
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="alert alert-warning mb10 pt5 pb5">
+                                        @Resource.warningMessageCreditInvoiceWillGenerateInSomeTime
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <div class="row">
+                            <div class="col-md-2 col-sm-3 col-xs-6 mb10">
+                                @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                {
+                                    <label class="f-normal">@Resource.lblDropTicketNumber</label>
+                                }
+                                else
+                                {
+                                    <label class="f-normal">@Resource.lblInvoiceNumber</label>
+                                }
+                                <div>
+                                    <span id="lblInvoiceNumber">@Html.DisplayFor(m => m.Invoice.DisplayInvoiceNumber)</span>
+                                    @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DryRun)
+                                    {
+                                        <label>
+                                            @Resource.lblDryRunInvoice
+                                        </label>
+                                    }
+                                    @if ((CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsAccountingPerson) && Model.ActingCompanyType == (int)CompanyType.Supplier && Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp && Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit)
+                                    {
+                                        <span>&nbsp;<a href="javascript:void(0)" title="Edit Invoice Number" onclick="toggleEditWindow('invoice-number-edit')"><span class="fa fa-pencil-square-o"></span></a></span>
+                                        <!-- edit invoice number starts -->
+                                        <div class="border-popover hide-element z-index5 pa pl15 pr15 ml15 bg-white invoice-number-edit shadow-b" id="invoice-number-edit-modal" style="width:200px">
+                                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                                            <i class="fa fa-times pull-right mt5 mb10" aria-hidden="true" onclick="toggleEditWindow('invoice-number-edit')"></i>
+                                            <div class="form-group">
+                                                @Html.TextBoxFor(m => m.Invoice.DisplayInvoiceNumber, new { @class = "form-control" })
+                                                @Html.HiddenFor(m => m.Invoice.DisplayInvoiceNumber)
+                                                @Html.ValidationMessageFor(m => m.Invoice.DisplayInvoiceNumber)
+                                            </div>
+                                            <div class="form-group text-right">
+                                                <input type="button" value="@Resource.btnLabelCancel" id="btnCancel" class="btn btn-sm" onclick="toggleEditWindow('invoice-number-edit')" />
+                                                <button class="btn btn-primary btn-sm" type="button" data-toggle='confirmation' data-html='true' data-popout='true' data-singleton='true' data-confirmation-event="editInvoiceNumber"
+                                                        data-placement='top' id="btnUpdateInvoiceNumber" data-title="Are you sure you want to update the Invoice#?">
+                                                    @Resource.btnLabelSave
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <!-- edit invoice number ends -->
+                                    }
+                                    else
+                                    {
+                                        @Html.HiddenFor(m => m.Invoice.DisplayInvoiceNumber)
+                                    }
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Model.Invoice.ReferenceId))
+                            {
+                                <div class="col-md-2 col-sm-3 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblReferenceId</label>
+                                    <div>
+                                        <div>@Model.Invoice.ReferenceId</div>
+                                    </div>
+                                </div>
+                            }
+                            <div class="col-md-2 col-sm-3 col-xs-6 mb10">
+                                @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                {
+                                    <label class="f-normal">@Resource.lblDropTicketAmount</label>
+                                }
+                                else
+                                {
+                                    <label class="f-normal">@Resource.lblInvoice @Resource.lblAmount</label>
+                                }
+                                <div id="total-amount">
+                                    @if (Model.Invoice.ShouldHidePricing() || Model.Invoice.StatusId == (int)InvoiceStatus.Draft || Model.Invoice.StatusId == (int)InvoiceStatus.Canceled || Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned)
+                                    {
+                                        <div>@Resource.lblHyphen</div>
+                                    }
+                                    else
+                                    {
+                                        <div> @((Model.TotalInvoiceAmount).GetInvoiceAmountValue(2, @Resource.constSymbolCurrency)) @Model.Invoice.Currency</div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-3 col-xs-6 mb10">
+                                @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                {
+                                    <label class="f-normal">@Resource.lblDropTicketDate</label>
+                                }
+                                else
+                                {
+                                    <label class="f-normal">@Resource.lblInvoiceDate</label>
+                                }
+                                @if (Model.Invoice.StatusId == (int)InvoiceStatus.Draft || Model.Invoice.StatusId == (int)InvoiceStatus.Canceled || Model.Invoice.WaitingForAction != (int)WaitingAction.Nothing)
+                                {
+                                    <div>@Resource.lblHyphen</div>
+                                }
+                                else
+                                {
+                                    <div>@Model.Invoice.CreatedDate.ToString(Resource.constFormatDate)</div>
+                                }
+                            </div>
+                            @if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit)
+                            {
+                                <div class="col-sm-2 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblPaymentTerms</label>
+                                    <div>
+                                        @if (Model.Invoice.StatusId == (int)InvoiceStatus.Draft || Model.Invoice.StatusId == (int)InvoiceStatus.Canceled || Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned || Model.Invoice.WaitingForAction != (int)WaitingAction.Nothing)
+                                        {
+                                            <div>@Resource.lblHyphen</div>
+                                        }
+                                        else
+                                        {
+                                            @(CommonHelperMethods.GetName<PaymentTerms>
+                                                                                                                                                                            (Model.PaymentTermId))
+
+                                            if (Model.PaymentTermId == (int)PaymentTerms.NetDays)
+                                            {
+                                                <span>@Model.NetDays</span>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.headingPaymentMethod</label>
+                                    <div>
+                                        @if (Model.Invoice.StatusId == (int)InvoiceStatus.Draft || Model.Invoice.StatusId == (int)InvoiceStatus.Canceled || Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned || Model.Invoice.WaitingForAction != (int)WaitingAction.Nothing || Model.PaymentMethod == PaymentMethods.None)
+                                        {
+                                            <div>@Resource.lblHyphen</div>
+                                        }
+                                        else
+                                        {
+                                            <div>@Model.PaymentMethod.GetDisplayName()</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            @if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp && String.IsNullOrEmpty(Model.Invoice.StatementNumber) && Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit)
+                            {
+                                <div class="col-sm-2 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblPaymentDueDate</label>
+                                    <div>@Model.Invoice.PaymentDueDate.ToString(Resource.constFormatDate) </div>
+                                </div>
+                            }
+                            @if ((Model.Invoice.InvoiceTypeId == (int)InvoiceType.CreditInvoice || Model.Invoice.InvoiceTypeId == (int)InvoiceType.PartialCredit) && !String.IsNullOrEmpty(Model.OriginalInvoiceNumber))
+                            {
+                                <div class="col-sm-2 col-xs-6">
+                                    <label class="f-normal">@Resource.lblOriginalInvoiceNumber</label>
+                                    <div><a href="@Url.Action("Details","Invoice",new { area="Supplier" , id=Model.OriginalInvoiceId })" class="slidedetails" data-invoiceid="@Model.OriginalInvoiceId">@Html.DisplayFor(m => m.OriginalInvoiceNumber)</a></div>
+                                </div>
+                            }
+                            @if (Model.PaymentStatus != PaymentStatus.NotPaid)
+                            {
+                                <div class="col-md-2 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblBalanceRemaining</label>
+                                    <div>@Resource.constSymbolCurrency@Model.BalanceRemaining.ToString(ApplicationConstants.DecimalFormat2) @Model.Invoice.Currency</div>
+                                </div>
+                                <div class="col-md-2 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblAmountPaid</label>
+                                    <div>@Resource.constSymbolCurrency@Model.AmountPaid.ToString(ApplicationConstants.DecimalFormat2) @Model.Invoice.Currency</div>
+                                </div>
+                            }
+                            @if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit && !String.IsNullOrEmpty(Model.OriginalInvoiceNumber)) // Rebilled invoice
+                            {
+                                <div class="col-sm-2 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblOriginalInvoiceNumber</label>
+                                    <div><a href="@Url.Action("Details","Invoice",new { area="Supplier" , id=Model.OriginalInvoiceId })" class="slidedetails" data-invoiceid="@Model.OriginalInvoiceId">@Html.DisplayFor(m => m.OriginalInvoiceNumber)</a></div>
+                                </div>
+                                <div class="col-sm-2 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.headingCreditInvoice #</label>
+                                    @if (Model.CreditInvoiceId.HasValue)
+                                    {
+                                        <div><a href="@Url.Action("Details","Invoice",new { area="Supplier" , id=Model.CreditInvoiceId })" class="slidedetails" data-invoiceid="@Model.CreditInvoiceId">@Html.DisplayFor(m => m.CreditInvoiceDisplayNumber)</a></div>
+                                    }
+                                    else
+                                    {
+                                        <div><span>@Resource.lblHyphen</span></div>
+                                    }
+                                </div>
+                            }
+                            @if (Model.Invoice.AdditionalDetail != null && Model.Invoice.AdditionalDetail.CreationMethod == CreationMethod.BulkUploaded)
+                            {
+                                <div class="col-md-2 col-xs-6 mb10">
+                                    <label class="f-normal">Creation Method</label>
+                                    <div>@CreationMethod.BulkUploaded.GetDisplayName()</div>
+                                </div>
+                            }
+                            @if (!String.IsNullOrEmpty(Model.Invoice.AdditionalDetail.CarrierOrderId))
+                            {
+                                <div class="col-md-2 col-xs-6 mb10" id="auto-carrierOrderId">
+                                    <label class="f-normal">@Resource.lblCarrierOrderId</label>
+                                    <div>@(Model.Invoice.AdditionalDetail.CarrierOrderId)</div>
+                                </div>
+                            }
+                            @if (Model.LinkedInvoiceId > 0)
+                            {
+                                <div class="col-sm-3 col-md-2 col-xs-6 mb10">
+                                    @if (Model.LinkedInvoiceType == (int)InvoiceType.DigitalDropTicketManual || Model.LinkedInvoiceType == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                    {
+                                        <label class="f-normal">@Resource.lblDropTicketNumber</label>
+                                    }
+                                    else
+                                    {
+                                        <label class="f-normal">@Resource.lblInvoiceNumber</label>
+                                    }
+                                    <div>
+                                        <a href="@Url.Action("Details","Invoice",new { area="Supplier" , id=Model.LinkedInvoiceId })" class="slidedetails" data-invoiceid="@Model.LinkedInvoiceId">@Html.DisplayFor(m => m.LinkedInvoiceNumber)</a>
+                                    </div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Model.TrackableSchedule))
+                            {
+                                <div class="col-sm-4 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblDeliverySchedule</label>
+                                    <div class="pre-space" id="delivery-schedule">@Html.Raw(Model.TrackableSchedule)</div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Model.DeliveryLevelPO))
+                            {
+                                <div class="col-sm-4 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblDeliveryLevelPO</label>
+                                    <div class="pre-space" id="delivery-schedule">@Html.Raw(Model.DeliveryLevelPO)</div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.BDRNumber))
+                            {
+                                <div class="col-sm-4 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblBunkerDeliveryNote</label>
+                                    <div class="pre-space" id="delivery-schedule">@Model.BDRNumber</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="border-b-dash ma15 clearboth"></div>
+                    <div class="col-sm-12 pb15">
+                        <h4>@Resource.headingCustomer</h4>
+                        <div class="row">
+                            <div class="col-sm-2 col-xs-6 mb10">
+                                <label class="f-normal">@Resource.lblCustomerCompany</label>
+                                <div class="break-word" id="lbl-customercompany">
+                                    @Html.DisplayFor(m => m.BuyerCompanyName)
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-xs-6 mb10">
+                                <label class="f-normal">@Resource.lblCustomerContact</label>
+                                <div class="break-word">
+                                    @if (Model.SupplierEmail == null || Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned)
+                                    {
+                                        @Resource.lblHyphen
+                                    }
+                                    else
+                                    {
+                                        @Html.DisplayFor(m => m.SupplierName)<br />
+                                        @Html.DisplayFor(m => m.SupplierEmail)<br />
+
+                                        <span class="phone">@Html.DisplayFor(m => m.SupplierPhone)</span>
+                                    }
+                                </div>
+                            </div>
+                            @if (Model.FuelRequest.FuelOfferDetails.SupplierQualifications.Count > 0)
+                            {
+                                <div class="col-sm-3 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblDBE <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDBE"></i></label>
+                                    <div>
+                                        @Html.Raw(string.Join("<br />", CommonHelperMethods.GetQualificationNamesById(Model.FuelRequest.FuelOfferDetails.SupplierQualifications)))
+                                    </div>
+                                </div>
+                            }
+                            @if (Model.Invoice.AdditionalDetail != null && !string.IsNullOrWhiteSpace(Model.Invoice.AdditionalDetail.Notes))
+                            {
+                                <div class="col-sm-3 col-xs-6 mb10">
+                                    <label class="f-normal">@Resource.lblInvoiceNotes</label>
+                                    <div class="break-word">
+                                        @Html.DisplayFor(m => m.Invoice.AdditionalDetail.Notes)
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    @if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.Balance && Model.Invoice.InvoiceTypeId != (int)InvoiceType.TankRental)
+                    {
+                        <div class="border-b-dash ma15 clearboth"></div>
+                        <div class="col-sm-12 pb15">
+                            <h4>@Resource.headingDelivery</h4>
+                            <table class="table" id="auto-invoiceDeliveryDetails">
+                                <tr>
+                                    <th class="pl0 no-top-border">@Resource.lblPoNumber</th>
+                                    <th class="pl0 no-top-border">@Resource.lblFuelType</th>
+                                    <th class="pr0 no-top-border">@Resource.lblOrdered @Resource.lblQty</th>
+                                    <th class="pl0 no-top-border">@Resource.lblDelivered @Resource.lblQty</th>
+                                    <th class="pr0 no-top-border">@Resource.gridColumnDropDate</th>
+                                    <th class="pr0 no-top-border">@Resource.lblDropTime</th>
+                                    @*<th class="pr0 no-top-border">@Resource.lblJobTimeZoneName</th>*@
+                                    <th class="pr0 no-top-border">@Resource.lblAssetFilled</th>
+                                    <th class="pr0 no-top-border">@Resource.lblDriver</th>
+                                </tr>
+                                @foreach (var item in Model.Invoice.InvoiceLineItemDetails)
+                                {
+                                    <tr>
+                                        @{
+                                            var poLink = item.OrderId > 0 ? Url.Action("Details", "Order", new { area = "Supplier", id = item.OrderId }) : "#";
+                                        }
+                                        <td class="pl0"><div><a href="@poLink">@item.PoNumber</a></div></td>
+                                        @if (item.StatusId != (int)InvoiceStatus.Unassigned)
+                                        {
+                                            <td class="pl0"><div>@item.FuelType</div></td>
+                                        }
+                                        else
+                                        {
+                                            <td class="pl0"><div>@Resource.lblHyphen</div></td>
+                                        }
+                                        <td>
+                                            @if (item.StatusId != (int)InvoiceStatus.Unassigned)
+                                            {
+                                                if (item.QuantityTypeId == (int)QuantityType.Range && item.Quantity != null)
+                                                {
+                                                    <div>@item.Quantity.Value.GetCommaSeperatedValue() @item.UoM</div>
+                                                }
+                                                else if (item.QuantityTypeId == (int)QuantityType.SpecificAmount && item.Quantity != null)
+                                                {
+                                                    <div>@item.Quantity.Value.GetCommaSeperatedValue() @item.UoM</div>
+                                                }
+                                                else if (item.QuantityTypeId == (int)QuantityType.NotSpecified)
+                                                {
+                                                    <div>@Resource.lblNotSpecified</div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <div>@Resource.lblHyphen</div>
+                                            }
+                                        </td>
+                                        <td class="pl0">
+                                            @if (item.IsMarineLocation && (item.UoM == UoM.MetricTons || item.UoM == UoM.Barrels))
+                                            {
+                                                var convertedQty = item.ConvertedQuantity == null ? 0 : item.ConvertedQuantity.Value;
+                                                <div id="lblFuelDropped">
+                                                    @convertedQty.GetPreciseValue(6).GetCommaSeperatedValue4Decimals() @item.UoM.GetDisplayName()
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div id="lblFuelDropped">@item.DroppedGallons.GetPreciseValue(6).GetCommaSeperatedValue() @item.UoM.GetDisplayName()</div>
+                                            }
+                                        </td>
+                                        @if (item.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                        {
+                                            <td><div>@item.DropEndDate.ToString(Resource.constFormatDate)</div></td>
+                                            <td><div>@(item.DropStartDate.DateTime.ToShortTimeString())@Resource.lblSingleHyphen@(item.DropEndDate.DateTime.ToShortTimeString())</div></td>
+                                            @*<td><div>@item.TimeZoneName</div></td>*@
+                                            <td><div id="lblAssetsFilled">@item.AssetCount</div></td>
+                                            <td><div id="lbl-driver">@item.DriverName</div></td>
+                                        }
+                                        else
+                                        {
+                                            <td><div>@Resource.lblHyphen</div></td>
+                                            <td><div>@Resource.lblHyphen</div></td>
+                                            @*<td><div>@item.TimeZoneName</div></td>*@
+                                            <td><div>@Resource.lblHyphen</div></td>
+                                            <td><div>@Resource.lblHyphen</div></td>
+                                        }
+                                    </tr>
+                                }
+                            </table>
+                        </div>
+                    }
+                    @if (Model.Invoice.BolLiftDetails != null && Model.Invoice.BolLiftDetails.Count > 0 && Model.Invoice.InvoiceTypeId != (int)InvoiceType.TankRental && Model.Invoice.InvoiceTypeId != (int)InvoiceType.Balance)
+                    {
+                        <div class="border-b-dash ma15 clearboth"></div>
+                        <div class="col-sm-12 pb15">
+                            <h4>@Resource.headingBolAndLiftDetails</h4>
+                            <table class="table" id="auto-bol-LiftTicketDetails">
+                                <tr>
+                                    <th class="pl0 no-top-border">@Resource.lblBolAndLiftNumber</th>
+                                    <th class="pl0 no-top-border">@Resource.lblBadgeNumber</th>
+                                    <th class="pr0 no-top-border">@Resource.lblNet @Resource.lblQty</th>
+                                    <th class="pr0 no-top-border">@Resource.lblGross @Resource.lblQty</th>
+                                    <th class="pr0 no-top-border">@Resource.lblDeliveredQuantity</th>
+                                    <th class="pr0 no-top-border">@Resource.lblCarrier</th>
+                                    <th class="pr0 no-top-border">@Resource.lblLiftDate</th>
+                                    <th class="pr0 no-top-border">Lift Time</th>
+                                    <th class="pr0 no-top-border">@Resource.lblTerminal/@Resource.headingPickUpLocation</th>
+                                    @if (!Model.IsMarineLocation)
+                                    {
+                                        <th class="pr0 no-top-border">@(string.Format(Resource.lblRackPP, Model.Invoice.Currency == Currency.USD ? "PPU" : "PPU"))</th>
+                                    }
+                                </tr>
+                                @foreach (var item in Model.Invoice.BolLiftDetails)
+                                {
+                                    if ((item.GrossQuantity.HasValue && item.GrossQuantity.Value > 0 && item.NetQuantity.HasValue && item.NetQuantity.Value > 0) || !Model.IsFTL)
+                                    {
+                                        var bolLiftNumber = !string.IsNullOrWhiteSpace(item.BolNumber) ? item.BolNumber : item.LiftTicketNumber;
+                                        <tr>
+                                            @if (!string.IsNullOrWhiteSpace(bolLiftNumber))
+                                            {
+                                                <td class="pl0">@bolLiftNumber</td>
+                                            }
+                                            else
+                                            {
+                                                <td class="break-word">@Resource.lblHyphen</td>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(@item.BadgeNumber))
+                                            {
+                                                <td class="pl0">@item.BadgeNumber</td>
+                                            }
+                                            else
+                                            {
+                                                <td class="break-word">@Resource.lblHyphen</td>
+                                            }
+
+                                            <td class="break-word">@(item.NetQuantity.HasValue ? string.Format("{0:N2}", item.NetQuantity) : Resource.lblHyphen)</td>
+                                            <td class="break-word">@(item.GrossQuantity.HasValue ? string.Format("{0:N2}", item.GrossQuantity) : Resource.lblHyphen)</td>
+                                            <td class="break-word">@(item.DeliveredQuantity.HasValue ? string.Format("{0:N2}", item.DeliveredQuantity) : Resource.lblHyphen)</td>
+                                            @if (!string.IsNullOrWhiteSpace(@item.Carrier))
+                                            {
+                                                <td class="pl0">@item.Carrier</td>
+                                            }
+                                            else
+                                            {
+                                                <td class="break-word">@Resource.lblHyphen</td>
+                                            }
+                                            @if (item.LiftDate != null && item.LiftDate.HasValue)
+                                            {
+                                                <td>@(item.LiftDate.Value.ToString(Resource.constFormatDate))</td>
+                                            }
+                                            else
+                                            {
+                                                <td class="break-word">@Resource.lblHyphen</td>
+                                            }
+                                            @if (item.LiftStartTime != null && item.LiftStartTime.HasValue && item.LiftEndTime != null && item.LiftEndTime.HasValue)
+                                            {
+                                                <td><div>@(item.LiftStartTime.isShortTimeSafe())-@(item.LiftEndTime.isShortTimeSafe())</div></td>
+                                            }
+                                            else
+                                            {
+                                                <td class="break-word">@Resource.lblHyphen</td>
+                                            }
+                                            @if (item.PickupLocationType == PickupLocationType.BulkPlant)
+                                            {
+                                                <td>
+                                                    <b>@item.TerminalName</b>,
+                                                    @item.Address,
+                                                    @item.City,
+                                                    @item.StateCode,
+                                                    @item.ZipCode
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td>@item.TerminalName</td>
+                                            }
+                                            @if (!Model.IsMarineLocation)
+                                            {
+                                                <td>@Resource.constSymbolCurrency@item.RackPrice.ToString(Model.IsMarineLocation ? ApplicationConstants.DecimalFormat6WOZero : ApplicationConstants.DecimalFormat4WOZero) @Model.Invoice.Currency</td>
+                                            }
+                                        </tr>
+                                    }
+
+                                }
+                            </table>
+                        </div>
+                    }
+                    <!-- DispatcherNotes -->
+                    <div class="col-sm-12">
+                        <div class="border-b-dash mt15 mb5 clearboth"></div>
+                        <h4 class="pb-0">@Resource.headingDispatch @Resource.lblNotes</h4>
+                        <div class="mb-4">
+                            @if (Model.Invoice.DispatcherNotes.AnyAndNotNull())
+                            {
+                                int notecount = 1;
+                                foreach (var item in Model.Invoice.DispatcherNotes)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(item))
+                                    {
+                                        <div>@notecount- @item</div>
+                                        notecount++;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                <div>@Resource.lblHyphen </div>
+                            }
+                            @if (Model.Invoice.CommonNote.AnyAndNotNull())
+                            {
+                                int CommonNotecount = 1;
+                                <div class="mt-4">
+                                    <h4 class="pb-0">@Resource.lblCommon @Resource.lblNotes</h4>
+                                    @foreach (var item in Model.Invoice.CommonNote)
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(item))
+                                        {
+                                            <div>@CommonNotecount- @item</div>
+                                            CommonNotecount++;
+                                        }
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <!-- details ends -->
+                    @if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                    {
+                        if (!Model.Invoice.ShouldHidePricing() && (Model.PreferencesSetting != null && !Model.PreferencesSetting.IsSupressOrderPricing))
+                        {
+                            <!-- pricing starts -->
+                            <div class="col-sm-12">
+                                <div class="border-b-dash mt15 mb15 clearboth"></div>
+                                <h4>@Resource.headingPricingFees</h4>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="row">
+                                            @if (Model.CityGroupTerminalId.HasValue && Model.CityGroupTerminalId.Value > 0)
+                                            {
+                                                <div class="col-sm-3 col-md-2 col-xs-6">
+                                                    <label class="f-normal">@Resource.lblCityGroupTerminal</label>
+                                                    <div id="auto-lblsuppcityterminal">@Model.Invoice.CityGroupTerminalName</div>
+                                                </div>
+                                            }
+                                            @if (Model.ExternalBrokerId > 0)
+                                            {
+                                                if (Model.BrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId != (int)FeeSubType.NoFee)
+                                                {
+                                                    <div class="col-md-2 col-xs-6 col-sm-3 mb10">
+                                                        <label class="f-normal">@Resource.lblFreight</label>
+                                                        <div>
+                                                            @if (Model.BrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                                                            {
+                                                                @($"{Resource.constSymbolCurrency}{Model.BrokeredOrder.BrokeredOrderFee.FreightFee.ToString(ApplicationConstants.DecimalFormat2)} {Model.Invoice.Currency} {Resource.lblPerAsset.ToLower()}")
+                                                            }
+                                                            else if (Model.BrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId == (int)FeeSubType.PerRoute)
+                                                            {
+                                                                @($"{Resource.constSymbolCurrency}{Model.BrokeredOrder.BrokeredOrderFee.FreightFee.ToString(ApplicationConstants.DecimalFormat2)} {Model.Invoice.Currency} {Resource.lblPerRoute.ToLower()}")
+                                                            }
+                                                            else if (Model.BrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId == (int)FeeSubType.PerGallon)
+                                                            {
+                                                                @($"{Resource.constSymbolCurrency}{Model.BrokeredOrder.BrokeredOrderFee.FreightFee.ToString(ApplicationConstants.DecimalFormat2)} {Model.Invoice.Currency} {Resource.lblPerGallon.ToLower()}")
+                                                            }
+                                                            else if (Model.BrokeredOrder.BrokeredOrderFee.FreightFeeSubTypeId == (int)FeeSubType.FlatFee)
+                                                            {
+                                                                @($"{Resource.constSymbolCurrency}{Model.BrokeredOrder.BrokeredOrderFee.FreightFee.ToString(ApplicationConstants.DecimalFormat2)} {Model.Invoice.Currency}")
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+                                                foreach (var item in Model.BrokeredOrder.BrokeredOrderFee.AdditionalFees)
+                                                {
+                                                    <div class="col-md-2 col-xs-6 col-sm-3 mb10">
+                                                        <label class="f-normal">@item.FeeDetails</label>
+                                                        <div>
+                                                            @($"{item.FeeSubTypeName} {Resource.constSymbolCurrency}{item.Fee.ToString(ApplicationConstants.DecimalFormat2)} {Model.Invoice.Currency}")
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (Model.FuelDeliveryDetails != null)
+                                                {
+                                                    Model.FuelDeliveryDetails.IsMarineLocation = Model.IsMarineLocation;
+                                                }
+                                                @Html.Partial("_PartialFuelFeeDetails", Model.FuelDeliveryDetails)
+                                            }
+                                            <div class="col-sm-3 col-md-2 col-xs-6">
+                                                <label class="f-normal">@Resource.lblSalesTaxExempt</label>
+                                                @if (Model.Invoice.StatusId != (int)InvoiceStatus.Unassigned)
+                                                {
+                                                    <div id="lbl-salestax-exempt">@((Model.FuelRequest.Job.IsTaxExempted).ToYesNo())</div>
+                                                }
+                                                else
+                                                {
+                                                    <div id="lbl-salestax-exempt">@Resource.lblHyphen</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- pricing ends -->
+                            if (Model.IsBuyAndSellOrder)
+                            {
+                                <div class="col-sm-12 pb15">
+                                    <div class="border-b-dash mt15 mb15 clearboth"></div>
+                                    <div class="brokeredorder-details">
+                                        <h4>@Resource.headingBuySell</h4>
+                                        <div class="row disable-controls">
+                                            <div class="col-sm-4 col-md-3">
+                                                <div class="form-group">
+                                                    <label class="f-normal">@Resource.lblBasePrice</label>
+                                                    <div>@Resource.constSymbolCurrency@Model.BuyAndSellPricingDetail.BasePrice.ToString(Model.IsMarineLocation ? ApplicationConstants.DecimalFormat6WOZero : ApplicationConstants.DecimalFormat4WOZero) @Model.Invoice.Currency</div>
+                                                    @if (Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackAverage
+                                                            || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackLow
+                                                            || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackHigh
+                                                            || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.Suppliercost)
+                                                    {
+                                                        <div class="fs12 mb10">(@Model.DisplayPricePerGallon)</div>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-4 col-md-3">
+                                                <div class="form-group">
+                                                    <label class="f-normal">@Resource.lblBuyPrice</label>
+                                                    <div>@Resource.constSymbolCurrency@Model.BuyAndSellPricingDetail.BuyPrice.ToString(ApplicationConstants.DecimalFormat4WOZero) @Model.Invoice.Currency</div>
+                                                    <div class="fs12 mb10">(@Model.BuyAndSellPricingDetail.BuyPriceDetail)</div>
+                                                </div>
+                                            </div>
+                                            @if (!@Model.BuyAndSellPricingDetail.IsBuyPriceInvoice)
+                                            {
+                                                <div class="col-sm-4 col-md-3">
+                                                    <div class="form-group">
+                                                        <label class="f-normal">@Resource.lblSellPrice</label>
+                                                        <div>@Resource.constSymbolCurrency@Model.BuyAndSellPricingDetail.SellPrice.ToString(ApplicationConstants.DecimalFormat4WOZero) @Model.Invoice.Currency</div>
+                                                        <div class="fs12 mb10">(@Model.BuyAndSellPricingDetail.SellPriceDetail)</div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        <!-- Taxes starts -->
+                        if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp)
+                        {
+                            if (Model.Invoice.TaxDetails != null && Model.Invoice.TaxDetails.AvaTaxDetails.Count > 0)
+                            {
+                                <div class="col-sm-12 pb15">
+                                    <div class="border-b-dash mt15 mb15 clearboth"></div>
+                                    <h4>@Resource.headingTaxes</h4>
+                                    <div class="row">
+                                        <div class="col-sm-8">
+                                            <table class="table">
+                                                <tr>
+                                                    <th class="pl0 no-top-border">@Resource.lblTaxDescription</th>
+                                                    <th class="text-right pr0 no-top-border">@Resource.lblAmount</th>
+                                                </tr>
+                                                @foreach (var item in Model.Invoice.TaxDetails.AvaTaxDetails)
+                                                {
+                                                    <tr class="@(item.IsModified?" txt-highlight":"")">
+                                                        <td class="pl0"><label class="f-normal">@item.RateDescription</label></td>
+                                                        @if (item.TaxPricingTypeId == (int)OtherProductTaxPricingType.DollarOnTotalAmount || item.TaxPricingTypeId == (int)OtherProductTaxPricingType.DollarPerGallon)
+                                                        {
+                                                            <td class="text-right pr0">@((item.TradingTaxAmount).GetInvoiceAmountValue(2, @Resource.constSymbolCurrency)) @Model.Invoice.Currency</td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td class="text-right pr0">@Resource.constSymbolCurrency@item.TradingTaxAmount.ToString(ApplicationConstants.DecimalFormat2)) @Model.Invoice.Currency</td>
+                                                        }
+                                                    </tr>
+                                                }
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else if (Model.FuelRequest.FuelDetails.FuelDisplayGroupId != (int)ProductDisplayGroups.OtherFuelType && Model.Invoice.TotalTaxAmount > 0)
+                            {
+                                <div class="col-sm-12 pb15">
+                                    <div class="border-b-dash mt15 mb15 clearboth"></div>
+                                    <h4>@Resource.headingTaxes</h4>
+                                    <div class="row">
+                                        <div class="col-sm-8">
+                                            <table class="table">
+                                                <tr>
+                                                    <th class="pl0 no-top-border">@Resource.lblTaxDescription</th>
+                                                    <th class="text-right pr0 no-top-border">@Resource.lblAmount</th>
+                                                </tr>
+                                                <tr>
+                                                    <td class="pl0"><label class="f-normal">@Resource.lblStateTax</label></td>
+                                                    <td class="text-right pr0">@Resource.constSymbolCurrency@Model.StateTax.ToString(ApplicationConstants.DecimalFormat2) @Model.Invoice.Currency</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="pl0"><label class="f-normal">@Resource.lblFederalTax</label></td>
+                                                    <td class="text-right pr0">@Resource.constSymbolCurrency@Model.FederalTax.ToString(ApplicationConstants.DecimalFormat2) @Model.Invoice.Currency</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="pl0"><label class="f-normal">@Resource.lblSalesTax</label></td>
+                                                    <td class="text-right pr0">@Resource.constSymbolCurrency@Model.SalesTax.ToString(ApplicationConstants.DecimalFormat2) @Model.Invoice.Currency</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        <!-- Taxes ends -->
+                        <!-- Signature starts -->
+                        if (Model.CustomerSignature != null)
+                        {
+                            <div class="col-sm-12 pb15">
+                                <div class="border-b-dash mt15 mb15 clearboth"></div>
+                                <h4>@Resource.headingSignature</h4>
+                                <div class="row">
+                                    <div class="col-md-2 col-xs-6">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.lblSignatureName</label>
+                                            <div class="fs12 mb10">@Model.CustomerSignature.Name</div>
+                                        </div>
+                                    </div>
+                                    @if (Model.CustomerSignature.Image.Id > 0 && Model.CustomerSignature.SignatoryAvailable && !string.IsNullOrEmpty(Model.CustomerSignature.Image.FilePath))
+                                    {
+                                        <div class="col-md-2 col-xs-6">
+                                            <div class="form-group">
+                                                <label class="f-normal">@Resource.lblSignatureTimestamp</label>
+                                                <div class="fs12 mb10">@Model.Invoice.DropEndDate.ToTargetDateTimeOffset(Model.FuelRequest.Job.TimeZoneName).ToString(Resource.constFormatDateTime)</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="col-sm-3 col-xs-6">
+                                        <div class="form-group">
+                                            <label class="f-normal">@Resource.headingSignature</label>
+                                            @if (Model.CustomerSignature.Image.Id > 0 && Model.CustomerSignature.SignatoryAvailable && !string.IsNullOrEmpty(Model.CustomerSignature.Image.FilePath))
+                                            {
+
+                                                <div class="text-center">
+                                                    @if (Model.CustomerSignature.Image.IsNonImageFile)
+                                                    {
+                                                        <a href="javascript:void(0)" onclick="downloadInvoiceFile(this, '@Model.CustomerSignature.Image.FilePath')" class="img-thumbnail mt10 db">
+                                                            <img id="image-ctrl" src="~/Content/images/ico-thumbnailpdf.png" />
+                                                        </a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <a href="@Model.CustomerSignature.Image.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)" class="img-thumbnail mt10 download-images" rel="@Model.CustomerSignature.Image.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)">
+                                                            <img id="image-ctrl" width="100%" height="150" src="@Model.CustomerSignature.Image.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)" />
+                                                            <span class="btn btn-primary btn-xs mt5 pa5"><i class="fa fa-download mr5 ml5 fs14"></i> @Resource.btnLabelDownload</span>
+                                                        </a>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div>@Resource.valMessageNoOnsitePersonAvailableForSignature</div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <!-- Signature ends -->
+                        <!-- image starts -->
+                        if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.Balance && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit)
+                        {
+                            <div class="col-sm-12 pb15">
+                                <div class="border-b-dash mt15 mb15 clearboth"></div>
+                                <h4>@Resource.headingImages</h4>
+                                <div class="row">
+                                    <div class="col-sm-9">
+                                        <div class="row">
+                                            <div class="col-sm-2 col-xs-6 mb10">
+                                                @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                                {<b>@Resource.lblDropTicket</b>}
+                                            else
+                                            { <b>@Resource.lblInvoice</b>}
+                                                @if (Model.InvoiceImage.Id == 0)
+                                                {
+                                                    <img id="image-ctrl" width="100%" height="120" src="~/Content/images/no-image.png" />
+                                                }
+                                                else
+                                                {
+                                                    foreach (var invoiceFile in @Model.InvoiceImages)
+                                                    {
+                                                        if (!string.IsNullOrWhiteSpace(invoiceFile.FilePath))
+                                                        {
+                                                            @*<div class="fs14 break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm1 mr5 float-left" width="21" /> invoiceFile.FilePath</div>*@
+                                                            <div class="text-center">
+                                                                @if (invoiceFile.IsNonImageFile)
+                                                                {
+                                                                    <a href="javascript:void(0)" onclick="downloadInvoiceFile(this, '@invoiceFile.FilePath')" class="img-thumbnail mt10 db">
+                                                                        <img id="image-ctrl" width="100%" height="120" src="~/Content/images/ico-thumbnailpdf.png" />
+                                                                    </a>
+                                                                }
+                                                                else
+                                                                {
+
+                                                                    @*<a href="javascript:void(0)" onclick="downloadInvoiceFile(this, '@invoiceFile.FilePath')" class="img-thumbnail mt10">
+                                                                            <img id="image-ctrl" width="100%" height="120" src="@invoiceFile.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)" />
+                                                                        </a>
+                                                                        <span class="btn btn-primary btn-xs mt5 pa5"><i class="fa fa-download mr5 ml5 fs14"></i> @Resource.btnLabelDownload</span>*@
+                                                                    <div class="img-thumbnail mt10">
+                                                                        <img id="image-ctrl" width="100%" height="120" src="@invoiceFile.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)" />
+                                                                    </div>
+                                                                    <a href="javascript:void(0)" class="download-box position-absolute rounded text-black-50">
+                                                                        <i class="fas fa-arrow-alt-circle-down fa-2x" onclick="downloadInvFiles('@invoiceFile.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)')"></i>
+                                                                    </a>
+                                                                }
+
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="text-center">
+                                                                <a href="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = invoiceFile.Id })" class="img-thumbnail mt10 previewthumbnail download-images"
+                                                                   rel="@(Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = invoiceFile.Id }))">
+                                                                    <img id="image-ctrl" class="img-responsive" height="120" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = invoiceFile.Id })" />
+                                                                </a>
+                                                                @*<span class="btn btn-primary btn-xs mt5 pa5"><i class="fa fa-download mr5 ml5 fs14"></i> @Resource.btnLabelDownload</span>*@
+                                                            </div>
+                                                        }
+                                                    }
+
+                                                }
+                                            </div>
+                                            <div class="col-sm-2 col-xs-6 mb10">
+                                                <b>@Resource.lblBolImage</b>
+                                                @if (Model.BolImages == null || Model.BolImages.Count == 0)
+                                                {
+                                                    <img id="bolimage-ctrl" width="100%" height="120" src="~/Content/images/no-image.png" />
+                                                }
+                                                else
+                                                {
+                                                    foreach (var bolImage in @Model.BolImages)
+                                                    {
+                                                        if (!string.IsNullOrWhiteSpace(bolImage.FilePath))
+                                                        {
+                                                            <div class="text-center">
+                                                                @if (bolImage.IsNonImageFile)
+                                                                {
+                                                                    <a href="javascript:void(0)" onclick="downloadInvoiceFile(this, '@bolImage.FilePath')" class="img-thumbnail mt10 db">
+                                                                        <img id="image-ctrl" width="100%" height="120" src="~/Content/images/ico-thumbnailpdf.png" />
+                                                                    </a>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="img-thumbnail mt10">
+                                                                        <img id="image-ctrl" width="100%" height="120" src="@bolImage.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)" />
+                                                                    </div>
+                                                                    <a href="javascript:void(0)" class="download-box position-absolute rounded text-black-50">
+                                                                        <i class="fas fa-arrow-alt-circle-down fa-2x" onclick="downloadInvFiles('@bolImage.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)')"></i>
+                                                                    </a>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="text-center">
+                                                                <a href="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = bolImage.Id })" class="img-thumbnail mt10 previewthumbnail download-images" rel="@(Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = bolImage.Id }))">
+                                                                    <img id="image-ctrl" width="100%" height="150" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = bolImage.Id })" />
+                                                                </a>
+                                                            </div>
+                                                        }
+                                                    }
+                                                }
+                                            </div>
+                                            <div class="col-sm-2 col-xs-6 mb10">
+                                                <b>Additional</b>
+                                                @if (Model.AdditionalImage.Id == 0)
+                                                {
+                                                    <img id="additional-img-ctrl" width="100%" height="120" src="~/Content/images/no-image.png" />
+                                                }
+                                                else
+                                                {
+                                                    foreach (var addImages in Model.AdditionalImages)
+                                                    {
+                                                        if (!string.IsNullOrWhiteSpace(addImages.FilePath))
+                                                        {
+                                                            @*<div class="fs14 break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm1 mr5 pull-left" width="21" /> @addImages.FilePath</div>*@
+                                                            <div class="text-center">
+                                                                @if (addImages.IsNonImageFile)
+                                                                {
+                                                                    <a href="javascript:void(0)" onclick="downloadInvoiceFile(this, '@addImages.FilePath')" class="img-thumbnail mt10 db">
+                                                                        <img id="image-ctrl" width="100%" height="120" src="~/Content/images/ico-thumbnailpdf.png" />
+                                                                    </a>
+                                                                }
+                                                                else
+                                                                {
+                                                                    @*<a href="javascript:void(0)" onclick="downloadInvoiceFile(this, '@addImages.FilePath')" class="img-thumbnail mt10">
+                                                                            <img id="image-ctrl" width="100%" height="120" src="@addImages.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)" />
+                                                                        </a>*@
+
+                                                                    <div class="img-thumbnail mt10">
+                                                                        <img id="image-ctrl" width="100%" height="120" src="@addImages.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)" />
+                                                                    </div>
+                                                                    <a href="javascript:void(0)" class="download-box position-absolute rounded text-black-50">
+                                                                        <i class="fas fa-arrow-alt-circle-down fa-2x" onclick="downloadInvFiles('@addImages.GetAzureFilePath(BlobContainerType.InvoicePdfFiles)')"></i>
+                                                                    </a>
+                                                                    @*<span class="btn btn-primary btn-xs mt5 pa5"><i class="fa fa-download mr5 ml5 fs14"></i> @Resource.btnLabelDownload</span>*@
+                                                                }
+
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="text-center">
+                                                                <a href="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = addImages.Id })" class="img-thumbnail mt10 previewthumbnail download-images" rel="@(Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = addImages.Id }))">
+                                                                    <img id="additional-img-ctrl" width="100%" height="150" src="@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = addImages.Id })" />
+                                                                </a>
+                                                                @*<span class="btn btn-primary btn-xs mt5 pa5"><i class="fa fa-download mr5 ml5 fs14"></i> @Resource.btnLabelDownload</span>*@
+                                                            </div>
+                                                        }
+                                                    }
+
+                                                }
+                                            </div>
+                                            @foreach (var image in Model.AssetDropImages)
+                                            {
+                                                if (image != null && !string.IsNullOrEmpty(image.FilePath))
+                                                {
+                                                    <div class="col-sm-2 col-xs-6 mb10">
+                                                        <div class="text-center">
+                                                            <a href="javascript:void(0)" onclick="downloadInvFiles(this, '@image.GetAzureFilePath(BlobContainerType.JobFilesUpload)')" class="img-thumbnail mt10 download-images">
+                                                                <img width="100%" height="100%" src="@image.GetAzureFilePath(BlobContainerType.JobFilesUpload)" />
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                            @if (Model.CreditCheckApprovalImages != null && Model.CreditCheckApprovalImages.Any())
+                                            {
+                                                <div class="col-sm-2 col-xs-6 mb10">
+                                                    <b>Credit Check Approval</b>
+                                                    @foreach (var bolImage in @Model.CreditCheckApprovalImages)
+                                                    {
+                                                        if (!string.IsNullOrWhiteSpace(bolImage.FilePath))
+                                                        {
+                                                            <div class="text-center">
+                                                                @if (bolImage.IsNonImageFile)
+                                                                {
+                                                                    <a href="javascript:void(0)" onclick="downloadInvoiceFile(this, '@bolImage.FilePath')" class="img-thumbnail mt10 db">
+                                                                        <img id="image-ctrl" width="100%" height="120" src="~/Content/images/ico-thumbnailpdf.png" />
+                                                                    </a>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="img-thumbnail mt10">
+                                                                        <img id="image-ctrl" width="100%" height="120" src="@bolImage.GetAzureFilePath(BlobContainerType.CreditCheckApprovalFiles)" />
+                                                                    </div>
+                                                                    <a href="javascript:void(0)" class="download-box position-absolute rounded text-black-50">
+                                                                        <i class="fas fa-arrow-alt-circle-down fa-2x" onclick="downloadInvFiles('@bolImage.GetAzureFilePath(BlobContainerType.CreditCheckApprovalFiles)')"></i>
+                                                                    </a>
+                                                                }
+                                                            </div>
+                                                        }
+                                                    }
+
+                                                </div>
+                                            }
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <!-- image ends -->
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

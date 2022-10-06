@@ -1,0 +1,81 @@
+﻿@model LoginViewModel
+
+@{
+    ViewBag.Title = "Login";
+    Layout = "~/Views/Shared/_LayoutEmpty.cshtml";
+    if (Request.QueryString["supplierURL"] != null)
+    {
+        ViewBag.supplierURL = Request.QueryString["supplierURL"].ToString();
+    }
+}
+@using (Html.BeginForm("Login", "Account", new { returnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { role = "form", id = "SfxLoginForm" }))
+{
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="tabs-login overflow-h mb25">
+                <div class="text-center active pb10">@Resource.btnLabelLogin</div>
+                @if (ViewBag.supplierURL == null)
+                {
+                    <div class="text-center pb10">@Html.ActionLink(Resource.lblRegister, "Register", "Account", new { area = "" }, new { })</div>
+                }
+                else
+                {
+
+                    <div class="text-center pb10">@Html.ActionLink(Resource.lblRegister, "Register", "Account", new { area = "", supplierURL = ViewBag.supplierURL }, new { })</div>
+                }
+                @Html.HiddenFor(m => m.SupplierLogoPath)
+                @Html.HiddenFor(m => m.SupplierURL)
+                @Html.HiddenFor(m => m.BackgroundImagePath)
+                @Html.HiddenFor(m => m.ButtonColor)
+            </div>
+            <div id="display-custom-message">
+                @Html.Partial("_DisplayCustomMessage")
+            </div>
+            <div class="form-group">
+                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", autofocus = "autofocus", @placeholder = @Resource.lblEmail })
+                @Html.ValidationMessageFor(m => m.Email)
+            </div>
+            <div class="form-group">
+                @Html.PasswordFor(m => m.Password, new { @class = "form-control", @placeholder = Resource.lblPassword })
+                @Html.ValidationMessageFor(m => m.Password)
+            </div>
+            <div class="row">
+                <div class="col-6 mt0 ">
+                    @*<label>@Html.CheckBoxFor(m => m.RememberMe, new { @class = "mt2" })@Resource.lblRememberMe</label>*@
+                    <div class="form-check">
+                        @Html.CheckBoxFor(m => m.RememberMe, new { @class = "form-check-input", @id = "stay_login" })
+                        <label class="form-check-label" for="stay_login">
+                            @Resource.lblRememberMe
+                        </label>
+                    </div>
+                </div>
+                <div class="col-6 text-right">@Html.ActionLink(Resource.btnLabelForgotPassword, "ForgotPassword", "Account", new { area = "" }, new { @class = "fs12 f-semibold " })</div>
+            </div>
+            <div class="form-group mb0 text-center mt10">
+                <button type="submit" id="btn-login" class="btn">@Resource.btnLabelLogin</button>
+            </div>
+        </div>
+    </div>
+}
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+        $(document).ready(function () {
+        $("#supplierBrandText").hide();
+        var SupplierLogoPath = '@Model.SupplierLogoPath';
+        var SupplierURL = '@Model.SupplierURL';
+        var backgroundImagePath = '@Model.BackgroundImagePath';
+        if (SupplierLogoPath != '' && SupplierURL != '' && backgroundImagePath != '') {
+            $("#mainLogo").attr("src", SupplierLogoPath.replace(/&amp;/g, '&'));
+            //$("#supplierBrandText").show();
+            var imageURL = backgroundImagePath.replace(/&amp;/g, '&');
+            $('.authbg').css("background", "url(" + imageURL + ")");
+            $('#btn-login').css("background", '@Model.ButtonColor');
+            $('.app-features').css("background", '@Model.ButtonColor');
+            $('.tabs-login .active').css({ "border-bottom": '4px solid @Model.ButtonColor',"color":"@Model.ButtonColor"});
+            }
+        });
+
+</script>
+}

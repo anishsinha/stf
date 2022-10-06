@@ -1,0 +1,202 @@
+﻿@model OrderFilterViewModel
+<div class="ibox mb0">
+    <div class="ibox-content no-border no-padding">
+        <div id="carrierorder-div" class="table-responsive">
+            <table id="carrierorder-datatable" data-gridname="@GridName.SupplierOrder" class="table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th data-key="OrderName">@Resource.lblOrderName</th>
+                        <th data-key="GroupPoNumber">@Resource.gridColumnCustomerPo</th>
+                        <th data-key="PoNumber">@Resource.gridColumnPoNumber</th>
+                        <th data-key="OrderType">@Resource.gridColumnOrderType <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipOrderType"></i></th>
+                        <th data-key="DeliveryType">@Resource.gridColumnDeliveryType <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDeliveryType"></i></th>
+                        <th data-key="Customer">@Resource.gridColumnCustomer</th>
+                        <th data-key="Customer">@Resource.gridColumnJobName</th>
+                        <th data-key="Location">@Resource.gridColumnLocation</th>
+                        <th data-key="DBE">@Resource.gridColumnDBE <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDBE"></i></th>
+                        @*<th data-key="GallonsRequested" class="quantity-requested">@Resource.lblGallonsRequested</th>*@
+                        <th class="uom-by-country"><span class="uom-lbl"></span> &nbsp; @Resource.lblRequested</th>
+                        <th data-key="FuelType">@Resource.gridColumnFuelType</th>
+                        @*<th data-key="TotalAmount" class="total-amount">@Resource.lblTotalAmount (@Currency.USD.ToString())</th>*@
+                        <th data-key="DeliveryDate">@Resource.gridColumnDeliveryDate</th>
+                        <th data-key="InvoiceCount">@Resource.gridColumnInvoiceCount</th>
+                        <th data-key="DDTCount">@Resource.gridColumnDDTCount</th>
+                        <th data-key="OrderCompleted">@Resource.gridColumnOrderCompleted</th>
+                        <th data-key="Status">@Resource.gridColumnStatus</th>
+                        <th data-key="Action" class="exclude-export text-nowrap col-group-company-hide">@Resource.gridColumnAction</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+    var exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,15] };
+    var carrierOrderGrid;
+    var dataGridRq;
+    $(document).ready(function () {
+
+        ExportGrid();
+
+            $('#txtBuyerOrderFromDate').val(GetLocalStorage('txtSupplierOrdersFromDate'));
+        $('#txtBuyerOrderToDate').val(GetLocalStorage('txtSupplierOrdersToDate'));
+        SetUoMCurrencyAndRacklables();
+            var visibleForSupplier = '@CurrentUser.IsCarrierAdmin' == 'True' || '@CurrentUser.IsCarrier' == 'True';
+        carrierOrderGrid = $('#carrierorder-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("OrdersGrid", "Order", new { area = "Supplier" })",
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": function (data) {
+                        data.JobId = '@Model.JobId';
+                        data.Filter = '@Model.Filter';
+                        data.StartDate = $('#txtSupplierOrdersFromDate').val();
+                        data.EndDate = $('#txtSupplierOrdersToDate').val();
+                        data.GroupIds = getCompanyGroup().groupIds;
+                        data.Currency = getSelectedCountryAndCurrency().currencyType;
+                        data.CountryId = getSelectedCountryAndCurrency().countryId;
+                        dataGridRq = data;
+                        $('#carrierorder-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                    },
+                    "dataSrc": function (json) {
+                        $("#carrierorder-div").find('.loading-wrapper').remove();
+                        return json.data;
+                    }
+                },
+            "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.OrderName == "") {
+                                return '<span>--</span>&nbsp;' +
+                                    '<a onclick="setOrderIdToChange(' + data.Id + ',' + "'" + data.OrderName + "'" + ');" class="ml5 edit-order-name pull-right" data-toggle="modal" data-target="#edit-orderName"><i class="fas fa-edit"></i></a>';
+                            } else {
+                                return '<span>' + data.OrderName + '</span>&nbsp;' +
+                                    '<a onclick="setOrderIdToChange(' + data.Id + ',' + "'" + data.OrderName + "'" + ');" class="ml5 edit-order-name pull-right" data-toggle="modal" data-target="#edit-orderName"><i class="fas fa-edit"></i></a>';
+                            }
+                           
+                        }, "autoWidth": true, className: "no-wrap"
+                    },
+                    { "data": "GroupPoNumber", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("Details", "Order", new { area = "Carrier" })/' + data.Id + '">' + data.PoNumber + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "OrderType", "autoWidth": true },
+                    { "data": "DeliveryType", "autoWidth": true },
+                    { "data": "Supplier", "autoWidth": true },
+                    { "data": "JobName", "autoWidth": true },
+                    { "data": "Location", "autoWidth": true },
+                    { "data": "Eligibility", "autoWidth": true },
+                    { "data": "Quantity", "autoWidth": true },
+                    { "data": "FuelType", "autoWidth": true },
+                    @*{
+                        "data": function (data, type, row, meta) {
+                            if (data.TotalAmount == '@Resource.lblHyphen') {
+                                return data.TotalAmount;
+                            }
+                            else {
+                                return '@Resource.constSymbolCurrency' + data.TotalAmount;
+                            }
+                        }, "autoWidth": true
+                    },*@
+                    { "data": "StartDate", "autoWidth": true },
+                    { "data": "InvoiceCount", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 0, '') },
+                    { "data": "DDTCount", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 0, '') },
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.FuelDeliveredPercentage == '@Resource.lblHyphen') {
+                                return data.FuelDeliveredPercentage;
+                            }
+                            else {
+                                return data.FuelDeliveredPercentage + '@Resource.constSymbolPercent';
+                            }
+                        }, "autoWidth": true
+                    },
+                    { "data": "Status", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            var columnData = '';
+
+                            if (data.BrokerFuelRequestId > 0) {
+                                columnData += '<a href="@Url.Action("Details","Broker", new { area = "Supplier"})/' + data.BrokerFuelRequestId + '" class="btn btn-warning no-wrap btn-xs mr10 mb10" >@Resource.btnLabelShowBrokeredFuelRequest</a>';
+                            }
+
+                            return columnData;
+                        }, "autoWidth": true, "bSortable": false, "sClass":"col-group-company-hide"
+                    },
+                    { "data": "Id", "autoWidth": true }
+                ],
+            "columnDefs": [
+                    { "name": "OrderName", "targets": 0, "visible": false, "searchable": false,"regex": false},
+                    { "name": "GroupPoNumber", "targets": 1, "visible": false, "searchable": false, "regex": false },
+                    { "name": "PoNumber", "targets": 2, "regex": false },
+                    { "name": "OrderType", "targets": 3 },
+                    { "name": "DeliveryType", "targets": 4 },
+                    { "name": "Supplier", "targets": 5 },
+                    { "name": "JobName", "targets": 6 },
+                    { "name": "Location", "targets": 7 },
+                    { "name": "Eligibility", "targets": 8 },
+                    { "name": "Quantity", "targets": 9 },
+                    { "name": "FuelType", "targets": 10 },
+                    //{ "name": "TotalAmount", "targets": 8 },
+                    { "name": "StartDate", "targets": 11 },
+                    { "name": "InvoiceCount", "targets": 12 },
+                    { "name": "DDTCount", "targets": 13 },
+                    { "name": "FuelDeliveredPercentage", "targets": 14 },
+                    { "name": "Status", "targets": 15, "regex": false },
+                    { "targets": 16, "visible": visibleForSupplier, "searchable": visibleForSupplier },
+                    { "targets": [17], "visible": false, "searchable": false }
+                ],
+                'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+                aaSorting: [[]],
+                "serverSide": true,
+                "searchDelay": 500,
+                processing: true,
+                "searching": { "regex": false },
+                "bProcessing": true,
+                lengthChange: true,
+                pageLength: 10,
+                responsive: true,
+                "order": [17, 'desc'],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                "drawCallback": function (settings, json) {
+                    hideLinksForCompanyGroup(this);
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'colvis', columns: exportColumns.columns },
+                    { extend: 'csv', title: '@Resource.headingOrders', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingOrders', exportOptions: exportColumns },
+                    @*{ extend: 'pdf', title: '@Resource.headingOrders', exportOptions: exportColumns, orientation: 'landscape', pageSize: 'LETTER' },*@
+
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+    });
+
+    function ExportGrid() {
+        ExportDataEvent('#carrierorder-datatable',  @ApplicationConstants.ExportRestrictionCount,
+            '@Url.Action("OrdersGrid", "Order", new { area = "Supplier" })',
+            '@string.Format(Resource.messageExportRestrictionCount, ApplicationConstants.ExportRestrictionCount)'
+        );
+    }
+    </script>
+}

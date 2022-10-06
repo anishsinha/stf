@@ -1,0 +1,468 @@
+﻿@model QuoteRequestDetailsViewModel
+@using System.Threading
+@{
+    ViewBag.Title = "Request for Quote Details";
+    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(Model.Culture);
+    string statusClass = Model.Status == QuoteRequestStatuses.Open.ToString() ? "warning" : Model.Status == QuoteRequestStatuses.Completed.ToString() ? "primary" : Model.Status == QuoteRequestStatuses.Expired.ToString() ? "danger" : "default";
+}
+
+@using (Html.BeginForm("Edit", "Quote", new { area = "Buyer" }, FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+    <div class="row">
+        <div class="col-sm-3">
+            <div class="well mt10 pa0">
+                <div class="pt15 pb15 ph20">
+                    <h4>@Resource.lblQuoteStat</h4>
+                    <div class="row">
+                        <div class="col-sm-6 mb10">
+                            <h4 class="fs18" id="quotes-received">@Model.QuotesReceived</h4>
+                            @Resource.lblReceived
+                        </div>
+                        <div class="col-sm-6 mb10">
+                            <h4 id="quotes-needed" class="fs18">@Model.QuotesNeeded</h4>
+                            @Resource.lblNeeded
+                        </div>
+                    </div>
+                </div>
+                <div class="border-b-dash mr20 ml20 clearboth"></div>
+                <div class="pt15 pb25 ph20">
+                    @Html.Partial("_PartialNewsfeeds")
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-9">
+            <div class="row">
+                <div class="col-md-4 tab-headers">
+                    <a id="tab-quotedetails" href="javascript:void(0)" onclick="showsection('details'), activelink(this)" class="active mr20">
+                        <div class="step-inprogress fs18">
+                            <span class="f-light step-text float-left">@Resource.headingDetails</span>
+                        </div>
+                    </a>
+                    <a id="tab-quotegrid" href="javascript:void(0)" onclick="showsection('quotes'), activelink(this)">
+                        <div class="step-inprogress fs18">
+                            <span class="f-light step-text float-left">@Resource.lblQuote</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="tab-container mt15">
+                <div id="details" data-parent-tab="tab-quotedetails" class="subTabs">
+                    <div class="well overflow-h">
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <div class="col-sm-12 pb15">
+                                    <h4 class="dib pb10">@Resource.headingJobInformation</h4>
+                                    <div class="dib pull-right pt5">
+                                        <div class="dib mt3">
+                                            <div><label class="label label-@statusClass" id="status">@Model.Status</label></div>
+                                        </div>
+                                        @if (!Model.IsEdit && Model.Status == QuoteRequestStatuses.Open.ToString() && (CurrentUser.IsBuyer || CurrentUser.IsBuyerAdmin))
+                                        {
+                                            <div class="btn-group">
+                                                <button id="auto-btnorderaction" data-toggle="dropdown" class="btn btn-primary btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                                <ul class="dropdown-menu dropdown-menu-right ">
+                                                    <li class="dropdown-item"><a id="edit-quote" href="@Url.Action("Edit", "Quote", new { area = "Buyer", Id = Model.Id })">@Resource.btnLabelEdit</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a id="auto-btncancelrequest" href="@Url.Action("Cancel", "Quote", new { area = "Buyer", id = Model.Id })" class="pl15" data-toggle="confirmation" data-placement="bottom" data-popout="true" data-singleton="true">@Resource.btnLabelCancelFR</a></li>
+                                                </ul>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblName</label>
+                                            <div class="break-word"><a id="lblJobName" href="@Url.Action("Details", "Job", new { id = Model.JobId })">@Model.JobName</a></div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblAddress</label>
+                                            <div class="break-word" id="job-address">
+                                                @Model.Address
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-b-dash ma15 clearboth"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 pb15">
+                                    <h4 class="pb10">@Resource.headingQuoteInformation</h4>
+                                    <div class="row">
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblQuoteNumber</label>
+                                            <div id="quote-number">@Model.QuoteNumber</div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblDueDate</label>
+                                            <div>
+                                                @if (Model.IsEdit)
+                                                {
+                                                    @Html.TextBoxFor(m => m.QuoteDueDateUpdated, new { @class = "form-control datepicker" })
+                                                    @Html.HiddenFor(m => m.QuoteDueDate)
+                                                }
+                                                else
+                                                {
+                                                    @Model.QuoteDueDate
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblType</label>
+                                            <div id="requesttype">
+                                                @Model.RequestType
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblFuelType</label>
+                                            <div id="fueltype">@Model.FuelType</div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblOrderType</label>
+                                            <div id="ordertype">
+                                                @Model.OrderType
+                                            </div>
+                                        </div>
+                                        @if (Model.IsEdit)
+                                        {
+                                            <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                                <label class="f-normal">@Resource.lblQuotesNeeded</label>
+                                                <div>
+                                                    @Html.TextBoxFor(m => m.QuotesNeededUpdated, new { @class = "form-control" })
+                                                    @Html.HiddenFor(m => m.QuotesNeeded)
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="border-b-dash ma15 clearboth"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 pb15">
+                                    <h4 class="pb10">@Resource.headingQuantityDelivery</h4>
+                                    <div class="row">
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblQuantity</label>
+                                            <div id="quantity">@Model.Quantity.GetPreciseValue(2).GetCommaSeperatedValue() @Model.UoM</div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblDeliveryStartDate</label>
+                                            <div>
+                                                @Model.DeliveryStartDate
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblEndDate</label>
+                                            <div>
+                                                @Model.EndDate
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblType</label>
+                                            <div id="deliverytype">@Model.DeliveryType</div>
+                                        </div>
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <label class="f-normal">@Resource.lblEstimatedQuantityPerDelivery</label>
+                                            <div id="estimatedgallons">
+                                                @Model.EstimatedGallonsPerDelivery
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-b-dash ma15 clearboth"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 pb15">
+                                    <h4 class="pb10">@Resource.lblFeesOtherCharges</h4>
+                                    <div class="row">
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <div id="includefees">@(Model.IncludeFees ? Resource.lblFeesIncluded : Resource.lblFeesNotIncluded)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-b-dash ma15 clearboth"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 pb15">
+                                    <h4 class="pb10">@Resource.lblPaymentTerms</h4>
+                                    <div class="row">
+                                        <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                            <div>
+                                                @Model.PaymentTermName
+                                                @if (Model.PaymentTermId == (int)PaymentTerms.NetDays)
+                                                {
+                                                    <span>@Model.NetDays</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-b-dash ma15 clearboth"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 pb15">
+                                    <h4 class="pb10">@Resource.headingDBERequired</h4>
+                                    <div id="qualifications">
+                                        @if (Model.SupplierDBE != null && Model.SupplierDBE.Count > 0)
+                                        {
+                                            foreach (var qualifications in Model.SupplierDBE)
+                                            {
+                                                @qualifications<br />
+                                            }
+                                        }
+                                        else
+                                        {
+                                            @Resource.lblHyphen
+                                        }
+                                    </div>
+                                </div>
+                                <div class="border-b-dash ma15 clearboth"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 pb15">
+                                    <h4 class="pb10">@Resource.lblNotes</h4>
+                                    <div class="col-md-5 pl0">
+                                        @if (Model.IsEdit)
+                                        {
+                                            @Html.TextAreaFor(m => m.Notes, new { @class = "form-control" })
+                                        }
+                                        else
+                                        {
+                                            @(!string.IsNullOrEmpty(Model.Notes) ? Model.Notes : @Resource.lblHyphen)
+                                        }
+                                    </div>
+                                </div>
+                                <div class="border-b-dash ma15 clearboth"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 pb15">
+                                    <h4 class="pb10">@Resource.headingAttachments</h4>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            @if (Model.IsEdit)
+                                            {
+                                                <div class="row">
+                                                    <div class="col-xs-10">
+                                                        <input type="file" name="files" id="files" class="inputfile" data-multiple-caption="{count} files selected" accept=".csv, .pdf, .doc, .docx, .xls, .xlsx" multiple />
+                                                        <label for="files" class="btn btn-default"><span id="btnName">@Resource.btnChooseFile</span></label>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="text-danger col-xs-12 fs12 mt10" id="upload-warning-message"></div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-6">
+                                                        <div class="alert fs12 alert-warning mb5">@Resource.lblQuoteDocumentsWarning</div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            <div class="row">
+                                                <div id="image-block">
+                                                    @if (Model.Id > 0 && Model.Documents.Count > 0)
+                                                    {
+                                                        <div class="row mb25 mt10">
+                                                            @foreach (var item in Model.Documents)
+                                                            {
+                                                                var imgType = (item.FileName.Split('.')).LastOrDefault().ToLower() == "pdf" ? "/Content/images/ico-pdf.png" : "/Content/images/ico-image.png";
+                                                                <div class="col-sm-2 col-xs-4 text-center">
+                                                                    <div>
+                                                                        <a href="@Url.Action("DownloadDocument", "Quote", new { area = "Buyer", fileName = item.ModifiedFileName, container = @BlobContainerType.QuoteRequest.ToString().ToLower() })" title="Click to Download" class="btn-download" download="">
+                                                                            <img id="image-ctrl" src="@imgType" />
+                                                                        </a>
+                                                                    </div>
+                                                                    <div class="fs12 font-italic">@item.FileName</div>
+                                                                    @if (Model.IsEdit)
+                                                                    {
+                                                                        <div><a class="btn btn-danger btn-xs mt5" href="@Url.Action("RemoveDocument", "Quote", new { area = "Buyer", id = item.Id, quoteRequestId = Model.Id })" data-toggle="confirmation" data-placement="bottom" data-popout="true" data-singleton="true">@Resource.btnLabelRemove</a></div>
+                                                                    }
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="col-sm-12">
+                                                            <div class="col-md-5 mb10 pl0">
+                                                                @Resource.lblHyphen
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    <input type="file" class="hidden" id="btn-logo" name="imageFile">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="quotes" data-parent-tab="tab-quotegrid" class="subTabs hide-element">
+                    <!-- toggle buttons -->
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="btn-group btn-toggle btn-group-toggle pull-right mb10" data-toggle="buttons">
+                                <label class="btn broadcast-type active" onclick="GetPartialViewData('quotes-list-view')">
+                                    <input type="radio" class="broadcastType" name="options" id="quotes-toggle" value="1" checked>@Resource.lblListView
+                                </label>
+                                <label class="btn" onclick="GetPartialViewData('quotes-tile-view')">
+                                    <input type="radio" class="broadcastType" name="options" id="quotes-toggle" value="2">@Resource.lblTileView
+                                </label>
+                            </div>
+                        </div>
+                     
+                    </div>
+                    <div class="row" id="quotes-view">
+                        <div id="quotes-list-view" data-parent-tab="quotes-view" class="subTabs col-sm-12">
+                                <div class="col-sm-12">
+                                    @Html.Partial("_PartialQuotationsGrid", Model.Id)
+                                </div>
+                        </div>
+                        <!-- Tile View -->
+                        <div id="quotes-tile-view" data-parent-tab="quotes-view" class="subTabs hide-element col-sm-12">
+                            <div class="hide-element text-center view-loading">
+                                <span class='spinner-small ml10 mt5'></span>
+                            </div>
+                        </div>
+                        <div id="quotes-detail-view" data-parent-tab="quotes-view" class="subTabs hide-element col-sm-12" style="padding:10px;">
+                            <div class="hide-element text-center view-loading">
+                                <span class='spinner-small ml10 mt5'></span>
+                            </div>
+                        </div>
+                        <div id="quotes-pdf-view" data-parent-tab="quotes-view" class="subTabs hide-element col-sm-12" style="padding:10px;">
+                            <div class="hide-element text-center view-loading">
+                                <span class='spinner-small ml10 mt5'></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    if (Model.IsEdit)
+    {
+        <div class="row">
+            <div class="col-sm-12 text-right">
+                <input type="button" id="btnCancel" class="btn btn-default" value="@Resource.btnLabelCancel" onclick="window.history.go(-1);" />
+                <input type="submit" id="btnSubmit" class="btn btn-primary" value="@Resource.btnLabelSubmit" />
+            </div>
+        </div>
+    }
+}
+<script>
+    (function ($, window, document, undefined) {
+        $('.inputfile').each(function () {
+            var $input = $(this),
+                $label = $input.next('label'),
+                labelVal = $label.html();
+
+            $input.on('change', function (e) {
+                var fileName = '';
+
+                if (this.files && this.files.length > 1)
+                    fileName = (this.getAttribute('data-multiple-caption') || '').replace('{count}', this.files.length);
+                else if (e.target.value)
+                    fileName = e.target.value.split('\\').pop();
+
+                if (fileName)
+                    $label.find('span').html(fileName);
+                else
+                    $label.html(labelVal);
+            });
+
+            $input
+                .on('focus', function () { $input.addClass('has-focus'); })
+                .on('blur', function () { $input.removeClass('has-focus'); });
+        });
+    })(jQuery, window, document);
+</script>
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/image")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/js/news-feed")
+    <script>
+        SetPageCulture('@Model.Culture');
+        var currentEntityId = @Model.Id; // for newsfeed
+        var newsfeedUrl = "@Url.Action("GetNewsfeed", "Quote", new { area = "Buyer" })";
+         function getDefaultImage() {
+            return '@Url.Content("~/Content/images/no-image.png", true)';
+        };
+
+        function getImageFileError() {
+            return '@Resource.errMessageImageFileError';
+        };
+
+        function getImageFileWarning() {
+            return '@Resource.errMessageImageFileWarning';
+        };
+
+        $('#btn-logo').change(function (e) {
+            if (e.target.files && e.target.files[0]) {
+                $("#btn-save").removeAttr("disabled");
+            }
+        });
+
+        $(document).ready(function () {
+            var val = GetLocalStorage('radiobuyerquoteview');
+            if (val == "2") {
+                $("input[name='options'][value='2']").click();
+            }
+            if ('@Model.IsEdit' == 'True') {
+                $('#@Html.IdFor(m => m.QuoteDueDateUpdated)').data("DateTimePicker").minDate(moment());
+            }
+        });
+
+        function GetPartialViewData(key, id) {
+            var url = '';
+            if (id === undefined)
+                id = 0;
+            var spinner = $(".view-loading");
+            SetLocalStorage('radiobuyerquoteview', $("#quotes-toggle:checked").val());
+			switch (key)
+			{
+                case 'quotes-tile-view': url = '@Url.Action("QuotesTileView", "Quote", new { area = "Buyer" , id = Model.Id })'; break;
+                case 'quotes-list-view': url = '@Url.Action("QuoteListView", "Quote", new { area = "Buyer", id = Model.Id })'; break;
+                case 'quotes-detail-view': url = '@Url.Action("SupplierQuoteDetailView", "Quote", new { area = "Buyer"})/' + id; break;
+                case 'quotes-pdf-view': url = '@Url.Action("SupplierQuotePDFView", "Quote", new { area = "Buyer"})/' + id; break;
+			}
+            $("#quotes-view > div").hide();
+            spinner.show();
+            $("#quotes-view #" + key).show();
+            $('#' + key).load(url, "", function () {
+                spinner.hide()
+            });
+        }
+
+        function BackButton() {
+            $("#quotes-toggle:checked").click();
+            document.location.reload();
+        }
+        function includeExcludeAwardQuote(element) {
+            var url = $(element).data('url');
+            SetLocalStorage('radiobuyerquoteview', $("#quotes-toggle:checked").val());
+            $.get(url, function (response) {
+            if (response.StatusMessage != '@Status.Success') {
+                showSuccessErrorMsg(response);
+                location.reload(true);
+            }
+            else {
+                quotationsDataTable.ajax.url("@Url.Action("QuotationsGrid", "Quote", new { area ="Buyer", id = Model })");
+                quotationsDataTable.ajax.reload();
+            }
+        });
+        }
+
+        function DownloadAttachments(documents) {
+            var container = '@BlobContainerType.Quotation.ToString().ToLower()';
+            for (var i = 0; i < documents.length;i++)
+            {
+                var fileName = documents[i];
+                var url = '@Url.Action("DownloadDocument", "Quote", new { area = "Buyer" })?fileName=' + fileName + '&container=' + container;
+                var link = document.createElement('a');
+                link.download = "";
+                link.href = url;
+                link.click();
+            }
+        }
+    </script>
+}

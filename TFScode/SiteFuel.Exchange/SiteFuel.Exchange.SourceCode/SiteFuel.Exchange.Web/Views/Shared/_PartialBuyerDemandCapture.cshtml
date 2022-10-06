@@ -1,0 +1,347 @@
+﻿
+<div id="div-mapping-body">
+        <div class="row">
+            <div class="col-sm-10 tab-headers hidden-xs visible-lg pr0">
+                <a id="tab-create-diptest" href="javascript:void(0)" onclick="GetDemandPartialViewData(this,'create-diptest'), activelink(this);" class="active mr15">
+                    <div class="step-inprogress">
+                        <span class="f-light step-text pull-left fs16">@Resource.headingCreateDiptestDr</span>
+                    </div>
+                </a>
+                <a id="tab-diptest-summary" href="javascript:void(0)" onclick="GetDemandPartialViewData(this,'diptest-summary'), activelink(this);" class="mr15">
+                    <div class="step-inprogress">
+                        <span class="f-light step-text pull-left fs16">@Resource.headingDiptestSummary</span>
+                    </div>
+                </a>
+                <a id="tab-sales-chart" href="javascript:void(0)" onclick="GetDemandPartialViewData(this,'sales-chart'), activelink(this);" class="mr15">
+                    <div class="step-inprogress">
+                        <span class="f-light step-text pull-left fs16">@Resource.headingTanks</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+     
+            <div class="tab-container mt10 row">
+                <div id="create-diptest" data-parent-tab="tab-create-diptest" class="subTabs row col-sm-12 pr0">
+                    <div class="col-md-12">
+                        <form id="buyerDipTestForm">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        @Html.DropDownList("ddlJobs",
+                                            new SelectList(new List<DropdownDisplayExtendedItem>
+                                                (), "Id", "Name", 0),
+                                                Resource.lblSelectJob,
+                                                new { @onchange = "onChangeJob(this.value);", @class = "select2_customers", required = "required" })
+
+                                    </div>
+                                </div>
+                                <div class="col-sm-8">
+                                    <div class="hide-element tabNavigation">
+                                        <div class="small-tab">
+                                            <ul class="nav nav-tabs" role="tablist" id="navTabs">
+                                                <li role="presentation" class="active">
+                                                    <a href="#createdrTab" id="createdrLink" role="tab" data-toggle="tab" class=" fs16 mr15" onclick="bindDr()">Delivery Request</a>
+                                                </li>
+                                                <li role="presentation" >
+                                                    <a href="#creatediptestTab" id="creatediptestLink" role="tab" data-toggle="tab" class="fs16 mr15" onclick="bindDipTest()">Dip Test</a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a href="#trendsTab" id="trendsLink" role="tab" data-toggle="tab" class=" fs16" onclick="bindChart()">Trends</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="hide-element tabNavigation">
+                                <div class="small-tab" id="tabs">
+                                    <!-- Nav tabs -->
+
+                                    <div class="tab-content">
+                                        <div role="tabpanel" class="tab-pane active" id="createdrTab">
+
+                                        </div>
+                                        <div role="tabpanel" class="tab-pane " id="creatediptestTab">
+
+                                        </div>
+                                        <div role="tabpanel" class="tab-pane" id="trendsTab">
+                                            <div class="form-horizontal">
+                                                    <div class="row">
+                                                        <div class="col-sm-3">
+                                                            <div class="form-group">
+                                                                <select id="ddlDays" class="form-control" onchange="bindChart();">
+                                                                    <option value="0" disabled>Days</option>
+                                                                    <option value="3" selected>3 Days</option>
+                                                                    <option value="7">7 Days</option>
+                                                                    <option value="10">10 Days</option>
+                                                                    <option value="21">21 Days</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div id="chart" class="col-sm-6">
+                                                        <div id="timeline-chart"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="diptest-summary" data-parent-tab="tab-diptest-summary" class="hide-element subTabs row col-sm-12">
+                    @Html.Partial("_PartialDipTestSummaryGrid")
+                </div>
+                <div id="sales-chart" data-parent-tab="tab-sales-chart" class="hide-element subTabs row col-sm-12">
+                    @Html.Partial("_PartialsalesChart")
+                </div>
+            </div>
+    </div>
+@Html.Partial("_PartialTankSequenceUpdate", 0)
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    var isDRCreationfromWallyBoard;
+    var fuelUoM;
+    function GetDemandPartialViewData(element, key) {
+        $(element).closest("#div-mapping-body").find(".tab-container > div").hide();
+        $(element).closest("#div-mapping-body").find(".tab-container #" + key).show();
+    }
+    function bindChart() {
+
+        let noOfDays = $("#ddlDays").val();
+        if (!noOfDays) { noOfDays = 3; $("#ddlDays").val(3);}
+
+        $("#chart").html('<div id="timeline-chart"></div>');
+
+        $('#slider-loader').show();
+        let jobId = $("#ddlJobs").val();
+        let companyId = '@CurrentUser.CompanyId';
+
+        let url = '@Url.Action("GetDemandCaptureChartDataByTankAndSite", "Dashboard", new { area = "Buyer" })' + "?jobId=" + jobId + "&companyId=" + companyId + "&noOfDays=" + noOfDays;
+        $.ajax({
+            type: "POST",
+            url: url,
+            success: function (response) {
+
+                if (response && response.length > 0) {
+
+                    var _series = [];
+
+                    response.forEach(function (tankReadings) {
+
+                        if (tankReadings && tankReadings.length > 0) {
+                            var tempTankChart = { name: "", data: [] };
+
+                            tankReadings.forEach(function (tankReading) {
+                                tempTankChart.name = tankReading.TankName;
+                                tempTankChart.data.push([tankReading.CaptureTime, tankReading.NetVolume]);
+                            });
+
+                            _series.push(tempTankChart);
+                        }
+                    });
+
+                    var options = {
+                        chart: {
+                            height: 380,
+                            type: "area",
+                            toolbar: {
+                                show: true,
+                                offsetX: 0,
+                                offsetY: 0,
+                                tools: {
+                                    download: false,
+                                    selection: true,
+                                    zoom: true,
+                                    zoomin: true,
+                                    zoomout: true,
+                                    pan: true,
+                                    reset: true,
+                                },
+                                autoSelected: 'zoom'
+                            },
+                            dropShadow: {
+                                enabled: true,
+                                enabledSeries: [0],
+                                top: -2,
+                                left: 2,
+                                blur: 5,
+                                opacity: 0.06
+                            }
+                        },
+                        series: _series,
+                        dataLabels: { enabled : false },
+                        stroke: {
+                            width: [0, 4],
+                            curve: "straight"
+                        },
+
+                        xaxis: {
+                            type: "datetime",
+                            axisBorder: { show : true },
+                            title: { text: "." }
+                        },
+                        yaxis: {
+                             axisBorder: { show : true },
+                             title: { text: "Volume" },
+                             labels: {
+                                formatter: function (val, index) {
+                                    return val.toFixed(0);
+                                }
+                             }
+                        },
+                        tooltip: {
+                            x: {
+                                format: "dd MMM yyyy",
+                            },
+                            y: {
+                                formatter: function (val) {
+                                    return val.toFixed(2);
+                                },
+                                title: {
+                                    formatter: (seriesName) => 'Volume',
+                                },
+                            },
+                        },
+                    };
+
+                    var chart = new ApexCharts(document.querySelector("#timeline-chart"), options);
+                    chart.render();
+                }
+                else {
+                    $("#timeline-chart").html('<div class="alert alert-danger d-inline-block"><i class="fas fa-exclamation-circle fs14 mr5"></i> Dip test details not available since last ' + noOfDays + ' days.</div>');
+                }
+
+            },
+            error: function (jqXHR, exception) {
+                console.log(jqXHR);
+                console.log(exception);
+            },
+        }).always(function () { $('#slider-loader').hide(); });
+
+    }
+
+    function bindDipTest() {
+
+        $("#creatediptestTab").html('');
+        let jobId = $("#ddlJobs").val();
+
+        if (jobId > 0) {
+
+            $('#slider-loader').show();
+
+            let url = '@Url.Action("GetDipTestView", "Dashboard", new { area = "Buyer" })' + "?jobId=" + jobId;
+
+            $.ajax({
+                type: 'GET',
+                url: url,
+                success: function (response) {
+                    $('#creatediptestTab').html(response);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(jqXHR, textStatus, errorThrown);
+                }
+            }).always(function () {
+                $('#slider-loader').hide();
+            });
+        }
+    }
+    function bindDr() {
+        $("#createdrTab").html('');
+        let jobId = $("#ddlJobs").val();
+        if (jobId) {
+            let currentJob = allJobs.find(o => o.Id == jobId);
+            //if (currentJob.IsRetailJob) { }
+            //retail tank
+            $('#slider-loader').show();
+
+            let url = '@Url.Action("GetDeliveryRequestView", "Dashboard", new { area = "Buyer" })' + "?jobId=" + jobId + "&IsRetailJob=" + currentJob.IsRetailJob;
+
+            $.ajax({
+                type: 'GET',
+                url: url,
+                success: function (response) {
+                    $('#createdrTab').html(response);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(jqXHR, textStatus, errorThrown);
+                }
+            }).always(function () {
+                $('#slider-loader').hide();
+                });
+            //non retail tank
+        }
+    }
+    function onChangeJob(value) {
+        if (value > 0) {
+            $(".tabNavigation").show();
+            //var el = $("#navTabs li.active");
+            //$(el).click()
+            $("#createdrLink").click();
+            if (isDRCreationfromWallyBoard) {
+                $("#createdrLink").click();// trigger click of create dr ta
+            }
+        }
+        else {
+            $(".tabNavigation").hide();
+        }
+        
+    }
+
+    var allJobs = [];
+    $(document).ready(function () {
+        $(".select2_customers").select2({
+            //placeholder: "Select",
+            //allowClear: false
+        });
+        var jobId = 0;
+        isDRCreationfromWallyBoard = false;
+        var strJobId = $("#jobIdForDr").val();
+        if (strJobId != undefined && strJobId != null) {
+            jobId = parseInt(strJobId);
+        }              
+        if (jobId > 0 && jobId != undefined && jobId != null) {
+            isDRCreationfromWallyBoard = true;
+            //onChangeJob(jobId); 
+            $("#ddlJobs").val(jobId).trigger("change");//Set the Value of selet2 dropdown            
+             
+        } 
+        bindJobDdl();
+    });
+
+    function bindJobDdl() {
+        allJobs = [];
+        $('#ddlJobs').html('');
+
+        let tempJob = "<option value = 'null' selected> @Resource.lblSelectJob </option>";
+        $('#ddlJobs').html(tempJob);
+
+
+        $('#slider-loader').show();
+        let url = '@Url.Action("GetJobsByCompanyType", "Dashboard", new { Area = "Supplier" })?userId=@CurrentUser.Id&companyId=@CurrentUser.CompanyId&companyType=@((int)CurrentUser.CompanyTypeId)';
+        $.ajax({
+            type: "GET",
+            url: url,
+            success: function (data) {
+                var appenddata = tempJob;
+                if (data && data.length > 0) {
+                    allJobs = data;
+                    $.each(data, function (key, value) {
+                        appenddata += "<option value = '" + value.Id + "'>" + value.Name + " </option>";
+                    });
+                    $('#ddlJobs').html(appenddata);
+                }
+            },
+            error: function (jqXHR, exception) {
+                console.log(jqXHR);
+                console.log(exception);
+            },
+        }).always(function () { $('#slider-loader').hide(); });
+        
+    }
+</script>

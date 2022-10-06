@@ -1,0 +1,207 @@
+﻿@model DashboardFuelRequestViewModel
+
+<div class="well mb0">
+    <div class="m-b-md mb0">
+        <h2 class="fs16 f-normal mt0 mb0 dib">
+            <span class="fa fa-tint mr5"></span>
+            @if (Model.SelectedJobId > 0)
+            {
+                @Html.ActionLink(Resource.lblFuelRequests, "View", "FuelRequest", new { area = "Buyer", jobId = Model.SelectedJobId }, new { @class = " mt2" })
+            }
+            else
+            {
+                @Html.ActionLink(Resource.lblFuelRequests, "View", "FuelRequest", new { area = "Buyer", groupIds = Model.GroupIds }, new { @class = "mt2" })
+            }
+        </h2>
+        <div class="pull-right">
+            <a href="#." class="color-grey fs18 ml5 toggle-tiledata" onclick="toggleData(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.FuelRequests.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+            <a href="#." class="color-grey fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.FuelRequests.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+        </div>
+    </div>
+    <div class="bottom-radius tile-content mt25 @(Model.IsCollapsed ? "hide-element" : "")">
+        <div>
+            <canvas id="FRBarChart" height="70"></canvas>
+        </div>
+        <div class="pr group-element">
+            <small>@Resource.lblRecentFuelRequests</small>
+            <div class="overflow-x dashboard-grids">
+                <table class="table table-hover margin bottom row-pointer" id="table-fr">
+                    <thead>
+                        <tr>
+                            <th class="no-break pl0">@Resource.gridColumnType</th>
+                            <th>@Resource.lblDate</th>
+                            <th class="text-right uom-by-country"><span class="uom-lbl"></span></th> @*// Quantity Delivered lable will be here*@
+                            <th>@Resource.gridColumnPrice</th>
+                            <th>@Resource.gridColumnStatus</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        $(document).ready(function () {          
+            var dashboardFilter = getDashboardFilter();
+            var groupIds = getCompanyGroup().groupIds;
+            $.ajax({
+                type: "get",
+                url: "@Url.Action("GetFuelRequestsCount", "Dashboard", new { area = "Buyer", jobId = Model.SelectedJobId })",
+                dataType: "json", // Set the data type so jQuery can parse it for you
+                data: { 'countryId': dashboardFilter.countryId, 'currency': dashboardFilter.currencyType, 'groupIds': groupIds },
+                success: function (data) {
+                    if (data.RecentFuelRequests.length > 0) {
+                        for (i = 0; i < data.RecentFuelRequests.length; i++) {
+                            var url = (data.RecentFuelRequests[i].StatusId == @((int)FuelRequestStatus.Draft) ?
+                                '@Url.Action(CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer ? "Edit" : "Details", "FuelRequest", new { area = "Buyer" })' :
+                                '@Url.Action("Details", "FuelRequest", new { area = "Buyer" })');
+                            $("#table-fr tbody").append("<tr><td class='break-word pl0'><a href='" + url + "/" +
+                                data.RecentFuelRequests[i].FuelRequestId + "'>" + data.RecentFuelRequests[i].FuelType + "</a></td><td>" +
+                                data.RecentFuelRequests[i].StartDate + "</td><td class='text-right'>" + (data.RecentFuelRequests[i].GallonsNeeded).toLocaleString("en-US", { maximumFractionDigits: 2 }) + "</td><td>" +
+                                data.RecentFuelRequests[i].PricePerGallon + "</td><td><span class='label " +
+                                (data.RecentFuelRequests[i].StatusId ==@((int)FuelRequestStatus.Accepted)? 'label-primary' + "'>" + data.RecentFuelRequests[i].Status + "</span></td></tr>" :
+                                    (data.RecentFuelRequests[i].StatusId == @((int)FuelRequestStatus.Open) && data.RecentFuelRequests[i].IsCounterOfferPendingOnBuyer) ? 'label-warning' + "'>@Resource.lblCounterOfferOpen</span></td></tr>" :
+                                        (data.RecentFuelRequests[i].StatusId == @((int)FuelRequestStatus.Open) && data.RecentFuelRequests[i].IsCounterOfferPendingOnSupplier) ? 'label-warning' + "'>@Resource.lblCounterOfferPending</span></td></tr>" :
+                                            data.RecentFuelRequests[i].StatusId == @((int)FuelRequestStatus.Open)? 'label-warning' + "'>" + data.RecentFuelRequests[i].Status + "</span></td></tr>" :
+                                                'label-danger' + "'>" + data.RecentFuelRequests[i].Status + "</span></td></tr>"));
+                        }
+                        wrapperHeight();
+                    }
+                    else {
+                        $("#table-fr tbody").append("<tr><td colspan='5'>There are no items to display</td ></tr >")
+                    }
+
+                    $("#table-fr").closest(".fr-wrapper").find('.loading-wrapper').hide();
+
+                    var canvas = document.getElementById("FRBarChart");
+                    var ctx1 = canvas.getContext("2d");
+                    var frchart = new Chart(ctx1, {
+                        type: 'bar',
+                        data: {
+                            labels: [],
+                            datasets: [{
+                                label: "Open: " + data.OpenFuelRequestCount,
+                                data: [data.OpenFuelRequestCount],
+                                backgroundColor: [
+                                    '#91b6e8',
+                                ],
+                                borderColor: [
+                                    '#91b6e8',
+                                ],
+                                borderWidth: 1,
+                            },
+                            {
+                                label: "Accepted: " + data.AcceptedFuelRequestCount,
+                                data: [data.AcceptedFuelRequestCount],
+                                backgroundColor: [
+                                    '#aadb8d',
+                                ],
+                                borderColor: [
+                                    '#aadb8d',
+                                ],
+                                borderWidth: 1,
+                            },
+                            {
+                                label: "Drafted: " + data.DraftFuelRequestCount,
+                                data: [data.DraftFuelRequestCount],
+                                backgroundColor: [
+                                    '#d9ca76',
+                                ],
+                                borderColor: [
+                                    '#d9ca76',
+                                ],
+                                borderWidth: 1,
+                            },
+                            {
+                                label: "Expired: " + data.ExpiredFuelRequestCount,
+                                data: [data.ExpiredFuelRequestCount],
+                                backgroundColor: [
+                                    '#bb877b',
+                                ],
+                                borderColor: [
+                                    '#bb877b',
+                                ],
+                                borderWidth: 1,
+                            },
+                            {
+                                label: "Canceled: " + data.CancelledFuelRequestCount,
+                                data: [data.CancelledFuelRequestCount],
+                                backgroundColor: [
+                                    '#eb826a',
+                                ],
+                                borderColor: [
+                                    '#eb826a',
+                                ],
+                                borderWidth: 1,
+                            }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 1,
+                                    fontSize: 11
+                                }
+                            },
+                            labels: { fontColor: "grey", },
+                            scales: {
+                                xAxes: [{
+                                    barPercentage: 0.6,
+                                    barThickness: 2,
+                                    maxBarThickness: 4
+                                }]
+                            },
+                            hover: {
+                                mode: 'single',
+                                onHover: function (e) {
+                                    $("#FRBarChart").css("cursor", e[0] ? "pointer" : "default");
+                                }
+                            }
+                            ,
+                            tooltips: {
+                                callbacks: {
+                                    label: function (tooltipItem, data) {
+                                        return data.datasets[tooltipItem['datasetIndex']].label;
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    document.getElementById("FRBarChart").onclick = function (evt) {
+                        var activePoint = frchart.getElementAtEvent(evt)[0];
+                        var label = frchart.data.datasets[activePoint._datasetIndex].label;
+
+                        var spaceChar = label.indexOf(" ");
+                        var labelStr = label.substring(0, spaceChar);
+
+                        switch (labelStr) {
+                            case 'Open:':
+                                window.open('@Html.Raw(@Url.Action("View", "FuelRequest", new { area = "Buyer", jobId = Model.SelectedJobId, groupIds = Model.GroupIds, filter = FuelRequestFilterType.Open }))', "_self");
+                                break;
+                            case 'Accepted:':
+                                window.open('@Html.Raw(@Url.Action("View", "FuelRequest", new { area = "Buyer", jobId = Model.SelectedJobId, groupIds = Model.GroupIds, filter = FuelRequestFilterType.Accepted }))', "_self");
+                                break;
+                            case 'Drafted:':
+                                window.open('@Html.Raw(@Url.Action("View", "FuelRequest", new { area = "Buyer", jobId = Model.SelectedJobId, groupIds = Model.GroupIds, filter = FuelRequestFilterType.Draft }))', "_self");
+                                break;
+                            case 'Expired:':
+                                window.open('@Html.Raw(@Url.Action("View", "FuelRequest", new { area = "Buyer", jobId = Model.SelectedJobId, groupIds = Model.GroupIds, filter = FuelRequestFilterType.Expired }))', "_self");
+                                break;
+                            case 'Cancelled:':
+                                window.open('@Html.Raw(@Url.Action("View", "FuelRequest", new { area = "Buyer", jobId = Model.SelectedJobId, groupIds = Model.GroupIds, filter = FuelRequestFilterType.Canceled }))', "_self");
+                                break;
+                        }
+                    };
+                }
+            });
+        });
+    </script>
+}

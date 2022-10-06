@@ -1,0 +1,112 @@
+﻿@model DashboardJobsViewModel
+<div class="row">
+    <div class="col-5 col-sm-4">
+        <h2>
+            <span class="fa fa-map-marker-alt mr5"></span> @Resource.lblJobs - <span id="totalJobs">0</span>
+        </h2>
+    </div>
+    <div class="col-7 col-sm-4 mt5">
+        @using (Html.BeginForm("Index", "Dashboard", new { area = "Buyer"}, FormMethod.Post, new { id = "jobDropDownForm" }))
+        {
+            @Html.DropDownListFor(m => m.SelectedJobId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", Model.SelectedJobId), "", new { @class = "select2_demo_3 form-control", @onchange = "submitForm();" })
+        }
+    </div>
+    @if (Model.SelectedJobId > 0)
+    {
+        <div class="col-sm-5 col-md-4 col-lg-3 text-left pt10 pl0">
+            @Html.ActionLink(Resource.btnLabelView, "Details", "Job", new { area = "Buyer", id = Model.SelectedJobId }, new { @class = "color-white" })
+        </div>
+    }
+</div>
+<div class="wrapper-jobs">
+    <div class="row mt15">
+        @if (Model.SelectedJobId == 0)
+        {
+            <div class="col-xs-6 col-sm-4 mt10">
+                <a href="@Url.Action("View", "Job", new { area = "Buyer", jobId = Model.SelectedJobId, filter = JobFilterType.UnderBudget })" class="text-white">
+                    <h1 class="no-margins"><span id="underBudgetJobs">0</span></h1>
+                    @Resource.lblUnderBudget
+                </a>
+            </div>
+            <div class="col-xs-6 col-sm-4 mt10">
+                <a href="@Url.Action("View", "Job", new { area = "Buyer", jobId = Model.SelectedJobId, filter = JobFilterType.NoBudget })" class="text-white">
+                    <h1 class="no-margins"><span id="noBudgetJobs">0</span></h1>
+                    @Resource.lblWithouBudget
+                </a>
+            </div>
+            <div class="col-xs-6 col-sm-4 mt10">
+                <a href="@Url.Action("View", "Job", new { area = "Buyer", jobId = Model.SelectedJobId, filter = JobFilterType.OverBudget })" class="text-white">
+                    <h1 class="no-margins"><span id="overBudgetJobs">0</span></h1>
+                    Over <span id="overBudgetPercent"></span>%
+                </a>
+            </div>
+        }
+    </div>
+    <div class="row mt10">
+        <div class="col-xs-6 col-sm-4 mt10">
+            <a href="@Url.Action("View", "Job", new { area = "Buyer", jobId = Model.SelectedJobId, filter = JobFilterType.TotalBudget })" class="text-white">
+                <h1 class="no-margins">@Resource.constSymbolCurrency<span id="totalBudget">0</span></h1>
+                @Resource.lblTotalBudget
+            </a>
+        </div>
+        <div class="col-xs-6 col-sm-4 mt10">
+            <a href="@Url.Action("View", "Job", new { area = "Buyer", jobId = Model.SelectedJobId, filter = JobFilterType.OpenJobs })" class="text-white">
+                <h1 class="no-margins">@Resource.constSymbolCurrency<span id="totalSpend">0</span></h1>
+                @Resource.gridColumnTotalSpend
+            </a>
+        </div>
+        <div class="col-xs-6 col-sm-4 mt10" id="divAssignedAssets">
+            <a href="@Url.Action("View", "Asset", new { area = "Buyer", id = Model.SelectedJobId, filter = AssetFilterType.Assigned })" class="text-white">
+                <h1 class="no-margins"><span id="assignedAssets">0</span></h1>
+                @Resource.lblAssets
+            </a>
+        </div>
+    </div>
+</div>
+<div class="row group-element">
+    <div class="col-sm-12 text-right mt5">
+        @if (CurrentUser.IsBuyerAdmin)
+        {
+            @Html.ActionLink(Resource.btnLabelCreateNew, "Create", "Job", new { area = "Buyer" }, new {@id="linkCreateNewJob", @class = "color-white pull-right mt2 ml15" })
+        }
+        @Html.ActionLink(Resource.btnLabelViewAll, "View", "Job", new { area = "Buyer" }, new { @class = "color-white pull-right mt2" })
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script>
+        $(document).ready(function () {
+       
+            var url = '@Url.Action("GetJobsCount","Dashboard",new { area= "Buyer", jobId = Model.SelectedJobId })';
+            var dashboardFilter = getDashboardFilter();
+            var groupIds = getCompanyGroup().groupIds;
+
+            $.get(url, { 'countryId': dashboardFilter.countryId, 'currency': dashboardFilter.currencyType, 'groupIds': groupIds }, function (response) {
+                if (response.AssignedAssetsCount == 0) {
+                    hideElementById("divAssignedAssets");
+                }
+                else {
+                    $("#assignedAssets").text(response.AssignedAssetsCount);
+                    showElementById("divAssignedAssets");
+                }
+
+                $("#totalJobs").text(response.TotalJobsCount);
+                $("#underBudgetJobs").text(response.UnderBudgetJobsCount);
+                $("#noBudgetJobs").text(response.NoBudgetJobsCount);
+                $("#overBudgetJobs").text(response.OverBudgetJobsCount);
+                $("#overBudgetPercent").text(response.BudgetAlertPercentage);
+                $("#totalBudget").text(response.TotalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 }));
+                $("#totalSpend").text(((response.TotalHedgeDroppedAmount) + (response.TotalSpotDroppedAmount)).toLocaleString("en-US", { maximumFractionDigits: 0 }));
+                $("#totalJobs").closest(".widget").find('.loading-wrapper').remove();
+                
+            });
+            var jobsUrl = '@Url.Action("GetJobsForCountry", "Dashboard",new { Area="Buyer" })';
+            getAllJobsForCountry(jobsUrl, $("#@Html.IdFor(m => m.SelectedJobId)"), dashboardFilter.countryId, @Model.SelectedJobId);
+
+            $("#@Html.IdFor(m => m.SelectedJobId)").on("select2:unselect", function (e) {
+                var dashboard = '@Url.Action("Index", "Dashboard",new { Area="Buyer" })';
+                location.href = dashboard;
+            });
+        });
+    </script>
+}

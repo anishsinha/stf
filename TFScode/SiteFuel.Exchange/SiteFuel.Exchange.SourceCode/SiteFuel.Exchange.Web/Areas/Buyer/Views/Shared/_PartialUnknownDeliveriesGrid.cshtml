@@ -1,0 +1,96 @@
+﻿<div class="well bg-white shadow-b">
+    <div class='pa bg-white top0 left0 z-index5 loading-wrapper schedule-loading-wrapper hide-element'><span class='spinner-dashboard pa'></span></div>
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div id="unknown-delivery-exception-div" class="table-responsive">
+                <table id="tbl-unknown-delivery-exception-approvals" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnLocation</th>
+                            <th>@Resource.lblJobAddress</th>
+                            <th>@Resource.lblProduct</th>
+                            <th>@Resource.lblDropDate</th>
+                            <th>@Resource.lblDropTime</th>
+                            <th>@Resource.lblStatus</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var unknownDeliveryGrid, exportColumns = { columns: [0,1,2,3,4,5] };
+    $(document).ready(function () {
+        unknownDeliveryGrid = $('#tbl-unknown-delivery-exception-approvals').DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetSupplierApprovalExceptions", "Exception", new { area = "Buyer" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data.ExceptionTypes = "@((int)ExceptionType.UnknownDeliveries)";
+                    dataGridRq = data;
+                    $('#unknown-delivery-exception-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#unknown-delivery-exception-div").find('.loading-wrapper').hide();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": false,
+            "searchDelay": 500,
+            processing: true,
+            "searching": true,
+            "bProcessing": true,
+            lengthChange: true,
+            "columns": [
+                { "data": "JobName", "autoWidth": true },
+                { "data": "JobAddress", "autoWidth": true },
+                { "data": "ProductName", "autoWidth": true },
+                { "data": "DropDate", "autoWidth": true },
+                { "data": "DropTime", "autoWidth": true },
+                { "data": "StatusName", "autoWidth": true },
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true
+                });
+            },
+            "columnDefs": [
+                { "name": "JobName", "targets": 0 },
+                { "name": "JobAddress", "targets": 1 },
+                { "name": "ProductName", "targets": 2 },
+                { "name": "DropDate", "targets": 3 },
+                { "name": "DropTime", "targets": 4 },
+                { "name": "StatusName", "targets": 5 },
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.gridColumnException', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.gridColumnException', exportOptions: exportColumns },
+                {
+                    extend: 'print', exportOptions: exportColumns,
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+</script>
+

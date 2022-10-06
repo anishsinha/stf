@@ -1,0 +1,1997 @@
+﻿@model OrderDetailsViewModel
+@using System.ComponentModel.DataAnnotations
+@using System.Threading
+
+@{
+    ViewBag.Title = "Order Details";
+    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(Model.Culture);
+}
+<script src="~/Content/js/common-supplier.js"></script>
+<body>
+    <div class="row">
+        <div class="col-sm-12">
+
+            <div class="row">
+
+                <div class="col-sm-12 dib">
+                    @if (Model.IsMultiOrder)
+                    {
+                        <div style="cursor: pointer">
+                            <span><label class="alert alert-warning pt5 pb5 fs12 mb10" id="lblActionRequired"><span class="f-bold">Action Required: </span>@string.Format("{0} {1} from {2} canceled Order #{3}", Model.BuyerUserFirstName, Model.BuyerUserLastName, Model.BuyerCompanyName, Model.PoNumber). <a data-toggle="modal" data-target="#modal-multi-orders" href="javascript:void(0)">Click here</a> to take action.</label></span>
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-10 mb10 tab-headers dib">
+                    <a id="tab-details" href="javascript:void(0)" onclick="showsection('order-details'), activelink(this), inputBoxShowHide(null, 'download')" class="active mr15">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text pull-left">@Resource.tabheadingDetails</span>
+                        </div>
+                    </a>
+                    <a id="tab-po" href="javascript:void(0)" onclick="showsection('order-po'), activelink(this), inputBoxShowHide('download', null)" class="mr15">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text pull-left">
+                                @Resource.tabHeadingPO
+                            </span>
+                        </div>
+                    </a>
+                    <a id="tab-invoices-grid" onclick="showsection('invoices-grid'), activelink(this), inputBoxShowHide('download',null)" class="mr15 single-ajax-mode"
+                       data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoices-grid"
+                       data-ajax-url="@Url.Action("OrderInvoicesGrid", "OrderBase", new { area = "", orderId = Model.Id, poNumber = Model.PoNumber })">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text pull-left">
+                                @Resource.headingInvoices
+                            </span>
+                        </div>
+                    </a>
+                    <a id="tab-ddt-grid" onclick="showsection('ddt-grid'), activelink(this), inputBoxShowHide('download',null)" class="mr15 single-ajax-mode"
+                       data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#ddt-grid"
+                       data-ajax-url="@Url.Action("OrderDropTicketsGrid", "OrderBase", new { area = "", orderId = Model.Id })">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text pull-left">
+                                @Resource.headingDropTickets
+                            </span>
+                        </div>
+                    </a>
+                    <a id="tab-completed-deliveries-grid" onclick="showsection('completed-deliveries-grid'), activelink(this), inputBoxShowHide(null, 'download')" class="mr15 single-ajax-mode"
+                       data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#completed-deliveries-grid"
+                       data-ajax-url="@Url.Action("OrderCompletedDeliveryGrid", "OrderBase", new { area = "", orderId = Model.Id })">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text pull-left">
+                                @Resource.headingDeliveries
+                            </span>
+                        </div>
+                    </a>
+                    @if (Model.FuelDeliveryDetails.DeliveryTypeId == (int)DeliveryType.MultipleDeliveries)
+                    {
+                        <a id="tab-schedules" href="javascript:void(0)" onclick="showsection('order-deliveryschedules'), activelink(this), inputBoxShowHide(null, 'download')" class="mr15 schedule-tab">
+                            <div class="step-inprogress fs16">
+                                <span class="f-light step-text pull-left">@Resource.tabHeadingSchedules</span>
+                            </div>
+                        </a>
+                        if (Model.IsProFormaPo
+                            &&
+                               (Model.FuelRequestTypeId == (int)FuelRequestType.ThirdPartyRequest
+                                ||
+                                (Model.FuelRequestTypeId == (int)FuelRequestType.BrokeredFuelRequest && Model.BuyerCompanyId == CurrentUser.CompanyId)
+                               )
+                           )
+                        {
+                            <a id="tab-dropinformation" onclick="showsection('tab-contents-dropinformation'), activelink(this), inputBoxShowHide('btnSubmit', 'download')" class="mr15 schedule-tab"
+                               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-dropinformation"
+                               data-ajax-url="@Url.Action("DropInformationTab", "Order", new { area = "Supplier", id = Model.Id })">
+                                <div class="step-inprogress fs16">
+                                    <span class="f-light step-text pull-left">@Resource.tabHeadingDropInformation</span>
+                                </div>
+                            </a>
+                        }
+                    }
+
+                    <a id="tab-order-history-grid" onclick="showsection('order-history-grid'), activelink(this), inputBoxShowHide(null, 'download')" class="mr15 single-ajax-mode"
+                       data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#order-history-grid"
+                       data-ajax-url="@Url.Action("OrderHistoryGrid", "OrderBase", new { area = "", id = Model.Id })">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text pull-left">
+                                @Resource.headingHistory
+                            </span>
+                        </div>
+                    </a>
+                    <a id="tab-version" onclick="showsection('tab-contents-version'), activelink(this), inputBoxShowHide(null, 'download')" class="mr15 single-ajax-mode"
+                       data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-version"
+                       data-ajax-url="@Url.Action("OrderVersionView", "OrderBase", new { area = "", id = Model.Id })">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text pull-left">
+                                @Resource.gridColumnVersion
+                            </span>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-sm-2 text-right">
+                    <div class="btn-group">
+                        <button id="auto-btnorderaction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                        <ul class="dropdown-menu dropdown-menu-right large-menu">
+                            @if (Model.StatusId == (int)OrderStatus.Open)
+                            {
+                                if (CurrentUser.IsCarrierAdmin)
+                                {
+                                    <li class="dropdown-item"><a href="@Url.Action("CreateNew", "Invoice", new { area = "Supplier", orderId = Model.Id })">Create Delivery<i class="fa fa-money pull-left mt7 mr5"></i></a></li>
+                                    <li role="separator" class="divider"></li>
+                                }
+                                if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)
+                                {
+                                    if (Model.FuelRequestTypeId == (int)FuelRequestType.ThirdPartyRequest)
+                                    {
+                                        <li class="dropdown-item"><a href="@Url.Action("Edit", "Order", new { area = "Supplier", Id = Model.Id })">@Resource.btnLabelEdit <i class="fa fas fa-edit pull-left mt7 mr5"></i></a></li>
+                                        <li role="separator" class="divider"></li>
+                                    }
+                                    <li class="dropdown-item">
+                                        @Html.ActionLinkIcon(Resource.btnLabelCancelOrder, "Cancel", "Order",
+                                                   new { area = "Supplier", id = Model.Id },
+                                                   new
+                                                   {
+                                                       id = "btn-cancel",
+                                                       data_toggle = "confirmation",
+                                                       data_popout = "true",
+                                                       data_singleton = "true",
+                                                       data_placement = "bottom"
+                                                   }, "fa fa-times color-maroon pull-left mt7")
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item">
+                                        @Html.ActionLinkIcon(Resource.btnLabelClose, "Close", "Order",
+                                                   new { area = "Supplier", id = Model.Id },
+                                                   new
+                                                   {
+                                                       id = "btn-close",
+                                                       data_toggle = "confirmation",
+                                                       data_popout = "true",
+                                                       data_singleton = "true",
+                                                       data_placement = "bottom"
+                                                   }, "fa fa-check color-green pull-left mt7")
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+
+                                    if (!CurrentUser.IsAccountingPerson)
+                                    {
+                                        if (!Model.IsBrokeredOrder)
+                                        {
+                                            <li class="dropdown-item">
+                                                @Html.ActionLinkIcon(Resource.btnLabelDryRun, "DryRun", "Invoice",
+                                                           new { area = "Supplier", id = Model.Id },
+                                                           new
+                                                           {
+                                                               id = "btn-dryrun",
+                                                               data_toggle = "confirmation",
+                                                               data_popout = "true",
+                                                               data_singleton = "true",
+                                                               data_placement = "bottom"
+                                                           }, "fa fa-truck pull-left mt5")
+                                            </li>
+                                            <li role="separator" class="divider"></li>
+                                        }
+                                        if (Model.StatusId == (int)OrderStatus.Open && !Model.IsBrokeredOrder && Model.IsBrokerVisible && !Model.IsSupressOrderPricing)
+                                        {
+                                            <li class="dropdown-item">
+                                                @Html.ActionLinkIcon(Resource.btnLabelBroker, "Create", "Broker",
+                                                           new { area = "Supplier", id = Model.FuelRequestId },
+                                                           new
+                                                           {
+                                                               id = "btn-broker",
+                                                           }, "fa fa-link pull-left mt7")
+                                            </li>
+                                            <li role="separator" class="divider"></li>
+                                        }
+                                    }
+                                }
+                            }
+                            @if ((Model.StatusId == (int)OrderStatus.Open || Model.IsSingleDeliveryClosedOrderWithZeroPercent) && !Model.IsBrokeredOrder && (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson))
+                            {
+                                if (Model.IsSupressOrderPricing)
+                                {
+                                    <li class="dropdown-item">
+                                        <a href="javascript:void(0)" id="btnCreateDDTNew" class="@(Model.IsDefaultInvoiceTypeManual ? "hide-element" : "")" onclick="location.href='@Url.Action("CreateNew", "Invoice", new { area = "Supplier", orderId = Model.Id })'">@Resource.btnLabelCreateDDT<i class="fa fa-money pull-left mt7"></i></a>
+                                    </li>
+                                }
+                                else
+                                {
+
+                                    <li class="dropdown-item">
+                                        <a href="javascript:void(0)" id="btnCreateInvoiceNew" class="@(Model.IsDefaultInvoiceTypeManual ? "" : "hide-element")" onclick="location.href='@Url.Action("CreateNew", "Invoice", new { area = "Supplier", orderId = Model.Id })'">@Resource.btnLabelCreateInvoice<i class="fa fas fa-dollar pull-left mt7"></i></a>
+                                        <a href="javascript:void(0)" id="btnCreateDDTNew" class="@(Model.IsDefaultInvoiceTypeManual ? "hide-element" : "")" onclick="location.href='@Url.Action("CreateNew", "Invoice", new { area = "Supplier", orderId = Model.Id })'">@Resource.btnLabelCreateDDT<i class="fa fa-money pull-left mt7"></i></a>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item">
+                                        <a href="javascript:void(0)" id="btnCreateBalanceInvoice" onclick="location.href='@Url.Action("Balance", "Invoice", new { area = "Supplier", orderId = Model.Id })'">@Resource.btnLabelCreateBalanceInvoice <i class="fa fa-plus pull-left mt7"></i></a>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item tank-invoice-link @(Model.FuelDetails.TankFrequencies.Any(t => t.ActivationStatusId == (int)ActivationStatus.Active) ? "" : "hide-element")">
+                                        <a href="javascript:void(0)" id="btnCreateTankRentalInvoice" onclick="location.href='@Url.Action("TankRental", "Invoice", new { area = "Supplier", orderId = Model.Id })'">@Resource.btnLabelCreateTankRentalInvoice <i class="fa fa-tint pull-left mt7"></i></a>
+                                    </li>
+                                    <li role="separator" class="tank-invoice-link @(Model.FuelDetails.TankFrequencies.Any(t => t.ActivationStatusId == (int)ActivationStatus.Active) ? "" : "hide-element") divider"></li>
+                                    if (Model.IsFTLEnabled)
+                                    {
+                                    <li class="dropdown-item">
+                                        <a href="javascript:void(0)" id="btnCreateSplitInvoice" class="@(Model.IsDefaultInvoiceTypeManual ? "" : "hide-element")" onclick="location.href='@Url.Action("CreateSplitInvoice", "Invoice", new { area = "Supplier", orderId = Model.Id })'">@Resource.lblCreateSplitInvoice <i class="fa fas fa-network-wired pull-left mt5"></i></a>
+                                        <a href="javascript:void(0)" id="btnCreateSplitDropTicket" class="@(Model.IsDefaultInvoiceTypeManual ? "hide-element" : "")" onclick="location.href='@Url.Action("CreateSplitInvoice", "Invoice", new { area = "Supplier", orderId = Model.Id })'">@Resource.lblCreateSplitLoadDropTicket <i class="fa fas fa-network-wired pull-left mt5"></i></a>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    }
+                                }
+                            }
+                            <li class="dropdown-item"><a href="javascript:void(0)" id="btnCreateInvoice" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "OrderBase", new { area = "", id = Model.Id })'">@Resource.lblDownloadPO <i class="fa fas fa-download pull-left mt5"></i></a></li>
+                            <li role="separator" class="divider"></li>
+                            @{ var emailUrl = Url.Action("EmailDocumentPopup", "Order", new { area = "Supplier" }); }
+                            <li class="dropdown-item"><a href="javascript:void(0)" id="btnEmailPo" onclick="return showEmailDocPopup('@Model.Id', '@Model.PoNumber', null, '@((int)CompanyType.Supplier)', '@((int)DocumentName.PO)', '@emailUrl');">@Resource.lblEmailPO <i class="fa fas fa-envelope pull-left mt5"></i></a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-section hide-element bg-white radius-5 animated slideInLeft pa">
+                <a href="javascript:void(0)" class="pa fs25 right0 top0 color-darkgrey mr15 mt5 z-index5" onclick="closePanel()">×</a>
+                <div class="pt15 pb15 ph20">
+                    <div class="row">
+                        <div class="col-xs-6 col-sm-12 col-md-6 mb10">
+                            <div class="no-margins fs18 pull-left gallonsordered" id="auto-lblgallons"></div>
+                            <span class="pull-left fs11 pt8 pl2 uom"></span>
+                            <span class="fs12 pull-left clearboth">@Resource.lblOrdered</span>
+                        </div>
+                        <div class="col-xs-6 col-sm-12 col-md-6 mb10">
+                            <div class="no-margins fs18 pull-left" id="auto-lbldelivered"></div>
+                            <span class="pull-left fs11 pt8 pl2 uom"></span>
+                            <span class="fs12 pull-left clearboth">@Resource.lblDelivered</span>
+                        </div>
+                        <div class="col-xs-6 col-sm-12 col-md-6 mb10">
+                            <span class="pull-left">@Resource.constSymbolCurrency</span>
+                            <div class="no-margins fs18 pull-left" id="auto-lblppg"></div>
+                            <span class="currency-symbol pull-left fs11 pt8 pl2 currency"></span>
+                            <span class="fs12 clearboth pull-left avg-ppg">@(string.Format(Resource.lblAvgPricePerDrop, "PPU"))</span>
+                        </div>
+                        <div class="col-xs-6 col-sm-12 col-md-6 mb10">
+                            <div class="no-margins fs18 pull-left" id="auto-avgdelivery"></div>
+                            <span class="pull-left fs11 pt8 pl2 uom"></span>
+                            <span class="fs12 pull-left clearboth">@Resource.lblAvgGallonsDrop</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-b-dash ml20 mr20 clearboth"></div>
+                <div class="pt15 pb25 ph20">
+                    <h4 class="f-light fs18 no-margins pt0">@Resource.lblNextScheduledDelivery</h4>
+                    <div class="row">
+                        <div class="text-center col-sm-12" id="auto-txtnextdeliveryschedule">
+                            <h3 class="l-height22 f-normal fs16 mt10 mb0">@Resource.lblHyphen</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-b-dash ml20 mr20 clearboth"></div>
+                <div class="pt15 pb25 ph20">
+                    @Html.Partial("_PartialNewsfeeds")
+                </div>
+            </div>
+            <div class="tab-container pr">
+                <div class="mb10 panel-icon">
+                    <a href="javascript:void(0)" id="auto-lblOrderInfo" class="radius-5 dib text-center" onclick="loadSidePanel();">
+                        @Resource.lblOrderInfo
+                    </a>
+                </div>
+                <div id="order-details">
+                    <!-- order details starts -->
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12 pb15">
+                                <h4 class="dib">@Resource.headingOrder</h4>
+                                <div class="dib pull-right pt5">
+                                    <div id="auto-lblstatus" class="dib mt3">
+                                        @if (Model.StatusId == (int)OrderStatus.Open)
+                                        {
+                                            <label class="label label-warning">@(CommonHelperMethods.GetName<OrderStatus>(Model.StatusId))</label>
+                                        }
+                                        else if (Model.IsMultiOrder)
+                                        {
+                                            <label class="label label-danger" id="lblActionRequired">Action Required</label>
+                                        }
+                                        else if (Model.StatusId == (int)OrderStatus.Closed)
+                                        {
+                                            <label class="label label-danger">@(CommonHelperMethods.GetName<OrderStatus>(Model.StatusId))</label>
+                                        }
+                                        else if (Model.StatusId == (int)OrderStatus.Canceled)
+                                        {
+                                            <label class="label label-danger">@(CommonHelperMethods.GetName<OrderStatus>(Model.StatusId))</label>
+                                        }
+                                    </div>
+                                    @if (!Model.IsProFormaPo && Model.FuelDetails.FuelQuantity.QuantityTypeId != (int)QuantityType.NotSpecified)
+                                    {
+                                        <span>@Model.FuelDeliveredPercentage @Resource.lblCompleted</span>
+                                    }
+                                </div>
+                                <div class="row">
+                                    @if (!string.IsNullOrEmpty(Model.ScheduleName))
+                                    {
+                                        <div class="col-sm-12">
+                                            <div class="alert alert-warning mb10 pt5 pb5">
+                                                @Resource.warningMessageOrderSchedule <a href="@Url.Action("Create", "BillingSchedule", new { area = "Supplier", id = Model.ScheduleId })">@Html.DisplayFor(m => m.ScheduleName)</a>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="col-sm-2 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.lblPoNumber</label>
+                                        <div>
+                                            <span id="lblPoNumber" class="break-word">@Model.PoNumber</span>&nbsp;
+                                        </div>
+                                        <label class="f-normal color-orange">(@Resource.lblFreightOnlyOrder)</label>
+                                        <!-- edit po starts -->
+                                        <div class="border hide-element z-index5 pa pl15 pr15 ml15 bg-white po-edit shadow-b" id="po-edit-modal">
+                                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                                            <i class="fa fa-times pull-right mt5 mb10" aria-hidden="true" onclick="toggleEditWindow('po-edit')"></i>
+                                            <div class="form-group">
+                                                @Html.TextBoxFor(m => m.PoNumber, new { @class = "form-control" })
+                                                @Html.ValidationMessageFor(m => m.PoNumber)
+                                            </div>
+                                            <div class="form-group text-right">
+                                                <input type="button" value="@Resource.btnLabelCancel" id="btnCancelPoNumber" class="btn btn-sm" onclick="toggleEditWindow('po-edit')" />
+                                                <button class="btn btn-primary btn-sm" type="button" data-toggle='confirmation' data-html='true' data-popout='true' data-singleton='true' data-on-confirm="savePoNumber"
+                                                        data-placement='top' id="btnsavePoNumber" data-title="Are you sure you want to update the PO#?">
+                                                    @Resource.btnLabelSave
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <!-- edit po ends -->
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(Model.GroupPoNumber))
+                                    {
+                                        <div class="col-xs-6 col-sm-2 mb10">
+                                            <label class="f-normal">@Resource.gridColumnCustomerPo</label>
+                                            <div class="break-word"><a href="@Url.Action("Details","Order",new { area="Supplier" , id=Model.Id })">@Html.DisplayFor(m => m.GroupPoNumber)</a></div>
+                                        </div>
+                                    }
+                                    <div class="col-xs-6 col-sm-2 mb10">
+                                        <label class="f-normal">@(!Model.IsBrokeredOrder ? Resource.lblCustomerContact : Resource.lblSupplierContact)</label>
+                                        <div class="break-word" id="auto-lblcustomer">
+                                            @Model.Supplier.Name <br />
+                                            @Model.Supplier.Email <br />
+                                            <span class="phone">@Model.Supplier.PhoneNumber</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-6 col-sm-2 mb10">
+                                        <label class="f-normal">@(!Model.IsBrokeredOrder ? @Resource.lblCustomerCompany : @Resource.lblSupplierCompany) </label>
+                                        <div class="break-word" id="lblCustomerCompany">
+                                            @Model.BuyerCompanyName
+                                        </div>
+                                    </div>
+                                    @if (Model.OrderClosingThreshold != null)
+                                    {
+                                        <div class="col-xs-3 col-sm-2 mb10">
+                                            <label class="f-normal">@Resource.lblAutomaticallyCloseOrder</label>
+                                            <div id="lblSupplierCompany">@Model.OrderClosingThreshold@Resource.constSymbolPercent @Resource.lblCompleted</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="border-b-dash ma15 clearboth"></div>
+                            <div class="col-sm-12 pb15">
+                                <h4>@Resource.headingFuel</h4>
+                                <div class="row">
+                                    <div class="col-sm-2 col-xs-12 mb10">
+                                        @Html.HiddenFor(m => m.FuelTypeId)
+                                        <label class="f-normal">@Resource.lblFuelType</label>
+                                        <div class="break-word">@Model.FuelType</div>
+                                    </div>
+                                    @if (Model.TypeOfFuel != (int)ProductDisplayGroups.OtherFuelType)
+                                    {
+                                        <div class="col-sm-2 col-xs-6 mb10">
+                                            @if ((CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson
+                                                || ((CurrentUser.IsCarrierAdmin || CurrentUser.IsCarrier || CurrentUser.IsDispatcher) && CurrentUser.IsSupplierAndCarrierCompany))
+                                                && Model.StatusId == (int)OrderStatus.Open && !Model.IsBrokeredOrder && Model.CanSupplierChangeTerminal)
+                                            {
+                                                <div>
+                                                    <label class="f-normal">@Resource.lblTerminal</label>
+                                                    <a onclick="showAutoCompleteForTerminal()" title="Change Terminal"><span class="fa fa-edit"></span></a>
+                                                    <div class="pr row">
+                                                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper terminal-loader mtm10 hide"><span class='spinner-dashboard pa'></span></div>
+                                                        <div class="col-md-12">
+                                                            <div class="break-word" id="auto-lblsuppterminalLbl">
+                                                                @Model.TerminalName
+                                                            </div>
+                                                            @Html.TextBoxFor(m => m.TerminalName, new { @class = "form-control hide" })
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="col-sm-12">
+                                                    <label class="f-normal">@Resource.lblTerminal</label>
+                                                    <div class="break-word" id="auto-lblsuppterminal">
+                                                        @Model.TerminalName
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="col-sm-2 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblProductDescription</label>
+                                            <div class="break-word">@(!string.IsNullOrWhiteSpace(Model.ProductDescription) ? Model.ProductDescription : Resource.lblHyphen)</div>
+                                        </div>
+                                    }
+                                    <div class="wbs-details col-sm-2">
+                                        <div class='pa text-center bg-white wbs-loader loading-wrapper hide-element'>
+                                            <span class='spinner-small pa col-xs-1'></span>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-12">
+                                                <label class="f-normal">@Resource.lblWBSNumber</label>
+                                                @if (Model.FuelRequestTypeId == (int)FuelRequestType.ThirdPartyRequest ||
+                                                    (Model.FuelRequestTypeId == (int)FuelRequestType.BrokeredFuelRequest && Model.BuyerCompanyId == CurrentUser.CompanyId))
+                                                {
+                                                    <a id="edit-wbs-icon" href="javascript:void(0)" class="ftl-controls" onclick="editOrderAddditionalDetails(this, 'wbs-details', 'wbs-buttons');focusOnFirst(this,'wbs-text');"><i class="fa fa-edit"></i></a>
+                                                }
+                                                <div class="ftl-controls wbs-text disable-controls">
+                                                    <div class="form-group mb0">
+                                                        @Html.TextBoxFor(m => m.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber, new { @class = "form-control" })
+                                                        @Html.ValidationMessageFor(m => m.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-12 text-right wbs-buttons hide-element mt10">
+                                                <input id="cancelWBS" type="button" value="@Resource.btnLabelCancel" class="btn btn-sm actions"
+                                                       onclick="cancelEditOrderAdditionalDetails('edit-wbs-icon','wbs-details','wbs-buttons'),callCancelWBS()" />
+                                                <button class="btn btn-sm btn-primary" onclick="updateWbsNumber()">
+                                                    @Resource.btnLabelSave
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (Model.FuelDetails.IsFTLEnabled)
+                                    {
+                                        <div class="col-sm-2 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblOrderType</label>
+                                            <div class="">
+                                                <label>
+                                                    @Resource.lblFullTruckLoad
+                                                </label>
+                                            </div>
+                                        </div>
+                                        if (Model.FuelDetails.FreightOnBoard.HasValue)
+                                        {
+                                            <div class="col-sm-2 col-xs-6 mb10">
+                                                <label class="f-normal">@Resource.lblFreightOnBoard</label>
+                                                <div>
+                                                    <label>
+                                                        @(((FreightOnBoardTypes)@Model.FuelDetails.FreightOnBoard.Value).GetDisplayName())
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                            <label class="f-normal">@Resource.lblOrderType</label>
+                                            <div class="">
+                                                <label>
+                                                    @Resource.lblLessTruckLoad
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="col-md-3 col-sm-3 col-xs-6 mb10">
+                                        <label class="f-normal">@Resource.headingPickUpLocation</label>
+                                        @*<a id='btnChangedefault-PickUp' onclick='loadPickUpLocation(@Model.Id)' data-toggle='modal' data-target='#add-pickupLocation-modal'><span class="fas fa-edit ml5" data-toggle="tooltip" data-placement="top" title="@Resource.btnLabelEdit"></span></a>*@
+                                        <div id="div-pick-up-location">
+                                            @if (Model.FuelDetails.PickUpLocation != null)
+                                            {
+                                                <div>
+                                                    @Model.FuelDetails.PickUpLocation.Address.SiteName
+                                                </div>
+                                                <div class="fs12">
+                                                    <i class="fas fa-map-marker fs12 mr5"></i>
+                                                    @Model.FuelDetails.PickUpLocation.Address.Address,
+                                                    @Model.FuelDetails.PickUpLocation.Address.City, @Model.FuelDetails.PickUpLocation.Address.State.Code @Model.FuelDetails.PickUpLocation.Address.ZipCode
+                                                    <a data-toggle='confirmation' data-html='true' data-popout='true' data-singleton='true' data-confirmation-event="RemovePickUpLocation" data-placement='bottom'><i class="fas fa-trash color-maroon fs12 ml5" data-toggle="tooltip" data-placement="top" title="@Resource.btnLabelRemove"></i></a>
+                                                    @*data-on-confirm="RemovePickUpLocation"*@
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                @Resource.lblHyphen
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Order Badge Details -->
+                            <div class="col-sm-12 display-badge-details mt30">
+                                <div class="overflow-h">
+                                    <h4 class="float-left">@Resource.headingBadgeDetails</h4>
+                                    <a class="fa fa-edit fs14 float-left ml10 mt15" aria-hidden="true" onclick="showHideControls(null, 'edit-badge-details', 'display-badge-details')"></a>
+                                </div>
+                                @if ((@Model.OrderBadgeDetails.TerminalBulkBadge != null && @Model.OrderBadgeDetails.TerminalBulkBadge.Count > 0) ||
+                                    (@Model.OrderBadgeDetails.BadgeNo1 != null || @Model.OrderBadgeDetails.BadgeNo2 != null
+                                    || @Model.OrderBadgeDetails.BadgeNo3 != null))
+                                {
+                                    <table class="table table-hover margin bottom details-table">
+                                        <thead>
+                                            <tr>
+                                                <th>@Resource.lblBadgeType</th>
+                                                <th>@Resource.gridTerminalBulkPlantName</th>
+                                                <th>@Resource.lblBadgeNo1</th>
+                                                <th>@Resource.lblBadgeNo2</th>
+                                                <th>@Resource.lblBadgeNo3</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @if (@Model.OrderBadgeDetails.BadgeNo1 != null || @Model.OrderBadgeDetails.BadgeNo2 != null
+                                            || @Model.OrderBadgeDetails.BadgeNo3 != null)
+                                            {
+                                                <tr>
+                                                    <td>@Resource.lblCommon</td>
+                                                    <td>@Resource.lblHyphen</td>
+                                                    <td>
+                                                        @if (!string.IsNullOrWhiteSpace(Model.OrderBadgeDetails.BadgeNo1))
+                                                        {
+                                                            @Model.OrderBadgeDetails.BadgeNo1
+                                                        }
+                                                        else
+                                                        {
+                                                            @Resource.lblHyphen
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (!string.IsNullOrWhiteSpace(Model.OrderBadgeDetails.BadgeNo2))
+                                                        {
+                                                            @Model.OrderBadgeDetails.BadgeNo2
+                                                        }
+                                                        else
+                                                        {
+                                                            @Resource.lblHyphen
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (!string.IsNullOrWhiteSpace(Model.OrderBadgeDetails.BadgeNo3))
+                                                        {
+                                                            @Model.OrderBadgeDetails.BadgeNo3
+                                                        }
+                                                        else
+                                                        {
+                                                            @Resource.lblHyphen
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                            @foreach (var terminalBulk in @Model.OrderBadgeDetails.TerminalBulkBadge)
+                                            {
+                                                <tr>
+                                                    <td>@(terminalBulk.IsPickupTerminal == true ? Resource.lblTerminalText : Resource.lblBulkPlant)</td>
+                                                    <td>@terminalBulk.TerminalBulkPlantName</td>
+                                                    <td>
+                                                        @if (!string.IsNullOrWhiteSpace(terminalBulk.BadgeNo1))
+                                                        {
+                                                            @terminalBulk.BadgeNo1
+                                                        }
+                                                        else
+                                                        {
+                                                            @Resource.lblHyphen
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (!string.IsNullOrWhiteSpace(terminalBulk.BadgeNo2))
+                                                        {
+                                                            @terminalBulk.BadgeNo2
+                                                        }
+                                                        else
+                                                        {
+                                                            @Resource.lblHyphen
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (!string.IsNullOrWhiteSpace(terminalBulk.BadgeNo3))
+                                                        {
+                                                            @terminalBulk.BadgeNo3
+                                                        }
+                                                        else
+                                                        {
+                                                            @Resource.lblHyphen
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    @Resource.lblHyphen
+                                }
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="row mt30">
+                                    <div class="col-sm-12">
+                                        @using (Html.BeginForm("SaveBadgeDetails", "Order", new { area = "Carrier" }, FormMethod.Post, new { id = "update-badge-details-form" }))
+                                        {
+                                            <div class="edit-badge-details" style="display: none">
+                                                <h4>@Resource.headingBadgeDetails</h4>
+                                                @Html.HiddenFor(m => m.Id)
+                                                @Html.PartialFor("_PartialOrderBadge", m => m.OrderBadgeDetails)
+                                                <div class="row">
+                                                    <div class="col-md-12 text-right">
+                                                        <input type="button" value="@Resource.btnLabelCancel" class="btn actions" onclick="showHideControls(null,'display-badge-details','edit-badge-details')" />
+                                                        <input type="button" id="BadgeDetailsSubmit" value="Save" class="btn btn-primary" onclick="return postBadgeDetails();" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Order Badge Details ends -->
+
+                            <div class="border-b-dash ma15 clearboth"></div>
+                            <div class="col-sm-12 pb15">
+                                <h4>@Resource.headingSpecialInstructions</h4>
+                                <div class="row">
+                                    <div class="col-xs-4 col-sm-2">
+                                        <label class="f-normal">
+                                            @Resource.lblSpecialInstruction
+                                            <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.infoMessageSpecialInstructions"></i>
+                                        </label>
+                                        <ol class="pl15" id="auto-lblspecialinstructions">
+                                            @if (Model.FuelDeliveryDetails.SpecialInstructions.Count == 0)
+                                            {
+                                                @Resource.lblHyphen
+                                            }
+                                            else
+                                            {
+                                                foreach (var specialInstruction in Model.FuelDeliveryDetails.SpecialInstructions)
+                                                {
+                                                    <li class="break-word">
+                                                        @specialInstruction.Instruction
+                                                    </li>
+                                                }
+                                            }
+                                        </ol>
+                                    </div>
+                                    @*<div class="col-sm-8">
+                                @Html.PartialFor("~/Views/Shared/_PartialSpecialInstructionAttachment.cshtml", m => m.FuelDeliveryDetails.SpecialInstructionFiles)
+                            </div>*@
+                                </div>
+                            </div>
+                            <div class="col-sm-12 pb15">
+                                <h4>@Resource.headingJobInformation</h4>
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb5">
+                                            <label class="f-normal">@Resource.lblJobName</label>
+                                            <div>@Model.JobName</div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(Model.DisplayJobID))
+                                    {
+                                        <div class="col-sm-2">
+                                            <div class="form-group mb5">
+
+                                                <label class="f-normal">@Resource.lblKiewitJobID</label>
+                                                <div>@Model.DisplayJobID</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.BillToInfo.ZipCode) && !string.IsNullOrWhiteSpace(Model.BillToInfo.Name))
+                                    {
+                                        <div class="col-sm-2">
+                                            <div class="form-group mb5">
+
+                                                <label class="f-normal">@Resource.lblJobSpecificBillTo</label>
+                                                <div>@Model.BillToInfo.Name - @Model.BillToInfo.Address, @Model.BillToInfo.City, @Model.BillToInfo.State.Code @Model.BillToInfo.ZipCode</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="col-sm-2 col-xs-6 mb10">
+                                        <div class="form-group mb5">
+                                            <label class="f-normal">@Resource.lblJobAddress</label>
+                                            @if (!string.IsNullOrWhiteSpace(Model.JobLocation.City) && !Model.JobLocation.City.Equals(Resource.lblVarious))
+                                            {
+                                                <div>
+                                                    @Model.JobLocation.Address
+                                                    <br />
+                                                    @Model.JobLocation.City, @Model.JobLocation.StateCode @Model.JobLocation.ZipCode
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div>
+                                                    @Model.JobLocation.StateCode
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(Model.SiteInstructions))
+                                    {
+                                        <div class="col-sm-2 col-xs-6 mb10">
+                                            <div class="form-group mb5">
+                                                <label class="f-normal">@Resource.lblSiteInstructions</label>
+                                                <div>@Model.SiteInstructions</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="border-b-dash ma15 clearboth"></div>
+                            <div class="col-sm-12 pb15">
+                                <h4>@Resource.headingOnsiteContact</h4>
+                                <table class="table table-hover margin bottom">
+                                    <thead>
+                                        <tr>
+                                            <th id="auto-lblonsitename">@Resource.gridColumnName</th>
+                                            <th id="auto-lblonsiteemail">@Resource.gridColumnEmail</th>
+                                            <th id="auto-onsitecontactno">@Resource.gridColumnContact</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auto-tblonsitecontact">
+                                        @if (Model.ContactPersons.Count > 0)
+                                        {
+                                            foreach (var contactPerson in Model.ContactPersons)
+                                            {
+                                                <tr>
+                                                    <td>@contactPerson.Name</td>
+                                                    <td>@contactPerson.Email</td>
+                                                    <td class="phone">@contactPerson.PhoneNumber</td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="2"> @Resource.lblNoContacts </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="border-b-dash ma15 clearboth"></div>
+                            @if (Model.IsBrokeredOrder)
+                            {
+                                <div class="col-sm-12 pb15">
+                                    <h4>@Resource.tabHeadingPOContact</h4>
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <div class="form-group mb10">
+                                                @Html.DropDownListFor(m => m.FuelDeliveryDetails.PoContactId,
+                              new SelectList(CommonHelperMethods.GetBrokerPoContact(CurrentUser.CompanyId), "Id", "Name", Model.FuelDeliveryDetails.PoContactId),
+                              new { @onchange = "assignNewPoContact();", @class = "form-control" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-b-dash mt15 mb15 clearboth"></div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div id="invoices-grid" class="hide-element">
+                </div>
+                <div id="ddt-grid" class="hide-element">
+                </div>
+
+                <div id="order-history-grid" class="hide-element">
+                </div>
+                <div id="completed-deliveries-grid" class="hide-element">
+                </div>
+                <div id="tab-contents-version" class="hide-element">
+                </div>
+                <div id="order-po" class="hide-element">
+                    <div class="row mb15">
+                        <div class="col-sm-12">
+                            @Html.Action("OrderPoView", "Order", new { area = "Supplier", id = Model.Id })
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    @if (Model.IsMultiOrder && !CurrentUser.IsCarrier)
+    {
+        <div class="modal animated fadeIn" id="modal-multi-orders" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+            <div class="modal-dialog modal-tax" role="document">
+                <div class="modal-content">
+                    <div class="modal-header no-border">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body pt0 pb0" style="overflow:auto">
+                        @{Html.RenderPartial("_PartialSelectBrokeredOrder", Model);}
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <div class="modal animated" id="modal-global-fuelcost" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header no-border">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body text-center pt0 pb0">
+                    @Html.HiddenFor(m => m.TfxFuelTypeId)
+                    @*@Html.PartialFor("_PartialDashboardGlobalFuelCost", m => m.Country)*@
+                </div>
+                <div class="modal-footer no-border">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="email-document-popup-container"></div>
+    <div id="add-pickupLocation-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+        <div class="modal-dialog  modal-lg">
+            @using (Html.BeginForm("ModifyPickUpLocation", "Order", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "Modify-pickup-form" }))
+            {
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-body modal-autoscroll">
+                        <h4>@Resource.btnLabelAddPickupLocation</h4>
+                        <p style="word-wrap: break-word;">
+                            <div class="pa bg-white z-index5 loading-wrapper pickup-loader"><span class='spinner-dashboard pa'></span></div>
+                            <div id="pick-up-location"></div>
+                        </p>
+                    </div>
+                    <div class="text-right pa15 shadow-t">
+                        <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                        <input type="button" onclick="savePickUpLocation()" id="btn-save-pickupterminal" class="btn btn-primary btn-lg" value="@Resource.btnLabelSave" />
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</body>
+@using (Html.BeginScripts())
+{
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/multiple-emails")
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/js/news-feed")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/DeliverySchedules")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/NextDeliverySchedules")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/scheduleLocation")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/multiple-emails")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/quantityrange-validate")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Script/Main/Order")
+
+    <script type="text/javascript">
+       var  valWBS = '@Model.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber';
+
+
+
+        SetPageCulture('@Model.Culture');
+                                var isFtl = '@Model.IsFTLEnabled';
+                                var mapsApiKey = '@SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleApiKey';
+                                var customerCompany = '@Model.BuyerCompanyId';
+                                var fuelSurchargeLink = "@Url.Action("BuyerDetails", "Dashboard", new { area = "Supplier" })";
+        var selectedFuelCostTypeId = '@Model.SuppplierCostTypeId';
+        var originalFuelCost = '@(Model.SuppplierCostTypeId == (int)SupplierCostTypes.GlobalCost ? Model.GlobalFuelCost : Model.CurrentFuelCost)';
+
+        $('[data-toggle=confirmation]').confirmation({
+            rootSelector: '[data-toggle=confirmation]',
+            html: true
+        });
+
+        //$(document).on("confirmed.bs.confirmation", '[data-toggle=confirmation]', function (event) {
+        //    savePoNumber();
+        //});
+
+        var notificationOrderId = @Model.Id, notificationPoNumber = '@Model.PoNumber';
+                                var notificationTargetUrl = '@Url.Action("SendDeliveryNotification", "Order", new { area = "Supplier" })';
+
+                                function submitForm() {
+                                    var isValidForm = true;
+                                    try {
+                $(".endtime").each(function () {
+                                            var endTimeVal = $(this).val();
+                                            var startTimeVal = $(this).parents('.partial-block').find('.starttime').val();
+                                            if (endTimeVal != '' && startTimeVal != '' && endTimeVal != startTimeVal) {
+                                                var startTimevalInMinutes = getMinutes(convertTo24Hour(startTimeVal));
+                                                var endTimevalInMinutes = getMinutes(convertTo24Hour(endTimeVal));
+                                                if (parseInt(startTimevalInMinutes) > parseInt(endTimevalInMinutes)) {
+                                                    validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanOrEqual, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+                                                    isValidForm = false;
+                                                }
+                                            }
+                                        });
+
+                                        if (isValidForm == true && ValidateAndSubmit()) {
+                                            SetLocalStorage(window.location.href, true);
+                    $('#deliveryschedule-form').submit();
+                                        }
+                                        else {
+                    $('#Submit').removeAttr('disabled');
+                                            return false;
+                                        }
+                                    }
+                                    catch (error) {
+                                        console.log(error.message);
+                $('#Submit').removeAttr('disabled');
+                                        return false;
+                                    }
+                                }
+
+                                function toggleFuelCostModal() {
+            $("#modal-global-fuelcost").modal('toggle');
+                                }
+
+        function ValidateAndSubmit() {
+            var isValidForm = true;
+            var fuelRequestStartDate = '@Model.FuelDeliveryDetails.StartDate.ToString(Resource.constFormatDate)';
+            var startDate = new Date(fuelRequestStartDate).setHours(0, 0, 0, 0);
+            var endDate, quantity = 0, totalQuantity = 0, jobEndDate = '';
+
+            var deliveryEndDate = '@(Model.FuelDeliveryDetails.EndDate != null ? Model.FuelDeliveryDetails.EndDate.Value.ToString(Resource.constFormatDate) : "")';
+            if (deliveryEndDate.length > 0) {
+                endDate = new Date(deliveryEndDate).setHours(0, 0, 0, 0);
+            }
+            else {
+                jobEndDate = '@(Model.JobEndDate != null ? Model.JobEndDate.Value.ToString(Resource.constFormatDate) : "")';
+                if (jobEndDate.length > 0) {
+                    jobEndDate = new Date(jobEndDate).setHours(0, 0, 0, 0);
+                }
+            }
+            quantity = parseInt('@(Model.GallonsOrdered)');
+            var scheduleType;
+            $('#delivery-schedule-section .partial-block').each(function () {
+                var curDate = new Date().setHours(0, 0, 0, 0);
+                scheduleType = $(this).find('.schedule-type').val();
+                var date = $(this).find('.datepicker').val();
+                if (scheduleType == '@((int)DeliveryScheduleType.Weekly)' || scheduleType == '@((int)DeliveryScheduleType.BiWeekly)') {
+                    totalQuantity += parseInt($(this).find('.quantity').val()) * $(this).find('.schedule-days').val().length;
+                }
+                else {
+                    totalQuantity += parseInt($(this).find('.quantity').val());
+                }
+                if (scheduleType == '@((int)DeliveryScheduleType.SpecificDates)' || scheduleType == '@((int)DeliveryScheduleType.Monthly)') {
+                    var scheduleDate = new Date(date).setHours(0, 0, 0, 0);
+                    var trackableScheduleId = $(this).find('[id$="RescheduledTrackableId"]').length ? $(this).find('[id$="RescheduledTrackableId"]').val() : 0;
+                    if (trackableScheduleId > 0) {
+                        if (scheduleDate < curDate) {
+                            validationMessageFor($(this).find('.datepicker').attr('name'),
+                                '@ResourceMessages.GetMessage(Resource.valRescheduleDate)');
+                            isValidForm = false;
+                        }
+                    }
+
+                    if (scheduleDate < startDate || (deliveryEndDate != '' && scheduleDate > endDate)) {
+                        validationMessageFor($(this).find('.datepicker').attr('name'),
+                            '@ResourceMessages.GetMessage(Resource.valMessageScheduleDate)');
+                        isValidForm = false;
+                    }
+                    if (deliveryEndDate.length == 0 && (jobEndDate != '' && scheduleDate > jobEndDate)) {
+                        validationMessageFor($(this).find('.datepicker').attr('name'),
+                            '@ResourceMessages.GetMessage(Resource.valMessageScheduleDateExceedsJobDate)');
+                        isValidForm = false;
+                    }
+                }
+            });
+            if (totalQuantity > quantity) {
+                validationMessageFor($('#delivery-schedule-section .partial-block:last').find('.quantity').attr('name'),
+                    '@ResourceMessages.GetMessage(Resource.valMessageScheduleQuantity)');
+                return false;
+            }
+            return isValidForm;
+        }
+
+        function callCancelWBS()
+        {
+            $("#FuelDeliveryDetails_CustomAttributeViewModel_WBSNumber").val(valWBS);
+        }
+
+        function validateEditDeliverySchedule() {
+            var isValidForm = true;
+            try {
+                var dropEndTimeVal = $('#@Html.IdFor(m => m.FuelDeliveryDetails.EndTime)').val();
+                var dropStartTimeVal = $('#@Html.IdFor(m => m.FuelDeliveryDetails.StartTime)').val();
+                var dropStartTimevalInSeconds = dropStartTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(dropStartTimeVal))) : 0;
+                var dropEndTimevalInSeconds = dropEndTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(dropEndTimeVal))) : 0;
+                if (dropStartTimeVal != '' && dropEndTimeVal != '' && dropEndTimeVal != dropStartTimeVal) {
+                    if (dropStartTimevalInSeconds > dropEndTimevalInSeconds) {
+                        validationMessageFor('@Html.NameFor(m => m.FuelDeliveryDetails.EndTime)', '@ResourceMessages.GetMessage(Resource.valMessageGreaterThan, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+                        isValidForm = false;
+                        $('#@Html.IdFor(m => m.FuelDeliveryDetails.EndTime)').focus();
+                    }
+                }
+                var quantity = parseInt($("#@Html.IdFor(m=> m.GallonsOrdered)").val(), 10);
+                var totalQuantity = 0;
+                var scheduleType;
+                $('#delivery-schedule-section .partial-block').each(function () {
+                    scheduleType = $(this).find('.schedule-type').val();
+                    if (scheduleType == '@((int)DeliveryScheduleType.Weekly)' || scheduleType == '@((int)DeliveryScheduleType.BiWeekly)') {
+                        totalQuantity += parseInt($(this).find('.quantity').val()) * $(this).find('.schedule-days').val().length;
+                    }
+                    else {
+                        totalQuantity += parseInt($(this).find('.quantity').val());
+                    }
+                });
+                if (totalQuantity > quantity) {
+                    isValidForm = false;
+                    validationMessageFor('@Html.IdFor(m=> m.GallonsOrdered)', '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanOrEqual, new object[] { Resource.lblTotalQuantity, Resource.lblScheduleDeliveries })');
+                    $('#@Html.IdFor(m=> m.GallonsOrdered)').focus();
+                }
+                return isValidForm;
+            }
+            catch (error) {
+                console.log(error.message);
+                return false;
+            }
+        }
+
+        function btnCancel() {
+            location.href = "@Url.Action("Details", "Order", new { area = "Supplier", id = Model.Id })";
+        }
+
+        var currentEntityId = @Model.Id; // for newsfeed
+        var newsfeedUrl = "@Url.Action("GetNewsfeed", "Order", new { area = "Supplier" })";
+
+        var globalFuelCost = @Model.GlobalFuelCost;
+        var currentFuelCost = @Model.CurrentFuelCost;
+        var fuelCostTypeId = @Model.SuppplierCostTypeId;
+        $(document).ready(function () {
+
+            $(document).on('keyup', '.calculated-rental-amount,.tax-percentage', function () { calculateTankTaxAmount(this); });
+            setOrderStat(@Model.Id);
+            if (@Model.FuelDeliveryDetails.DeliveryTypeId == @((int)DeliveryType.MultipleDeliveries)) {
+                getNextSchedules(@Model.Id);
+            }
+
+            $("#modal-global-fuelcost").on("hidden.bs.modal", function () {
+                var url = '@Url.Action("GetCalculatedFuelCostPrice", "Order")';
+                var data = { priceDetailId: @Model.RequestPriceDetailId }
+                $.get(url, data, function (response) {
+                    $('#auto-lblCalculatedPricingppg').html('$' + response.CalculatedPpg);
+                    $('#GlobalFuelCost').val(response.FuelCost);
+                    $('#CurrentFuelCost').val(response.FuelCost);
+                })
+            });
+            if ($('#GlobalFuelCost').val() == 0) {
+                $('#@Html.IdFor(m => m.SuppplierCostTypeId)').attr("disabled", "disabled");
+            }
+
+            var winHeight = $(window).height();
+            $(".modal-tax .modal-body").css('max-height', winHeight - 100 + 'px');
+
+            if ('@Model.IsMultiOrder' == 'True') {
+                $("#modal-multi-orders").modal("show");
+            }
+            $(".select2_order_licenses").select2({
+                placeholder: "Licenses for Order",
+                allowClear: true,
+                multiple: true,
+                closeOnSelect: false
+            });
+
+            $(".select2_order_licenses").on("select2:close", function () {
+                var licenses = $("#@Html.IdFor(m => m.OrderLicenses)").val();
+                $(this).attr('disabled', 'disabled');
+                var url = '@Url.Action("UpdateOrderLicenses", "Order")';
+                $.post(url, { 'licenses': licenses, 'orderId': '@Model.Id' }, function (response) {
+                    $('#@Html.IdFor(m=>m.OrderLicenses)').removeAttr('disabled');
+                });
+            });
+
+            SetQuickMessageURL('@AppMessageQueryType.Order',@Model.Id);
+
+            if ('@(Model.StatusId != (int)OrderStatus.Open)' == 'True') {
+                $('.partial-block').each(function () {
+                    $(this).find("a").attr('readonly', 'readonly').addClass("pntr-none");
+                });
+            }
+
+            //var previousTab = GetLocalStorage(window.location.href);
+            //if (typeof previousTab != 'undefined' && previousTab != null && previousTab != '') {
+            //    triggerEvent('.schedule-tab', 'click');
+            //    RemoveLocalStorage(window.location.href);
+            //}
+
+            var checkIfAddingAssetFromODP = GetLocalStorage('AddingAssetFromODP');
+            if (typeof checkIfAddingAssetFromODP != 'undefined' && checkIfAddingAssetFromODP != null && checkIfAddingAssetFromODP != '') {
+                triggerEvent('.order-asset-tab', 'click');
+                RemoveLocalStorage('AddingAssetFromODP');
+            }
+
+            $('#@Html.IdFor(m=>m.IsHidePricingEnabled)').change(function () {
+                $(this).attr('disabled', 'disabled');
+                var url = '@Url.Action("UpdateTogglePricingDetails", "Order")';
+                var data = $(this).is(':checked');
+                $.post(url, { 'OrderId': '@Model.Id', 'IsHidePricingEnabled': data, 'IsBrokeredOrder': '@Model.IsBrokeredOrder' }, function (response) {
+                    $('#@Html.IdFor(m=>m.IsHidePricingEnabled)').removeAttr('disabled');
+                });
+            });
+
+            $('#@Html.IdFor(m => m.IsFTLEnabled)').change(function () {
+                $(this).attr('disabled', 'disabled');
+                var url = '@Url.Action("UpdateFTLCheckDetails", "Order")';
+                var data = $(this).is(':checked');
+                $.post(url, { 'OrderId': '@Model.Id', 'isFTL': data }, function (response) {
+                    $('#@Html.IdFor(m => m.IsFTLEnabled)').removeAttr('disabled');
+                    if (response.StatusCode == @((int)Status.Success)) {
+                        msgsuccess('@Resource.successMessageFTLDetailsUpdated');
+                    }
+                });
+            });
+
+            $(document).on('change', '.schedule-type', function () {
+                var url = '@Url.Action("DeliverySchedule", "Order")';
+                var data = $(this).val();
+                var row = $(this).closest('.partial-block');
+                $.get(url, { 'scheduleType': data, 'isFtl': '@Model.IsFTLEnabled', 'orderId': '@Model.Id' }, function (response) {
+                    var newElement = $(response);
+                    newElement.find("input[type='text']:not([disabled]):not([readonly])").each(function () {
+                        if (!($(this).hasClass('timepicker') || $(this).hasClass('quantity')))
+                            $(this).val('');
+                    });
+                    $(row).replaceWith(newElement);
+                    parseForm();
+                    documentReady(true);
+                    enableSubmit();
+                });
+            });
+
+            var pricingSourceId = $("#@Html.IdFor(m=> m.FuelDetails.FuelPricing.FuelPricingDetails.PricingSourceId)").val();
+            $("#@Html.IdFor(m=> m.CurrentFuelCost)").on("input propertychange paste", function () {
+                if (currentFuelCost != $("#@Html.IdFor(m=> m.CurrentFuelCost)").val()) {
+                    $("#btnSaveCurrentCost").removeAttr("disabled");
+                }
+                else {
+                    $("#btnSaveCurrentCost").attr("disabled", "disabled");
+                }
+            });
+
+            var terminalUrl = "@Url.Action("GetClosedTerminal", "Order", new { area = "Supplier" })";
+            autoCompleteTerminal("#@Html.IdFor(m => m.TerminalName)", terminalUrl, 0, 0, 0, 0, 0, @Model.Id);
+
+            resetInvoiceNotesControls();
+        });
+
+        function setOrderStat(orderId) {
+            $.get("@Url.Action("GetSupplierOrderStat", "Order", new { area = "Supplier" })?orderId=" + orderId,
+                function (response) {
+                    $('#auto-lblgallons').html(response.GallonsOrdered);
+                    $('#auto-lbldelivered').html(response.GallonsDelivered);
+                    $('#auto-lblppg').html(response.AvgPricePerGallon);
+                    $('#auto-avgdelivery').html(response.AvgGallonsPerDelivery);
+                    $('.currency').html(response.DisplayCurrency);
+                    $('.uom').html(response.DisplayUoM);
+                    if (response.UoM == 2)
+                        $('.avg-ppg').text('@(string.Format(Resource.lblAvgPricePerDrop, Resource.lblPricePerLitre))');
+                });
+        }
+
+        function getNextSchedules(orderId) {
+            $.get("@Url.Action("GetNextDeliverySchedules", "Order", new { area = "Supplier" })?orderId=" + orderId,
+                function (response) {
+                    var nextSchedules = new NextDeliverySchedule.NextSchedules(response);
+                    $('#auto-txtnextdeliveryschedule').html(nextSchedules.getAllSchedules());
+                });
+        }
+
+        $(document).ready(function () {
+            var isGlobal = $("#SuppplierCostTypeId:checked").val() == 1;
+            if (isGlobal) {
+                $(".add-fuel-cost :input").attr("disabled", "disabled");
+                $(".add-fuel-cost").addClass("subSectionOpacity");
+                $(".global-fuel-cost").removeClass("subSectionOpacity");
+                $("#editGlobalFuelCost").show();
+            }
+            else {
+                $("#editGlobalFuelCost").hide();
+                $(".global-fuel-cost").addClass("subSectionOpacity");
+                $(".add-fuel-cost").removeClass("subSectionOpacity");
+                $("#@Html.IdFor(m=> m.CurrentFuelCost)").removeAttr("disabled");
+                $("#btnSaveCurrentCost").attr("disabled", "disabled");
+            }
+            updateFeesHeader('@Model.IsFTLEnabled' == 'True' ? '@((int)TruckLoadTypes.FullTruckLoad)' : '@((int)TruckLoadTypes.LessTruckLoad)');
+            $('.ddl-schedule-qty-type').removeClass('hide-element');
+            EnableDisableSaveButton();
+        });
+
+        $(document).ajaxComplete(function (event, xhr, settings) {
+            $('.schedule-trash .show-in-tpo').show();
+            $('.ddl-schedule-qty-type').removeClass('hide-element');
+        });
+
+        function toggleFuelCost(isGlobal) {
+            if (isGlobal == true) {
+                $("#responseMsgForCurrentCost").html("");
+                $(".add-fuel-cost :input").attr("disabled", "disabled");
+                $(".add-fuel-cost").addClass("subSectionOpacity");
+                $(".global-fuel-cost").removeClass("subSectionOpacity");
+                $("#editGlobalFuelCost").show();
+                updateGlobalFuelCost();
+            }
+            else {
+                $("#responseMsgForGlobalCost").html("");
+                $("#editGlobalFuelCost").hide();
+                $(".global-fuel-cost").addClass("subSectionOpacity");
+                $(".add-fuel-cost").removeClass("subSectionOpacity");
+                $("#@Html.IdFor(m=> m.CurrentFuelCost)").removeAttr("disabled");
+                if (currentFuelCost != $("#@Html.IdFor(m=> m.CurrentFuelCost)").val()) {
+                    $("#btnSaveCurrentCost").removeAttr("disabled");
+                } else {
+                    $("#btnSaveCurrentCost").attr("disabled", "disabled");
+                }
+                updateFuelCostForOrder();
+            }
+        }
+        function showAutoCompleteForTerminal() {
+            if ($("#TerminalName").hasClass('hide')) {
+                $("#TerminalName").removeClass("hide");
+            }
+            $('#auto-lblsuppterminalLbl').hide();
+        }
+
+        function assignNewTerminalToOrder(selectedTerminal) {
+            var url = '@Url.Action("AssignNewTerminalToOrder", "Order", new { area = "Supplier" })';
+            var data = {
+                terminalId: selectedTerminal,
+                orderId: '@Model.Id'
+            };
+            $.post(url, data, function (response) {
+                showSuccessErrorMsg(response);
+            });
+
+        }
+
+        function assignNewPoContact() {
+            var selectedPoContact = $('#@Html.IdFor(m => m.FuelDeliveryDetails.PoContactId)').val();
+            var url = '@Url.Action("AssignNewPoContact", "Order", new { area = "Supplier" })';
+            var data = {
+                poCotactId: selectedPoContact,
+                orderId: '@Model.Id'
+            };
+            $.post(url, data, function (response) {
+                if (response.StatusCode == 0) {
+                    $('#poContactName').html(response.poContactName);
+                    $('#poContactEmail').html(response.poContactEmail);
+                    $('#poContactPhoneNumber').html(response.poContactPhoneNumber);
+                    msgsuccess(response.Message);
+                }
+                else {
+                    msgerror(response.Message);
+                }
+            });
+        }
+
+        var originalCityTerminalId = @Model.CityGroupTerminalId;
+
+        function assignNewCityGroupTerminalToOrder() {
+            var selectedCityTerminal = $('#@Html.IdFor(m => m.CityGroupTerminalId)').val();
+            if (originalCityTerminalId != selectedCityTerminal) {
+                var url = '@Url.Action("AssignNewCityGroupTerminalToOrder", "Order", new { area = "Supplier" })';
+                var data = {
+                    terminalId: selectedCityTerminal,
+                    orderId: '@Model.Id'
+                };
+                $.post(url, data, function (response) {
+                    showSuccessErrorMsg(response);
+                    if (response.indexOf("alert-danger") >= 0) {
+                        $('.cityrackterminallist ul li[value="' + originalCityTerminalId + '"]').trigger('cityrackloaded');
+                    }
+                    else {
+                        $('#@Html.IdFor(m => m.CityGroupTerminalId)').val(selectedCityTerminal);
+                        originalCityTerminalId = selectedCityTerminal;
+                    }
+                });
+            }
+        }
+        function updateGlobalFuelCost() {
+            $(".global-fuelcost-loader").show();
+            globalFuelCost = $('#@Html.IdFor(m => m.GlobalFuelCost)').val();
+            fuelCostTypeId = @((int)SupplierCostTypes.GlobalCost);
+            if (Number(globalFuelCost) > 0) {
+                validationMessageFor($("#@Html.IdFor(m=>m.GlobalFuelCost)").attr('name'), '');
+                $("#responseMsgForGlobalCost").html('');
+                var url = '@Url.Action("UpdateFuelCurrentCost", "Order", new { area = "Supplier" })';
+                var data = {
+                    FuelRequestId: '@Model.FuelRequestId',
+                    PriceRequestDetailId: '@Model.RequestPriceDetailId',
+                    TfxFuelTypeId: '@Model.TfxFuelTypeId',
+                    FuelTypeId: '@Model.FuelTypeId',
+                    IsGlobalCost: true,
+                    FuelCost: globalFuelCost,
+                    OrderId: '@Model.Id',
+                    JobStateId: '@Model.JobStateId',
+                    CountryId: @Model.Country.Id,
+                    CurrencyType: @((int)Model.Country.Currency)
+                                        };
+                $.post(url, data, function (response) {
+                    $('#auto-lblCalculatedPricingppg').html('$' + response.CalculatedPpg);
+                    if (response.StatusCode == 0) {
+                        $("#responseMsgForGlobalCost").css("color", "green").html(response.Message);
+                        selectedFuelCostTypeId = '@((int)SupplierCostTypes.GlobalCost)';
+                        originalFuelCost = globalFuelCost;
+                    }
+                    else
+                        $("#responseMsgForGlobalCost").css("color", "red").html(response.Message);
+                }).always(function () {
+                    $(".global-fuelcost-loader").hide();
+                    $("#editGlobalFuelCost").removeAttr("disabled");
+                });
+            }
+            else {
+                validationMessageFor($("#@Html.IdFor(m=>m.GlobalFuelCost)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanZero, new object[] { Resource.lblFuelCost })');
+            }
+        }
+
+        function toggleEditWindow(elementClassName) {
+            $('.' + elementClassName).toggle();
+            var isVisible = $('.' + elementClassName).is(':visible');
+
+            if (isVisible === true) {
+                // element is Visible
+                validationMessageFor("@Html.NameFor(m => m.PoNumber)", '');
+                $('#@Html.IdFor(m => m.PoNumber)').val($('#lblPoNumber').text());
+            }
+        }
+
+        function showHideonSectionCheckbox(checkbox, toggleSection) {
+            showHideonCheckbox(checkbox, toggleSection);
+        }
+
+        function savePoNumber() {
+            var poNumber = $('#@Html.IdFor(m => m.PoNumber)').val();
+            if ($.trim(poNumber) == '') {
+                validationMessageFor("@Html.NameFor(m => m.PoNumber)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid,
+
+                                                                                           new object[] { Resource.lblPoNumber })');
+                return false;
+            }
+            var validationUrl = '@Url.Action("IsValidPONumberInOrder", "Validation", new { area = "" })?orderId=@Model.Id&companyId=@Model.BuyerCompanyId&poNumber=' + poNumber;
+            var targetUrl = '@Url.Action("EditPoNumber", "Order", new { area = "Supplier" })?id=@Model.Id&fuelRequestId=@Model.FuelRequestId&isProFormaPo=@Model.IsProFormaPo&poNumber=' + escape(poNumber);
+            var lblPoNumberVal = $('#lblPoNumber').text();
+            $.post(validationUrl, function (response) {
+                if (response == true) {
+                    $("#po-edit-modal").find('.loading-wrapper').show();
+                    $.post(targetUrl, function (response) {
+                        if (response.StatusCode == 0) { // 0=Success, 1=Failed
+                            toggleEditWindow('po-edit');
+                            lblPoNumberVal = poNumber;
+                            $('#lblPoNumber').text(lblPoNumberVal);
+                            msgsuccess(response.StatusMessage);
+                        }
+                    }).always(function () { $("#po-edit-modal").find('.loading-wrapper').hide(); });
+                }
+                else {
+                    validationMessageFor("@Html.NameFor(m => m.PoNumber)", '@ResourceMessages.GetMessage(Resource.valMessageAlreadyExist,
+
+                                                                                               new object[] { Resource.lblPoNumber })');
+                }
+            });
+        }
+
+        function updateWbsNumber() {
+            var wbsNumber = $('#@Html.IdFor(m => m.FuelDeliveryDetails.CustomAttributeViewModel.WBSNumber)').val();
+            var data = {
+                fuelRequestId: @Model.FuelRequestId,
+                wbsNumber: wbsNumber
+            }
+            var targetUrl = '@Url.Action("UpdateWbsNumber", "Order", new { area = "Supplier" })';
+            $.post(targetUrl, data, function (response) {
+                if (response.StatusCode == 0) {
+                    cancelEditOrderAdditionalDetails('edit-wbs-icon', 'wbs-details', 'wbs-buttons');
+                    msgsuccess(response.StatusMessage);
+                    valWBS = wbsNumber;
+                }
+            }).always(function () { $(".wbs-details").find('.loading-wrapper').hide(); });
+        }
+
+        function updateFuelCostForOrder() {
+            $(".add-fuel-cost :input").attr("disabled", "disabled");
+            $(".add-fuelcost-loader").show();
+            currentFuelCost = $('#@Html.IdFor(m => m.CurrentFuelCost)').val();
+            fuelCostTypeId = @((int)SupplierCostTypes.SupplierCost);
+            if (Number(currentFuelCost) > 0) {
+                validationMessageFor($("#@Html.IdFor(m => m.CurrentFuelCost)").attr('name'), '');
+                $("#responseMsgForCurrentCost").html('');
+                var url = '@Url.Action("UpdateFuelCurrentCost", "Order", new { area = "Supplier" })';
+                var data = {
+                    FuelRequestId: '@Model.FuelRequestId',
+                    PriceRequestDetailId: '@Model.RequestPriceDetailId',
+                    TfxFuelTypeId: '@Model.TfxFuelTypeId',
+                    FuelTypeId: '@Model.FuelTypeId',
+                    IsGlobalCost: false,
+                    FuelCost: currentFuelCost,
+                    SupplierFuelCostTypeId: selectedFuelCostTypeId,
+                    OriginalFuelCost: originalFuelCost,
+                    OrderId: '@Model.Id',
+                    CountryId: @Model.Country.Id,
+                    CurrencyType: @((int)Model.Country.Currency)
+                                        };
+                $.post(url, data, function (response) {
+                    if (response.StatusCode == 0) {
+                        $("#responseMsgForCurrentCost").css("color", "green").html(response.Message);
+                        selectedFuelCostTypeId = '@((int)SupplierCostTypes.SupplierCost)';
+                        originalFuelCost = currentFuelCost;
+                    }
+                    else
+                        $("#responseMsgForCurrentCost").css("color", "red").html(response.Message);
+
+                    $('#auto-lblCalculatedPricingppg').html('$' + response.CalculatedPpg);
+
+                }).always(function () {
+                    $(".add-fuelcost-loader").hide();
+                    $(".add-fuel-cost :input").removeAttr("disabled");
+                    $("#btnSaveCurrentCost").attr("disabled", "disabled");
+                });
+            }
+            else {
+                validationMessageFor($("#@Html.IdFor(m=>m.CurrentFuelCost)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanZero, new object[] { Resource.lblFuelCost })');
+            }
+        }
+
+        function saveDriver() {
+            var driverId = $('#@Html.IdFor(m => m.DriverId) option:selected').val();
+            var driverName = $('#@Html.IdFor(m => m.DriverId) option:selected').text();
+            $("#assign-driver-modal").find('.loading-wrapper').show();
+            var targetUrl = '@Url.Action("AssignDriver", "Order", new { area = "Supplier" })?id=@Model.Id&driverId=' + driverId;
+            $.post(targetUrl, function (response) {
+                if (response.StatusCode == 0) { // 0=Success, 1=Failed
+                    msgsuccess(response.StatusMessage);
+                    location.href = "@Url.Action("Details", "Order", new { area = "Supplier", id = Model.Id })";
+                }
+                else {
+                    msgerror(response.StatusMessage);
+                }
+            }).always(function () { $("#assign-driver-modal").find('.loading-wrapper').hide(); });
+        }
+
+        function setSelection(driverId) {
+            $('select[id$="DriverId"]').each(function () {
+                var element = $(this);
+                if (!element.hasClass('pntr-none')) {
+                    element.find('option').each(function () { $(this).removeAttr('selected') });
+                    element.find('option[value="' + driverId + '"]').attr('selected', 'selected');
+                }
+            });
+        }
+
+        function SetDefaultInvoiceType(elem)
+        {
+            var url = '@Url.Action("SetDefaultInvoiceTypeForOrder", "Order", new { area = "Supplier" })';
+            var data = {
+                orderId: '@Model.Id',
+                defaultInvoiceTypeManual: $(elem).val()
+            };
+            $.post(url, data, function (response) {
+
+                    if ($(elem).val() == 'False') {
+                        // show DDT button
+                        $("#btnCreateDDTNew").removeClass("hide-element");
+                        $("#btnCreateSplitDropTicket").removeClass("hide-element");
+                        $("#btnCreateInvoiceNew").addClass("hide-element");
+                        $("#btnCreateSplitInvoice").addClass("hide-element");
+                    }
+                    else {
+                        // show Manual invoice button
+                        $("#btnCreateInvoiceNew").removeClass("hide-element");
+                        $("#btnCreateDDTNew").addClass("hide-element");
+                        $("#btnCreateSplitDropTicket").addClass("hide-element");
+                        $("#btnCreateSplitInvoice").removeClass("hide-element");
+                    }
+
+                 });
+        }
+
+        function UpdateOtherProductTaxesUoM() {
+            if ('@Model.FuelDetails.FuelQuantity.UoM' == '@Resource.lblLitres') {
+                $('.ddl-other-product-tax').find('option').each(function () {
+                    $(this).text($(this).text().replace('@Resource.lblPerGallon', '@Resource.lblPerLitre'));
+                });
+                $('.taxesRow').find('.input-group-addon').each(function () {
+                    $(this).text($(this).text().replace('@(Currency.USD.ToString())','@(Currency.CAD.ToString())'));
+                });
+            }
+		}
+
+		function autoCompleteTerminal(element, url, fuelTypeId, latitude, longitude, countryId, pricingCodeId, orderId) {
+			var target = $(element);
+			var prevTerminal = $(element).val();
+            var terminalId = @Model.TerminalId;
+            var pricingSourceId = $("#@Html.IdFor(m=> m.FuelDetails.FuelPricing.FuelPricingDetails.PricingSourceId)").val();
+            var isSelected = false;
+            target.focus(function () {
+                target.val('');
+                $(this).autocomplete("search", '  ');
+            });
+			target.autocomplete({
+				search: function (e, u) {
+					$(".terminal-loader").show();
+				},
+				source: function (request, response) {
+					var inputData = {
+						fuelTypeId: fuelTypeId, latitude: latitude, longitude: longitude, countryId: countryId, pricingCodeId: pricingCodeId, orderId: orderId, terminal: request.term, pricingSourceId: pricingSourceId
+					};
+					$.ajax({
+						url: url,
+						type: "GET",
+						dataType: "json",
+						data: inputData,
+						success: function (data) {
+							response($.map(data, function (item) {
+								return {
+									label: item.Name,
+									value: item.Id
+								};
+							}))
+						},
+						complete: function (event, xhr, settings)
+						{
+							$(".terminal-loader").hide();
+						}
+					})
+				},
+				select: function (event, ui) {
+					isSelected = true;
+					$('#TerminalName').val(ui.item.label); // display the selected text
+					terminalId = ui.item ? ui.item.value : 0;
+					prevTerminal = ui.item ? ui.item.label : prevTerminal;
+					if(terminalId != 0 )
+						assignNewTerminalToOrder(terminalId);
+					return false;
+				},
+				messages: {
+					noResults: '',
+					results: function () { }
+				},
+				minLength: 2,
+				maxShowItems: 10,
+				scroll: true
+			});
+			$.ui.autocomplete.prototype._resizeMenu = function () {
+				var ul = this.menu.element;
+				ul.outerWidth(this.element.outerWidth());
+			}
+		}
+
+        $(document).on("click", ".saveData", function () {
+            var editSection = $(this).closest(".edit-section");
+            var poNumber = editSection.find("input[type='text']").val();
+            var invoiceId = editSection.find("input[type='hidden']").val();
+            var valElem = editSection.find('span[data-valmsg-for]');
+            var selector = valElem.attr('data-valmsg-for');
+            editSection.find(".loading-wrapper").show();
+
+            if ($.trim(poNumber) == '') {
+                validationMessageFor(selector, '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { Resource.lblPoNumber })');
+                editSection.find('span[data-valmsg-for]').show();
+                return false;
+            }
+            var targetUrl = '@Url.Action("EditInvoicePoNumber", "Invoice", new { area = "Supplier" })?invoiceId=' + invoiceId + '&poNumber=' + poNumber;
+            $.post(targetUrl, function (response) {
+                if (response.StatusCode == 0) { // 0=Success, 1=Failed
+                    editSection.find("label").show();
+                    editSection.find("input").hide();
+                    editSection.find("label").text(poNumber);
+                    editSection.find("input[type='hidden']").val(response.EntityId);
+                    editSection.find("a").show();
+                    msgsuccess(response.StatusMessage);
+                    editSection.find(".loading-wrapper").hide();
+                    editSection.find('span[data-valmsg-for]').hide();
+                    location.reload();
+                }
+            });
+        });
+
+        function updateOrderAdditionalOtherDetails() {
+            var additionalDetails = {
+                LoadCode: $("#@Html.IdFor(m => m.OrderAdditionalDetails.LoadCode)").val(),
+                Carrier: {
+                    Id: $("#@Html.IdFor(m => m.OrderAdditionalDetails.Carrier.Id)").val(),
+                    Name: $("#@Html.IdFor(m => m.OrderAdditionalDetails.Carrier.Name)").val()
+                },
+                SupplierSource: {
+                    Id: $("#@Html.IdFor(m => m.OrderAdditionalDetails.SupplierSource.Id)").val(),
+                    Name: $("#@Html.IdFor(m => m.OrderAdditionalDetails.SupplierSource.Name)").val(),
+                    ContractNumber: $("#@Html.IdFor(m => m.OrderAdditionalDetails.SupplierSource.ContractNumber)").val()
+                },
+                IsDriverToUpdateBOL: $("#OrderAdditionalDetails_IsDriverToUpdateBOL").is(':checked')
+            };
+            var bolImageReq = $("#FuelDeliveryDetails_IsBolImageRequired").is(':checked');
+            var dropImageReq = $("#FuelDeliveryDetails_IsDropImageRequired").is(':checked');
+            var signImageReq = $("#@Html.IdFor(m => m.IsSignatureEnabled)").is(':checked');
+            var data = { viewmodel: additionalDetails, bolImg: bolImageReq, dropImg: dropImageReq, signImg: signImageReq, Id: @Model.Id, updateType: @((int)OrderAdditionalUpdateType.Other) };
+            var url = "@Url.Action("UpdateOrderAdditionalDetails", "Order",new { area = "Supplier" })";
+
+            $(".order-additional-loader").show();
+            $.post(url, data, function (response) {
+                if (response.StatusCode == @((int)Status.Success)) {
+                    cancelEditOrderAdditionalDetails('edit-order-additional-details', 'order-additional-details', 'order-additional-buttons');
+                    msgsuccess(response.StatusMessage);
+                }
+                else {
+                    msgerror("Update details failed");
+                }
+            }).always(function () {
+                $(".order-additional-loader").hide();
+            });
+        }
+
+    function updateInvoiceNotificationPreference() {
+        $(".delivery-instructions-loader").show();
+            var additionalDetails = {
+                BOLInvoicePreferenceTypes : $("#@Html.IdFor(m => m.OrderAdditionalDetails.BOLInvoicePreferenceTypes):checked").val()
+        };
+        var bolImageReq = $("#FuelDeliveryDetails_IsBolImageRequired").is(':checked');
+        var dropImageReq = $("#FuelDeliveryDetails_IsDropImageRequired").is(':checked');
+        var signImageReq = $("#@Html.IdFor(m => m.IsSignatureEnabled)").is(':checked');
+        var data = { viewmodel: additionalDetails, bolImg: bolImageReq, dropImg: dropImageReq, signImg: signImageReq, Id: @Model.Id, updateType: @((int)OrderAdditionalUpdateType.InvoiceNotificationPreference) };
+            var url = "@Url.Action("UpdateOrderAdditionalDetails", "Order",new { area = "Supplier" })";
+        $.post(url, data, function (response) {
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess("Invoice Notification Preference Updated");
+            }
+            else {
+                msgerror("Update details failed");
+            }
+        }).always(function () {
+            $(".delivery-instructions-loader").hide();
+        });
+    }
+    function updateSupplierAllowance() {
+        var additionalDetails = {
+            Allowance: $("#@Html.IdFor(m => m.OrderAdditionalDetails.Allowance)").val()
+        };
+        var bolImageReq = $("#FuelDeliveryDetails_IsBolImageRequired").is(':checked');
+        var dropImageReq = $("#FuelDeliveryDetails_IsDropImageRequired").is(':checked');
+        var signImageReq = $("#@Html.IdFor(m => m.IsSignatureEnabled)").is(':checked');
+        var data = { viewmodel: additionalDetails, bolImg: bolImageReq, dropImg: dropImageReq, signImg: signImageReq, Id: @Model.Id, updateType: @((int)OrderAdditionalUpdateType.SupplierAllowance) };
+        var url = "@Url.Action("UpdateOrderAdditionalDetails", "Order", new { area = "Supplier" })";
+        if (additionalDetails.Allowance >= 0) {
+            validationMessageFor("@Html.NameFor(m => m.OrderAdditionalDetails.Allowance)", "");
+        }
+        else {
+            validationMessageFor("@Html.NameFor(m => m.OrderAdditionalDetails.Allowance)", "Allowance should not be negative value");
+            return false;
+        }
+        $(".allowance-loader").show();
+            $.post(url, data, function (response) {
+                if (response.StatusCode == @((int)Status.Success)) {
+                    $('#hdnAllowance').val(additionalDetails.Allowance);
+                    cancelEditOrderAdditionalDetails('allowance-edit-button', 'supplier-allowance', 'allowance-actionbuttons');
+                    msgsuccess("Supplier Allowance Updated");
+                }
+                else {
+                    msgerror("Update details failed");
+                }
+            }).always(function () {
+                $(".allowance-loader").hide();
+            });
+    }
+
+    function editOrderAddditionalDetails(element, displaySection, actionButtons) {
+        $(element).hide();
+        $("." + displaySection).find("input").attr("disabled", false);
+        $("." + actionButtons).show();
+
+    }
+
+        function cancelEditOrderAdditionalDetails(editButton, displaySection, actionButtons) {
+            var prevAllowance = $('#hdnAllowance').val();
+            $("#@Html.IdFor(m => m.OrderAdditionalDetails.Allowance)").val(prevAllowance);
+            validationMessageFor("@Html.NameFor(m => m.OrderAdditionalDetails.Allowance)", "");
+            $("#" + editButton).show();
+            $("." + displaySection).find("input").attr("disabled", true);
+            $("." + actionButtons).hide();
+        }
+
+    function showUpdateInvoiceNotesSection() {
+        $('#notes-edit-link').hide();
+        $('.edit-invoice-notes').show();
+        $('#notes-edit-link').hide();
+        $('.display-invoice-notes').hide();
+    }
+
+    function resetInvoiceNotesControls() {
+        $('.display-invoice-notes').show();
+        $('.edit-invoice-notes').hide();
+        $('#notes-edit-link').show();
+        $("#invoiceNotesValidation").text('');
+        $('.display-invoice-notes').show();
+    }
+
+    function updateInvoiceNotes() {
+        var notes = $("#@Html.IdFor(m => m.OrderAdditionalDetails.Notes)").val();
+        if (notes.length <= 0) {
+            $("#invoiceNotesValidation").text('Invoice Notes required');
+            return;
+        }
+        else {
+            $("#invoiceNotesValidation").text('');
+        }
+        var data = { Id: @Model.Id, notes: notes };
+        var url = "@Url.Action("UpdateInvoiceNotes", "Order",new { area = "Supplier" })";
+        $(".invoice-notes-loader").show();
+        $.post(url, data, function (response) {
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess(response.StatusMessage);
+                window.location.reload();
+            }
+            else {
+                msgerror(response.StatusMessage);
+            }
+        }).always(function () {
+            $(".invoice-notes-loader").hide();
+        });
+	}
+	function toggleLocation(element)
+	{
+		var elemParent = $(element).closest('.my-schedule');
+		var location = elemParent.find('.location');
+		if ($(element).is(':checked')) {
+			location.show();
+			if (elemParent.find('.splitload-address').length == 0)
+			{
+				elemParent.find('#LinkAddLocation').click();
+			}
+		}
+		else {
+			location.hide();
+		}
+	}
+
+	    function updateAddSplitLoadAddressUrl() {
+		    $('.link-addlocation').each(function (index, value) {
+			    var addSplitLoadAddressUrl = $(this).data('url');
+			    $(this).attr('data-url', addSplitLoadAddressUrl + '&countryId=@Model.Country.Id&countryCode=@Model.Country.Code');
+		    });
+        }
+
+        function SetActivationStatusToActive(element) {
+            var parent = $(element).closest('.tank-rental-wrapper');
+            parent.find('#ActivationStatusId').val('@((int)ActivationStatus.Active)');
+            $('.tank-invoice-link').show();
+        }
+
+        function SetActivationStatusToCreate(element) {
+            var parent = $(element).closest('.tank-rental-wrapper');
+            parent.find('#ActivationStatusId').val('@((int)ActivationStatus.Created)');
+        }
+
+        function showTankScheduleSuccessMessage(response) {
+            $(this).find('.btn-save').removeAttr('disabled');
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess(response.StatusMessage);
+                if (response.ActivationStatusId == @((int)ActivationStatus.Active)) {
+                    $(this).find('.tankRental-controls').attr('readonly', 'readonly');
+                    $(this).find('.tank-schedule-buttons').hide();
+                    $(this).find('.link-removetank').hide();
+                }
+                else if (response.ActivationStatusId == @((int)ActivationStatus.Created)) {
+                    $(this).find('.btn-save-activate').removeAttr('disabled');
+                    $(this).find('.btn-save-activate').removeAttr('readonly');
+                }
+                else {
+                    $(this).find('.tank-schedule-buttons').removeAttr('readonly');
+                }
+            }
+            else {
+                $(this).find('.btn-save').removeAttr('disabled');
+                $(this).find('.btn-save').removeAttr('readonly');
+                $(this).find('.btn-save-activate').removeAttr('disabled');
+                $(this).find('.btn-save-activate').removeAttr('readonly');
+                msgerror(response.StatusMessage);
+            }
+            $(this).find('.btn-save').blur();
+            $(this).find('.btn-save-activate').blur();
+        }
+
+        function showTankScheduleFailedMessage(response) {
+            msgerror(response.StatusMessage);
+        }
+
+        function hidePrevScheduleOption(elemt) {
+            var freqTypeDdls = $('.tank-rental-wrapper .frequencyTypes:not(:last)');
+            var currentDDL = $(elemt).closest('.tankRental-controls').find('select.frequencyTypes:last');
+            $.each(freqTypeDdls, function (idx, dropdown) {
+                var selected = $(dropdown).val();
+                if (selected != null && selected != undefined && selected != '' && !$(dropdown).is(currentDDL)) {
+                    var elemtToRemove = currentDDL.find("option[value='" + selected + "']");
+                    elemtToRemove.remove();
+                }
+            });
+            showHideAddFreqLink();
+        }
+
+        function showHideAddFreqLink() {
+            var allFreqTypeDdls = $('.tank-rental-wrapper .frequencyTypes');
+            if (allFreqTypeDdls.length >= 4) {
+                $('#LinkAddTankSchedule').hide();
+            }
+        }
+
+        function removeTankSchedule(elem, fuelReqId) {
+            var currentDDL = $(elem).closest('.tank-rental-wrapper').find('select.frequencyTypes');
+            var freq = parseInt(currentDDL.val());
+            var tankfuelRequestId = parseInt(fuelReqId);
+            if (tankfuelRequestId > 0) {
+                var data = { frequencyId: freq, frId: tankfuelRequestId };
+                var url = "@Url.Action("RemoveTankSchedule", "Order",new { area = "Supplier" })";
+                $.post(url, data, function (response) {
+                    if (response.StatusCode == @((int)Status.Success)) {
+                        if ($(".tank-rental-wrapper").length == 0 && $("#IsTankRentalEnabled").is(":checked")) {
+                            $("#IsTankRentalEnabled").closest("div").removeClass("pntr-none subSectionOpacity");
+                            $("#IsTankRentalEnabled").trigger("click");
+                        }
+                        msgsuccess(response.StatusMessage);
+                    }
+                    else {
+                        msgerror(response.StatusMessage);
+                    }
+                }).always(function () {
+                });
+            }
+        }
+
+        function RemovePickUpLocation() {
+            var orderId = @Model.Id;
+            if (orderId > 0) {
+                var removeUrl = '@Url.Action("InActivePickUpLocation", "Order", new { area= "Supplier"})';
+                $.post(removeUrl, { orderId: orderId }, function () {
+                    msgsuccess("Pick-Up Location removed successfully");
+                    $("#div-pick-up-location").html('@Resource.lblHyphen');
+                });
+            }
+            else {
+                window.location.reload();
+                msgerror("Remove Location Failed");
+            }
+        }
+
+        function loadPickUpLocation(orderId) {
+            var url = '@Url.Action("GetPickUpLocation", "Order", new { area = "Supplier"})';
+            $(".pickup-loader").show();
+            $.get(url, { orderId: orderId }, function (response) {
+                if (response != null || response != "") {
+                    $("#pick-up-location").html(response);
+                    parseForm();
+                }
+            }).always(
+                function () {
+                    $(".pickup-loader").hide();
+                }
+            );
+		}
+
+        function savePickUpLocation() {
+            var $form = $("#Modify-pickup-form");
+            var isValidForm = $form.valid();
+            var submitUrl = $form.attr("action");
+            var data = $form.serialize();
+            var isFullAddressAvailable = IsAddressAvailableForPickupLocation();
+            if (!isFullAddressAvailable) {
+                isValidForm = false;
+                msgerror("@Resource.errMsgAddressMissingForPickup");
+            }
+            if (isValidForm) {
+                $.post(submitUrl, data, function () {
+					$("#add-pickupLocation-modal").modal("hide");
+					var bulkplantName = '';
+                    var addressValue = '';
+                    var cityValue = '';
+                    var stateValue = '';
+                    var zipValue = '';
+					$form.serializeArray().filter(i => {
+						if (i.name == "Address.SiteName")
+							bulkplantName = i.value;
+                        if (i.name == "Address.Address")
+                            addressValue = i.value;
+                        if (i.name == "Address.City")
+                            cityValue = i.value;
+                        if (i.name == "Address.State.code")
+                            stateValue = i.value;
+                        if (i.name == "Address.ZipCode")
+                            zipValue = i.value;
+                    });
+					var address = '<div>' + bulkplantName + '</div><div class="fs12"><i class="fas fa-map-marker fs12 mr5"></i>' + addressValue + ', ' + cityValue + ', ' + stateValue + ' ' + zipValue;
+					address += '<a data-toggle="confirmation" data-html="true" data-popout="true" data-singleton="true"  data-confirmation-event="RemovePickUpLocation" data-placement="bottom"><i class="fas fa-trash color-maroon fs12 ml5" data-toggle="tooltip" data-placement="top" title="@Resource.btnLabelRemove"></i></a>';
+                    $("#div-pick-up-location").html(address);
+                    msgsuccess("Pickup location saved successfully");
+                });
+            }
+        }
+
+        function IsAddressAvailableForPickupLocation() {
+            var isValidForm = true;
+            var zipCode =  $('.zipcode.addressInput').val();
+            var city = $('.city.addressInput').val();
+            var address = $('.address.addressInput').val();
+            if (city === '' || city == undefined || city == null) {
+                isValidForm = false;
+            }
+            if (address === '' || address == undefined || address == null) {
+                isValidForm = false;
+            }
+            if (zipCode === '' || zipCode == undefined || zipCode == null) {
+                isValidForm = false;
+            }
+            return isValidForm;
+        }
+
+        function validateScheduleQuantityType(ele) {
+            var selectedType = $(ele).val();
+            var container = $(ele).closest('.schedule-type-container').find('.schedule-qty-container');
+            if (selectedType == '@((int)ScheduleQuantityType.Quantity)')
+                container.removeClass('hide-element');
+            else
+                container.addClass('hide-element');
+
+            return false;
+        }
+        function EnableDisableSaveButton() {
+            var container = $('#delivery-schedule-section').find('.partial-block-collection-section').find(".partial-block");
+            if (container && container.length > 0) {
+                $('.btnSubmitSchedule').removeAttr("disabled");
+            }
+            else {
+                if ($("#SaveButtonEnable").length > 0) {
+
+                } else {
+                    $(".btnSubmitSchedule").attr("disabled", true);
+                }
+
+            }
+        }
+
+        function postBadgeDetails() {
+            var isValidBadgeDtls = true
+            var allElements = $('.terminal-bulkplant-section .partial-block');
+            $.each(allElements, function (i, element) {
+                var terminal = $(element).find('.selectTerminal');
+                var bulkplant = $(element).find('.selectBulkPlant');
+                var badge1 = $(element).find('.badge1');
+                var badge2 = $(element).find('.badge2');
+                var badge3 = $(element).find('.badge3');
+
+                validationMessageFor(terminal.attr('name'), '');
+                validationMessageFor(bulkplant.attr('name'), '');
+                validationMessageFor(badge1.attr('name'), '');
+
+                if ($(element).find(".radio-badge-terminal").is(':checked')) {
+                    if (terminal.val() == 'undefined' || terminal.val() == null || terminal.val() == "") {
+                        validationMessageFor(terminal.attr('name'), 'Please select Terminal');
+                        isValidBadgeDtls = false;
+                        return false;
+                    }
+                }
+                else if ($(element).find(".radio-badge-bulkplant").is(':checked')) {
+                    if (bulkplant.val() == 'undefined' || bulkplant.val() == null || bulkplant.val() == "") {
+                        validationMessageFor(bulkplant.attr('name'), 'Please select Bulk Plant');
+                        isValidBadgeDtls = false;
+                        return false;
+                    }
+                }
+
+                if (badge1.val() == "" && badge2.val() == "" && badge3.val() == "") {
+                    validationMessageFor(badge1.attr('name'), 'Please enter Badge #');
+                    isValidBadgeDtls = false;
+                    return false;
+                }
+            });
+
+            if (isValidBadgeDtls) {
+                $('#update-badge-details-form').submit();
+                return true;
+            }
+        }
+
+        $(document).off('savePoNumber');
+        $(document).on('savePoNumber', function (e) {
+            savePoNumber();
+        });
+
+        $(document).off('RemovePickUpLocation');
+        $(document).on('RemovePickUpLocation', function (e) {
+            RemovePickUpLocation();
+        });
+        
+    </script>
+}
+<style>
+    span.select2-dropdown {
+        z-index: 2055;
+    }
+</style>

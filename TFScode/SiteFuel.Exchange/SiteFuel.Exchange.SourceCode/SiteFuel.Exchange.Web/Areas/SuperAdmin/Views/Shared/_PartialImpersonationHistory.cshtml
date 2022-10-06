@@ -1,0 +1,91 @@
+﻿<div class="well bg-white shadow-b">
+    <div class="ibox mb0">
+        <div class="ibox-content no-padding no-border">
+            <div class="table-responsive">
+                <table id="impersonation-datatable" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnImpersonatedBy</th>
+                            <th>@Resource.gridColumnUser</th>
+                            <th>@Resource.gridColumnStartTime</th>
+                            <th>@Resource.gridColumnEndTime</th>
+                            <th>@Resource.gridColumnTerminatedBy</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        
+        if ($('#txtFromDate').val()=="")
+        $('#txtFromDate').data("DateTimePicker").date(moment().subtract(moment.duration(30, 'days')));
+        if ($('#txtToDate').val() == "")
+        $('#txtToDate').data("DateTimePicker").date(moment());
+            impersonation = $('#impersonation-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetImpersonationHistory", "Impersonation", new { area = "SuperAdmin" })",
+                    "type": "GET",
+					"datatype": "json",
+					"data": function (d) {
+						d.fromDate = $('#txtFromDate').val();
+                        d.toDate = $('#txtToDate').val();
+                        d.ImpersonatedBy = $('#SuperAdmins').val();
+                        $('#impersonation-datatable').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+
+					},
+                    "dataSrc": ""
+                },
+                "columns": [
+                            { "data": "ImpersonatedBy", "autoWidth": true },
+                            { "data": "ImpersonatedUser", "autoWidth": true },
+							{ "data": "ImpersonatedStartTime", "autoWidth": true, "sType":"date" },
+                            { "data": "ImpersonatedEndTime", "autoWidth": true, "sType": "date" },
+                            { "data": "TerminatedBy", "autoWidth": true }
+						  ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingImpersonationHistory' },
+                    { extend: 'excel', title: '@Resource.headingImpersonationHistory'},
+                    { extend: 'pdf', title: '@Resource.headingImpersonationHistory' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });           
+        });
+	$('.datepicker').datetimepicker({
+		format: 'L'
+    });
+    $(document).ajaxComplete(function () {
+        $('#impersonation-datatable').find('.loading-wrapper').remove();
+    });
+    function showResponse(id) {
+        var w = window.open();
+        var jsonStr = $("#" + id).text();
+        var jsonPretty = JSON.stringify(JSON.parse(jsonStr), null, '\t');
+        w.document.body.innerHTML = '<pre>'+jsonPretty+' </pre>' ;
+    }
+</script>
+

@@ -1,0 +1,87 @@
+﻿@model AdditionalUserViewModel
+@{
+    var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+    var randomNum0999 = (new Random()).Next(0, 999);
+}
+<div class="row driver-other-info @(Model.RoleIds.Contains((int)UserRoles.Driver)? "" : "hide-element")">
+    <div class="col-11">
+        <div class="border-b mt20 mb15"></div>
+    </div>
+    <div class="col-11">
+        <div class="row">
+            <div class="col-12"><label>@Resource.lblDriverOtherDetails</label></div>
+        </div>
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.DriverInfo.CompanyName)
+                    @Html.TextBoxFor(m => m.DriverInfo.CompanyName, new { @class = "form-control" })
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.DriverInfo.ExpiryDate)
+                    @Html.TextBoxFor(m => m.DriverInfo.ExpiryDate, new { @class = "form-control datepicker" })
+                    @Html.ValidationMessageFor(m => m.DriverInfo.ExpiryDate)
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.DriverInfo.LicenseTypeId)
+                    @Html.DropDownListFor(m => m.DriverInfo.LicenseTypeId, new SelectList(CommonHelperMethods.GetDriverLicenceTypeEnumList(), "Value", "Text", Model.DriverInfo.LicenseTypeId),
+                      "Select Licence Type", new { @class = "form-control" })
+                    @Html.ValidationMessageFor(m => m.DriverInfo.LicenseTypeId)
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.DriverInfo.LicenseNumber)
+                    @Html.TextBoxFor(m => m.DriverInfo.LicenseNumber, new { @class = "form-control" })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-3" style="display:none">
+                <div class="form-group">
+                    @Html.HiddenFor(m => m.DriverInfo.ShiftName)
+                    @Html.LabelFor(m => m.DriverInfo.ShiftId)
+                    @Html.ListBoxFor(m => m.DriverInfo.ShiftId, new SelectList(CommonHelperMethods.GetCompanyShifts(CurrentUser.CompanyId), "Code", "Name", 0), new { @class = "form-control multi-select" })
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.DriverInfo.TrailerType)
+                    @Html.ListBoxFor(m => m.DriverInfo.TrailerType, new SelectList(CommonHelperMethods.GetTrailerTypeEnumList(), "Text", "Value", 0), new { @class = "form-control multi-select" })
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="form-group">
+                    <lable class="form-control d-block border-0"></lable>
+                    <label class="form-check form-check-inline cust-radio-chk">
+                        @Html.CheckBoxFor(m => m.DriverInfo.IsFilldAuthorized) @Resource.lblFilldAuthorized
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-11"><label>@Resource.lblTerminalCards</label></div>
+    <div class="col-11">
+        <div id="driver-other-info-@randomNum0999" class="partial-section">
+            <div class="partial-block-collection-section">
+                @if (Model.DriverInfo != null && Model.DriverInfo.CardNumbers != null)
+                {
+                    foreach (var number in Model.DriverInfo.CardNumbers)
+                    {
+                        number.CollectionHtmlPrefix = prefix;
+                        Html.RenderPartial("_PartialTerminalCardNumber", number);
+                    }
+                }
+            </div>
+            <div class="form-group col-12 row">
+                <a href="javascript:void(0)" class="fs18 add-partial-block" data-url="@Url.Action("GetTerminalCardNumber", "Profile" , new { area = "Settings", prefix = prefix})">
+                    <i class="fa fa-plus-circle fs18 float-left mr5 mt2"></i><span class="fs14 float-left">@Resource.btnLabelAddAnother</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,109 @@
+﻿<style>
+    #schedulemap {
+        height: 400px;
+    }
+</style>
+
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb5">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSchedulesFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSchedulesToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" id="btnSchedulesApply" class="btn btn-primary" value="@Resource.btnLabelApply" />
+                    <input type="button" id="btnSchedulesClearFilter" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearScheduleFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div id="schedules-info" class="col-md-12">
+        <div class="alert alert-info fs12 mb0"><strong>@Resource.lblInfo</strong>@Resource.lblSchedulesInfo</div>
+    </div>
+    <div class="col-md-12 mt15 hide-element">
+        @Html.Partial("_PartialDeliveryScheduleMapView")
+    </div>
+    <div class="col-sm-12 mb20 mt20" id="dispatchSchedules">
+        @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierCompany)
+        {
+        <div class="row">
+            <div class="col-sm-9 mb5 float-left">
+                <a id="create-delivery-group" class="btn btn-default" onclick="slidePanel('#create-dg-modal','90%')" data-target="create-dg-modal">
+                    <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                    @Resource.btnLabelCreateDeliveryGroup
+                </a>
+            </div>
+            <div class="col-sm-3 text-right">
+                @*@Html.TextBox("txtSearch", null, new { @class = "form-control", @placeholder = "Search schedules and groups", @id = "txtSearch", @onkeyup = "searchSchedulesAndDeliveryGroups(this)" })*@
+                <div class="input-container">
+                    <i class="fa fa-search icon"></i>
+                    <input class="input-field" type="text" placeholder="Search schedules and groups" name="txtSearch" id="txtSearch" onkeyup="searchSchedulesAndDeliveryGroups(this)">
+                </div>
+
+            </div>
+        </div>
+          
+        }
+
+        @Html.Partial("_PartialAllDeliverySchedulesGrid")
+    </div>
+    <div class="col-sm-12 hide-element mt20" id="deliveryGroupGrid">
+        @Html.Partial("_PartialDeliveryGroupGrid")
+    </div>
+</div>
+<div id="create-dg-modal" class="side-panel pl5 pr5">
+    <div class="side-panel-wrapper">
+        <div class="pt15 pb15">
+            <a class="ml15 close-panel" onclick="closeSlidePanel()"><i class="fa fa-close fs18"></i></a>
+            <h2 class="dib mt0 mb0 fs21 ml15">Create Delivery Group</h2>
+        </div>
+        @Html.Partial("_PartialCreateDeliveryGroup")
+        <div class="text-right ml15 mr15">
+            <button type="button" id="create-modal-cancel" class="btn btn-secondary close-panel" onclick="closeSlidePanel()">@Resource.btnLabelCancel</button>
+            <button type="button" id="create-modal-save" class="create-group btn btn-primary pr15">@Resource.btnLabelSave</button>
+            <button type="button" class="btn btn-primary hide-element create-grouploader"><div class='spinner-xsmall'></div></button>
+        </div>
+        <div id="create-modal-loader" class="position-abs text-center s-spinner">
+            <div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>
+        </div>
+    </div>
+
+</div>
+<div id="edit-dg-modal" class="side-panel pl5 pr5">
+    <div class="side-panel-wrapper">
+        <div class="pt15 pb15">
+            <a class="ml15 close-panel" onclick="closeSlidePanel()"><i class="fa fa-close fs18"></i></a>
+            <h2 class="dib mt0 mb0 fs21 ml15">Edit Delivery Group</h2>
+        </div>
+        @Html.Partial("_PartialEditDeliveryGroup")
+        <div class="ml15 mr15 text-right">
+            <button type="button" id="edit-modal-cancel" class="btn btn-secondary close-panel" onclick="closeSlidePanel()">@Resource.btnLabelCancel</button>
+            <button type="button" id="edit-modal-save" class="edit-group btn btn-primary">@Resource.btnLabelSave</button>
+            <button type="button" class="btn btn-primary hide-element edit-grouploader"><div class='spinner-xsmall'></div></button>
+        </div>
+        <div id="edit-modal-loader" class="position-abs text-center s-spinner">
+            <div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>
+        </div>
+    </div>
+    
+    </div>
+    <div class="modal fade" id="addPickupLocation" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="overflow-h">
+                        <h4 class="pull-left mb5 pt0 pb0">@Resource.btnLabelAddPickupLocation</h4>
+                        <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">×</span></button>
+                    </div>
+                    @Html.Partial("_PartialDeliveryGroupPickup", new DeliveryGroupPickupViewModel())
+                    <div class="text-right mt10">
+                        <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                        <button type="button" class="btn btn-primary" id="btn-add-location">@Resource.lbladd</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

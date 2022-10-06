@@ -1,0 +1,126 @@
+﻿@model SalesCalculatorViewModel
+<div class="row mt10">
+    <div class="col-lg-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox">
+                <div class="ibox-content no-border pr0 pl0 pt25">
+                    <div id="sales-calculator-platts-div" class="table-responsive mt25 pt25">
+                        <table id="platts-datatable" class="table table-striped table-bordered table-hover pb0 mt20">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnId</th>
+                                    <th>@Resource.gridColumnName</th>
+                                    <th>@Resource.gridColumnPrice</th>
+                                    <th>@Resource.lblFeed</th>                                   
+                                    <th>@Resource.gridColumnPricingDate</th>
+                                    <th>@Resource.gridColumnReportedDate</th>
+                                    <th>@Resource.gridcolumnCurrency</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <script type="text/javascript">
+        var exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6] };
+        var plattsGrid;
+        $(document).ready(function () {
+            var cityTerminalIds =  @Html.Raw(Json.Encode(Model.CityTerminalIds));
+            plattsGrid = $('#platts-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetSalesCalculatorPlattsGrid", "InternalSales", new { area = "Sales" })",
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": function (data) {
+                        //data.PricingSourceId = '@Model.FuelPricingDetails.PricingSourceId';
+                        data.PriceDate = '@Model.PriceDate';
+                        data.CityTerminalIds = cityTerminalIds;
+                        data.CommonFuelTypeId = '@(Model.SelectedFuelType == (int)ProductDisplayGroups.FuelTypesInYourArea ? Model.FuelTypeInYourAreaId : (Model.SelectedFuelType == (int)ProductDisplayGroups.LessCommonFuelType ? Model.LessCommonFuelTypeId : Model.CommonFuelTypeId))';
+                        //data.FeedTypeId = '@Model.FuelPricingDetails.FeedTypeId';
+                        //data.BrandTypeId = '@Model.FuelPricingDetails.FuelClassTypeId';
+                        //data.PriceTypeId = '@Model.FuelPricingDetails.PricingQuantityIndicatorTypeId';
+                        data.IsCustomPricing = '@Model.IsCustomPricing';
+                        data.CustomPricing = '@Model.CustomPricing';
+                        data.Amount = '@Model.Amount';
+                        data.PricingCodeId = '@Model.FuelPricingDetails.PricingCode.Id';
+                        //data.PricingCode = '@Model.FuelPricingDetails.PricingCode.Code';
+                        $('#sales-calculator-opis-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                    },
+                    "dataSrc": function (json) {
+                        $("#sales-calculator-platts-div").find('.loading-wrapper').remove();
+                        return json.data;
+                    }
+                },
+                "columns": [
+                    { "data": "TerminalId", "autoWidth": true },
+                    { "data": "Name", "autoWidth": true },                   
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.Amount == '@Resource.lblHyphen') {
+                                return data.Amount;
+                            }
+                            else {
+                                return '@Resource.constSymbolCurrency' + data.Amount;
+                            }
+                        }, "autoWidth": true
+                    },
+                    { "data": "FeedTypeName", "autoWidth": true },
+                    { "data": "PriceLoadDate", "autoWidth": true },
+                    { "data": "ReportedDate", "autoWidth": true },
+                    { "data": "CurrencyName", "autoWidth": true },
+                ],
+                "columnDefs": [
+                    { "name": "TerminalId", "targets": 0, "regex": false },
+                    { "name": "Name", "targets": 1 },
+                    { "name": "Amount", "targets": 2 },
+                    { "name": "FeedTypeName", "targets": 3 },
+                    { "name": "PriceLoadDate", "targets": 4 },
+                    { "name": "ReportedDate", "targets": 5 },
+                    { "name": "CurrencyName", "targets": 6 },
+                ],
+                'lengthMenu': [[10, 25, 50, 100], [10, 25, 50, 100]],
+                aaSorting: [[]],
+                "serverSide": true,
+                "searchDelay": 500,
+                processing: true,
+                "searching": { "regex": false },
+                "bProcessing": true,
+                lengthChange: true,
+                pageLength: 10,
+                responsive: true,
+                "order": [0, 'desc'],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingOrders', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingOrders', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingOrders', exportOptions: exportColumns, orientation: 'landscape', pageSize: 'LETTER' },
+
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        });
+
+        function ShowCalculator() {
+            var url = '@Url.Action("Calculator", "InternalSales", new { area="Sales" })';
+            window.location.href = url;
+        }
+    </script>

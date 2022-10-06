@@ -1,0 +1,204 @@
+﻿<div class="row mb10">
+	<div class="col-sm-12">
+		<div class="well pb15 mb5">
+			<div class="row">
+				<div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+				<div class="col-xs-6 col-sm-3 col-md-2"><input type="text" id="txtDeliveriesFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+				<div class="col-xs-6 col-sm-3 col-md-2"><input type="text" id="txtDeliveriesToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+				<div class="col-xs-12 col-sm-4 col-md-3">
+					<input type="button" id="btnDropFilterApply" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDeliveries();" />
+					<input type="button" id="btnClearDropFilter" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearDeliveriesFilter();" />
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="row">
+	<div id="deliveriesInfo" class="col-md-12">
+		<div class="alert alert-info fs12 mb10"><strong>@Resource.lblInfo</strong>@Resource.lblDeliveriesInfo</div>
+	</div>
+	<div class="col-sm-12" id="dispatchDeliveries">
+		<div class="well bg-white shadow-b pr">
+			<div class="ibox mb0">
+				<div class="ibox-content no-border no-padding">
+					<div class="table-responsive">
+						<table id="supplier-deliveries" class="table table-striped table-bordered table-hover">
+							<thead>
+								<tr>
+									<th>@Resource.gridColumnDdtOrInvoiceNumber</th>
+									<th>@Resource.gridColumnCustomer</th>
+									<th>@Resource.gridColumnScheduledDate</th>
+									<th>@Resource.gridColumnDropDate</th>
+									<th>@Resource.gridColumnDeliveryScheduledTime</th>
+									<th>@Resource.gridColumnDropTime</th>
+									<th>@Resource.gridColumnGallonsScheduled</th>
+									<th>@Resource.gridColumnGallonsDelivered</th>
+									<th>@Resource.lblAssignedDriver</th>
+									<th>@Resource.gridColumnDriver</th>
+									<th>@Resource.gridColumnOverage</th>
+									<th>@Resource.lblOverageAllowed</th>
+									<th>@Resource.gridColumnDeliverySchedule</th>
+									<th>@Resource.gridColumnStatus</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+@using (Html.BeginScripts())
+{
+	<script type="text/javascript">
+		var dropStartDate, dropEndDate, isDeliveriesGridLoaded = false;
+		var ClearDeliveriesFilter, supplierDeliveries;
+
+        function ReloadDeliveries() {
+            dropStartDate = $('#txtDeliveriesFromDate').val();
+            dropEndDate = $('#txtDeliveriesToDate').val();
+            if (dropStartDate == '') {
+                $("#txtDeliveriesFromDate").val(moment().format('MM/DD/YYYY'));
+            }
+            if (dropEndDate == '') {
+                $("#txtDeliveriesToDate").val(moment().format('MM/DD/YYYY'));
+            }
+
+            if (isDeliveriesGridLoaded == true) {
+                supplierDeliveries.ajax.reload();
+            }
+            else {
+                LoadDeliveries();
+            }
+        }
+
+        function LoadDeliveries() {
+            isDeliveriesGridLoaded = true;
+
+            supplierDeliveries = $('#supplier-deliveries').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("DeliveriesGrid", "Dispatch", new { area = "Supplier" })",
+                    "type": "POST",
+                    "datatype": "json",
+                    "traditional": true,
+                    "data": function (d) {
+                        d.driverIds = $('#SelectedDrivers').val(),
+                        d.startDate = $('#txtDeliveriesFromDate').val(),
+                        d.endDate = $('#txtDeliveriesToDate').val(),
+                        d.currency = PageCurrencyId,
+                        d.countryId = PageCountryId
+                    },
+                    "dataSrc": ""
+                },
+                "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("Details", "Invoice", new { area = "Supplier" })/' + data.InvoiceId + '">' + data.Number + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "Customer", "autoWidth": true },
+                    { "data": "ScheduledDate", "autoWidth": true, "sType": "date" },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<label class=' + (data.IsDropDateLate == 1 ? "color-red" : "") + '>' + data.DropDate + '</label>';
+                        }, "autoWidth": true, "sType": "date"
+                    },
+                    { "data": "ScheduledTime", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<label class=' + (data.IsDropTimeLate == 1 ? "color-red" : "") + '>' + data.DroppedTime + '</label>';
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.QuantityTypeId != @((int)QuantityType.NotSpecified)) {
+                                return data.QuantityScheduled;
+                            }
+                            else {
+                                return '@Resource.lblNotSpecified';
+                            }
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.OrderId != null) {
+                                return '<label class=' + (data.Overage > 0 || data.Overage < -5 ? "color-red" : "") + '>' + data.QuanityDropped + '</label>';
+                            }
+                            else {
+                                return '@Resource.lblHyphen';
+                            }
+                        }, "autoWidth": true
+                    },
+                    { "data": "ScheduledDriver", "autoWidth": true },
+                    { "data": "Driver", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.OrderId != null) {
+                                return (data.Overage > 0 ? data.Overage : 0) + '@Resource.constSymbolPercent';
+                            }
+                            else {
+                                return '@Resource.lblHyphen';
+                            }
+                        }, "autoWidth": true
+                    },
+                    { "data": "IsOverageAllowed", "autoWidth": true },
+                    { "data": "IsDeliverySchedule", "autoWidth": true },
+                    { "data": "ScheduleStatus", "autoWidth": true }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingDeliveries' },
+                    { extend: 'excel', title: '@Resource.headingDeliveries' },
+                    { extend: 'pdf', title: '@Resource.headingDeliveries' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        }
+
+
+		$(document).ready(function () {
+
+			if ($('#txtDeliveriesFromDate').length > 0 && $('#txtDeliveriesToDate').length > 0) {
+				$("#txtDeliveriesFromDate").on('dp.change dp.show', function (e) {
+					if (e.date == false)
+						$('#txtDeliveriesToDate').data("DateTimePicker").minDate($("#txtDeliveriesFromDate").datetimepicker("minDate"));
+					else
+						$('#txtDeliveriesToDate').data("DateTimePicker").minDate(moment($('#txtDeliveriesFromDate').val()));
+				});
+			}
+
+			ClearDeliveriesFilter = function () {
+				$('#txtDeliveriesFromDate').val(moment().format('MM/DD/YYYY'));
+				$('#txtDeliveriesToDate').val(moment().format('MM/DD/YYYY'));
+				$('#txtDeliveriesToDate').data("DateTimePicker").minDate($("#txtDeliveriesFromDate").datetimepicker("minDate"));
+				ReloadDeliveries();
+			}
+
+			$('#SelectedDrivers').on('change', function () {
+				ReloadDeliveries();
+		    });
+		});
+	</script>
+}

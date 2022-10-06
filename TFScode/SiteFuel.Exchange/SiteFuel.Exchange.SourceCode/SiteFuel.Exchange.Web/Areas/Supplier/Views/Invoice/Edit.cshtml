@@ -1,0 +1,762 @@
+﻿@model ManualInvoiceViewModel
+@{
+    if ((Model.TypeofFuel == (int)ProductDisplayGroups.OtherFuelType && Model.IsConvertFromDDT == true)
+        || (Model.TaxDetails != null && !Model.TaxDetails.AvaTaxDetails.Any() && Model.InvoiceTypeId == (int)InvoiceType.Manual))
+    {
+        ViewBag.Title = "Create Invoice";
+    }
+    else
+    {
+        ViewBag.Title = (Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp) ? "Edit Digital Drop Ticket" : "Edit Invoice";
+    }
+}
+@using (Html.BeginForm("Edit", "Invoice", new { area = "Supplier", orderId = Model.OrderId }, FormMethod.Post, new { enctype = "multipart/form-data", @class = "edit-invoice" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.InvoiceTypeId)
+    @Html.HiddenFor(m => m.PoNumber)
+    @Html.HiddenFor(m => m.StatusId)
+    @Html.HiddenFor(m => m.SignatureId)
+    @Html.HiddenFor(m => m.OrderId)
+    @Html.HiddenFor(m => m.DisplayInvoiceNumber)
+    @Html.HiddenFor(m => m.IsFTL)
+    @Html.HiddenFor(m => m.OriginalInvoiceId)
+    @Html.HiddenFor(m => m.IsQuanityOrDateChanged)
+    @Html.HiddenFor(m => m.InvoiceCreationPricePerGallon)
+    @Html.HiddenFor(m => m.IsPrePostDipRequired)
+    @Html.HiddenFor(m => m.IsBadgeMandatory)
+    @Html.HiddenFor(m => m.OriginalDroppedGallons)
+    @Html.HiddenFor(m => m.IsMarineLocation)
+    @Html.HiddenFor(m=> m.ConvertedQuantity)
+    @Html.HiddenFor(m=>m.UoM)
+    @Html.HiddenFor(m=>m.JobCountryId)
+    @Html.HiddenFor(m => m.IsBolRequired)
+    if (Model.IsFTL)
+    {
+        @Html.PartialFor("_PartialFtlInvoice", m => m)
+    }
+    else
+    {
+        @Html.PartialFor("_PartialInvoice", m => m)
+    }
+
+    <div class="row text-right">
+        <div class="col-sm-2"></div>
+        <div class="col-sm-10 text-right form-buttons">
+            <input class="btn" type="button" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Details", "Invoice", new { area = "Supplier", id = Model.InvoiceId })'" />
+            <input class="btn btn-lg btn-primary form-submit" type="button" value="@Resource.btnLabelSubmit" onclick="return submitForm(false);" />
+            @if (Model.StatusId == (int)InvoiceStatus.Draft)
+            {
+                <input class="btn btn-lg btn-primary form-submit" type="button" value="@Resource.btnLabelSave" onclick="return submitForm(true);" />
+            }
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/address-goecoder")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Invoice")
+<script type="text/javascript">
+
+            var mapsApiKey = '@SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleApiKey';
+            var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+
+            var stateId = @(Model.DropAddress != null ? @Model.DropAddress.State.Id : 0); // for state autofill
+		    var pickupStateId = @(Model.PickUpAddress != null ? @Model.PickUpAddress.State.Id : 0);
+            var CollectionName = "Assets";
+		    var assetsFromModel =  @Html.Raw(Json.Encode(Model.Assets));
+            var fuelRemaining = '@(Model.FuelRemaining + Model.FuelDropped)';
+		    var originalFuelDropped = $("#@Html.IdFor(m => m.FuelDropped)").val();
+		    var originalPickUpAddress = '@Model.PickUpAddress.Address', originalPickUpZipcode = '@Model.PickUpAddress.ZipCode';
+            var originalDropDate = $("#DeliveryDate").val();
+		    var isFtl = '@Model.IsFTL' == 'True', originalPickupBulkPlant = '@Model.PickUpAddress.IsAddressAvailable' == 'True';
+		    var isBolRequired = '@Model.IsBolRequired' == 'True';
+            ShowFtlInvoiceElements();
+
+            function ShowFtlInvoiceElements() {
+                if ('@Model.IsFTL' == 'True') {
+                    $('.show-in-invoice').show();
+                }
+            }
+
+            $('#@Html.IdFor(m=>m.FuelDropped)').on("input, change", function () {
+                if (parseFloat(fuelRemaining) < parseFloat($('#@Html.IdFor(m=>m.FuelDropped)').val())) {
+                    $("#valFuelDropped").addClass('show-element').removeClass('hide-element');
+                }
+                else {
+                    $("#valFuelDropped").addClass('hide-element').removeClass('show-element');
+                }
+                calculateSurcharge();
+
+            });
+
+
+
+            $('.surchargePercentage').on("input, change", function () {
+                calculateSurcharge();
+            });
+
+            $('.surchargeDistance').on("input, change", function () {
+                calculateSurcharge();
+            });
+
+            function calculateSurcharge() {
+                var isbyDistance = '@Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.IsFeeByDistance';
+                if (isbyDistance == 'True') {
+                    var distance = parseFloat($('.surchargeDistance').val());
+                    if (distance > 0)
+                        SetDistanceBasedFreightCost(distance);
+                }
+                var surchargePartial = (parseFloat($('.surchargePercentage').val()) / 100) * parseFloat($('.surchargeFreightCost').val());
+                var surchargeQty = parseFloat($('#FuelDropped').val());
+                var surchargeFee = surchargePartial.toFixed(4) * surchargeQty;
+                if (surchargeFee > 0)
+                    $('.totalFuelSurchargeFee').val(surchargeFee.toFixed(4));
+            }
+
+            var surchargeFeeByQty;
+             $(document).ready(function () {
+                 surchargeFeeByQty = JSON.parse('@Html.Raw(Json.Encode(Model.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.DeliveryFeeByQuantity.ToList()))');
+                 var isDDT = '@(Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)';
+                 if (isDDT == 'False') {
+                     $('.edit-terminal').addClass('hide');
+                 }
+                 showHideCalculateButton();
+
+                 setConversionOrGravity();
+            });
+            function setConversionOrGravity() {
+                var IsConversionFactor = $('input[name="@Html.IdFor(m => m.IsConversionFactor)"]:checked').val();
+                if (IsConversionFactor == "true") {
+                    $(".gravitySec").hide();
+                    $(".conversionFactorSec").show();
+                    $('#@Html.IdFor(m=>m.Gravity)').val('');
+                    $('#metric-converted-qty').val('');
+                     } else {
+                    $(".gravitySec").show();
+                    $(".conversionFactorSec").hide();
+                        $('#@Html.IdFor(m=>m.ConvertionFactor)').val('');
+                     }
+            }
+
+            function SetDistanceBasedFreightCost(distance) {
+                var exactFee = surchargeFeeByQty.find(function (x) { return x.MinQuantity <= distance && x.MaxQuantity >= distance; });
+                if (exactFee != undefined)
+                    $('.surchargeFreightCost').val(exactFee.Fee);
+                else {
+                    exactFee = surchargeFeeByQty[surchargeFeeByQty.length - 1];
+                    if (exactFee != undefined)
+                        $('.surchargeFreightCost').val(exactFee.Fee);
+                    else
+                        $('.surchargeFreightCost').val(0);
+                    //set message as cost not available for this distance
+                }
+            }
+
+            $(document).on("change", ".ftl-drop-input, .pickup-taxchange", function () {
+                setStandartTax();
+            });
+
+            $('#SelectedAssets').change(function (e) {
+			    var newAssets = [];
+			    $(this).find('option:selected').each(function () {
+				    newAssets.push({ id: $(this).data('id'), jobxAssetId: $(this).data('jobxassetid') });
+			    });
+			    var existingAssets = [];
+                var existingAssetBlocks = $('#asset-drops .partial-block');
+			    existingAssetBlocks.each(function () {
+				    existingAssets.push({ id: $(this).find('[id$="_Id"]').val(), jobxAssetId: $(this).find('[id$="_JobXAssetId"]').val() });
+                });
+			    for (var i = 0; i < existingAssetBlocks.length; i++) {
+				    var mappingId = $(existingAssetBlocks[i]).find('[id$="_Id"]').val();
+                    var jobxAssetId = $(existingAssetBlocks[i]).find('[id$="_JobXAssetId"]').val();
+                    var assetDropGallons = parseInt($(existingAssetBlocks[i]).closest('.partial-block').find('[id$="_DropGallons"]').val()) || 0;
+                    var totalDroppedGallons = parseInt($("#@Html.IdFor(m=> m.FuelDropped)").val()) || 0;
+				    if (jobxAssetId > 0 && $.grep(newAssets, function (key, value) {
+					    return key.id == mappingId && key.jobxAssetId == jobxAssetId
+                    }).length == 0) {
+                        if (totalDroppedGallons > assetDropGallons) {
+                            $("#@Html.IdFor(m=> m.FuelDropped)").val(totalDroppedGallons - assetDropGallons);
+                        }
+                        else {
+                            $("#@Html.IdFor(m=> m.FuelDropped)").val('');
+                        }
+					    $(existingAssetBlocks[i]).prev("input[type='hidden']").remove();
+					    $(existingAssetBlocks[i]).remove();
+				    }
+                }
+                var assetsToAdd = $.grep(newAssets, function (element, index) {
+                    if ($.grep(existingAssets, function (key, value) {
+                        return element.id == key.id && element.jobxAssetId == key.jobxAssetId
+                    }).length == 0) {
+                        return element.jobxAssetId;
+                    }
+                });
+                for (var i = 0; i < assetsToAdd.length; i++) {
+                    var data = $.grep(assetsFromModel, function (asset) {
+                        return asset.JobXAssetId == assetsToAdd[i].jobxAssetId && asset.Id == assetsToAdd[i].id;
+                    });
+
+                    //removed code with .findIndex as it was not working with IE
+                    var index;
+                    for (var ind = 0; ind < assetsFromModel.length; ++ind) {
+                        if (assetsFromModel[ind].JobXAssetId == assetsToAdd[i].jobxAssetId && assetsFromModel[ind].Id == assetsToAdd[i].id) {
+                            index = ind;
+                            break;
+                        }
+                    }
+
+                    var assetDrop = new AssetDropModule.AssetDrop(data[0], index, '@Model.UoM');
+                    var partialView = assetDrop.getPartialBlock();
+                    var totalDroppedGallons = parseInt($("#@Html.IdFor(m=> m.FuelDropped)").val()) || 0;
+                    var assetDropGallons = parseInt($(partialView).find('[id$="_DropGallons"]').val()) || 0;
+                    if (assetDropGallons > 0) {
+                        $("#@Html.IdFor(m=> m.FuelDropped)").val(totalDroppedGallons + assetDropGallons);
+                    }
+                    $("#asset-drop-section .partial-block-collection-section").append(partialView);
+
+                    if (data[0] != undefined) {
+                        if (data[0].UoM == @((int)UoM.Gallons)) {
+                        $("#Assets_" + assetDrop.Index +"_TankScaleMeasurement option[value='4']").remove();
+                        }
+                        if (data[0].UoM == @((int)UoM.Litres)) {
+                            $("#Assets_" + assetDrop.Index + "_TankScaleMeasurement option[value='3']").remove();
+                        }
+                        if (data[0].AssetType == @((int)AssetType.Asset)) {
+                            $("#Assets_" + assetDrop.Index + "_TankScaleMeasurement option[value='1']").remove();
+                            $("#Assets_" + assetDrop.Index + "_TankScaleMeasurement option[value='2']").remove();
+                        }
+                        if (data[0].AssetType == @((int)AssetType.Tank)) {
+                            if (data[0].TankMakeModel == null || data[0].TankMakeModel == '' || data[0].TankMakeModel == undefined) {
+                                $("#Assets_" + assetDrop.Index + "_TankScaleMeasurement option[value='1']").remove();
+                                $("#Assets_" + assetDrop.Index + "_TankScaleMeasurement option[value='2']").remove();
+                            }
+                        }
+                    }
+
+                }
+                showHideCalculateButton();
+
+                if (assetsToAdd.length > 0) {
+                    parseForm();
+                    documentReady(true);
+                    enableSubmit();
+                }
+            });
+
+            //Get Gallons to metric conversion factor and calculate converted qty
+            $('#@Html.IdFor(m=>m.Gravity)').on("input", function (event) {
+                CalculateConvertedQtysForMFN();
+            });
+            $('#@Html.IdFor(m=>m.FuelDropped)').on("change", function (event) {
+
+                CalculateConvertedQtysForMFN();
+            });
+
+            var $form = $(".edit-invoice");
+            function submitForm(isSaveDraftDdt) {
+                var isValidForm = true;
+                var IsPrePostDipRequired = false;
+                var IsPrePostDipRequiredstring = $("#@Html.IdFor(m=>m.IsPrePostDipRequired)").val();// coming as string
+                var booleanIsDipDataRequired = (IsPrePostDipRequiredstring === "True"); // convert to boolean
+                if (booleanIsDipDataRequired) {
+                    IsPrePostDipRequired = true;
+                }
+                $('#validation-error-gravity').text('');
+
+                if ('@((int)Model.UoM)' == '@((int)UoM.MetricTons)') {
+                    var apiGravity = $('#@Html.IdFor(m=>m.Gravity)').val();
+                     var conversionFactor = $('#@Html.IdFor(m=>m.ConvertionFactor)').val();
+                     var IsConversionFactor = $('input[name="@Html.IdFor(m => m.IsConversionFactor)"]:checked').val();
+                    if (IsConversionFactor !='true' && (apiGravity == '' || apiGravity == null || apiGravity == undefined)) {
+                        $('#validation-error-gravity').text('@Resource.errAPIGravityRequired').removeClass('hide-element');
+
+                        isValidForm = false;
+                    } else if (IsConversionFactor == 'true' && (conversionFactor == '' || conversionFactor == null || conversionFactor == undefined))
+                    {
+                        $('#validation-error-conversionFactor').text('@Resource.errAPIConversionFactorRequired').removeClass('hide-element');
+
+                        isValidForm = false;
+                    }
+                    else {
+
+                    }
+                }
+                fixedButtons('.form-submit');
+                focusonErrorControl();
+			    try {
+                    var assets = $('#asset-drops .partial-block');
+				    for (var i = 0; i < assets.length; i++) {
+					    var dropGallons = $(assets[i]).find('.drop-input');
+					    var dropStartTime = $(assets[i]).find('.starttime');
+                        var dropEndTime = $(assets[i]).find('.endtime');
+					    if (dropGallons.val() != '' || dropStartTime.val() != '' || dropEndTime.val() != '') {
+						    var isdropGallonsValid = dropGallons.valid();
+						    var isStartTimeValid = dropStartTime.valid();
+						    var isEndTimeValid = dropEndTime.valid();
+						    if (isValidForm == true) {
+                                isValidForm = isdropGallonsValid && isStartTimeValid && isEndTimeValid;
+						    }
+					    }
+				    }
+                    //var isdropDateValid = $('#FuelDropped').valid();
+                    var isFuelDroppedValid = $('#FuelDropped').valid();
+				    var isDropTimeValid = $('.dropstarttime').valid();
+				    var isDropEndTimeValid = $('.dropendtime').valid();
+				    if (isValidForm == true) {
+                        isValidForm = isFuelDroppedValid && isDropTimeValid && isDropEndTimeValid;
+                    }
+
+                    var dropDate = Date.parse($('#DeliveryDate').val());
+                    var dropEndDate = Date.parse($('#DropEndDate').val());
+                    if (dropEndDate != null && dropEndDate != '' && dropEndDate < dropDate) {
+                        validationMessageFor('@Html.NameFor(m => m.DropEndDate)', '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanOrEqual, new object[] { Resource.lblDropEndDate, Resource.lblDropDate })');
+                        isValidForm = false;
+                    }
+                    var dropEndTimeVal = $('.dropendtime').val();
+				    var dropStartTimeVal = $('.dropstarttime').val();
+                    var dropStartTimevalInSeconds = dropStartTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(dropStartTimeVal))) : 0;
+                    var dropEndTimevalInSeconds = dropEndTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(dropEndTimeVal))) : 0;
+                    if (dropStartTimeVal != '' && dropEndTimeVal != '' && dropEndTimeVal != dropStartTimeVal) {
+                        if (dropEndDate == dropDate && dropStartTimevalInSeconds > dropEndTimevalInSeconds) {
+                            validationMessageFor('@Html.NameFor(m => m.EndTime)', '@ResourceMessages.GetMessage(Resource.valMessageGreaterThan, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+                            isValidForm = false;
+                        }
+                     }
+                    $(".endtime").each(function () {
+                        var endTimeVal = $(this).val();
+					    var startTimeVal = $(this).parents('.partial-block').find('.starttime').val();
+                        var startTimevalInMinutes = startTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(startTimeVal))) : 0;
+                        var endTimevalInMinutes = endTimeVal != '' ? parseInt(getSeconds(convertTo24Hour(endTimeVal))) : 0;
+
+					    if (startTimeVal != '' && endTimeVal != '' && endTimeVal != startTimeVal) {
+                            if (dropEndDate == dropDate && startTimevalInMinutes > endTimevalInMinutes) {
+                                validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageGreaterThan, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+                                isValidForm = false;
+                            }
+					    }
+                        if (endTimeVal != '' && ((dropEndTimeVal != '' && dropEndDate == dropDate && endTimevalInMinutes > dropEndTimevalInSeconds) || (dropStartTimeVal != '' && dropEndDate == dropDate && endTimevalInMinutes < dropStartTimevalInSeconds)))
+					    {
+						    validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageAssetEndTimeMismatchWithInvoiceDropTime)');
+                            isValidForm = false;
+					    }
+                        if (startTimeVal != '' && ((dropEndTimeVal != '' && dropEndDate == dropDate && startTimevalInMinutes > dropEndTimevalInSeconds) || (dropStartTimeVal != '' && dropEndDate == dropDate && startTimevalInMinutes < dropStartTimevalInSeconds)))
+					    {
+						    validationMessageFor($(this).parents('.partial-block').find('.starttime').attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageAssetStartTimeMismatchWithInvoiceDropTime)');
+                            isValidForm = false;
+                        }
+                    });
+
+                    $(".dropquantity").each(function () {
+                        var quantity = $(this).val();
+                        var dropStat = $(this).closest(".row").find(".dd-dropstatus").text();
+                        if ((quantity == '0' || quantity == '' || parseInt(quantity) < 0) && (dropStat == '')) {
+                            validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageFuelQuantity)');
+                            isValidForm = false;
+                        }
+                    });
+                    $(".predip").each(function () {
+                        var preDip = $(this).val();
+                        if (IsPrePostDipRequired && preDip == '') {
+                            validationMessageFor($(this).attr('name'), '@Resource.errPreDipRequired');
+                            isValidForm = false;
+                        }
+                    });
+                    $(".postdip").each(function () {
+                        var postdip = $(this).val();
+                        if (IsPrePostDipRequired && postdip == '') {
+                            validationMessageFor($(this).attr('name'), '@Resource.errPostDipRequired');
+                            isValidForm = false;
+                        }
+                    });
+                    var quantityRangMsg = '@Resource.valMessageQuantityNotInRange';
+                    var specialDateVal = '@((int)FeeConstraintType.SpecialDate)';
+                    var specialDateErrorMsg = '@Resource.valMessageSpecialFeesDuplicate';
+
+                    if ('@Model.QuantityTypeId' != '@((int)QuantityType.NotSpecified)') {
+                        isValidForm = isValidForm && ValidateRangeCoversTotalQuantity(quantityRangMsg)
+                            && validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+                    }
+                    else {
+                        isValidForm = isValidForm && validateWeekendAndSpecialFees(specialDateVal, specialDateErrorMsg);
+                    }
+                    isValidForm = validateBolControls(isValidForm) &&validateLiftDate($('#BolDetails_LiftDate'));
+                    // check for marine location and add dummy terminal as no terminals / mapping are assigned for marine location
+                    var isMarineLocation = $("#@Html.IdFor(m=>m.IsMarineLocation)").val();
+                    if (isMarineLocation == 'True') {
+                        $("#@Html.IdFor(m => m.TerminalName)").val('@Resource.lblDummy');
+                    }
+
+                    var grossinputs = parseFloat($(document).find(".ftlgross-drop").val());
+                    var netinputs = parseFloat($(document).find(".ftlnet-drop").val());
+                    var deliveredinputs = parseFloat($(document).find(".ftldeliveredqty-drop").val());
+
+                    if (@Model.IsFTL && @Model.IsBolRequired) {
+                        if (isNaN(grossinputs)) {
+                            var grossqtymessage = "Gross Quantity is required";
+                            validationMessageFor('@Html.NameFor(m => m.BolDetails.GrossQuantity)', grossqtymessage);
+                            isValidForm = false;
+                        }
+                        else {
+                            validationMessageFor('@Html.NameFor(m => m.BolDetails.GrossQuantity)', '');
+                        }
+
+                        if (isNaN(netinputs)) {
+                            var netqtymessage = "Net Quantity is required";
+                            validationMessageFor('@Html.NameFor(m => m.BolDetails.NetQuantity)', netqtymessage);
+                            isValidForm = false;
+                        }
+                        else {
+                            validationMessageFor('@Html.NameFor(m => m.BolDetails.NetQuantity)', '');
+                        }
+                    }
+
+                    if (isNaN(deliveredinputs) && isNaN(netinputs) && netinputs > 0 ) {
+                        var deliveredqtymessage = "Delivered Quantity should be greater than zero";
+                        validationMessageFor('@Html.NameFor(m => m.BolDetails.DeliveredQuantity)', deliveredqtymessage);
+                        isValidForm = false;
+                    }
+                    else {
+                         validationMessageFor('@Html.NameFor(m => m.BolDetails.DeliveredQuantity)', '');
+                    }
+
+                    if (!isNaN(grossinputs) && !isNaN(netinputs) && !isNaN(deliveredinputs))
+                    {
+                        isValidForm =  isValidFtlBolDetails();
+                    }
+                    if ((isNaN(grossinputs) || isNaN(netinputs)) && !isNaN(deliveredinputs))
+                    {
+                        isValidForm = isValidLtlBolDetails();
+                    }
+                    var dropinputs = $(document).find(".drop-input");
+                    if (dropinputs.length > 0) {
+                        var assetsTotal = 0;
+                        dropinputs.each(function () {
+                            var value = parseFloat($(this).val());
+                            if (!isNaN(value)) {
+                                assetsTotal += value;
+                            }
+                        });
+                        assetsTotal = Number(assetsTotal.toFixed(2));
+                        if (!isNaN(deliveredinputs) && !isNaN(assetsTotal) && deliveredinputs != assetsTotal) {
+                            isValidForm = false;
+                            let lastassetName = $('.drop-input:last').attr('name');
+                            validationMessageFor(lastassetName, 'Sum of quantity should match with delivered quantity.');
+                        }
+                        else if (isNaN(assetsTotal)) {
+                            isValidForm = false;
+                            var lastassetName = assets[assets.length - 1].name;
+                            validationMessageFor(lastassetName, 'Sum of quantity should match with delivered quantity.');
+                        }
+                    }
+
+                    if (isValidForm == true) {
+					    for (var i = 0; i < assets.length; i++) {
+						    var dropGallons = $(assets[i]).find('.drop-input').val();
+						    if (dropGallons == '') {
+							    $(assets[i]).prev("input[type='hidden']").remove();
+							    $(assets[i]).remove();
+						    }
+					    }
+                        if (isSaveDraftDdt) {
+                            $('form').submit();
+                        }
+                        else {
+                            if (@Model.StatusId == @((int)InvoiceStatus.Draft)) {
+                                var url = "@Url.Action("DraftDDT")";
+                                $("form").attr("action", url);
+                            }
+                            $('form').submit();
+                        }
+                    }
+                    else {
+                        $('.form-submit').removeAttr('disabled');
+                        return false;
+                    }
+                }
+                catch (error) {
+                    console.log(error.message);
+                    $('.form-submit').removeAttr('disabled');
+                    return false;
+                }
+            }
+            $('#calculateQuantities').click(function () {
+                var assets = $('#asset-drops .partial-block');
+                if (assets != undefined && assets.length >0) {
+                var isValidInput = true;
+                var IsPrePostDipRequired = false;
+                var IsPrePostDipRequiredstring = $("#@Html.IdFor(m=>m.IsPrePostDipRequired)").val();// coming as string
+                var booleanIsDipDataRequired = (IsPrePostDipRequiredstring === "True"); // convert to boolean
+                if (booleanIsDipDataRequired) {
+                    IsPrePostDipRequired = true;
+                }
+                //Validate Pre-Post and UoM
+                $(".postdip").each(function () {
+                    var postdip = $(this).val();
+                    var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                    if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) > 0) {
+                        if (IsPrePostDipRequired && postdip == '') {
+                            validationMessageFor($(this).attr('name'), '@Resource.errPostDipRequired');
+                            isValidInput = false;
+                        }
+                    }
+                });
+                $(".predip").each(function () {
+                    var preDip = $(this).val();
+                    var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                    if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) > 0) {
+                        if (IsPrePostDipRequired && preDip == '') {
+                            validationMessageFor($(this).attr('name'), '@Resource.errPreDipRequired');
+                            isValidInput = false;
+                        }
+                    }
+                });
+                $(".tankScale").each(function () {
+                    var tankScale = $(this).val();
+                    if (IsPrePostDipRequired && tankScale == '') {
+                            validationMessageFor($(this).attr('name'), 'UoM is Required');
+                            isValidInput = false;
+                        }
+                    });
+                if (isValidInput) {
+                    var assetInfoList = []
+                    for (var i = 0; i < assets.length; i++) {
+                        var JobXAssetId = $(assets[i]).find('.JobXAssetId').val();
+                        if (JobXAssetId != null && JobXAssetId != undefined && JobXAssetId != '') {
+                            if (parseInt(JobXAssetId)==0) {
+                                continue;
+                            }
+                            var preDip = $(assets[i]).find('.predip').val();
+                            var postDip = $(assets[i]).find('.postdip').val();
+                            var assetType = $(assets[i]).find('.assetType').val();
+                            var jobXAssetId = $(assets[i]).find('.JobXAssetId').val();
+                            var tankScaleMeasurement = $(assets[i]).find('.tankScale').val();
+                            var asset = {
+                                JobXAssetId: parseInt(jobXAssetId),
+                                PreDip: preDip,
+                                PostDip: postDip,
+                                AssetType: assetType,
+                                TankScaleMeasurement: tankScaleMeasurement
+                            };
+                            assetInfoList.push(asset);
+                        }
+                    }
+                    if (assetInfoList != null && assetInfoList != undefined && assetInfoList.length > 0) {
+                        var url = '@Url.Action("CalculateDropQuantitiesFromPrePostForCreateInvoice", "Invoice",new { area ="Supplier"})';
+                        $.post(url, { assetInfoList: assetInfoList }, function (response) {
+                            if (response != undefined && response != null && response.length > 0) {
+                                for (var i = 0; i < response.length; i++) {
+                                    var currentJobxAssetId = response[i].JobxAssetId;
+                                    var currentDroppedGallons = response[i].DropQuantity;
+                                    if (response[i].StatusCode == 0) //Success
+                                    {
+                                        $(".dropquantity").each(function () {
+                                            var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                                            if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) == currentJobxAssetId) {
+                                                $(this).val(currentDroppedGallons);
+
+                                            }
+                                        });
+                                        $('.drop-input').trigger('keyup');
+                                    }
+                                    else if (response[i].StatusCode == 1)//Failed
+                                    {
+                                        $(".dropquantity").each(function () {
+                                            var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                                            if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) == currentJobxAssetId) {
+                                                var assetName = $(this).closest('.asset-drop').find('.assetName').val();
+                                                var errMessage = "Error Ocurred when calculating quantity for asset/Tank  " + assetName + " . " + response[i].StatusMessage
+                                                msgerror(errMessage, undefined, undefined);
+                                            }
+                                        });
+
+                                    }
+                                    else if (response[i].StatusCode == 2) {
+                                        $(".dropquantity").each(function () {
+                                            var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                                            if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) == currentJobxAssetId) {
+                                                var assetName = $(this).closest('.asset-drop').find('.asset-name').val();
+                                                var errMessage = response[i].StatusMessage + assetName + " . "
+                                                msgerror(errMessage, undefined, undefined);
+                                            }
+                                        });
+                                    }
+
+                                }
+
+                            }
+                            else {
+                                msgerror("Error occurred when calculating quantities", undefined, undefined);
+                            }
+                        });
+                    }
+               }
+             }
+            });
+
+            function CalculateConvertedQtysForMFN() {
+                if ('@((int)Model.UoM)' == '@((int)UoM.MetricTons)') {
+                    var apiGravity = $('#@Html.IdFor(m=>m.Gravity)').val();
+                    if (apiGravity == null || apiGravity == undefined || apiGravity == '') {
+                        $('#metric-converted-qty').text('');
+                    }
+                    var fuelDropped = $('#@Html.IdFor(m=>m.FuelDropped)').val();
+                    if ((apiGravity != '' && apiGravity != null && apiGravity != undefined) &&
+                        (fuelDropped != '' && fuelDropped != null && fuelDropped != undefined)) {
+                        var gravity = parseFloat(apiGravity);
+                        var dropQty = parseFloat(fuelDropped);
+                        if (!isNaN(gravity) && !isNaN(dropQty)) {
+                            var url = '@Url.Action("ValidateGravityAndConvertForMFN", "Invoice", new { area = "Supplier" })';
+                            var uom = $('#@Html.IdFor(m=> m.UoM)').val();
+                            var jobCountryId = $('#@Html.IdFor(m=> m.JobCountryId)').val();
+                            var conversionRequest =
+                            {
+                                DroppedGallons :dropQty,
+                                UoM :uom,
+                                ConversionFactor :gravity,
+                                JobCountryId :jobCountryId
+                            };
+                            $.post(url, { 'conversionRequest': conversionRequest }, function (response) {
+                                if (response != undefined) {
+                                    if (response.IsValidGravity == true) {
+                                        if (response.ConvertedQty != null && response.ConvertedQty != undefined && response.ConvertedQty > 0) {
+                                            $('#metric-converted-qty').text('');
+                                            $('#metric-converted-qty').text(response.ConvertedQty.toFixed(2) + ' MT');
+                                            $('#@Html.IdFor(m=>m.ConvertedQuantity)').val(response.ConvertedQty);
+                                        }
+                                    }
+                                    else { $('#metric-converted-qty').text(''); }
+
+                                }
+                            });
+                        }
+                    }
+
+                }
+                else if ('@((int)Model.UoM)' == '@((int)UoM.Barrels)') {
+                    $('#metric-converted-qty').text('');
+                    var fuelDropped = $('#@Html.IdFor(m=>m.FuelDropped)').val();
+                    if (fuelDropped != '' && fuelDropped != undefined && fuelDropped != null) {
+                        var dropQty = parseFloat(fuelDropped);
+                        if (!isNaN(dropQty)) {
+                             var url = '@Url.Action("ValidateGravityAndConvertForMFN", "Invoice", new { area = "Supplier" })';
+                            var uom = $('#@Html.IdFor(m=> m.UoM)').val();
+                            var jobCountryId = $('#@Html.IdFor(m=> m.JobCountryId)').val();
+                            var conversionRequest =
+                            {
+                                DroppedGallons :dropQty,
+                                UoM :uom,
+                                ConversionFactor :@ApplicationConstants.GallonsToBarrelConversion,
+                                JobCountryId :jobCountryId
+                            };
+                            $.post(url, { 'conversionRequest': conversionRequest }, function (response) {
+                                if (response != undefined) {
+                                    if (response.IsValidGravity == true) {
+                                        if (response.ConvertedQty != null && response.ConvertedQty != undefined && response.ConvertedQty > 0) {
+                                            $('#metric-converted-qty').text('');
+                                            $('#metric-converted-qty').text(response.ConvertedQty.toFixed(2) + ' B');
+                                            $('#@Html.IdFor(m=>m.ConvertedQuantity)').val(response.ConvertedQty);
+                                        }
+                                    }
+                                    else { $('#metric-converted-qty').text(''); }
+
+                                }
+                            });
+                        }
+                    }
+                }
+
+            }
+            function showHideCalculateButton() {
+                var currentAssetBlocks = $('#asset-drops .partial-block');
+                var jobXAssetIds = [];
+                if (currentAssetBlocks != undefined && currentAssetBlocks.length > 0)
+                {
+                    var IsPrePostDipRequiredstring = $("#@Html.IdFor(m=>m.IsPrePostDipRequired)").val();// coming as string
+                    var booleanIsDipDataRequired = (IsPrePostDipRequiredstring === "True"); // convert to boolean
+                    if (booleanIsDipDataRequired)
+                    {
+                        IsPrePostDipRequired = true;
+                        $("#calculateQuantities").show();
+                        $(".dropquantity").each(function () {
+                            var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                            if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) > 0) {
+                                $(this).prop("readonly", true);
+                            }
+                            else {
+                                $(this).prop("readonly", false);
+                            }
+                        });
+                    }
+                    else {
+                        $("#calculateQuantities").hide();
+                    }
+                } else {
+                    $("#calculateQuantities").hide();
+                }
+            }
+            var downloadInvoiceUrl = "@Url.Action("DownloadInvoiceFile", "Invoice")?invoiceId=@Model.InvoiceId&fileName=";
+            function downloadInvoiceFile(ele, fileName) {
+                if (fileName.indexOf(',') > -1) {
+                    var fileNameDetails = fileName.split(',');
+                    for (var i = 0; i < fileNameDetails.length; i++) {
+                        var url = downloadInvoiceUrl + fileNameDetails[i];
+                        window.open(url, "_blank");
+                    }
+                }
+                else {
+                    var url = downloadInvoiceUrl + fileName;
+                    window.open(url, "_blank");
+                }
+            }
+            function isValidFtlBolDetails() {
+
+                var grossinputs = parseFloat($(document).find(".ftlgross-drop").val());
+                var netinputs = parseFloat($(document).find(".ftlnet-drop").val());
+                var deliveredinputs = parseFloat($(document).find(".ftldeliveredqty-drop").val());
+
+                if (deliveredinputs <= grossinputs || deliveredinputs <= netinputs) {
+                    validationMessageFor('BolDetails.DeliveredQuantity', '');
+                    isValidForm = true;
+                }
+                else {
+                    validationMessageFor('BolDetails.DeliveredQuantity', 'Delivered Quantity should not exceed gross or net Quantity');
+                    isValidForm = false;
+                }
+                return isValidForm;
+            }
+            function isValidLtlBolDetails() {
+
+                var grossinputs = parseFloat($(document).find(".ftlgross-drop").val());
+                var netinputs = parseFloat($(document).find(".ftlnet-drop").val());
+                var deliveredinputs = parseFloat($(document).find(".ftldeliveredqty-drop").val());
+
+                if (isNaN(grossinputs) && !isFtl) {
+                    if (!isNaN(netinputs) && !isNaN(deliveredinputs) && deliveredinputs > netinputs) {
+                        validationMessageFor('BolDetails.DeliveredQuantity', 'Delivered Quantity should not exceed gross or net Quantity');
+                        isValidForm = false;
+                    }
+                    else {
+                        validationMessageFor('BolDetails.DeliveredQuantity', '');
+                        isValidForm = true;
+                    }
+                }
+                else if (isNaN(netinputs) && !isFtl) {
+                        if (!isNaN(grossinputs) && !isNaN(deliveredinputs) && deliveredinputs > grossinputs) {
+                                validationMessageFor('BolDetails.DeliveredQuantity', 'Delivered Quantity should not exceed gross or net Quantity');
+                                isValidForm = false;
+                        }
+                        else {
+                            validationMessageFor('BolDetails.DeliveredQuantity', '');
+                            isValidForm = true;
+                        }
+                }
+                else {
+                    validationMessageFor('BolDetails.DeliveredQuantity', '');
+                }
+                return isValidForm;
+            }
+</script>
+}

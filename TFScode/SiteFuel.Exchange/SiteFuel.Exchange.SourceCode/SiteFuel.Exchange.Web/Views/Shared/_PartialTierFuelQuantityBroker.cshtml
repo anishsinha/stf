@@ -1,0 +1,197 @@
+﻿@model PricingViewModel
+
+<div class="pricing-row row">
+    <div class="tier-fuel-quantity-row col-sm-12 idx-@Model.RowIndex" rowIndex="@Model.RowIndex">
+        @Html.HiddenFor(m => m.JobId, new { @class = "tierJobId" })
+        @Html.HiddenFor(m => m.FuelTypeId, new { @class = "tierFuelTypeId" })        
+        @Html.HiddenFor(m => m.UoM, new { @class = "tierUoM" })
+        @Html.HiddenFor(m => m.Currency, new { @class = "tierCurrency" })
+        @Html.HiddenFor(m => m.CityGroupTerminalStateId, new { @class = "tierCityGroupTerminalStateId" })
+        @Html.HiddenFor(m => m.DisplayPrice, new { @class = "tierDisplayPrice" })
+        @Html.HiddenFor(m => m.PricingCode.Code, new { @class = "tierPricingCode" })
+        @Html.HiddenFor(m => m.PricingCode.Id, new { @class = "tierPricingCodeId" })
+        @Html.HiddenFor(m => m.PricingCode.Description, new { @class = "tierPricingCodeDescription" })
+        @Html.HiddenFor(m => m.CityGroupTerminalId, new { @class = "tierCityGroupTerminalId" })
+        @Html.HiddenFor(m => m.IncludeTaxes, new { @class = "tierIncludeTaxes" })
+        @Html.HiddenFor(m => m.IsAboveQuantity, new { @class = "tierIsAboveQuantity" })
+        @Html.HiddenFor(m => m.PricePerGallon, new { @class = "tierPricePerGallon" })
+        @Html.HiddenFor(m => m.PricingSourceId, new { @class = "tierPricingSourceId" })
+        @Html.HiddenFor(m => m.PricingTypeId, new { @class = "tierPricingTypeId" })
+        @Html.HiddenFor(m => m.RackAvgTypeId, new { @class = "tierRackAvgTypeId" })
+        @Html.HiddenFor(m => m.RackPrice, new { @class = "tierRackPrice" })
+        @Html.HiddenFor(m => m.EstimatedPPG, new { @class = "tierEstimatedPPG" })
+        @Html.HiddenFor(m => m.SupplierCostMarkupTypeId, new { @class = "tierSupplierCostMarkupTypeId" })
+        @Html.HiddenFor(m => m.SupplierCostMarkupValue, new { @class = "tierSupplierCostMarkupValue" })
+        @Html.HiddenFor(m => m.TerminalId, new { @class = "tierTerminalId" })
+        @Html.HiddenFor(m => m.RowIndex, new { @class = "tierRowIndex" })
+
+        <div class="row">
+            @if (Model.IsAboveQuantity)
+            {
+                <div class="col-sm-2 above-qty-section">
+                    <div class="form-group">
+                        @Html.TextBoxFor(m => m.Quantity, new { @class = "form-control above-quantity always-readonly", placeholder = @Resource.lblAbove, @readonly = "true" })
+                        @Html.ValidationMessageFor(m => m.Quantity)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <label class="mt7">@Resource.lblAbove</label>
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-2 subSectionOpacity pntr-none">
+                    <div class="form-group">
+                        @Html.TextBoxFor(m => m.FromQuantity, new { @class = "form-control from-quantity always-readonly", placeholder = @Resource.lblFrom, @readonly = "true" })
+                        @Html.ValidationMessageFor(m => m.FromQuantity)
+                    </div>
+                </div>
+                <div class="col-sm-1">
+                    <label class="mt7">@Resource.lblTo</label>
+                </div>
+            }
+            <div class="col-sm-2 @(!Model.IsAboveQuantity ? "" : "hide-element")">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ToQuantity, new { @class = "form-control to-quantity datatype-decimal", placeholder = @Resource.lblUpto })
+                    @Html.ValidationMessageFor(m => m.ToQuantity)
+                </div>
+            </div>
+            <div class="col-sm-2">
+                <div class="form-group mt7">
+                    @Html.LabelFor(m => m.DisplayPrice, (string.IsNullOrWhiteSpace(Model.DisplayPrice) ? Resource.lblHyphen : Model.DisplayPrice), new { @class = "lblDisplayPrice" })
+                    @Html.ValidationMessageFor(m => m.DisplayPrice)
+                </div>
+            </div>
+            <div class="col-sm-2">
+                <div class="form-group">
+                    @*onclick="showPricingSelectionPopup(this)"*@
+                    <a href="javascript:void(0)" class="btn btn-primary btn-sm" data-target="#set-tier-price" onclick="slidePanel('#set-tier-price', '55%'); loadPricingContent(this);">@Resource.lblSetPricing</a>
+                </div>
+            </div>
+            <div class="qty-add-btns fs18 pl0 col-sm-1 @(!Model.IsAboveQuantity ? "" : "hide-element")">
+                <a href="javascript:void(0)" class="add-tier-pricing-partial-block mt4 mr5 add-tier-pricing-quantity mr10" data-url="@Url.Action("AddTierFuelQuantityBroker", "FuelRequest", new { currency = Model.Currency, uoM = Model.UoM, rowIndex = (Model.RowIndex == 1 ? 2 : Model.RowIndex) })"><span class="fa fa-plus-circle"></span></a>
+                <a href="javascript:void(0)" class="fa fa-trash-alt mt7 color-maroon remove-partial-block" title="@Resource.btnLabelRemove" onclick="removePartial(this);showAddButtonPrevRow(this);"></a>
+            </div>
+            <div class="hide-element ml10 pricing-error-section col">
+                <label class="field-validation-error lbl-error-msg" name="lbl-error-msg-@Model.RowIndex" data-valmsg-replace="true"></label>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#@Html.IdFor(m => m.RowIndex)').val($('#RowIdx').val());
+        $(document).on('change', '.to-quantity', function () {
+            var toQty = parseFloat($(this).val());
+            if (isNaN(toQty) || toQty <= 0) {
+                validationMessageFor($(this).attr('name'), '@Resource.valMessageQuantityRequired');
+            }
+            else {
+                validationMessageFor($(this).attr('name'), '');
+                setQuantity(false);
+            }
+        });
+
+        setQuantity(true);
+    });
+
+    function setQuantity(isNewRow) {
+        var isValid = true;
+        var rows = $('.tier-fuel-quantity-row');
+        $.each(rows, function (idx, row) {
+            var rowIndex = parseInt($(row).attr('rowIndex'));
+            if (rowIndex != 2) {
+                var nextRow = $(row).closest('#tier-fuel-qty-section').find('.idx-' + ((rowIndex + 1) == 2 ? (rowIndex + 2) : (rowIndex + 1)));
+                if (nextRow != undefined && nextRow.length > 0) {
+                    var nextRowFromQty = nextRow.find('.from-quantity');
+                    if (nextRowFromQty != undefined && nextRowFromQty.length > 0) {
+                        var prevToQty = parseFloat($(row).find('.to-quantity').val());
+                        var nextToQty = parseFloat($(nextRow).find('.to-quantity').val());
+                        nextRowFromQty.val($(row).find('.to-quantity').val());
+                        if (prevToQty < nextToQty) {
+                            nextRowFromQty.val($(row).find('.to-quantity').val());
+                        }
+                        else if (!isNewRow) {
+                            isValid = false;
+                            validationMessageFor($(nextRow).find('.to-quantity').attr('name'), '@Resource.valMessageInvalidQuantity');
+                        }
+                    }
+                    hideAddButtonPrevRow($(row).find('.add-tier-pricing-partial-block'));
+                }
+                var lastRowMaxQty = parseFloat($(row).find('.to-quantity').val());
+                $(row).closest('.partial-section').find('.above-quantity').val(lastRowMaxQty);
+            }
+        });
+
+        return isValid;
+    }
+
+    function hideAddButtonPrevRow(ele) {
+        $(ele).addClass('hide-element');
+        $(ele).closest('.qty-add-btns').find('.remove-partial-block').addClass('pntr-none subSectionOpacity');
+        //$(ele).closest('.qty-add-btns').find('.remove-partial-block').css("pointer-events", "none");
+    }
+
+    function showAddButtonPrevRow(ele) {
+        var rowIndex = parseInt($(ele).closest('.tier-fuel-quantity-row').attr('rowIndex'));
+        if (rowIndex == 3)
+            rowIndex = 2;
+        var prevRow = $('.idx-' + (rowIndex - 1));
+        var lastMaxQty = parseFloat(prevRow.find('.to-quantity').val());
+        $(ele).closest('.partial-section').find('.above-quantity').val(lastMaxQty);
+        if (rowIndex != 2)
+            prevRow.find('.remove-partial-block').removeClass('pntr-none subSectionOpacity');
+        var totalRowsCount = $('.tier-fuel-quantity-row').length;
+        prevRow.find('.add-tier-pricing-partial-block').removeClass('hide-element');
+        setQuantity(false);
+    }
+
+    function loadPricingContent(ele) {
+        var row = $(ele).closest('.tier-fuel-quantity-row');
+        var errorSection = $(row).find('.pricing-error-section');
+        if (!errorSection.hasClass('hide-element'))
+            $(row).find('.pricing-error-section').addClass('hide-element');
+
+        var rowIdx = parseInt(row.attr('rowIndex'));
+        var pricingSourceId = parseInt(row.find(".tierPricingSourceId").val());
+        if (isNaN(pricingSourceId) || pricingSourceId == 0) {
+            pricingSourceId = '@((int)PricingSource.Axxis)';
+            row.find(".tierPricingSourceId").val(pricingSourceId);
+        }
+
+        var pricingTypeId = parseInt(row.find(".tierPricingTypeId").val());
+        if (isNaN(pricingTypeId) || pricingTypeId == 0) {
+            pricingTypeId = '@((int)PricingType.PricePerGallon)';
+            row.find(".tierPricingTypeId").val(pricingTypeId);
+        }
+
+        var pricingModel = {
+            JobId: $('#Details_JobId').val(),
+            FuelTypeId: $("#Details_FuelTypeId").val(),
+            FuelDisplayGroupId: $("#Details_FuelDisplayGroupId").val(),
+            PricingTypeId: pricingTypeId,
+            RackAvgTypeId: parseInt(row.find(".tierRackAvgTypeId").val()),
+            RackPrice: parseFloat(row.find(".tierRackPrice").val()),
+            SupplierCostMarkupTypeId: parseFloat(row.find(".tierSupplierCostMarkupTypeId").val()),
+            SupplierCostMarkupValue: parseFloat(row.find(".tierSupplierCostMarkupValue").val()),
+            PricePerGallon: parseFloat(row.find(".tierPricePerGallon").val()),
+            PricingCode: { Id: parseInt(row.find('.tierPricingCodeId').val()), Code: row.find('.tierPricingCode').val() },
+            UoM: parseInt('@((int)Model.UoM)'), 
+            Currency: parseInt('@((int)Model.Currency)'),
+            CityGroupTerminalStateId: parseInt($('#Details_StateId').val()),
+            CityGroupTerminalId: parseInt(row.find(".tierCityGroupTerminalId").val()),
+            PricingSourceId: pricingSourceId,
+            RowIndex: rowIdx,
+        };        
+
+        $('.pricinglider-loader').show();
+        $.post("@Url.Action("GetTierPricingForSliderBroker", "Order")", { model: pricingModel }).done(function (response) {
+            if (response != null) {
+                $('#tier-pricing-slider').html(response);
+                parseForm();
+            }
+        }).always(function () {
+            $('.pricinglider-loader').hide();
+        });
+    }
+</script>

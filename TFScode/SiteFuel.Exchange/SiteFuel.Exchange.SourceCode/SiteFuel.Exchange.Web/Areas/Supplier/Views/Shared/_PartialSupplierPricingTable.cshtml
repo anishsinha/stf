@@ -1,0 +1,198 @@
+﻿@using SiteFuel.Exchange.ViewModels.Offer
+@model PricingTableGridViewModel
+
+<div class="row">
+    <div class="col-sm-3 col-md-2">
+        <h4 class="mt0 pt10 f-light pb0 fs18 float-left mb5">@Resource.lblPricingTable</h4>
+    </div>
+    <div class="col-sm-9">
+        @Html.Partial("~/Views/Shared/_PartialOfferTypesRadioButtons.cshtml")
+    </div>
+</div>
+
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div id="supplier-pricingTable-div" class="table-responsive">
+                        <table id="supplier-pricingTable-datatable" class="table table-striped table-bordered table-hover pb0">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnOfferName</th>
+                                    <th>@Resource.gridColumnOfferType</th>
+                                    <th>@Resource.gridColumnCustomer</th>
+                                    <th>@Resource.gridColumnTier</th>
+                                    <th>@Resource.gridColumnFuelTypes</th>
+                                    <th>@Resource.gridColumnStates</th>
+                                    <th>@Resource.gridColumnCities</th>
+                                    <th>@Resource.gridColumnZipcodes</th>
+                                    <th>@Resource.gridColumnPricingFormat</th>
+                                    <th>@Resource.lblFees</th>
+                                    <th>@Resource.gridColumnLastUpdated</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+        var supplierpricingtableGrid, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] };
+    var ClearFilter;
+    var selectedPricingTableCountryAndCurrency = getSelectedCountryAndCurrency();
+
+        $(document).ready(function () {
+
+        supplierpricingtableGrid = $('#supplier-pricingTable-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("SupplierPricingTable", "Offer", new { area ="Supplier" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data.offerType = $('.rdofferType:checked').attr('id');
+                    data.CountryId = selectedPricingTableCountryAndCurrency.countryId;
+                    data.Currency = selectedPricingTableCountryAndCurrency.currencyType;
+                    $('#supplier-pricingTable-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#supplier-pricingTable-div").find('.loading-wrapper').remove();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": true,
+            "searchDelay": 500,
+            processing: true,
+            "searching": { "regex": false },
+            "bProcessing": true,
+            lengthChange: true,
+            "columns": [
+                { "data": "Name", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.OfferTypeId == 1)
+                            return '@OfferType.Exclusive';
+                        else
+                            return '@OfferType.Market';
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.Customers == null)
+                            return '--';
+                        else
+                            return data.Customers;
+                    }, "autoWidth": true, className: "break-word"
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.Tiers == null)
+                            return '--';
+                        else
+                            return data.Tiers;
+                    }, "autoWidth": true, className: "break-word"
+                },
+                { "data": "FuelTypes", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.States == null)
+                            return '--';
+                        else
+                            return data.States;
+                    }, "autoWidth": true, className: "break-word"
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.Cities == null)
+                            return '--';
+                        else
+                            return data.Cities;
+                    }, "autoWidth": true, className: "break-word"
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.ZipCodes == null)
+                            return '--';
+                        else
+                            return data.ZipCodes;
+                    }, "autoWidth": true, className: "break-word"
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.Pricing != "Tier")
+                            return data.Pricing;
+                        else
+                            return '<a href="javascript:void(0)" onclick="ShowOfferPricing(' + data.OfferPricingId + ');">' + data.Pricing + '</a>';
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.FeeCount == 0)
+                            return data.FeeCount;
+                        else
+                            return '<a href="javascript:void(0)" onclick="ShowOfferFees(' + data.OfferPricingId + ');">' + data.FeeCount + '</a>';
+                    }, "autoWidth": true
+                },
+                { "data": function(data) {return moment(data.UpdatedDate).format('MM/DD/YYYY hh:mm A');; }, "autoWidth": true, "sType": "date" }
+            ],
+            pageLength: 10,
+            responsive: false,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+                $('#supplier-pricingTable-datatable th:eq(10)').addClass('filtering-disabled');
+                $('#supplier-pricingTable-datatable th:eq(1)').addClass('filtering-disabled');
+                $('#supplier-pricingTable-datatable th:eq(7)').addClass('filtering-disabled');
+                tabGridHeader(this);
+            },
+            "columnDefs": [
+                { "name": "Name", "targets": 0, "regex": false },
+                { "name": "OfferTypeId", "targets": 1 },
+                { "name": "Customers", "targets": 2 },
+                { "name": "Tier", "targets": 3 },
+                { "name": "FuelTypes", "targets": 4 },
+                { "name": "States", "targets": 5 },
+                { "name": "Cities", "targets": 6 },
+                { "name": "ZipCodes", "targets": 7 },
+                { "name": "Pricing", "orderable": false, "targets": 8 },
+                { "name": "FeeCount", "orderable": false,"targets": 9},
+                { "name": "CreatedDate", "orderable": false,"targets": 10 },
+            ],
+
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingOffers', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingOffers', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingOffers', exportOptions: exportColumns, orientation: 'landscape' },
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+            $('#quick-update .rdofferType').on('change', function () {
+            ReloadSupPricingDataTable();
+        });
+    });
+
+        function ReloadSupPricingDataTable() {
+            supplierpricingtableGrid.ajax.reload();
+        }
+</script>

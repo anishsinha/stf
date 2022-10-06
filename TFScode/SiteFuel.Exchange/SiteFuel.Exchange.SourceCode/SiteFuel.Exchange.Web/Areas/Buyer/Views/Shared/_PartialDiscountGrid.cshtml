@@ -1,0 +1,133 @@
+﻿@model Int32
+<div class="row">
+    <div class="col-sm-12">
+        <h4>@Resource.lblDealSummary</h4>
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="buyerdiscount-datatable" class="mt0 table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>@Resource.gridColumnDealName</th>
+                                    <th>@Resource.gridColumnCreatedBy</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th>@Resource.gridColumnNotes</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var discountTable, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6] };
+
+    function format(d) {
+        var childTableData = '';
+        if (d.DiscountLineItem.length == 0) {
+            childTableData = '<tr><td colspan="4" class="pa5">@Resource.lblNoInvoiceAdjustmentAvailable</td></tr>';
+        }
+        $(d.DiscountLineItem).each(function (index, record) {
+            childTableData += '<tr>' +
+                '<td class="pa5">' + record.FeeTypeName + '</td>' +
+                '<td class="pa5">' + record.FeeSubTypeName + '</td>' +
+                '<td class="pa5">' + record.Amount.toFixed(2) + '</td>' +
+                '</tr>';
+        });
+
+        return '<table cellpadding="0" cellspacing="0" border="0" width="40%" class="">' +
+            '<thead>' +
+            '<tr>' +
+            '<th class="pa5">@Resource.gridColumnType</th>' +
+            '<th class="pa5">@Resource.gridColumnRebateOption</th>' +
+            '<th class="pa5">@Resource.gridColumnAmountOrPercent</th>' +
+            '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+            childTableData +
+            '</tbody>' +
+            '</table>';
+    }
+
+    $(document).ready(function () {
+        discountTable = $('#buyerdiscount-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("DiscountGrid", "Invoice", new { area = "Buyer", invoiceId = @Model })",
+                "type": "GET",
+                "datatype": "json",
+                "dataSrc": ""
+            },
+            "columns": [
+                {
+                    "className": 'details-control hide-element',
+                    "orderable": false,
+                    "data": null,
+                    "defaultContent": ''
+                },
+                { "data": "DealName", "autoWidth": true },
+                { "data": "CreatedBy", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        if (data.CreatedCompanyId != '@CurrentUser.CompanyId' && data.DealStatusId == @((int)DealStatus.Pending)) {
+                            var agreeConfirmationMessage = '@Resource.lblDealAgreeConfirmationMessage';
+                            var notAgreeConfirmationMessage = '@Resource.lblDealNotAgreeConfirmationMessage';
+                            var columnData = '';
+                            columnData += "<a class='btn btn-primary btn-sm mr10' data-toggle = 'confirmation' data-content = '" + agreeConfirmationMessage + "' data-popout = 'true' data-singleton = 'true' href='@Url.Action("DealAgree", "Invoice", new { area = "Buyer" })?discountId=" + data.DiscountId + "&invoiceId=" + @Model +"&invoiceHeaderId="+ data.InvoiceHeaderId +"'>@Resource.btnLabelAccept </a>";
+                            columnData += "<a class='btn btn-default btn-sm' data-toggle = 'confirmation' data-content = '" + notAgreeConfirmationMessage + "' data-popout = 'true' data-singleton = 'true' href='@Url.Action("DealNotAgree", "Invoice", new { area = "Buyer" })?discountId=" + data.DiscountId + "&invoiceId=" + @Model +"'>@Resource.btnLabelDecline</a>";
+                        }
+                        else {
+                            return data.DealStatus;
+                        }
+                        return columnData;
+                    }, "autoWidth": true, "bSortable": false
+                },
+                { "data": "Notes", "autoWidth": true }
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "paging": false,
+            "bPaginate": false,
+            "searching": false,
+            "bInfo": false,
+            "initComplete": function (settings, json) {
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true
+                });
+                wrapperHeight();
+                $('td.details-control').click();
+            },
+            "fnDrawCallback": function (settings) {
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true
+                });
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            },
+        });
+
+        $('#buyerdiscount-datatable').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = discountTable.row(tr);
+
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                row.child(format(row.data())).show();
+                tr.addClass('shown');
+            }
+        });
+    });
+</script>

@@ -1,0 +1,133 @@
+﻿@using SiteFuel.Exchange.ViewModels.Offer
+@model OfferSummaryViewModel
+@{
+    ViewBag.Title = "Offer Summary";
+}
+
+<div class="row">
+    <div class="col-sm-7 col-md-9 mb10 tab-headers dib">
+        <a id="tab-offerSummary" onclick="showsection('offer-summary'), activelink(this)" class="mr20 offer-summary-tab"
+           data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#offer-summary-details"
+           data-ajax-url="@Url.Action("GetSupplierOffers", "Offer", new { area = "Supplier" })">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.lblOfferSummary</span>
+            </div>
+        </a>
+        <a id="tab-quickupdate" onclick="showsection('quick-update'), activelink(this)" class="mr20 quick-update-tab"
+           data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#quick-update"
+           data-ajax-url="@Url.Action("PricingTable", "Offer", new { area = "Supplier", countryId = Model.Country.Id })" data-ajax-complete="initMultiSelect();">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.btnQuickUpdate</span>
+            </div>
+        </a>
+        <a id="tab-updatehistory" onclick="showsection('update-history'), activelink(this)" class="mr20 quick-update-tab"
+           data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#update-history"
+           data-ajax-url="@Url.Action("GetQuickUpdateHistory", "Offer", new { area = "Supplier" })">
+            <div class="step-inprogress fs18">
+                <span class="f-light step-text float-left">@Resource.btnQuickUpdateHistory</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-5 col-md-3">
+        @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+    </div>
+</div>
+<div class="tab-container">
+    <div id="offer-summary" class="row hide-element">
+        <div class="col-sm-12 mb10">
+            <div class="row">
+                <div class="col-sm-3 pt3">@Html.ListBoxFor(m => m.Customers, new SelectList(CommonHelperMethods.GetSupplierCustomers(CurrentUser.CompanyId, Model.Country.Id), "Id", "Name"), new { @placeholder = "Select Customer", @class = "form-control multi-select offerCustomerSearch mb5" })</div>
+                <div class="col-sm-5">
+                    <input type="button" id="btn-search" formnovalidate value="@Resource.lblSearch" class="btn btn-default float-left mr10" onclick="SearchOffers()" />
+                    @Html.Partial("~/Views/Shared/_PartialOfferTypesRadioButtons.cshtml")
+                    <a id="showCardView" class="float-left text-center color-grey ml15 mt5" data-toggle="tooltip" data-placement="bottom" data-original-title="Card View"><i class="fas fa-th fs25"></i><br /></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12" id="offer-summary-details"></div>
+    </div>
+    <div id="quick-update" class="hide-element">
+    </div>
+    <div id="update-history" class="hide-element">
+    </div>
+</div>
+<div class="row">
+    @Html.Partial("~/Views/Shared/_PartialOfferFees.cshtml")
+</div>
+<script type="text/javascript">
+    var offerFeesUrl = '@Url.Action("OfferFeeDetails", "Offer", new { area = "Supplier" })';
+    var feeHeading = '@Resource.headingFees';
+    var offerPricingUrl = '@Url.Action("OfferPricingDetails", "Offer", new { area = "Supplier" })';
+    var priceHeading = '@Resource.headingPricing';
+    var offerPrefSuccessMessage = '@Resource.successMessageOfferPreferenceSavedSuccessfully';
+    var successCode = @((int)Status.Success);
+    var offerViewUrl = '@Url.Action("View", "Offer", new { area = "Supplier" })';
+    var launchUrl = '@Url.Action("LaunchToMarket", "Offer", new { area = "Supplier" })';
+    var offerDetailsUrl = '@Url.Action("Details", "Offer", new { area = "Supplier" })';
+
+    function equalHeightCards() {
+        if ($(".toggle-card").hasClass("cards")) {
+            var max = 0;
+            $(".toggle-card tr").each(function () {
+                max = Math.max($(this).height(), max);
+            }).height(max);
+        } else {
+            $(".toggle-card tr").each(function () {
+                $(this).height("auto");
+            });
+        }
+    }
+    $('#showCardView').on('click', function () {
+        $(".tbl-cardview").toggleClass('cards');
+        $(".tbl-cardview thead").toggle();
+        $(this).toggleClass("color-blue");
+        $(".tbl-cardview").closest(".well").toggleClass("offer-well");
+        equalHeightCards();
+    });
+
+
+    function launchExclusiveOfferToMarket() {
+        var offerPricingId = $(this).data('offerpricingid');
+        $.post(launchUrl, { "offerPricingId": offerPricingId }, function (response) {
+            if (response.StatusCode == successCode) {
+                window.location.href = offerViewUrl;
+            }
+        });
+    }
+
+    function ShowOfferDetails(offerPricingId, element) {
+        $(element).closest(".offer-Name").find(".loading-wrapper").show();
+        var url = offerDetailsUrl + '?OfferPricingId=' + offerPricingId;
+        $.get(url).done(function (response) {
+            if (response != null) {
+                $("#offer-fees").html(response);
+                $(".offer-heading").hide();
+                $("#modal-offer-fees").modal("show");
+                $(".modal-footer input").val('Close');
+            }
+            $(element).closest(".offer-Name").find(".loading-wrapper").hide();
+        });
+    }
+
+    function ReloadDataTable() {
+        var selectedcountry = getSelectedCountryAndCurrency().countryId;
+        $('#tab-quickupdate').attr("data-ajax-url", replaceUrlParam($('#tab-quickupdate').attr("data-ajax-url"), 'countryId', selectedcountry));
+        $(".tab-headers .active").trigger("click");
+    }
+    
+    var selectedOfferCoutnry = 1;
+    var selectedOfferCurrency = 1;
+    var selectedOfferViewCountryAndCurrency = getSelectedCountryAndCurrency();
+    if (selectedOfferViewCountryAndCurrency.countryId > 0) {
+        selectedOfferCoutnry = selectedOfferViewCountryAndCurrency.countryId;
+        selectedOfferCurrency = selectedOfferViewCountryAndCurrency.currencyType;
+    }
+    var offerFueltypeurl = '@Url.Action("GetProductsOfExistingOffers", "Offer", new { area = "Supplier" })';
+    var offerStatesurl = '@Url.Action("GetStatesForExistingOffers", "Offer", new { area = "Supplier" })';
+    var offerCitiesurl = '@Url.Action("GetCitiesForExistingOffers", "Offer", new { area = "Supplier" })';
+    var offerZipsurl = '@Url.Action("GetZipsForExistingOffers", "Offer", new { area = "Supplier" })';
+    var offerFeeTypeurl = '@Url.Action("GetFeeTypesForExistingOffers", "Offer", new { area = "Supplier" })';
+    var offerFeeSubTypeurl = '@Url.Action("GetFeeSubTypesForExistingOffers", "Offer", new { area = "Supplier" })';
+    var offerPricingTypeurl = '@Url.Action("GetPricingTypesForExistingOffers", "Offer", new { area = "Supplier" })';
+</script>
+<script src="~/Content/js/offer-quickupdate.js"></script>

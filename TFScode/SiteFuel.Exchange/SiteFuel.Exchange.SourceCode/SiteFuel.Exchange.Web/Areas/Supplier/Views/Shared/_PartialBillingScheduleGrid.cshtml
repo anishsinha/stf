@@ -1,0 +1,123 @@
+﻿@model SiteFuel.Exchange.ViewModels.BillingStatement.BillingScheduleFilterViewModel
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div id="billingschedulegrid-div" class="table-responsive">
+                        <table id="billingschedule-datatable" class="table table-striped table-bordered table-hover" data-grid-parent="#billingschedule-grid" data-grid-tab="#tab-history">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnStatementId</th>
+                                    <th>@Resource.gridColumnFrequency</th>
+                                    <th>@Resource.gridColumnStart</th>
+                                    <th>@Resource.gridColumnCustomer</th>
+                                    <th>@Resource.gridColumnCreatedBy</th>
+                                    <th>@Resource.gridColumnCreatedDate</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var billingschedulegrid, ClearFilter, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7] };
+    $(document).ready(function () {
+        billingschedulegrid = $('#billingschedule-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("BillingScheduleGrid", "BillingSchedule", new { area = "Supplier" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data.BillingStatementId = '';
+                    $('#billingschedulegrid-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#billingschedulegrid-div").find('.loading-wrapper').remove();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": true,
+            "searchDelay": 500,
+            processing: true,
+            "searching": { "regex": true },
+            "bProcessing": true,
+            lengthChange: true,
+            "columns": [
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<a href="@Url.Action("Create", "BillingSchedule", new { area = "Supplier" })?id=' + data.Id + '">' + data.BillingStatementId + '</a>';
+                    }, "autoWidth": true
+                },
+                { "data": "Frequency", "autoWidth": true },
+                { "data": "StartDate", "autoWidth": true },
+                { "data": "Customer", "autoWidth": true, },
+                { "data": "CreatedBy", "autoWidth": true },
+                { "data": "CreatedDate", "autoWidth": true },
+            ],
+            pageLength: 10,
+            responsive: true,
+            fixedHeader: false,
+            "order": [],
+            "initComplete": function (settings, json) {
+                $('#billingschedule-datatable th').addClass('filtering-disabled');
+                wrapperHeight();
+                tabGridHeader(this);
+            },
+            "columnDefs": [
+                { "name": "BillingStatementId", "targets": 0 },
+                { "name": "Frequency", "targets": 1 },
+                { "name": "StartDate", "targets": 2 },
+                { "name": "Customer", "targets": 3 },
+                { "name": "CreatedBy", "targets": 4 },
+                { "name": "CreatedDate", "targets": 5 },
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.lblBillingSchedule', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.lblBillingSchedule', exportOptions: exportColumns },
+                { extend: 'pdf', title: '@Resource.lblBillingSchedule', exportOptions: exportColumns, orientation: 'landscape' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>",
+                search: "<button class='btn btn-primary' id='btnsearch4'> <i class='fa fa-search'></i></button>"
+            },
+            initComplete: function (settings, json) {
+                var api = this.api();
+                var textBox = $('#billingschedule-datatable_filter .input-sm');
+                textBox.unbind();
+                textBox.bind('keyup input', function (e) {
+                    if (e.keyCode == 8 && !textBox.val() || e.keyCode == 46 && !textBox.val()) {
+                    } else if (e.keyCode == 13 || !textBox.val()) {
+                        api.search(this.value).draw();
+                    }
+                });
+
+                $("#btnsearch4").click(function () {
+                    api.search(textBox[0].value).draw();
+                });
+            }
+        });
+    });
+
+    function ReloadDataTable() {
+        billingschedulegrid.ajax.reload();
+    }
+</script>

@@ -1,0 +1,377 @@
+﻿@model OrderGridFilterDataViewModel
+<div id="filter-data-list">
+    <div class="pa bg-white top0 left0 z-index10 loading-wrapper hide-element filter-loader"><span class="spinner-dashboard pa mtm10"></span></div>
+    <div class="row">
+        <div class="col-sm-8">
+            <div class="form-group d-inline-block">
+                <div class="custom-control custom-radio custom-control-inline radio">
+                    @Html.RadioButtonFor(m => m.IsMarine, false, new { @Name = "IsMarine", @id = "radio-landjobs", @class = "custom-control-input orderfilter", onclick = "inputBoxShowHide('land-jobs','marine-jobs')" })
+                    <label class="custom-control-label" for="radio-landjobs">Land</label>
+                </div>
+            </div>
+            <div class="form-group d-inline-block">
+                <div class="custom-control custom-radio custom-control-inline radio">
+                    @Html.RadioButtonFor(m => m.IsMarine, true, new { @Name = "IsMarine", @id = "radio-marinejobs", @class = "custom-control-input orderfilter", onclick = "inputBoxShowHide('marine-jobs','land-jobs')" })
+                    <label class="custom-control-label" for="radio-marinejobs">Marine</label>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4 text-right">
+            <button type="button" class="close mt-0 mr-0" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+           
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="form-group">
+                    <label>Customer</label>
+                    @Html.ListBoxFor(m => m.Customers, new SelectList(new List<DropdownDisplayExtendedProperty>(), "Id", "Name"), new { @class = "form-control ordercustomers", placeholder = "Please select a product" })
+                    @Html.ValidationMessageFor(m => m.Customers)
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-group">
+                        <label id="location-name">Location</label>
+                    @Html.ListBoxFor(m => m.Locations, new SelectList(new List<DropdownDisplayExtendedProperty>(), "Id", "Name"), new { @class = "form-control orderlocations" })
+                    @Html.ValidationMessageFor(m => m.Locations)
+                </div>
+            </div>
+        </div>
+    <div class="row land-jobs">
+        <div class="col-sm-6">
+            <div class="form-group">
+                    <label>Asset</label>
+                        @Html.ListBoxFor(m => m.Assets, new SelectList(new List<DropdownDisplayExtendedProperty>(), "Id", "Name"), new { @class = "form-control orderassets" })
+                        @Html.ValidationMessageFor(m => m.Assets)
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-group">
+                    <label>Tank</label>
+                        @Html.ListBoxFor(m => m.Tanks, new SelectList(new List<DropdownDisplayExtendedProperty>(), "Id", "Name"), new { @class = "form-control ordertanks" })
+                        @Html.ValidationMessageFor(m => m.Tanks)
+            </div>
+        </div>
+    </div>
+    <div class="row marine-jobs">
+        <div class="col-sm-6">
+            <div class="form-group">
+                    <label>Vessel</label>
+                        @Html.ListBoxFor(m => m.Vessels, new SelectList(new List<DropdownDisplayExtendedProperty>(), "Id", "Name"), new { @class = "form-control ordervessels" })
+                        @Html.ValidationMessageFor(m => m.Vessels)
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 text-right">
+        <input type="button" class="btn btn-default" value="Reset" onclick="ResetFilter();" />
+        <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ApplyCustomerFilter();" />
+    </div>
+          
+</div>
+
+<script type="text/javascript">
+
+
+    let orderAsset = $("#filter-data-list").find(".orderassets");
+    let orderTank = $("#filter-data-list").find(".ordertanks");
+    let orderVessel = $("#filter-data-list").find(".ordervessels");
+
+    $(document).ready(function () {
+        $('.ordercustomers').multiselect({
+            maxHeight: 200,
+			includeSelectAllOption: true,
+            nonSelectedText: 'Select Customer',
+            buttonWidth: '100%',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true
+        });
+        $('.orderlocations').multiselect({
+            maxHeight: 200,
+            includeSelectAllOption: true,
+            nonSelectedText: 'Select Location',
+            buttonWidth: '100%',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true
+        });
+        $('.orderassets').multiselect({
+            maxHeight: 200,
+            includeSelectAllOption: true,
+            nonSelectedText: 'Select Asset/s',
+            buttonWidth: '100%',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true
+        });
+        $('.ordertanks').multiselect({
+            maxHeight: 200,
+            includeSelectAllOption: true,
+            nonSelectedText: 'Select Tank/s',
+            buttonWidth: '100%',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true
+        });
+        $('.ordervessels').multiselect({
+            maxHeight: 200,
+            includeSelectAllOption: true,
+            nonSelectedText: 'Select Vessel/s',
+            buttonWidth: '100%',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true
+        });
+
+        
+
+        $(".orderfilter").on("change", function (e) {
+            loadDropdownData(false);
+        });
+
+        $(".ordercustomers").on("change", function (e) {
+            let selectedCustomer = $(e.target).closest("#filter-data-list").find(".ordercustomers").val();
+            let locationDropdown = $(e.target).closest("#filter-data-list").find(".orderlocations");
+            orderFilters();
+            let IsMarine = $('input[name="IsMarine"]:checked').val();
+            getLocationList(locationDropdown, selectedCustomer, IsMarine, false);
+        });
+        $(".orderlocations").on("change", function (e) {
+            var selectedLocation = $(e.target).closest("#filter-data-list").find(".orderlocations").val();
+            orderFilters();
+
+            getAssetAndTankList(orderAsset, orderTank, selectedLocation, orderVessel);
+        });
+        //let IsMarine = localStorage.getItem(filterType);
+        //if (IsMarine == '' || IsMarine == 'False' || IsMarine == null) {
+        //    $('#radio-landjobs').prop('checked', true);
+        //    inputBoxShowHide('land-jobs', 'marine-jobs')
+        //}
+        //else {
+        //    $('#radio-marinejobs').prop('checked', true);
+        //    inputBoxShowHide('marine-jobs', 'land-jobs')
+        //}
+        //loadDropdownData(true);
+    });
+    function orderFilters() {
+        $("#filter-data-list").find(".orderassets").empty().multiselect('rebuild');
+        $("#filter-data-list").find(".ordertanks").empty().multiselect('rebuild');
+        $("#filter-data-list").find(".ordervessels").empty().multiselect('rebuild');
+        }
+    function loadDropdownData(isSetValue = false) {
+        if (isSetValue) {
+            let IsMarine = localStorage.getItem(filterType);
+            if (IsMarine == '' || IsMarine == 'False' || IsMarine == null) {
+                $('#radio-landjobs').prop('checked', true);
+                inputBoxShowHide('land-jobs', 'marine-jobs')
+            }
+            else {
+                $('#radio-marinejobs').prop('checked', true);
+                inputBoxShowHide('marine-jobs', 'land-jobs')
+            }
+        }
+        let IsMarine = $('input[name="IsMarine"]:checked').val();
+        let customerDropdown = $("#filter-data-list").find(".ordercustomers");
+        let locationDropdown = $("#filter-data-list").find(".orderlocations");
+        orderFilters();
+
+        if (IsMarine == 'True') {
+            $("#location-name").text('Port');
+        }
+        else {
+            $("#location-name").text('Location');
+        }
+        var customersdata = isSetValue ? JSON.parse(localStorage.getItem(customersFilter)) : [];
+        getCustomerList(customerDropdown, IsMarine, locationDropdown, isSetValue);
+        getLocationList(locationDropdown, customersdata, IsMarine, isSetValue);
+        if (isSetValue) {
+            let locationsDD = JSON.parse(localStorage.getItem(locationsFilter));
+            getAssetAndTankList(orderAsset, orderTank, locationsDD, orderVessel);
+        }
+    }
+    function getCustomerList(target, IsMarine, locationDropdown, isSetValue) {
+        target.empty();
+        $(".filter-loader").show().removeClass("hide-element");
+        var customersdata = isSetValue ? JSON.parse(localStorage.getItem(customersFilter)) : [];
+        $.post("@Url.Action("GetMarineCustomers", "", new { area = "" })", { IsMarine: IsMarine }, function (customers) {
+            target.empty();
+            if (customers && customers.length > 0) {
+                $.each(customers, function (i, element) {
+                    let appenddata = '<option></option>';
+                    if (jQuery.inArray(element.Id.toString(), customersdata) > -1) {
+                        appenddata = '<option selected></option>';
+                    }
+                    target.append($(appenddata).val(element.Id).html(element.Name));
+                });
+            }
+            target.multiselect('rebuild');
+        });
+    }
+    function getLocationList(target, selectedCustomer, IsMarine, isSetValue) {
+        var customerIds = [];
+        if (selectedCustomer != null) {
+            customerIds = selectedCustomer.join(",");
+        }
+        target.empty();
+        $(".filter-loader").show();
+        var locationsdata = isSetValue ? JSON.parse(localStorage.getItem(locationsFilter)) : [];
+        $.post("@Url.Action("GetCustomerJobs", "", new { area = "" })", { CustomerId: customerIds, IsMarine: IsMarine}, function (jobs) {
+            target.empty();
+            if (jobs && jobs.length>0) {
+                $.each(jobs, function (i, element) {
+                    let appenddata = '<option></option>';
+                    if (jQuery.inArray(element.Id.toString(), locationsdata) > -1) {
+                        appenddata = '<option selected></option>';
+                    }
+                    target.append($(appenddata).val(element.Id).html(element.Name));
+                });
+            }
+            target.multiselect('rebuild');
+            $(".filter-loader").hide();
+        });
+    }
+    function getAssetAndTankList(assetTarget, tankTarget, jobIds, vesselTarget) {
+        var jobId = [];
+        if (jobIds != null) {
+            jobId = jobIds.join(",");
+        }
+        let IsMarine = $('input[name="IsMarine"]:checked').val();
+        $(".filter-loader").show();
+        var assetData = JSON.parse(localStorage.getItem(assetsFilter));
+        var tankData = JSON.parse(localStorage.getItem(tanksFilter));
+        var vesselData = JSON.parse(localStorage.getItem(vesselsFilter));
+        $.post("@Url.Action("GetAssetAndTankForOrders", "", new { area = "" })", { jobId: jobId }, function (response) {
+            tankTarget.empty();
+            assetTarget.empty();
+            vesselTarget.empty();
+            if (response && response.length > 0) {
+                if (IsMarine == 'True') {
+                    let vesselFilter = response.filter(t => {
+                        return  t.CodeId === 3 &&  t.IsTrue === true
+                    });
+                    $.each(vesselFilter, function (i, element) {
+
+                        let appenddata = '<option></option>';
+                        if (jQuery.inArray(element.Id.toString(), vesselData) > -1) {
+                            appenddata = '<option selected></option>';
+                        }
+                        vesselTarget.append($(appenddata).val(element.Id).html(element.Name));
+                    });
+                }
+                else {
+                    let assetFilterd = response.filter(t => {
+                        return t.CodeId === 1 && t.IsTrue === false
+                    })
+                    $.each(assetFilterd, function (i, element) {
+
+                        let appenddata = '<option></option>';
+                        if (jQuery.inArray(element.Id.toString(), assetData) > -1) {
+                            appenddata = '<option selected></option>';
+                        }
+                        assetTarget.append($(appenddata).val(element.Id).html(element.Name));
+                    });
+
+                    let tankFilter = response.filter(t => {
+                        return t.CodeId === 2 && t.IsTrue === false
+                    })
+                    $.each(tankFilter, function (i, element) {
+
+                        let appenddata = '<option></option>';
+                        if (jQuery.inArray(element.Id.toString(), tankData) > -1) {
+                            appenddata = '<option selected></option>';
+                        }
+                        tankTarget.append($(appenddata).val(element.Id).html(element.Name));
+                    });
+                }
+            }
+            vesselTarget.multiselect('rebuild');
+            assetTarget.multiselect('rebuild');
+            tankTarget.multiselect('rebuild');
+            $(".filter-loader").hide();
+        });
+
+
+    }
+    function ResetOrderFilter() {
+        localStorage.removeItem(filterType);
+        localStorage.removeItem(customersFilter);
+        localStorage.removeItem(locationsFilter);
+        localStorage.removeItem(assetsFilter);
+        localStorage.removeItem(tanksFilter);
+        localStorage.removeItem(vesselsFilter);
+        $("#filter-data-list").find(".ordercustomers").empty().multiselect('rebuild');
+        $("#filter-data-list").find(".orderlocations").empty().multiselect('rebuild');
+        $("#filter-data-list").find(".ordervessels").empty().multiselect('rebuild');
+        $("#filter-data-list").find(".ordertanks").empty().multiselect('rebuild');
+        $("#filter-data-list").find(".orderassets").empty().multiselect('rebuild');
+        if ($('input[name="IsMarine"]:checked').val() == 'False') {
+            $(".orderfilter").trigger('change');
+        }
+        else {
+            $("#radio-landjobs").attr('checked', true).trigger('click');;
+        }
+    }
+    function getSelectedAssets() {
+        let orders = [];
+        let IsMarine = $('input[name="IsMarine"]:checked').val();
+        if (IsMarine == 'True') {
+            orders = $("#filter-data-list").find(".ordervessels").val();
+        }
+        else {
+            let assets = $("#filter-data-list").find(".orderassets").val();
+            let tanks = $("#filter-data-list").find(".ordertanks").val();
+            if (assets.length > 0 || tanks.length > 0) {
+                let assestTanksCount = assets.concat(tanks);
+                orders = assestTanksCount.filter((item, pos) => assestTanksCount.indexOf(item) === pos);
+            }
+        }
+        return orders;
+    }
+
+    function isMarineChecked() {
+        let IsMarine = $('input[name="IsMarine"]:checked').val();
+
+        if (IsMarine && IsMarine == 'True')
+            return true;
+        else
+            return false;
+    }
+    function SetFilterIntoLocalStorage() {
+        let typeofFilter = $('input[name="IsMarine"]:checked').val();
+        localStorage.setItem(filterType, typeofFilter);
+        localStorage.setItem(customersFilter, JSON.stringify($(".ordercustomers").val()));
+        localStorage.setItem(locationsFilter, JSON.stringify($(".orderlocations").val()));
+        localStorage.setItem(assetsFilter, JSON.stringify($(".orderassets").val()));
+        localStorage.setItem(tanksFilter, JSON.stringify($(".ordertanks").val()));
+        localStorage.setItem(vesselsFilter, JSON.stringify($(".ordervessels").val()));
+    }
+    function GetFilterFromLocalStorage() {
+        let IsMarine = localStorage.getItem(filterType);
+        if (IsMarine == '' || IsMarine == 'False') {
+            $('#radio-landjobs').prop('checked', true);
+        }
+        else {
+            $('#radio-marinejobs').prop('checked', true);
+        }
+        customersDD = JSON.parse(localStorage.getItem(customersFilter));
+        locationsDD = JSON.parse(localStorage.getItem(locationsFilter));
+        assetsDD = JSON.parse(localStorage.getItem(assetsFilter));
+        tanksDD = JSON.parse(localStorage.getItem(tanksFilter));
+        vesselsDD = JSON.parse(localStorage.getItem(vesselsFilter));
+    }
+    function getFilterCount() {
+        let filterCount = (JSON.parse(localStorage.getItem(customersFilter)) || []).length + (JSON.parse(localStorage.getItem(locationsFilter)) || []).length;
+        let isMarineFilter = localStorage.getItem(filterType);
+        if (isMarineFilter && isMarineFilter == "False") {
+            filterCount += (JSON.parse(localStorage.getItem(assetsFilter)) || []).length + (JSON.parse(localStorage.getItem(tanksFilter)) || []).length;
+        } else {
+            filterCount += (JSON.parse(localStorage.getItem(vesselsFilter)) || []).length;
+        }
+        if (filterCount > 9999) {
+            filterCount = filterCount.toString().slice(0, 3)+ "..";
+        }
+        else {
+            filterCount = filterCount;
+        }
+        return filterCount;
+    }
+</script>

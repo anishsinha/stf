@@ -1,0 +1,106 @@
+﻿@model ResaleFilterViewModel
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div id="resale-div" class="table-responsive">
+                        <table id="resale-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnCustomer</th>
+                                    <th>@Resource.gridColumnContractNumber</th>
+                                    <th>@Resource.gridColumnPoNumber</th>
+                                    <th class="no-break">@Resource.gridColumnFuelType</th>
+                                    <th>@Resource.lblAssetsAllocated</th>
+                                    <th class="uom-by-country"><span class="uom-lbl"></span> @Resource.lblRequested</th>
+                                    @*<th class="rack-ppg-paid-grid">@Resource.gridColumnRackPPGPaid</th>*@
+                                    <th> <span class="rack-ppg-by-country"></span> @Resource.lblPaid</th>
+                                    @*<th class="rack-ppg-sold-grid">@Resource.gridColumnRackPPGSold</th>*@
+                                    <th><span class="rack-ppg-by-country"></span> @Resource.lblSold </th>
+                                    <th>@Resource.gridColumnCreatedBy</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var resaleDataTable;
+    $(document).ready(function () {
+        resaleDataTable = $('#resale-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("ResaleGrid", "Job", new { area = "Buyer" })",
+                "type": "GET",
+                "datatype": "json",
+                "data": function (data) {
+                    data.id = '@Model.Id'
+                    data.currency = getSelectedCountryAndCurrency().currencyType;
+                    data.countryId = getSelectedCountryAndCurrency().countryId;
+                    $('#resale-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#resale-div").find('.loading-wrapper').remove();
+                    return json;
+                }
+            },
+            "columns": [
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<a href="@Url.Action("Details", "Job", new { area = "Buyer" })/' + data.JobId + '">' + data.CustomerName + '</a>';
+                    }, "autoWidth": true
+                },
+                { "data": "ContractNumber", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<a href="@Url.Action("Details", "Order", new { area = "Buyer" })/' + data.Id + '">' + data.OrderNumber + '</a>';
+                    }, "autoWidth": true
+                },
+                { "data": "FuelType", "autoWidth": true, className: "break-word" },
+                { "data": "Assets", "autoWidth": true },
+                { "data": "Quantity", "autoWidth": true },
+                { "data": "RackPPGPaid", "autoWidth": true },
+                { "data": "RackPPGSold", "autoWidth": true },
+                { "data": "CreatedBy", "autoWidth": true },
+                { "data": "Status", "autoWidth": true }
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+                tabGridHeader(this);
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'copy' },
+                { extend: 'csv', title: '@Resource.headingResale' },
+                { extend: 'excel', title: '@Resource.headingResale' },
+                { extend: 'pdf', title: '@Resource.headingResale', orientation: 'landscape' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+
+    function ReloadDataTable() {
+        resaleDataTable.ajax.reload();
+    }
+</script>
+

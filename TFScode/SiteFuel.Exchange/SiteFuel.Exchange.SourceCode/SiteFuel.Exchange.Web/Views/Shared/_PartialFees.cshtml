@@ -1,0 +1,338 @@
+﻿@model FuelFeesViewModel
+@{ var randomNum100999 = (new Random()).Next(100, 999);}
+@Html.HiddenFor(m => m.Currency)
+@Html.HiddenFor(m => m.UoM)
+@*@Html.HiddenFor(m => m.TruckLoadType)*@
+    <div>
+        @*<div class="row">
+            <div class="col-sm-12 mt10">
+                <b>@Resource.lblGeneral</b>
+            </div>
+        </div>*@
+        <div class="mt10">
+            <b>@Resource.lblGeneral</b>
+        </div>
+        <div class="row fees-section">
+            <div class="col-sm-12">
+                <div id="common-fee-section-@randomNum100999" class="partial-section">
+                    <div class="partial-block-collection-section mt5">
+                        @if (Model.FuelRequestFees != null && Model.FuelRequestFees.Count(t => t.FeeConstraintTypeId == null && t.CommonFee) > 0)
+                        {
+                            foreach (var frFee in Model.FuelRequestFees.Where(t => t.FeeConstraintTypeId == null && t.CommonFee))
+                            {
+                                frFee.Currency = Model.Currency;
+                                frFee.UoM = Model.UoM;
+                                //frFee.TruckLoadType = (int)Model.TruckLoadType;
+                                Html.RenderPartial("_PartialFeeType", frFee);
+                            }
+                        }
+                    </div>
+                    <div class="row">
+                        <div id="auto-add-normal-common-fee" class="col-12 col-sm-12">
+                            <a href="javascript:void(0)" class="add-partial-block mb20"
+                               data-url="@Url.Action("CommonOtherFeeTypes", "FuelRequest",
+                            new { currency = Model.Currency, uoM = Model.UoM, isCommonFee = true })">
+                                <span class="fa fa-plus-circle"></span> @Resource.btnLabelAddFee
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div id="other-fee-section-@randomNum100999" class="partial-section">
+                    <div class="mt10">
+                        <b>@Resource.lblOther</b>
+                    </div>
+                    <div class="partial-block-collection-section mt5">
+                        @if (Model.FuelRequestFees != null && Model.FuelRequestFees.Count(t => t.FeeConstraintTypeId == null && !t.CommonFee) > 0)
+                        {
+                            foreach (var frFee in Model.FuelRequestFees.Where(t => t.FeeConstraintTypeId == null && !t.CommonFee))
+                            {
+                                Html.RenderPartial("_PartialFeeType", frFee);
+                            }
+                        }
+                    </div>
+                    <div class="row">
+                        <div id="auto-add-normal-other-fee" class="col-12 col-sm-12">
+                            <a href="javascript:void(0)" class="add-partial-block mb20" data-url="@Url.Action("CommonOtherFeeTypes", "FuelRequest", new { currency = Model.Currency, uoM = Model.UoM })"><span class="fa fa-plus-circle"></span> @Resource.btnLabelAddFee</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row weekend-fee-types">
+            <div class="col-sm-12">
+                <h4 class="fs18 freight-cost-weekend">@Resource.headingWeekendFees</h4>
+                <div class="mt10">
+                    <b>@Resource.lblGeneral</b>
+                </div>
+                <div id="common-special-date-fee-section-@randomNum100999" class="partial-section">
+                    <div class="partial-block-collection-section mt5">
+                        @if (Model.FuelRequestFees != null && Model.FuelRequestFees.Count(t => t.FeeConstraintTypeId != null && t.CommonFee) > 0)
+                        {
+                            foreach (var frFee in Model.FuelRequestFees.Where(t => t.FeeConstraintTypeId != null && t.CommonFee))
+                            {
+                                frFee.Currency = Model.Currency;
+                                frFee.UoM = Model.UoM;
+                                //frFee.TruckLoadType = (int)Model.TruckLoadType;
+                                Html.RenderPartial("_PartialFeeType", frFee);
+                            }
+                        }
+                    </div>
+                    <div class="row">
+                        <div id="auto-add-weekend-common-fee" class="col-12 col-sm-12">
+                            <a href="javascript:void(0)" class="add-partial-block mb20" data-url="@Url.Action("CommonOtherFeeTypes", "FuelRequest", new { currency = Model.Currency, uoM = Model.UoM, isConstraintFee = true, isCommonFee = true })"><span class="fa fa-plus-circle"></span> @Resource.btnLabelAddFee</a>
+                        </div>
+                    </div>
+                </div>
+                <div id="other-special-date-fee-section-@randomNum100999" class="partial-section">
+                    <div class="mt10">
+                        <b>@Resource.lblOther</b>
+                    </div>
+                    <div class="partial-block-collection-section mt5">
+                        @if (Model.FuelRequestFees != null && Model.FuelRequestFees.Count(t => t.FeeConstraintTypeId != null && !t.CommonFee) > 0)
+                        {
+                            foreach (var frFee in Model.FuelRequestFees.Where(t => t.FeeConstraintTypeId != null && !t.CommonFee))
+                            {
+                                Html.RenderPartial("_PartialFeeType", frFee);
+                            }
+                        }
+                    </div>
+                    <div class="row">
+                        <div id="auto-add-weekend-other-fee" class="col-12 col-sm-12">
+                            <a href="javascript:void(0)" class="add-partial-block mb20" data-url="@Url.Action("CommonOtherFeeTypes", "FuelRequest", new { currency = Model.Currency, uoM = Model.UoM, isConstraintFee = true })"><span class="fa fa-plus-circle"></span> @Resource.btnLabelAddFee</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        @using (Html.BeginScripts())
+        {
+            <script type="text/javascript">
+        var ftlFees = [];
+        var normalFeeOriginalUrl = "", specialFeeOriginalUrl = "";
+        var demurrageFees = [];
+        function resetControls() {
+            var feeCtrls = $('.fee-type-row').find('select');
+            $.each(feeCtrls, function (idx, dropdown) {
+                var isFeeType = $(dropdown).hasClass('feetype-ddl');
+                if (isFeeType) {
+                    getSubTypesByFeeType($(dropdown));
+                }
+            });
+        }
+
+        function showHideControlsByElement(radioBtn, showClassArr, hideClassArr) {
+            var hideSectionList = hideClassArr.split(",");
+            var showSectionList = showClassArr.split(",");
+            for (var i = 0; i < hideSectionList.length; i++) {
+                $(radioBtn).closest('.fee-type-row').find("." + hideSectionList[i]).addClass("hide-element");
+            }
+            for (var s = 0; s < showSectionList.length; s++) {
+                $(radioBtn).closest('.fee-type-row').find("." + showSectionList[s]).removeClass("hide-element");
+            }
+        }
+
+        function showHideWaiver(ctrl) {
+            $(ctrl).closest(".fee-type-row").find(".fee-sub-type-ddl .loading-wrapper").show();
+            var target = $(ctrl).closest(".fee-type-row").find('.waiver');
+            var invoicetarget = $(ctrl).closest("div.ftl-invoice-fee .fee-type-row").find('.show-in-invoice');
+			var feeTypeId = parseInt($(ctrl).val());
+			var feeSubType = $(ctrl).closest("div.fee-sub-type-ddl").find('.feesubtype-ddl');
+			if (jQuery.inArray(feeTypeId, demurrageFees) !== -1 && $(feeSubType).val() != '2') {
+                target.show();
+                invoicetarget.show();
+            }
+            else if (feeTypeId == 22) { //22 is for Retain fee
+                invoicetarget.show();
+            }
+            else {
+                target.hide();
+                invoicetarget.hide();
+            }
+
+
+            //$(ctrl).closest(".fee-type-row").find(".fee-sub-type-ddl .loading-wrapper").hide();
+        }
+
+        function getSubTypesByFeeType(ctrl) {
+            $(ctrl).closest(".fee-type-row").find(".fee-sub-type-ddl .loading-wrapper").show();
+            var target = $(ctrl).closest(".fee-type-row").find('.feesubtype-ddl');
+            var firstOption = target.find('option:first');
+            var feeTypeId = $(ctrl).val(), feeSubTypeId = target.val();
+            if (feeSubTypeId == null) { feeSubTypeId = ""; }
+            var isCommonType = $(ctrl).closest(".fee-type-row").find('.common').prop('checked');
+            if (isCommonType != undefined && isCommonType == false) {
+                feeTypeId = '';
+            }
+            if (feeTypeId == undefined || feeTypeId == '' || feeTypeId == null) {
+                target.empty();
+            }
+            var currency = $("#@Html.IdFor(m=> m.Currency)").val();
+
+            var url = '@Url.Action("GetFeeSubTypes", "FuelRequest")';
+            var data = { feeTypeId: feeTypeId, currency: currency };
+            $.post(url, data).done(function (feeSubTypeList) {
+                if (feeSubTypeList.length > 0) {
+                    target.empty();
+                    target.append(firstOption);
+                    $.each(feeSubTypeList, function (i, element) {
+                        var isMarineLocation = $('.IsMarineLocation').val();
+                        if (isMarineLocation == 'True') {
+                            if (element.Name.toLowerCase().indexOf('gallon') == -1 && element.Name.toLowerCase().indexOf('litre') == -1)
+                                target.append($('<option onchange="showHideQuantity(this);"></option>').val(element.Id).html(element.Name));
+                        }
+                        else {
+                            target.append($('<option onchange="showHideQuantity(this);"></option>').val(element.Id).html(element.Name));
+                        }
+                    });
+                    target.find('option[value="' + feeSubTypeId + '"]').prop("selected", true);
+                    $(ctrl).closest(".fee-type-row").find(".fee-sub-type-ddl .loading-wrapper").hide();
+                }
+            });
+        }
+
+        function hidePrevFeeTypeOption(elemt) {
+            // Remove dry run fee option from invoice create
+            RemoveDryRunOptionForInvoice();
+
+            var feeTypeDdls = $('.fee-type-row .feetype-ddl').not('.special-feetype-ddl');
+            var currentDDL = $(elemt).parents('.fee-types').find('select.feetype-ddl');
+            $.each(feeTypeDdls, function (idx, dropdown) {
+                var selected = $(dropdown).val();
+                if (selected != null && selected != undefined && selected != '' && !$(dropdown).is(currentDDL)) {
+                    var elemtToRemove = currentDDL.find("option[value='" + selected + "']");
+                    elemtToRemove.remove();
+                }
+            });
+        }
+
+        function showHideSpecialDate(elem) {
+            $(elem).closest('.fee-types').find('.special-date-div').toggle();
+        }
+
+        function showHideQuantity(ctrl) {
+            var feeSubTypes = $(ctrl).closest(".fee-type-row").find(".fee-sub-type-ddl").find("option:selected").attr("value");
+            var feeType = $(ctrl).closest(".fee-type-row").find(".fee-type-ddl").find("option:selected").attr("value");
+            var qtySection = $(ctrl).closest(".fee-type-row").find(".byquantity-fee");
+            var underGallonFeeSection = $(ctrl).closest(".fee-type-row").find(".under-gallon-fee");
+            var feeSection = $(ctrl).closest(".fee-type-row").find(".fee");
+            var currencySpan = $(ctrl).closest(".fee-type-row").find(".fee div.input-group");
+
+            switch (feeSubTypes) {
+                case '3':
+                    $(qtySection).removeClass("hide-element");
+                    $(feeSection).addClass("hide-element");
+					break;
+                default:
+                    $(qtySection).addClass("hide-element");
+                    $(feeSection).removeClass("hide-element");
+                    if (feeSubTypes == '18') {
+                        $(currencySpan).find('span.input-group-addon').hide();
+                        $(currencySpan).append('<span class="input-group-addon percent-symbol">@Resource.constSymbolPercent</span>');
+                    }
+                    else {
+                        $(currencySpan).find('span.input-group-addon').show();
+                        $(currencySpan).find('span.percent-symbol').hide();
+                    }
+            }
+
+            if (feeType == undefined || feeType == null || feeType == '') {
+                return;
+            }
+
+            switch (feeType) {
+                case '8':
+                    $(underGallonFeeSection).removeClass("hide-element");
+                    $(qtySection).addClass("hide-element");
+                    $(feeSection).removeClass("hide-element");
+					break;
+				case '17':
+				case '18':
+				case '19':
+					var target = $(ctrl).closest(".fee-type-row").find('.waiver');
+					var invoicetarget = $(ctrl).closest("div.ftl-invoice-fee .fee-type-row").find('.show-in-invoice');
+					if (feeSubTypes == '2') {
+						target.hide();
+						invoicetarget.hide();
+					}
+					else
+					{
+						target.show();
+						invoicetarget.show();
+					}
+                default:
+                    $(underGallonFeeSection).addClass("hide-element");
+                    if (feeSubTypes != '3') {
+                        $(feeSection).removeClass("hide-element");
+                    }
+                    if (feeType != '1') {
+                        $(qtySection).addClass("hide-element");
+                        $(feeSection).removeClass("hide-element");
+                        $(qtySection).find('.partial-block-collection-section').html('');
+                    }
+            }
+            var feeInput = $(feeSection).find('input');
+            if ($(feeSection).hasClass('hide-element')) {
+                feeInput.val('0');
+            }
+            else {
+                if (feeInput.val() == '0') feeInput.val('');
+            }
+        }
+
+        function refreshFeeTypeDdl(ctrl) {
+            var currentDDL = $(ctrl).parents('.fee-types').find('select.feetype-ddl').not('.special-feetype-ddl');
+            if (currentDDL != undefined && currentDDL.length > 0) {
+                var selectFeeOpt = currentDDL.find("option:first");
+                var optionToAdd = currentDDL.find("option:selected");
+                if (!selectFeeOpt.is(optionToAdd)) {
+                    var feeTypeDdlList = $('.fee-type-row .feetype-ddl').not('.special-feetype-ddl');
+                    if (feeTypeDdlList != undefined) {
+                        $.each(feeTypeDdlList, function (idx, dropdown) {
+                            if (!$(dropdown).is(currentDDL) && $(dropdown).text().indexOf(optionToAdd.text()) < 0) {
+                                $(dropdown).append("<option value='" + optionToAdd.val() + "'>" + optionToAdd.text() + "</option>");
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        function LoadFTLFees() {
+            var url = '@Url.Action("GetFTLFees", "FuelRequest")';
+            var data = { };
+            $.get(url, data).done(function (fees) {
+                if (fees.length > 0) {
+                    $.each(fees, function (i, element) {
+                        ftlFees.push(element);
+                    });
+                }
+            });
+        }
+
+        function LoadDemurrageFees() {
+            var url = '@Url.Action("GetWaiverApplicableFees", "FuelRequest")';
+            var data = { };
+            $.get(url, data).done(function (fees) {
+                if (fees.length > 0) {
+                    $.each(fees, function (i, element) {
+                        demurrageFees.push(element);
+                    });
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            normalFeeOriginalUrl = $('#auto-add-normal-common-fee a').attr('data-url');
+            specialFeeOriginalUrl = $('#auto-add-weekend-common-fee a').attr('data-url');
+            LoadFTLFees();
+            LoadDemurrageFees();
+            $(document).on('click', '.other-fee-radio', function () { getSubTypesByFeeType(this); });
+            $(document).on('focus', '.feetype-ddl:not(.special-feetype-ddl)', function () { hidePrevFeeTypeOption(this); });
+            $(document).on('focus', '.special-feetype-ddl', function () { RemoveDryRunOptionForInvoice(); });
+            $(document).on('focus', '.feetype-ddl', function () { RemoveProcessingFeeOption(); });
+            $(document).on('change', '.feetype-ddl', function () { getSubTypesByFeeType(this); showHideWaiver(this); });
+        });
+            </script>
+        }
+

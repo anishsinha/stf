@@ -1,0 +1,83 @@
+﻿<div class="well bg-white shadow-b">
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div class="table-responsive">
+                <table id="favorite-fuels" class="table table-striped table-bordered table-hover xsmall-grid">
+                    <thead>
+                        <tr>
+                            <th>@Resource.lblFuelName</th>
+                            <th>@Resource.lblAddedBy</th>
+                            <th>@Resource.lblAddedDate</th>
+                            <th class="text-center"></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        exportFvColumns = { columns: [0, 1, 2] };
+        var tablefuel = $('#favorite-fuels').dataTable({
+            "ajax": {
+                    "url": "@Url.Action("GetFavoriteFuelGrid", "Profile", new { area ="Settings" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+            },
+            "columns": [
+                { "data": "FuleName", "autoWidth": true },
+                { "data": "AddedBy", "autoWidth": true },
+                { "data": "AddedDate", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        return '<a href="javascript:void(0)" class="fa fa-trash-alt fs18 color-maroon" '+
+                                'data-toggle="confirmation" data-placement="top" data-singleton="true" data-popout="true"'+
+                            'data-popout="true" data-selected="' + data.Id + '" /></a>';
+                        //data-on-confirm="removeFromFavorites"
+                    }, "autoWidth": true, className: "text-center"
+                }
+            ],
+            "aaSorting": [],
+            "columnDefs": [{
+                "targets": [3],
+                "searchable": false,
+                "orderable": false,
+                "visible":("@CurrentUser.IsBuyerAdmin" == "True" || "@CurrentUser.IsBuyer" == "True")
+            }],
+            "initComplete": function (settings, json) {
+                $(this).confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    selector: '[data-toggle=confirmation]',
+                    onConfirm: removeFromFavorites
+                });
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.headingFavoriteFuels', exportOptions: exportFvColumns },
+                { extend: 'excel', title: '@Resource.headingFavoriteFuels', exportOptions: exportFvColumns },
+                { extend: 'pdf', title: '@Resource.headingFavoriteFuels', exportOptions: exportFvColumns },
+                {
+                    extend: 'print', exportOptions: exportFvColumns,
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+                        $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
+                    }
+                }]
+        });
+    });
+
+    function removeFromFavorites() {
+        var selected = $(this).attr("data-selected");
+        if (selected != undefined && selected != "") {
+            var url = "@Url.Action("RemoveFavoriteFuel", "Profile",new { area = "Settings" })" + "?favoriteId=" + selected;
+            $.post(url, function (response) {
+                window.location.href = "@Url.Action("FavoriteFuels", "Profile", new { area ="Settings" })";
+            });
+        }
+    }
+</script>

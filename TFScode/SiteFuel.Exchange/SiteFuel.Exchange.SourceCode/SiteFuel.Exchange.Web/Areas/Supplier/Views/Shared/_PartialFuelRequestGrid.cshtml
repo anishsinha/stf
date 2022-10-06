@@ -1,0 +1,261 @@
+﻿@model FuelRequestFilterViewModel
+<div class="ibox mb0">
+    <div class="ibox-content no-border no-padding">
+        <div id="supplier-fuelrequest-div" class="table-responsive">
+            @*<div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>*@
+            <table id="supplier-fuelrequest-datatable" class="table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>@Resource.gridColumnRequestNumber</th>
+                        <th>@Resource.gridColumnCustomer</th>
+                        <th>@Resource.gridColumnLocation</th>
+                        <th class="no-break">@Resource.gridColumnFuelType</th>
+                        <th>@Resource.lblQuantityRequested</th>
+                        <th class="rack-ppg-by-country"></th>
+                        <th>@Resource.gridColumnDistance</th>
+                        <th>@Resource.gridColumnDeliveryDate</th>
+                        <th>@Resource.gridColumnType <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDeliveryType"></i></th>
+                        <th>@Resource.gridColumnStatus</th>
+                        <th class="exclude-export text-nowrap">@Resource.gridColumnAction</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+@Html.Partial("_PartialCommonSourceRegion")
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+    var supplierFuelRequestGrid, exportColumns = { columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] };
+    var dataGridRq;
+        $(document).ready(function () {
+
+            ExportGrid();
+
+            var visibleForSupplier = '@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True';
+            supplierFuelRequestGrid = $('#supplier-fuelrequest-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("FuelRequestGrid", "FuelRequest", new { area = "Supplier" })",
+                    "type": "POST",
+                    "data": function (data) {
+                        data.FromDate = $('#txtSupplierFRFromDate').val();
+                        data.ToDate = $('#txtSupplierFRToDate').val();
+                        data.AddressId = $('#Address').val();
+                        data.Filter = '@Model.Filter';
+                        data.BrodcastType = $('input[type=radio]:checked').attr('id');
+                        data.Currency = getSelectedCountryAndCurrency().currencyType;
+                        data.CountryId = getSelectedCountryAndCurrency().countryId;
+                        dataGridRq = data;
+                        $('#supplier-fuelrequest-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                    },
+                    "datatype": "json",
+                    "dataSrc": function (json) {
+                        $("#supplier-fuelrequest-div").find('.loading-wrapper').remove();
+                        return json.data;
+                    }
+                },
+                'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+                aaSorting: [[0, 'desc']],
+                "serverSide": true,
+                "searchDelay": 500,
+                processing: true,
+                "searching": { "regex": true },
+                "bProcessing": true,
+                lengthChange: true,
+                fixedHeader: true,
+                "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("Details", "FuelRequest", new { area = "Supplier" })?id=' + data.FuelRequestId + '">' + data.RequestNumber + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "Customer", "autoWidth": true },
+                    { "data": "Address", "autoWidth": true },
+                    { "data": "FuelType", "autoWidth": true, className: "break-word" },
+                    { "data": "GallonsNeeded", "autoWidth": true },
+                    { "data": "PricePerGallon", "autoWidth": true },
+                    { "data": "Distance", "autoWidth": true },
+                    { "data": "StartDate", "autoWidth": true },
+                    { "data": "DeliveryType", "autoWidth": true },
+                    { "data": "Status", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.Status == '@FuelRequestStatus.Open.ToString()') {
+                                var columnData = '';
+                                var hideCounterOffer = '';
+                                var disableAcknowledgeLnk = '';
+                                var acknowledgementTitle = 'Send acknowledgement to buyer'; 
+                                var hideBuyerAppCreatedFR = (data.OnboardedTypeId == @((int)OnboardedType.ThirdPartyOrderOnboarded) && data.IsOnboardingComplete == false) ? 'hide-element' : '';
+                                //if (data.IsMarineLocation) {
+                                //    hideCounterOffer = 'hide-element';
+                                //}
+                                if (data.IsMarineLocation && data.AcknowledgementId > 0) {
+                                    disableAcknowledgeLnk = 'pntr-none subSectionOpacity';
+                                    acknowledgementTitle = 'Acknowledgement already sent to buyer';
+                                }
+
+                                if (data.IsCounterOfferDeclinedByBuyer == true) {
+                                    columnData += '<a href="#CounterOfferGrid" class="btn btn-danger btn-xs mr10 mb10" onclick="ReloadCounterOfferGrid(' + data.FuelRequestId + ')" >@Resource.lblCounterOfferDeclined</a>';
+                                }
+                                else if (data.IsCounterOfferPendingOnBuyer == true) {
+                                    columnData += '<a href="#CounterOfferGrid" class="btn btn-warning btn-xs mr10 mb10" onclick="ReloadCounterOfferGrid(' + data.FuelRequestId + ')" >@Resource.lblCounterOfferPending</a>';
+                                }
+                                else if (data.IsCounterOfferPendingOnSupplier == true) {
+                                    columnData += '<a href="#CounterOfferGrid" class="btn btn-warning btn-xs mr10 mb10" onclick="ReloadCounterOfferGrid(' + data.FuelRequestId + ')" >@Resource.lblCounterOfferOpen</a>';
+                                }
+                                else if (data.IsCounterOfferAvailable == true) {
+                                    columnData += '<a href="#CounterOfferGrid" class="btn btn-warning btn-xs mr10 mb10" onclick="ReloadCounterOfferGrid(' + data.FuelRequestId + ')" >@Resource.lblCounterOfferPending</a>';
+                                }
+                                else {
+                                    var content = '@(string.Format(Resource.lblAutoAgreeTerms, Resource.lblYes)) <a href="@Url.Action("TermsAndConditions", "FuelRequest", new { area = "Supplier" })" target="_blank" rel="nofollow">@Resource.headerTermsAndConditions</a>';
+                                    columnData += "<div class='btn-group'><button data-toggle='dropdown' class='btn btn-primary btn-sm dropdown-toggle' aria-expanded='false'>@Resource.btnLabelAction <span class='caret'></span></button><ul class='dropdown-menu dropdown-menu-right'>";
+                                    columnData += "<li class='dropdown-item'><a data-toggle = 'confirmation' data-content = '" + content + "' data-popout = 'true' data-singleton = 'true' href='@Url.Action("Accept", "FuelRequest", new { area = "Supplier" })?fuelRequestId=" + data.FuelRequestId + "'>@Resource.btnLabelAccept <i class='fa fa-check color-green float-left mt7 mr5'></i></a></li>";
+                                    @*columnData += "<li class='dropdown-item'><a data-toggle = 'modal' onclick='" + setFRParams(data.FuelRequestId) +"' data-target='#acceptFRModalPopup'>@Resource.btnLabelAccept <i class='fa fa-check color-green float-left mt7 mr5'></i></a></li>";*@
+                                    columnData += "<li class='divider'></li>";
+                                    columnData += '<li class="dropdown-item"><a data-toggle = "confirmation" data-popout = "true" data-singleton = "true" href="@Url.Action("Decline", "FuelRequest", new { area = "Supplier" })?id=' + data.FuelRequestId + '">@Resource.btnLabelDecline <i class="fa fa-times color-maroon float-left mt7 mr5"></i></a></li>';
+                                    columnData += "<li class='divider'></li>";
+                                    columnData += '<li class="dropdown-item ' + hideCounterOffer +' ' + hideBuyerAppCreatedFR + '"><a href="@Url.Action("CounterOffer", "FuelRequest", new { area = "Supplier" })?fuelRequestId=' + data.FuelRequestId + '">@Resource.btnLabelCounterOffer <i class="fa fa-exchange-alt float-left mt7 mr5"></i></a></li>';
+                                    if (data.IsMarineLocation) {
+                                        columnData += "<li class='divider'></li>";
+                                        columnData += '<li class="dropdown-item ' + disableAcknowledgeLnk + '" title="' + acknowledgementTitle + '"><a data-toggle = "confirmation" data-popout = "true" data-singleton = "true" href="@Url.Action("AcknowledgeNomination", "FuelRequest", new { area = "Supplier" })?nominationId=' + data.FuelRequestId + '">@Resource.lblAcknowledge <i class="fa fa-envelope color-maroon float-left mt7 mr5"></i></a></li>';
+                                    }
+                                    columnData += "</ul></div>";
+                                }
+
+                                return columnData;
+                            }
+                            else {
+                                return '@Resource.lblHyphen';
+                            }
+                        }, "autoWidth": true, "bSortable": false
+                    }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]',
+                        html: true
+                    });
+                    wrapperHeight();
+                },
+                "fnDrawCallback": function (settings) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]',
+                        html: true
+                    });
+                },
+                "columnDefs": [
+                    { "name": "FuelRequestId", "targets": 0, "regex": false },
+                    { "targets": [1], "visible": false, "searchable": false },
+                    { "name": "Address", "targets": 2 },
+                    { "name": "FuelType", "targets": 3 },
+                    { "name": "Gallons", "targets": 4 },
+                    { "name": "Price", "targets": 5 },
+                    { "name": "Distance", "targets": 6 },
+                    { "name": "Start", "targets": 7 },
+                    { "name": "DeliveryType", "targets": 8 },
+                    { "name": "Status", "targets": 9 },
+                    { "targets": [10], "visible": visibleForSupplier, "searchable": visibleForSupplier }
+                ],
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingFuelRequestSummary', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingFuelRequestSummary', exportOptions: exportColumns },
+                    @*{ extend: 'pdf', title: '@Resource.headingFuelRequestSummary', exportOptions: exportColumns, orientation: 'landscape' },*@
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>",
+                    search: "<button class='btn btn-primary' id='btnsearch1'> <i class='fa fa-search'></i></button>"
+                },
+                initComplete: function (settings, json) {
+                    var api = this.api();
+                    var textBox = $('#supplier-fuelrequest-datatable_filter .input-sm');
+                    textBox.unbind();
+                    textBox.bind('keyup input', function (e) {
+                        if (e.keyCode == 8 && !textBox.val() || e.keyCode == 46 && !textBox.val()) {
+                        } else if (e.keyCode == 13 || !textBox.val()) {
+                            api.search(this.value).draw();
+                        }
+                    });
+
+                    $("#btnsearch1").click(function () {
+                        api.search(textBox[0].value).draw();
+                    });
+                }
+            });
+
+            $('#Address').on('change', function () {
+                ReloadDataTable();
+            });
+
+            $('input[type=radio]').on('change', function () {
+                ReloadDataTable();
+            });
+        });
+
+        function ReloadDataTable() {
+            var address = $('#Address').val();
+            var brodcastType = $('input[type=radio]:checked').attr('id');
+            var fromDate = $('#txtSupplierFRFromDate').val();
+            var toDate = $('#txtSupplierFRToDate').val();
+            var url = '@Url.Action("FuelRequestGrid", "FuelRequest", new { area = "Supplier" })?addressId=' + address + '&brodcastType=' + brodcastType + '&fromDate=' + fromDate + '&toDate=' + toDate +'';
+            supplierFuelRequestGrid.ajax.url(url);
+            supplierFuelRequestGrid.ajax.reload();
+            frToggle();
+
+            SetLocalStorage('txtSupplierFRFromDate', $('#txtSupplierFRFromDate').val());
+            SetLocalStorage('txtSupplierFRToDate', $('#txtSupplierFRToDate').val());
+
+            url = '@Url.Action("PartialCounterOfferGrid", "FuelRequest", new { area = "Supplier" })?fromDate=' + fromDate + '&toDate=' + toDate +'';
+            supplierCounterOfferGrid.ajax.url(url);
+            supplierCounterOfferGrid.ajax.reload();
+        }
+
+        function ReloadCounterOfferGrid(fuelRequestId) {
+            var url = '@Url.Action("PartialCounterOfferGrid", "FuelRequest", new { area = "Supplier" })?fuelRequestId=' + fuelRequestId + '';
+            supplierCounterOfferGrid.ajax.url(url);
+            supplierCounterOfferGrid.ajax.reload();
+        }
+
+    function ExportGrid() {
+        registerExportDataEvent('#supplier-fuelrequest-datatable',  @ApplicationConstants.ExportRestrictionCount,
+                '@Url.Action("FuelRequestGrid", "FuelRequest", new { area = "Supplier" })',
+                '@string.Format(Resource.messageExportRestrictionCount, ApplicationConstants.ExportRestrictionCount)',
+                function callBack(jsonResult) {
+
+                    return $.map(jsonResult.responseJSON.data, function (item) {
+                        return {
+                            RequestNumber: item.RequestNumber,
+                            Address: item.Address,
+                            FuelType: item.FuelType,
+                            GallonsNeeded: item.GallonsNeeded,
+                            PricePerGallon: item.PricePerGallon,
+                            Distance: item.Distance,
+                            StartDate: item.StartDate,
+                            DeliveryType: item.DeliveryType,
+                            Status: item.Status
+                        };
+                    });
+                }
+            );
+    }
+
+    function setFRParams(fuelRequestId) {
+        $('#hdnFuelRequestId').val(fuelRequestId);
+    }
+    </script>
+}

@@ -1,0 +1,454 @@
+﻿@model JobStepsViewModel
+<div class="container-fluid">
+    <div class="row" id="dynamicRenderPartial">
+            <div class="col-md-9">
+                <div class="@(((CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer) && Model.Job.StatusId != (int)JobStatus.Closed) ? "" : "disable-controls")">
+                    @Html.HiddenFor(m => m.IsJobCreationFromFuelRequest)
+                    @Html.HiddenFor(m => m.IsJobCreationFromQuoteRequest)
+                    @Html.PartialFor("_PartialJob", m => m.Job)
+
+
+                    <div class="well bg-white shadow-a mb15 overflow-h radius10">
+                        <div class="col-md-12">
+                            <h4 class="pb10">@Resource.headingSubcontractors</h4>
+                            <div class="row">
+                                <div id="job-subcontractors" class="partial-section mirror col-sm-12">
+                                    <div id="JobSubcontractors" class="row partial-block-collection-section">
+
+                                        @foreach (var person in Model.Subcontractors)
+                                        {
+                                            Html.RenderPartial("_PartialSubcontractor", person);
+                                        }
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <a href="javascript:void(0)" class="add-partial-block mb20" data-url="@Url.Action("GetSubcontractor", "Job", new { area = "Buyer" })">
+                                                <span class="fa fa-plus-circle"></span>
+                                                @Resource.btnLabelAddSubcontractor
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- onsite contact starts -->
+                    <div class="well bg-white shadow-a mb15 overflow-h radius10">
+                        <div class="col-md-12">
+                            <h4 class="pb10">@Resource.headingJobContacts</h4>
+                            <div class="row">
+                                <div class="col-sm-4 col-md-3 @(CurrentUser.IsBuyer ? "pntr-none" : "" )">
+                                    <label>@Resource.lblAssignedTo</label>
+                                    <div class="form-group mb10">
+                                        @Html.ListBoxFor(m => m.Job.AssignedTo, new SelectList(CommonHelperMethods.GetCompanyBuyers(CurrentUser.CompanyId, (int)CurrentUser.CompanyTypeId), "Id", "Name"), new { @class = "form-control multi-select" })
+                                        @Html.ValidationMessageFor(m => m.Job.AssignedTo)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-3">
+                                    <label>@Resource.lblOnsiteContact</label>
+                                    <div class="form-group mb10">
+                                        @Html.ListBoxFor(m => m.Job.OnsiteContacts, new SelectList(CommonHelperMethods.GetCompanyOnsiteConstacts(CurrentUser.CompanyId), "Id", "Name"), new { @class = "form-control multi-select" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-3">
+                                    <label>@Resource.lblPoContact</label>
+                                    <div class="form-group mb10">
+                                        @Html.DropDownListFor(m => m.Job.PoContactId, new SelectList(CommonHelperMethods.GetPoContact(CurrentUser.CompanyId, (int)CurrentUser.CompanyTypeId), "Id", "Name", Model.Job.PoContactId), string.Format(Resource.valMessageSelect, Resource.lblPoContact), new { @class = "form-control" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="job-contact-persons" class="partial-section mirror">
+                                <div id="JobContactPersons" class="partial-block-collection-section">
+                                    @if (Model.StatusCode == Status.Success && Model.ContactPersons.Count > 0)
+                                    {
+                                        <div class="well well-sm overflow-h col-md-11">
+                                            <div class="row">
+                                                <div class="col-12 mb10">
+                                                    <label class="f-normal">@Resource.headingJobContacts</label>
+                                                    <div>
+                                                        <table class="table table-hover mb0 details-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>@Resource.lblFirstName</th>
+                                                                    <th>@Resource.lblLastName</th>
+                                                                    <th>@Resource.lblEmail</th>
+                                                                    <th>@Resource.gridColumnRoles</th>
+                                                                    <th>@Resource.lblStatus</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var person in Model.ContactPersons)
+                                                                {
+                                                                    <tr>
+                                                                        <td>@person.FirstName</td>
+                                                                        <td>@person.LastName</td>
+                                                                        <td>@person.Email</td>
+                                                                        <td>@person.RoleNames</td>
+                                                                        <td>@Resource.lblPending</td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        foreach (var person in Model.ContactPersons)
+                                        {
+                                            Html.RenderPartial("_PartialContactPerson", person);
+                                        }
+                                    }
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <a href="javascript:void(0)" class="add-partial-block mb20" data-url="@Url.Action("GetContactPerson", "Job", new { area = "Buyer" })">
+                                            <span class="fa fa-plus-circle"></span>
+                                            @Resource.btnLabelAddNewJobContact
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- onsite contact ends -->
+                    <!-- Licenses starts -->
+                    @*@if (CommonHelperMethods.IsTaxExemptionEnabled())
+        {
+            <div class="row">
+                <div class="@headerWidth mt20"><h4 class="@headerAlignment">@Resource.headingJobLicenses</h4></div>
+                <div class="col-md-12">
+                    <div class="@headerSpacing"></div>
+                    <div class="row">
+                        <div class="col-sm-4 col-md-3">
+                            <label>@Resource.lblLicense</label>
+                            <div class="form-group">
+                                @Html.ListBoxFor(m => m.Job.JobLicenses, new SelectList(CommonHelperMethods.GetCompanyTaxExemptionLicenses(CurrentUser.CompanyId, (int)CompanyType.Buyer), "Id", "Name"), new { @class = "form-control multi-select" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }*@
+                    <!-- Licenses ends -->
+                    <!-- Approval Section starts -->
+                    <div class="well bg-white shadow-a mb15 overflow-h radius10">
+                        <div class="col-md-12">
+                            <h4 class="pb10">@Resource.headingApproval</h4>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="form-check form-check-inline mb10">
+                                        @Html.CheckBoxFor(m => m.Job.IsApprovalWorkFlowEnabled, new { onclick = "checkBoxChange(this,'approvalUserInput')", onchange = "clickEventTrigger(this,'approvalUser')", @id = "ChkDDTApprovalWorkflow", @class = "form-check-input" })
+                                        <label class="form-check-label" for="ChkDDTApprovalWorkflow">@Resource.lblEnableInvoiceDDTApprovalWorkflow</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 approvalUserInput">
+                                    <label>@Resource.lblApprovalUser</label>
+                                    <div class="form-group approvalUser">
+                                        @Html.DropDownListFor(m => m.Job.ApprovalUser, new SelectList(CommonHelperMethods.GetCompanyAdmins(CurrentUser.CompanyId), "Id", "Name"), string.Format(Resource.btnLabelSelect, Resource.lblApprovalUser), new { @class = "form-control approvalUserInput" })
+                                        @Html.ValidationMessageFor(m => m.Job.ApprovalUser)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Approval Section ends -->
+                    <!-- budget starts -->
+                    <div class="well bg-white shadow-a mb15 overflow-h radius10">
+                        <div class="col-md-12">
+                            <h4>@Resource.headingBudget</h4>
+                            @Html.PartialFor("_PartialJobBudget", m => m.JobBudget)
+                        </div>
+                    </div>
+                    <!--forcast setting start -->
+                    <div class="bg-white shadow-a mb15 overflow-h radius10">
+                        @Html.PartialFor("~/Views/Shared/Forcasting/_PartialIMSForecasting.cshtml", m => m.Job.ForcastingPreference)
+                    </div>
+                    <!-- budget ends -->
+                    <!--Site image starts -->
+                    <div class="well bg-white shadow-a mb15 overflow-h radius10">
+                        <div class="col-sm-12">
+                            <div class="overflow-h">
+                                <h4 class="float-left">@Resource.headingImages</h4>
+                                <div class="alert alert-warning float-left fs12 ml15 f-bold pt10  pb10 mt5">@Resource.errorMessageFileSizeWarning1MB</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="border-dash-dark overflow-h pt15 pb15 radius-5">
+                                        <div class="col-sm-12">
+                                            <div class="overflow-h">
+                                                <h3 class="dib pull-left mt0 mr10 pt3">Site Image</h3>
+                                                <input type="button" class="btn btn-default btn-sm pull-left btn-choosefile" id="sitechoose-file" value="@Resource.btnChooseFile">
+                                            </div>
+                                            <div class="text-danger fs12 f-bold" id="siteimg-message"></div>
+                                            <div id="siteimage-block" class="text-center image-section">
+
+                                                @if (Model.Job.SiteImage == null || string.IsNullOrWhiteSpace(Model.Job.SiteImage.FilePath))
+                                                {
+                                                    <h5 class="text-left fs14 pdf-selection hide-element break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname"></span></h5>
+                                                    <span class="pdfname"></span>
+                                                    <img id="siteimage-ctrl" width="100%" height="150" class="image-selection hide-element" src="~/Content/images/no-image.png" />
+                                                    <img id="sitenoimage-ctrl" class="no-image" width="100%" height="150" src="~/Content/images/no-image.png" />
+                                                }
+                                                else if (!string.IsNullOrWhiteSpace(Model.Job.SiteImage.FilePath))
+                                                {
+                                                    @Html.HiddenFor(m => m.Job.SiteImage.FilePath)
+                                                    if (Model.Job.SiteImage.IsNonImageFile)
+                                                    {
+                                                        <h5 class="text-left fs14 pdf-selection break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 pull-left" width="21" /> <span class="pdfname">@Model.Job.SiteImage.FilePath</span></h5>
+                                                        <img id="siteimage-ctrl" width="100%" height="150" class="image-selection hide-element" src="~/Content/images/no-image.png" />
+                                                        <span class="pdfname"></span>
+                                                        <div class="text-center image-download-btn">
+                                                            <a href="javascript:void(0)" onclick="downloadImageFile('@Model.Job.SiteImage.FilePath')" class="btn btn-primary btn-xs mt5 pa5">
+                                                                <i class="fa fa-download mr5 ml5 fs14"></i> @Resource.btnLabelDownload
+                                                            </a>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <img id="sitenoimage-ctrl" width="100%" height="150" class="image-selection hide-element" src="~/Content/images/no-image.png" />
+                                                        <span class="pdfname"></span>
+                                                        <div class="text-center image-download-btn">
+                                                            <a href="javascript:void(0)" onclick="downloadImageFile('@Model.Job.SiteImage.FilePath')" class="img-thumbnail mt10 db">
+                                                                <img id="siteimage-ctrl" width="100%" height="120" src="@Model.Job.SiteImage.GetAzureFilePath(BlobContainerType.JobFilesUpload)" />
+                                                            </a>
+                                                        </div>
+                                                    }
+                                                }
+                                                <input type="file" class="hidden site-pdf-support" id="sitebtn-logo" name="@Html.NameFor(m => m.Job.SiteImageFiles)" multiple>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <div class="border-dash-dark overflow-h pt15 mb10 radius-5">
+                                        <div class="col-sm-12">
+                                            <div class="overflow-h">
+                                                <h3 class="dib float-left mt0 mr10 pt3">Additional Images</h3>
+                                                <input type="button" class="btn btn-default btn-sm float-left btn-choosefile" id="additionalchoose-file" value="Choose file/s">
+                                                @*<input type="button" class="btn btn-danger btn-xs float-left mt4" id="additionalremove-file" value="@Resource.btnLabelRemove">*@
+                                            </div>
+                                            <div class="text-danger fs12 f-bold" id="additionalimg-message"></div>
+                                            <div id="additionalimage-block" class="text-center image-section">
+                                                @*@if (Model.Job.AdditionalImage.SiteImage.Id > 0)
+                                    {
+                                        @Html.HiddenFor(m => m.Job.AdditionalImage.SiteImage.Id)
+
+                                        @Html.HiddenFor(m => m.Job.AdditionalImage.SiteImage.IsRemoved, new { @class = "siteimage-remove-status" })
+                                    }*@
+                                                @if (Model.Job.AdditionalImage.SiteImage == null || string.IsNullOrEmpty(Model.Job.AdditionalImage.SiteImage.FilePath))
+                                                {
+                                                    <h5 class="text-left fs14 pdf-selection hide-element break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname"></span></h5>
+                                                    <span class="pdfname mb5 dib"></span>
+                                                    <img id="additionalimage-ctrl" width="100%" height="150" class="image-selection hide-element" src="~/Content/images/no-image.png" />
+                                                    <img id="additionalnoimage-ctrl" class="no-image" width="100%" height="150" src="~/Content/images/no-image.png" />
+                                                }
+                                                else if (!string.IsNullOrWhiteSpace(Model.Job.AdditionalImage.SiteImage.FilePath))
+                                                {
+                                                    @Html.HiddenFor(m => m.Job.AdditionalImage.SiteImage.FilePath)
+                                                    <h5 class="text-left fs14 pdf-selection break-word"><img src="~/Content/images/ico-thumbnailpdf.png" class="mtm5 mr5 float-left" width="21" /> <span class="pdfname">@Model.Job.AdditionalImage.SiteImage.FilePath </span></h5>
+                                                    <img id="additionalnoimage-ctrl" width="100%" height="150" class="image-selection hide-element" src="~/Content/images/no-image.png" />
+                                                    <span class="pdfname mb5 dib"></span>
+                                                    <div class="text-center image-download-btn">
+                                                        <a href="javascript:void(0)" onclick="downloadImageFile('@Model.Job.AdditionalImage.SiteImage.FilePath')" class="btn btn-primary btn-xs mt5 pa5">
+                                                            <i class="fa fa-download mr5 ml5 fs14"></i> @Resource.btnLabelDownload
+                                                        </a>
+                                                    </div>
+                                                    @*<img id="additionalimage-ctrl" width="100%" height="150" class="image-selection hide-element" src="@Url.Action("DownloadImageFiles", "Job", new { area = "Buyer", filePath = Model.Job.AdditionalImage.SiteImage.FilePath })" />*@
+                                                }
+                                                <input type="file" class="hidden additional-pdf-support" id="additionalbtn-logo" name="@Html.NameFor(m => m.Job.AdditionalImage.SiteImageFiles)" multiple>
+                                                <div class="form-group">
+                                                    @Html.TextAreaFor(m => m.Job.AdditionalImage.Description, new { @class = "form-control", @placeholder = "Image description" })
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+                    {
+                        <div class="row mt25">
+                            <div class="col-sm-2"></div>
+                            <div class="col-sm-10 text-right pb30 form-buttons">
+                                <input type="button" value="@Resource.btnLabelCancel" class="btn" onclick="location.href='@Url.Action("Index", "Dashboard", new { area = "Buyer" })'" />
+
+                                @if (Model.Job.StatusId == (int)JobStatus.Draft)
+                                {
+                                    if (!Model.IsJobCreationFromFuelRequest)
+                                    {
+                                        <input type="submit" id="Draft" value="@Resource.btnLabelDraft" class="btn btn-lg btn-default" />
+                                    }
+                                    <input type="submit" id="Submit" value="@Resource.btnLabelSubmit" class="btn btn-lg btn-primary submit-form" />
+                                }
+                                @if (Model.Job.StatusId == (int)JobStatus.Open || Model.Job.StatusId == (int)JobStatus.Pending)
+                                {
+                                    <input type="submit" id="Submit" value="@Resource.btnLabelSubmit" class="btn btn-lg btn-primary submit-form" />
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div id="inventory-data-capture-type" class="well">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h3 class="mt0">@Resource.lblInventoryCaptureMethod</h3>
+                            <div class="form-group mb0">
+                                <div class="radio mb5">
+                                    <div class="db mr20">
+                                        <label>
+                                            @Html.RadioButtonFor(m => m.Job.InventoryDataCaptureType, InventoryDataCaptureType.NotSpecified, new { @checked = "checkded"})
+                                            @InventoryDataCaptureType.NotSpecified.GetDisplayName()
+                                        </label>
+                                    </div>
+                                    <div class="db mr20">
+                                        <label>
+                                            @Html.RadioButtonFor(m => m.Job.InventoryDataCaptureType, InventoryDataCaptureType.Connected)
+                                            @InventoryDataCaptureType.Connected.GetDisplayName()
+                                        </label>
+                                    </div>
+                                    <div class="db">
+                                        <label>
+                                            @Html.RadioButtonFor(m => m.Job.InventoryDataCaptureType, InventoryDataCaptureType.Manual)
+                                            @InventoryDataCaptureType.Manual.GetDisplayName()
+                                        </label>
+                                    </div>
+                                    <div class="db">
+                                        <label>
+                                            @Html.RadioButtonFor(m => m.Job.InventoryDataCaptureType, InventoryDataCaptureType.CallIn)
+                                            @InventoryDataCaptureType.CallIn.GetDisplayName()
+                                        </label>
+                                    </div>
+                                    <div class="db">
+                                        <label>
+                                            @Html.RadioButtonFor(m => m.Job.InventoryDataCaptureType, InventoryDataCaptureType.Mixed)
+                                            @InventoryDataCaptureType.Mixed.GetDisplayName()
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="well">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h3 class="mt0 mb5">@Resource.lblJob</h3>
+                            <div class="checkbox mt0">
+                                <label class="inline-chk-custom">
+                                    @Html.CheckBoxFor(m => m.Job.IsProFormaPoEnabled) @Resource.lblProFormaPOEnabled
+                                </label>
+                            </div>
+                            <div class="checkbox divRetailJob">
+                                <label class="inline-chk-custom">
+                                    @Html.CheckBoxFor(m => m.Job.IsRetailJob) @Resource.lblRetailJob
+                                </label>
+                            </div>
+                            <div id="valRetailJob" class="hide-element checkbox">
+                                <div class="alert alert-warning fs12" role="alert">
+                                    @Resource.errMessageRetailJobEnabledUpdate
+                                </div>
+                            </div>
+                            <div id="isautodrcreation" class="checkbox hide-element">
+                                <label class="inline-chk-custom">
+                                    @Html.CheckBoxFor(m => m.Job.IsAutoCreateDREnable) @Resource.AutoDeliveryRequest
+                                </label>
+                            </div>
+                            <div class="checkbox form-group mb0 defaultDisabled">
+                                <label class="inline-chk-custom">
+                                    @Html.CheckBoxFor(m => m.JobBudget.IsTaxExempted) @Resource.lblTaxExempted
+                                </label>
+                            </div>
+                            <div id="valTaxExempted" class="hide-element mt10">
+                                <div class="alert alert-warning fs12" role="alert">
+                                    @Resource.errMessageTaxExemptedUpdate
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="well">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h3 class="mt0 mb5">@Resource.lblAsset</h3>
+                            <div class="form-check mb5 enableAssetTracking">
+                                @Html.CheckBoxFor(m => m.Job.IsAssetTracked, new { onclick = "requireAssetPic(false);checkBoxChange(this,'enableStatusForAllAssets');resetDisabledSection(this,'enableStatusForAllAssets')", @class = "no-hidden-click form-check-input" })
+                                <label class="form-check-label" for="Job_IsAssetTracked">
+                                    @Resource.lblEnableAssetTracking
+                                </label>
+                                <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.lblMsgAssetTrackingInfo" data-original-title="@Resource.lblMsgAssetTrackingInfo"></i>
+                            </div>
+                            <div id="valAssetTracking" class="hide-element checkbox">
+                                <div class="alert alert-warning fs12" role="alert">
+                                    @Resource.errMessageAssetTrackingEnabledUpdate
+                                </div>
+                            </div>
+                            <div class="form-check mb5 enableStatusForAllAssets subSectionOpacity pntr-none">
+                                @Html.CheckBoxFor(m => m.Job.IsAssetDropStatusEnabled, new { @class = "form-check-input" })
+                                <label class="form-check-label" for="Job_IsAssetDropStatusEnabled">
+                                    @Resource.lblEnableStatusForAllAssets
+                                </label>
+                                <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.lblMessageDropStatusForAllAssets" data-original-title="@Resource.lblMessageDropStatusForAllAssets"></i>
+                            </div>
+                            <div class="form-check requireAssetPic defaultDisabled subSectionOpacity">
+                                <label class="pntr-none form-check-label" for="JobBudget_IsDropPictureRequired">
+                                    @Html.CheckBoxFor(m => m.JobBudget.IsDropPictureRequired, new { @class = "form-check-input" })
+                                    @Resource.lblDropPictureRequired
+                                </label>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="well">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h3 class="mt0 mb5">@Resource.lblDriver</h3>
+                            <div class="form-check">
+                                @Html.CheckBoxFor(m => m.Job.SignatureEnabled, new { @class = "form-check-input" })
+                                <label class="form-check-label" for="Job_SignatureEnabled">
+                                    @Resource.lblEnableSignature
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="well divTrailerType">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h3 class="mt0 mb5">@Resource.lblTrailerCompatibility</h3>
+                            <div class="checkbox mb0 mt0">
+                                <label>
+                                    @*@Html.LabelFor(m => m.Job.TrailerType)*@
+                                    @Html.ListBoxFor(m => m.Job.TrailerType, new SelectList(CommonHelperMethods.GetTrailerTypeEnumList(), "Text", "Value", 0), new { @class = "form-control multi-select", @style = "padding-left:0px" })
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @Html.Partial("~/Views/Shared/_PartialJobSpecificBillToView.cshtml")
+            </div>
+        </div>
+    </div>
+<script>
+
+    function downloadImageFile(filePath) {
+        var url = "@Url.Action("DownloadJobFile", "job")?filePath=" + filePath;
+        window.open(url, "_blank");
+    }
+
+function getImageFileError() {
+    return '@Resource.errMessageImageFileError';
+};
+
+</script>
+<script src="~/Scripts/Main/Job/JobImage.js"></script>

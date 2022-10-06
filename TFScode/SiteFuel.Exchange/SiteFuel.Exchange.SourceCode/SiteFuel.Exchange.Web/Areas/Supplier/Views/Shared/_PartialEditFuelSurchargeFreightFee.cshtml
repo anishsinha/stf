@@ -1,0 +1,63 @@
+﻿@model OrderDetailsViewModel
+<div class="row">
+    <!-- Fuel Surcharge Freight Cost starts -->
+    <div class="col-sm-12">
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="checkbox mr20">
+                    <label>
+                        @Html.CheckBoxFor(m => m.OrderAdditionalDetails.IsFuelSurcharge, new { onchange = "showHideonCheckbox(this,'fuel-surcharge-range,fsc-freightcost')" }) @Resource.lblApplyFuelSurchage
+                        <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgFuelSurchargeFreightCost"></i>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="mb15 hide-element fuel-surcharge-range">
+                    @Html.EnumDropDownListFor(m => m.OrderAdditionalDetails.FuelSurchagePricingType, "Select Price", new { @class = "form-control enum-ddl" })
+                    @Html.ValidationMessageFor(m => m.OrderAdditionalDetails.FuelSurchagePricingType)
+                </div>
+            </div>
+        </div>
+        @Html.PartialFor("_PartialFuelSurchargeFreightFee", m => m.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee)
+        <a onclick="showSurchargeTable();"  id="lnkSurchargeTable" class="mt5">@Resource.lblViewFuelSurchargeTable</a>
+    </div>
+</div>
+
+<script type="text/javascript">
+    function ResetControls() {
+        @*$('input:radio[name="@Html.NameFor(m => m.PaymentTermId)"][value=' +@(Model.PaymentTermId)+']').prop("checked", true).trigger('click');
+        $('#@Html.IdFor(m => m.NetDays)').val(@Model.NetDays);*@
+    }
+
+    function showUpdateFuelSurchargeFreightFeeSuccessMessage(result) {
+        if (result.StatusCode == '@((int)Status.Failed)') {
+            msgerror(result.StatusMessage);
+            $(".loading-wrapper").hide();
+            EnableInteractiveButtons();
+            return false;
+        }
+        else {
+            msgsuccess('@Resource.errMessageUpdateSuccess');
+            window.location.reload();
+        }
+    }
+
+    function showUpdatePaymentTermsFailedMessage() {
+        msgerror('@Resource.errMessageUpdateFailed');
+        $(".loading-wrapper").hide();
+        EnableInteractiveButtons();
+        return false;
+    }
+
+    function EnableInteractiveButtons() {
+        $(".actions").attr("disabled", false).prop("disabled", false);
+        $("#Submit").attr("disabled", false).prop("disabled", false);
+    }
+
+    $(document).ready(function () {
+        $(".enum-ddl option[value='0']").remove();
+        FscFreightCost($("#@Html.IdFor(m => m.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.FeeSubTypeId)"));
+    });
+</script>

@@ -1,0 +1,110 @@
+﻿@model OrderFilterViewModel
+@Html.HiddenFor(m => m.GroupIds)
+<div class="row">
+    <div class="col-sm-7 col-md-9 col-xs-12">
+        <h4 class="float-left"><span id="spnGroupName"></span>@Resource.headingOrders</h4>
+        @if (Model.JobId == 0 && Model.GroupIds == "")
+        {
+            <a href="@Url.Action("View", "Order", new { area = "Buyer" })" class="float-left ml20 mt10 pt3">@Resource.btnLabelViewAll</a>
+        }
+    </div>
+    @if (Model.JobId == 0)
+    {
+        <div class="col-sm-5 col-md-3">
+            @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+        </div>
+    }
+</div>
+@*@Html.Partial("_PartialMapViewForOrder", Model)*@
+@if (Model.JobId == 0)
+{
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="well pb10 mb10">
+                <div class="row">
+                    <div class="col-sm-8">
+                        <div class="row">
+                            <div class="col-6 col-sm-3"><input type="text" id="txtBuyerOrderFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                            <div class="col-6 col-sm-3"><input type="text" id="txtBuyerOrderToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                            <div class="col-12 col-sm-4 mt5-xs">
+                                <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                                <input type="button" class="btn ml5" value="Clear" onclick="ClearFilter();" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 text-right pt-1">
+                        <a href="#." id="hide-view-filter" data-toggle="modal" data-target="#orderfilterassignment-modal" class="color-blue mr-2 fs14">
+                        <span class="filter-circle-badge" id="order-filter-count" style="display:none"></span> 
+                        <i class="fa fa-filter mr5 fs14"></i>
+                        <span class="f-normal mb-0 fs14">Filters</span></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<div class="row">
+    @Html.Partial("_PartialOrderGrid", Model)
+</div>
+
+<br />
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="modal fade" id="orderfilterassignment-modal" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            @Html.Partial("_PartialBuyerOrderFilter", Model.InputFilterDataViewModel)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    var filterType = 'order-filterType';
+    var locationsFilter = 'order-locations';
+    var assetsFilter = 'order-assets';
+    var tanksFilter = 'order-tanks';
+    var vesselsFilter = 'order-vessels';
+
+    $(document).ready(function () {
+        loadBuyerDropdownData(true);
+        ToggleFilterCount();
+        var companyGroup = getCompanyGroup();
+        if (companyGroup.groupIds != "") {
+            $('#spnGroupName').text(companyGroup.groupName + ' ');
+        }
+        else {
+            $('#spnGroupName').text();
+        }
+        /*$("#radio-landjobs").rules("remove", "required");*/
+       /* $("#radio-landjobs").removeAttr('data-val-required');*/
+        $("#radio-landjobs").attr('data-val-required', false);
+    });
+    function ApplyCustomerFilter() {
+        SetBuyerFilterLocalStorage();
+        buyerOrdersGrid.ajax.reload();
+        $("#orderfilterassignment-modal").modal('hide');
+        ToggleFilterCount();
+    }
+    function ResetFilter() {
+        ResetBuyerOrderFilter();
+        buyerOrdersGrid.ajax.reload();
+        $("#orderfilterassignment-modal").modal('hide');
+        ToggleFilterCount();
+    }
+    function ToggleFilterCount() {
+        var filterCount = getFilterCount();
+        if (filterCount == 0) {
+            $("#order-filter-count").attr("style", "display: none !important");
+        }
+        else {
+            $("#order-filter-count").html(filterCount).show();
+        }
+    }
+</script>

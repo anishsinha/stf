@@ -1,0 +1,76 @@
+﻿<div class="row">
+    <div class="col-sm-12">
+        <div class="well pb10 mb10">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2"><input type="text" id="txtFromDateTimeCard" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2"><input type="text" id="txtToDateTimeCard" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3 mt5-xs">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadTimeCard();" />
+                    <input type="button" class="btn btn-default ml5" value="@Resource.btnLabelClearFilter" onclick="TimeCardClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div id="timecardInfo" class="col-md-12">
+        <div class="alert alert-info fs12 mb10"><strong>@Resource.lblInfo</strong>@Resource.lblTimeCardInfo</div>
+    </div>
+    <div class="col-md-12">
+        @Html.Partial("_PartialTimeCardOverviewGrid")
+    </div>
+    <div class="col-sm-12 mt20" id="dispatchSchedules">
+        @Html.Partial("_PartialTimeCardDetailsGrid")
+    </div>
+</div>
+
+<script>
+    var TimeCardClearFilter, driverTimeCardOverviewGrid, driverTimeCardDetailsGrid;
+    var isTimeCardDetailsLoaded = false, isTimeCardOverviewLoaded = false;
+    ReloadTimeCard();
+
+    function ReloadTimeCard() {
+        timeCardStartDate = $('#txtFromDateTimeCard').val();
+        timeCardEndDate = $('#txtToDateTimeCard').val();
+        if (timeCardStartDate == '') {
+            $("#txtFromDateTimeCard").val(moment().startOf('d').subtract(1, 'd').format('MM/DD/YYYY'));
+        }
+        if (timeCardEndDate == '') {
+            $("#txtToDateTimeCard").val(moment().startOf('d').subtract(1, 'd').format('MM/DD/YYYY'));
+        }
+        ReloadTimeCardDataTables();       
+    }
+
+    $(document).ready(function () {
+        TimeCardClearFilter = function () {
+            $("#txtFromDateTimeCard").val(moment().startOf('d').subtract(1, 'd').format('MM/DD/YYYY'));
+            $("#txtToDateTimeCard").val(moment().startOf('d').subtract(1, 'd').format('MM/DD/YYYY'));
+            $('#txtToDateTimeCard').data("DateTimePicker").minDate($("#txtFromDateTimeCard").datetimepicker("minDate"));
+            ReloadTimeCardDataTables();
+        }
+
+        if ($('#txtFromDateTimeCard').length > 0 && $('#txtToDateTimeCard').length > 0) {
+            $("#txtFromDateTimeCard").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtToDateTimeCard').data("DateTimePicker").minDate($("#txtFromDateTimeCard").datetimepicker("minDate"));
+                else
+                    $('#txtToDateTimeCard').data("DateTimePicker").minDate(moment($('#txtFromDateTimeCard').val()));
+            });
+        }
+    });
+
+    function ReloadTimeCardDataTables() {
+        if (isTimeCardDetailsLoaded) {
+            driverTimeCardDetailsGrid.ajax.reload();
+        } else {
+            LoadTimeCardDetails();
+        }
+        if (isTimeCardOverviewLoaded) {
+            driverTimeCardOverviewGrid.ajax.reload();
+        } else {
+            LoadTimeCardOverview();
+        }     
+    }
+</script>

@@ -1,0 +1,59 @@
+﻿@model FuelSurchargeFreightFeeViewModel
+@{
+    var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+    var randomNum099 = (new Random()).Next(0, 99);
+}
+@Html.HiddenFor(m => m.Currency)
+    <div class="fsc-freightcost">
+        <div class="row fsc-freightcost-controls">
+            <div class="col-sm-4">
+                @Html.DropDownListFor(m => m.FeeSubTypeId, new SelectList(CommonHelperMethods.GetAllFeeSubTypes(Convert.ToString((int)FeeType.SurchargeFreightFee), Model.Currency), "Id", "Name"), new { @class = "form-control fsc-cost-by", @onchange = "FscFreightCost(this)" })
+                @Html.ValidationMessageFor(m => m.FeeSubTypeId)
+            </div>
+            <div id="common-delivery-fee-section-@randomNum099-@Model.FeeTypeId-@Model.FeeConstraintTypeId" class="distance-control hide-element partial-section col-sm-12 quantity-range byquantity-fee">
+                <div class="partial-block-collection-section">
+                    @if (Model.DeliveryFeeByQuantity != null && Model.DeliveryFeeByQuantity.Count() > 0)
+                    {
+                        foreach (var deliveryFeeByQuantity in Model.DeliveryFeeByQuantity)
+                        {
+                            deliveryFeeByQuantity.CollectionHtmlPrefix = prefix;
+                            Html.RenderPartial("~/Views/Shared/_PartialDeliveryFeeByQuantity.cshtml", deliveryFeeByQuantity);
+                        }
+                    }
+                </div>
+                @Html.ValidationMessageFor(m => m.DeliveryFeeByQuantity)
+                <div class="form-group mt7">
+                    <a href="javascript:void(0)" onclick="AjaxStart(this)" class="add-partial-block mb10" data-url="@Url.Action("DeliveryFeeByQuantity", new { prefix = prefix, currency = Model.Currency, uoM = Model.UoM})"><span class="fa fa-plus-circle"></span> @Resource.btnLabelAddTierPrice</a>
+                </div>
+            </div>
+            <div class="col-sm-4 fee no-distance-control hide-element">
+                <div class="form-group">
+                    <div class="input-group">
+                        @*<span class="input-group-addon">@Model.Currency</span>*@
+                        <span class="input-group-addon"> <span class="currency-by-country currency-symbol"></span></span>
+                        @Html.TextBoxFor(m => m.Fee, new { @class = "form-control datatype-decimal" })
+                    </div>
+                    @Html.ValidationMessageFor(m => m.Fee)
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    function FscFreightCost(element) {
+       
+        var selectedOption = $(element).find("option:selected").attr("value");
+        if (selectedOption == 19) {
+            $(".distance-control").removeClass("hide-element");
+            $(".no-distance-control").addClass("hide-element");
+        }
+        else {
+            $(".distance-control").addClass("hide-element");
+            $(".no-distance-control").removeClass("hide-element");
+        }
+    }
+
+    $(document).ready(function () {
+        FscFreightCost($("#@Html.IdFor(m => m.FeeSubTypeId)"));
+        SetUoMCurrencyAndRacklables();
+    });
+    </script>

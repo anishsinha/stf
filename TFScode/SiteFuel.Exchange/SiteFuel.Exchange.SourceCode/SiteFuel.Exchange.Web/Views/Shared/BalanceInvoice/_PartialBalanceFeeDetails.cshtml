@@ -1,0 +1,112 @@
+﻿@model FeesViewModel
+@{
+    var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+    var randomNum099 = (new Random()).Next(0, 99);
+}
+@using (Html.BeginCollectionItem("FuelDeliveryDetails.FuelFees.FuelRequestFees"))
+{
+    <div class="partial-block">
+        
+        @Html.HiddenFor(m => m.Currency)
+        @Html.HiddenFor(t => t.TruckLoadType)
+        @Html.HiddenFor(t => t.TruckLoadCategoryId)
+
+        <div class="fee-type-row">
+            <div class="fee-types">
+                <div class="row">
+                    <div class="hidden-value-common-fee">
+                        @Html.HiddenFor(t => t.CommonFee)
+                    </div>
+                    <span class="pull-left pl15 dib mt7">@Resource.lblFlat</span>
+                    @if (Model.CommonFee)
+                    {
+                        <div class="col-sm-2 fee-type-ddl">
+                            <div class="form-group mb0">
+                                @Html.DropDownListFor(m => m.FeeTypeId, new SelectList(CommonHelperMethods.GetAllFeeTypes(CurrentUser.CompanyId, Model.Currency, Model.TruckLoadType), "Code", "Name"), "Select Fee", Model.FeeConstraintTypeId.HasValue ? new { @class = "form-control special-feetype-ddl feetype-ddl", @onchange = "showHideQuantity(this);", @onclick = "showHideQuantity(this);" } as object : new { @class = "form-control feetype-ddl", @onchange = "showHideQuantity(this);", @onclick = "showHideQuantity(this);" } as object)
+                                @Html.ValidationMessageFor(m => m.FeeTypeId)
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-sm-2 fee-type-name">
+                            <div class="form-group">
+                                @Html.HiddenFor(m => m.FeeTypeId)
+                                @Html.TextBoxFor(m => m.OtherFeeDescription, new { @class = "form-control otherFeeDesc", placeholder = "Fee Name" })
+                                @Html.ValidationMessageFor(m => m.OtherFeeDescription)
+                            </div>
+                        </div>
+                    }
+                    <div class="col-sm-2 fee-sub-type-ddl hide-element">
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper mtm10 hide-element"><span class="spinner-dashboard pa"></span></div>
+                        <div class="form-group">
+                            @Html.DropDownListFor(m => m.FeeSubTypeId, new SelectList(CommonHelperMethods.GetAllFeeSubTypes(Model.FeeTypeId, Model.Currency), "Id", "Name"), "Select Fee Type", new { @class = "form-control feesubtype-ddl", @onchange = "showHideQuantity(this);" })
+                            @Html.ValidationMessageFor(m => m.FeeSubTypeId)
+                        </div>
+                    </div>
+                    <div class="col-sm-2 under-gallon-fee hide-element">
+                        <div class="form-group">
+                            <div class="mb5 undergallonfee defaultDisabled">
+                                @Html.TextBoxFor(m => m.MinimumGallons, new { @class = "form-control datatype-decimal", placeholder = Model.Currency == Currency.CAD ? Resource.lblMinLitres : Resource.lblMinGallons, data_toggle = "tooltip", data_placement = "top", title = @Resource.lblMinGallons })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.MinimumGallons)
+                        </div>
+                    </div>
+                    <div class="regular-fee col-sm-2 mb10 fee">
+                        <div class="form-group mb0">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text fs11">@Model.Currency</span>
+                                </div>
+                                @Html.TextBoxFor(m => m.Fee, new { @class = "form-control datatype-decimal fee-amount" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.Fee)
+                        </div>
+                    </div>
+                </div>
+                    <div class="regular-tax row">
+                        <span class="pull-left pl15 dib mt7">@Resource.lblTax</span>
+                        <div class="col-sm-2">
+                            <div class="form-group">
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text fs11">@Resource.constSymbolPercent</span>
+                                    </div>
+                                    @Html.TextBoxFor(m => m.FeeTaxDetails.Percentage, new { @class = "form-control tax-percentage", placeholder = "Percentage" })
+                                </div>
+                                @Html.ValidationMessageFor(m => m.FeeTaxDetails.Percentage)
+                            </div>
+                        </div>
+                        <div class="col-sm-2">
+                            <div class="form-group">
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text fs11">@Model.Currency</span>
+                                    </div>
+                                    @Html.TextBoxFor(m => m.FeeTaxDetails.Amount, new { @class = "form-control tax-amount", placeholder = "Amount", @readonly = "readonly" })
+                                </div>
+                                @Html.ValidationMessageFor(m => m.FeeTaxDetails.Amount)
+                            </div>
+                        </div>
+                        <div class="col-sm-2">
+                            <div class="form-group">
+                                @Html.TextBoxFor(m => m.FeeTaxDetails.Description, new { @class = "form-control", placeholder = "Description" })
+                            </div>
+                        </div>
+                        <div class="fs18 col-xs-1">
+                            <a href="javascript:void(0)" name="remove-partial-fee" class="fa fa-trash-alt mt10 color-maroon remove-fee" title="@Resource.btnLabelRemove" onclick="refreshFeeTypeDdl(this);removePartial(this);"></a>
+                        </div>
+                    </div>
+                <div class="fee-type-addtocommon row">
+                    <div class="checkbox col-sm-12 mb10 mtm10">
+                        <label>
+                            @Html.CheckBoxFor(m => m.AddToCommonFees)
+                            @Resource.lblAddToCommonFees
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+}

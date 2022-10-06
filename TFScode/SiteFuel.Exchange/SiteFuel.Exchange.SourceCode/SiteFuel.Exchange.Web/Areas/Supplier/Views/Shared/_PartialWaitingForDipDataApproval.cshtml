@@ -1,0 +1,137 @@
+﻿@model NoDataExceptionPrePostViewModel
+
+@using (Html.BeginForm("SaveDipDataValues", "Exception", new { area = "Supplier" }, FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    @Html.HiddenFor(m => m.InvoiceHeaderId);
+    @Html.HiddenFor(m => m.companyId);
+    <div class="row col-sm-12 mt5">
+        <h5 class="fs14 font-bold">@Resource.lblAssetTankDetails</h5>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div>
+                <div id="asset-drops" class="partial-block-collection-section">
+                    @if (Model.AssetDetails !=null && Model.AssetDetails.Any())
+                    {                                
+                        foreach (var asset in Model.AssetDetails)
+                        {                         
+                            @Html.PartialFor("_PartialAssetDetailsForDipData", m => asset)
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="form-group">
+            <button type="button" Id="calculateQuantities" class="btn btn-default mt10 ml0 mb10 pull-right"> Calculate </button>
+        </div>
+    </div>
+    <div class="row col-sm-12 justify-content-end pa0">
+                <input type="button" class="btn" value="Cancel" data-dismiss="modal">
+                <input type="submit" value="Save" class="btn btn-primary btn-lg form-submit" id="btnSaveDipDataform">
+    </div>
+    
+}
+
+<script>
+    $('#calculateQuantities').click(function () {
+            var assets = $('#asset-drops .partial-block');
+            if (assets != undefined && assets.length >0) {
+            var isValidInput = true;
+            //Validate Pre-Post and UoM
+            $(".postdip").each(function () {
+                var postdip = $(this).val();
+                if (postdip == '' || postdip == null || postdip == undefined) {
+                        validationMessageFor($(this).attr('name'), '@Resource.errPostDipRequired');
+                        isValidInput = false;
+                    }
+                                   
+            });
+            $(".predip").each(function () {
+                var preDip = $(this).val();
+                if (preDip == '' || preDip == null || preDip == undefined) {
+                        validationMessageFor($(this).attr('name'), '@Resource.errPreDipRequired');
+                        isValidInput = false;
+                    }
+               // }                    
+            });
+                $(".tankScale").each(function () {
+                var tankScale = $(this).val();
+                if (tankScale == '' || tankScale == null || tankScale == undefined) {
+                        validationMessageFor($(this).attr('name'), 'UoM is Required');
+                        isValidInput = false;
+                    }
+                });
+            if (isValidInput) {
+                var assetInfoList = []
+                for (var i = 0; i < assets.length; i++) {
+                        var preDip = $(assets[i]).find('.predip').val();
+                        var postDip = $(assets[i]).find('.postdip').val();
+                        var assetType = $(assets[i]).find('.assetType').val();
+                    var jobXAssetId = $(assets[i]).find('.JobXAssetId').val();
+                        var tankScaleMeasurement = $(assets[i]).find('.tankScale').val();
+                        var asset = {
+                            JobXAssetId: parseInt(jobXAssetId),
+                            PreDip: preDip,
+                            PostDip: postDip,
+                            AssetType: assetType,
+                            TankScaleMeasurement: tankScaleMeasurement
+                        };
+                        assetInfoList.push(asset);
+                    }
+                }
+                if (assetInfoList != null && assetInfoList != undefined && assetInfoList.length > 0) {
+                    var url = '@Url.Action("CalculateDropQuantitiesFromPrePostForCreateInvoice", "Invoice",new { area ="Supplier"})';
+                    $.post(url, { assetInfoList: assetInfoList }, function (response) {
+                        if (response != undefined && response != null && response.length > 0) {
+                            for (var i = 0; i < response.length; i++) {
+                                var currentJobxAssetId = response[i].JobxAssetId;
+                                var currentDroppedGallons = response[i].DropQuantity;
+                                if (response[i].StatusCode == 0) //Success
+                                {                                                                      
+                                    $(".dropquantity").each(function () {
+                                        var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                                        if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) == currentJobxAssetId) {
+                                            $(this).val(currentDroppedGallons);
+
+                                        }
+                                    });
+                                   // $('.drop-input').trigger('keyup');
+                                }
+                                else if (response[i].StatusCode == 1)//Failed
+                                {
+                                    $(".dropquantity").each(function () {
+                                        var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                                        if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) == currentJobxAssetId) {
+                                            var assetName = $(this).closest('.asset-drop').find('.assetName').val();
+                                            var errMessage = "Error Ocurred when calculating quantity for asset/Tank  " + assetName + " . " + response[i].StatusMessage
+                                            msgerror(errMessage, undefined, undefined);
+                                        }
+                                    });
+
+                                }
+                                else if (response[i].StatusCode == 2) {
+                                    $(".dropquantity").each(function () {
+                                        var jobXAssetId = $(this).closest('.asset-drop').find('.JobXAssetId').val();
+                                        if (jobXAssetId != undefined && jobXAssetId != null && parseInt(jobXAssetId) == currentJobxAssetId) {
+                                            var assetName = $(this).closest('.asset-drop').find('.asset-name').val();
+                                            var errMessage = response[i].StatusMessage + assetName + " . "
+                                            msgerror(errMessage, undefined, undefined);
+                                        }
+                                    });
+                                }
+                                
+                            }
+                           
+                        }
+                        else {
+                            msgerror("Error occurred when calculating quantities", undefined, undefined);
+                        }
+                    });
+                }
+          // }
+         }
+        });
+
+</script>

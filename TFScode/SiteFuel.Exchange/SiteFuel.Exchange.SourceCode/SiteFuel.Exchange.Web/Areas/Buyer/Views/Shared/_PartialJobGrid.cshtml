@@ -1,0 +1,162 @@
+﻿@model JobFilterViewModel
+
+<div class="col-md-12">
+    <div class="well bg-white shadowb-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-padding no-border">
+                <div id="job-details-grid" class="table-responsive">
+                    <table id="job-datatable" class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>@Resource.gridColumnJob / @Resource.lblMarineLocation</th>
+                                <th>@Resource.gridColumnJobID</th>
+                                <th>@Resource.lblAssetsAndTanksAllocated</th>
+                                <th>@Resource.gridColumnBudget (<span class="currency-by-country"></span>)</th>
+                                <th>@Resource.gridColumnTotalSpend (<span class="currency-by-country"></span>)</th>
+                                <th>@Resource.lblJob @Resource.lblStartDate</th>
+                                <th>@Resource.lblJob @Resource.lblEndDate</th>
+                                <th>@Resource.gridColumnAddress</th>
+                                <th>@Resource.lblOnsiteContact</th>
+                                <th>@Resource.gridColumnLastUpdated</th>
+                                <th>@Resource.gridColumnStatus</th>
+                                <th>@Resource.gridColumnIsRetailJob</th>
+                                <th>@Resource.gridColumnLocationInventoryManagedBy</th>
+                                <th>@Resource.lblMarineLocation</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+        var buyerJobGrid;
+        var ClearFilter;
+        $(document).ready(function () {
+            $('#txtBuyerJobFromDate').val(GetLocalStorage('txtBuyerJobFromDate'));
+            $('#txtBuyerJobToDate').val(GetLocalStorage('txtBuyerJobToDate'));
+            ClearFilter = function () {
+                $('#txtBuyerJobFromDate').val('');
+                $('#txtBuyerJobToDate').val('');
+                $('#txtBuyerJobToDate').data("DateTimePicker").minDate($("#txtBuyerJobFromDate").datetimepicker("minDate"));
+                ReloadDataTable();
+            }
+
+            if ($('#txtBuyerJobFromDate').length > 0 && $('#txtBuyerJobToDate').length > 0) {
+                $("#txtBuyerJobFromDate").on('dp.change dp.show', function (e) {
+                    if (e.date == false)
+                        $('#txtBuyerJobToDate').data("DateTimePicker").minDate($("#txtBuyerJobFromDate").datetimepicker("minDate"));
+                    else
+                        $('#txtBuyerJobToDate').data("DateTimePicker").minDate(moment($('#txtBuyerJobFromDate').val()));
+                });
+            }
+
+            buyerJobGrid = $('#job-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("JobGrid", "Job", new { area ="Buyer" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "data": function () {
+                        var jobFilter = {
+                            Id: '@Model.Id',
+                            Filter: '@Model.Filter',
+                            StartDate: $('#txtBuyerJobFromDate').val(),
+                            EndDate: $('#txtBuyerJobToDate').val(),
+                            Currency: getSelectedCountryAndCurrency().currencyType,
+                            CountryId: getSelectedCountryAndCurrency().countryId
+                        };
+                        $('#job-details-grid').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                        return jobFilter;
+                    },
+                    "dataSrc": function (json) {
+                        $("#job-details-grid").find('.loading-wrapper').remove();
+                        return json;
+                    }
+                },
+                "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("Details", "Job", new { area = "Buyer" })/' + data.Id + '">' + data.Name + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "JobID", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            return data.AssetAssigned == 0 ? data.AssetAssigned : '<a href="@Url.Action("View", "Asset", new { area = "Buyer" })?id=' + data.Id + '">' + data.AssetAssigned + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "Budget", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+                    { "data": "TotalSpend", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+                    { "data": "StartDate", "autoWidth": true, "sType": "date" },
+                    { "data": "EndDate", "autoWidth": true, "sType": "date" },
+                    { "data": "Address", "autoWidth": true },
+                    {
+                        "data": function (data) {
+                            return data.ContactPerson == null ? '<div class="text-center">@Resource.lblHyphen<div>' : data.ContactPerson.substring(0, data.ContactPerson.length - 1).replace(/\;/g, '<br/><br/>');
+                        }, "autoWidth": true, "className": "contact-person"
+                    },
+                    { "data": "LastUpdated", "autoWidth": true, "sType": "date" },
+                    { "data": "Status", "autoWidth": true },
+                    {"data": function (data, type, row, meta) {
+                        if (data.IsRetailJob == true) {
+                            return '@Resource.lblYes'
+                        }
+                        else {
+                            return '@Resource.lblNo'
+                        }
+                    }, "autoWidth": true, "className": "break-word"
+                    },
+                    { "data": "LocationInventoryManagedByNames", "autoWidth": true },
+                    {"data": function (data, type, row, meta) {
+                             if (data.IsMarine == true) {
+                            return '@Resource.lblYes'
+                             }
+                            else {
+                              return '@Resource.lblNo'
+                             }
+                    }, "autoWidth": true, "className": "break-word"
+                    },
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingJobs' },
+                    { extend: 'excel', title: '@Resource.headingJobs' },
+                    { extend: 'pdf', title: '@Resource.headingJobs', orientation: 'landscape', pageSize: 'LETTER' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+        });
+
+        function ReloadDataTable() {
+            SetLocalStorage('txtBuyerJobFromDate', $('#txtBuyerJobFromDate').val());
+            SetLocalStorage('txtBuyerJobToDate', $('#txtBuyerJobToDate').val());
+            buyerJobGrid.ajax.reload();
+            ReloadBuyerJobMap();
+        }
+</script>
+}

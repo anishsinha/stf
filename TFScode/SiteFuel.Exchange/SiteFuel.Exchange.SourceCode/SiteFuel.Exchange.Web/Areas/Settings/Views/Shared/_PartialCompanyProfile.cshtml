@@ -1,0 +1,98 @@
+﻿@model CompanyInformationViewModel
+
+@using (Html.BeginForm("CompanyInformation", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form", enctype = "multipart/form-data" }))
+{
+    @Html.AntiForgeryToken()
+
+    @Html.HiddenFor(m => m.Company.CompanyTypeId)
+    @Html.HiddenFor(m => m.Company.ThemeId)
+    <div class="col-sm-12">
+        <div class="row well mb15">
+            <div class="col-sm-12">
+                <h4>@Resource.headingCompanyProfile</h4>
+                <div class="@((CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierAdmin) ? "row" :"row disable-controls")">
+                    @Html.PartialFor("_PartialCompanySettings", m => m.Company)
+                </div>
+            </div>
+        </div>
+    </div>
+    if (CurrentUser.CompanyTypeId == CompanyType.BuyerAndSupplier || CurrentUser.CompanyTypeId == CompanyType.Supplier || CurrentUser.CompanyTypeId == CompanyType.BuyerSupplierAndCarrier || CurrentUser.CompanyTypeId == CompanyType.SupplierAndCarrier)
+    {
+        if (!CurrentUser.IsSalesUser)
+        {
+        <div class="col-sm-12">
+            <div class="row well">
+                <div class="col-md-12">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h4>@Resource.headingAppThemes</h4>
+                            <div class="row app-themes mt20">
+                                <div class="col-sm-2 col-xs-6 active-theme" id="theme-1">
+                                    <img src="~/Content/images/theme-blue.png" class="img-fluid mb10" />
+                                    <div class="text-center mb20 fs16 f-normal">@Resource.lblBlue</div>
+                                </div>
+                                <div class="col-sm-2 col-xs-6" id="theme-2">
+                                    <img src="~/Content/images/theme-yellow.png" class="img-fluid mb10" />
+                                    <div class="text-center mb20 fs16 f-normal">@Resource.lblYellow</div>
+                                </div>
+                                <div class="col-sm-2 col-xs-6" id="theme-3">
+                                    <img src="~/Content/images/theme-cyan.png" class="img-fluid mb10" />
+                                    <div class="text-center mb20 fs16 f-normal">@Resource.lblCyan</div>
+                                </div>
+                                <div class="col-sm-2 col-xs-6" id="theme-4">
+                                    <img src="~/Content/images/theme-darkgrey.png" class="img-fluid mb10" />
+                                    <div class="text-center mb20 fs16 f-normal">@Resource.lblDarkGrey</div>
+                                </div>
+                                <div class="col-sm-2 col-xs-6" id="theme-5">
+                                    <img src="~/Content/images/theme-lightgrey.png" class="img-fluid mb10" />
+                                    <div class="text-center mb20 fs16 f-normal">@Resource.lblLightGrey</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+    }
+    <div class="row text-right pb20 mt15">
+        <div class="col-sm-2"></div>
+        <div class="col-sm-10 text-right">
+            @if (CurrentUser.IsSuperAdmin || CurrentUser.IsAccountSpecialist)
+            {
+                <input type="button" class="btn btn-danger" value="@Resource.btnLabelCancel" onclick="window.history.go(-1);" />
+            }
+            else
+            {
+                <input type="button" class="btn btn-danger" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Index", "Home", new { area = "" })'" />
+                if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierAdmin)
+                {
+                    <input type="submit" class="btn btn-lg btn-primary" value="@Resource.btnLabelSave" />
+                }
+            }
+        </div>
+    </div>
+}
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $(".app-themes div").removeClass("active-theme");
+        $(".app-themes").find("#theme-" + $('#@Html.IdFor(m=>m.Company.ThemeId)').val()).addClass("active-theme");
+        $(".active-theme").prepend("<div class='select-theme'><span class='fa fa-check-circle fa-2x color-green pa mtm10 mlm10 bg-white'></span></div>");
+        $(".app-themes img").click(function () {
+            $(".app-themes div").removeClass("active-theme").remove(".select-theme");
+            $(this).parent().addClass("active-theme").prepend("<div class='select-theme'><span class='fa fa-check-circle fa-2x color-green pa mtm10 mlm10 bg-white'></span></div>");
+            var selectedTheme = $(".active-theme").attr("id").split('-');
+            $('#@Html.IdFor(m=>m.Company.ThemeId)').val(selectedTheme[1]);
+        });
+        $('.onchange-select-showhide').attr('disabled', 'disabled');
+
+        var isbillingAddressUpdated = localStorage.getItem("IsBillingAddressTabView");
+        if (isbillingAddressUpdated == "True") {
+            $('#tab-billing-address').trigger('click').addClass('active');
+            $('#tab-company-profile').removeClass('active');
+            localStorage.setItem("IsBillingAddressTabView", "False");
+        }
+    });
+</script>
+

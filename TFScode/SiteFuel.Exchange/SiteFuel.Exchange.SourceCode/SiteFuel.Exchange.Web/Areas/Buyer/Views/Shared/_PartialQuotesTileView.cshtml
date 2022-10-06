@@ -1,0 +1,68 @@
+﻿@model List<QuotationsGridViewModel>
+@foreach (var item in Model)
+{
+    var status = item.IsExcluded ? "bg-muted" : "";
+    var labelstatus = item.QuotationStatusId == (int)QuoteRequestStatuses.Awarded ? "label-default" : item.IsExcluded ? "grey-inverse" : "label-warning";
+    <div class="tile col-md-4" id="@item.Id" draggable="true">
+        <div class="col-sm-12 p-sm mr10 mb10 @status" style="border-radius:10px; min-height:300px; cursor:move; border:solid 1px;">
+            <div>
+                <span>@item.SupplierName</span>
+                @if (item.QuoteRequestStatusId == (int)QuoteRequestStatuses.Awarded)
+                {
+                    if (item.QuotationStatusId != (int)QuotationStatuses.Open)
+                    {
+                        <label class="label @labelstatus arrow">@item.Status</label>
+                    }
+                }
+                else
+                {
+                    <label class="label @labelstatus arrow">@item.Status</label>
+                }
+                <hr />
+            </div>
+            <div>
+                <div>
+                    <b>@Resource.lblRackPPG:</b> @item.RackPPG
+                </div>
+                <div>
+                    <b>@Resource.headingFees:</b>
+                </div>
+                <div>
+                    @Resource.lblDeliveryFee: @Html.Raw(@item.DeliveryFee)
+                    @Html.Raw(item.OtherFees)
+                </div>
+                <hr />
+            </div>
+            <div>
+                <div>
+                    <b>@Resource.gridColumnCreatedBy</b>: @item.CreatedBy
+                </div>
+                <div>
+                    <b>Date Received:</b> @item.CreatedDate
+                </div>
+                <hr />
+            </div>
+            <div>
+                <span class="col-md-1 p-xs"><a href="javascript:void(0)" onclick="GetPartialViewData('quotes-pdf-view',@item.Id)"><i class="fa fa-file-pdf-o fa-2x mt5" aria-hidden="true"></i></a></span>
+                @if (item.Documents.Any())
+                {
+                    var jsonDocs = Html.Raw(Json.Encode(item.Documents.Select(t => t.ModifiedFileName)));
+                    <span class="col-md-1 p-xs"><a href="javascript:void(0)" onclick='DownloadAttachments(@jsonDocs)' title="Click to Download" class="btn-download" download=""><i class="fa fa-paperclip" aria-hidden="true"></i></a></span>
+                }
+                <span class="col-md-3 p-xs arrow "><a class="btn-info btn-sm " href="javascript:void(0)" onclick="GetPartialViewData('quotes-detail-view',@item.Id)">@Resource.btnLabelDetails</a></span>
+                @if (item.QuoteRequestStatusId == (int)QuoteRequestStatuses.Open && (CurrentUser.IsBuyer || CurrentUser.IsBuyerAdmin))
+                {
+                    if (item.IsExcluded)
+                    {
+                    <span class="col-md-3 p-xs arrow mr10"><a class="btn-success btn-sm mr5" data-url="@Url.Action("Exclude", "Quote", new { area = "Buyer", quotationId = item.Id })" onclick="includeExcludeAwardQuote(this);" href="#">@Resource.btnLabelInclude</a></span>
+                    }
+                    else
+                    {
+                    <span class="col-md-3 p-xs arrow"><a class="btn-success btn-sm mr5" data-url="@Url.Action("Award", "Quote", new { area = "Buyer", id = item.Id })" onclick="includeExcludeAwardQuote(this)" href="#">@Resource.btnLabelAward</a></span>
+                    <span class="col-md-3 p-xs arrow mr10"><a class="btn-danger btn-sm mr5" data-url="@Url.Action("Exclude", "Quote", new { area = "Buyer", quotationId = item.Id })" onclick="includeExcludeAwardQuote(this)" href="#">@Resource.btnLabelExclude</a></span>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}

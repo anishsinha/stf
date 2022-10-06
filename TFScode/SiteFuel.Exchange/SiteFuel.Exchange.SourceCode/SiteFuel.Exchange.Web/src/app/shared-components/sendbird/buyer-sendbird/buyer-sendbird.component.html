@@ -1,0 +1,39 @@
+
+<div class="tfx-chat shadow-b chat-minimized" *ngFor="let chatDetails of chatCollection;let i = index" id="divusers_{{i}}">
+    <div class="chat-user">
+        <span class="pl10 pr5 pull-left animated flash infinite pt10 mt2 fs14" *ngIf="chatDetails.chatLoading">
+            Initiating chat with {{chatDetails.driverInfo.FullName}}...
+        </span>
+        <img class="pull-left mt2 radius" src="{{chatDetails.driverInfo.ProfileURL}}" width="20" height="20" *ngIf="chatDetails.chatLoading==false && chatDetails.driverInfo.ProfileURL!=''">
+        <i class="fas fa-user pull-left fs16 mt4" *ngIf="chatDetails.chatLoading==false && chatDetails.driverInfo.ProfileURL==''"></i>
+        <span class="pl10 pr5 pull-left" *ngIf="chatDetails.chatLoading==false">
+            {{chatDetails.driverInfo.FullName}}<i class="fas fa-circle color-green fs8 ml5" *ngIf="chatDetails.driverInfo.ConnectionStatus===true"></i>
+            <span class="fs10 db" *ngIf="chatDetails.driverInfo.ConnectionStatus===false && chatDetails.driverInfo.lastSeenAt!='NO'">last seen {{chatDetails.driverInfo.lastSeenAt}}</span>
+            <span class="fs10 color-orange db" *ngIf="chatDetails.driverInfo.TypingIndicator===true">{{chatDetails.driverInfo.TypingMemberName}} typing...</span>
+        </span>
+        <a class="mt8 pull-right  mt10 mr10" *ngIf="chatDetails.chatLoading"><i class="fas fa-close  mt2 fs16"></i></a>
+        <a class="mt2 pull-right" (click)="closeChat(chatDetails.driverInfo.Email)" title="Close chat" *ngIf="chatDetails.chatLoading==false"><i class="fas fa-close"></i></a>
+        <a class="mt2 pull-right" (click)="callOffline(chatDetails.driverInfo.PhoneNumber)" *ngIf="chatDetails.driverInfo.IsPhoneNumberConfirmed===true && chatDetails.chatLoading==false"><i class="fas fa-phone color-green mr10"></i></a>
+        <a class="mt2 pull-right" (click)="groupInfo(chatDetails.driverInfo.Email)" title="Group members information" *ngIf="chatDetails.chatLoading==false"><i class="fas fa-users mr10"></i></a>
+        <a class="mt2 pull-right" (click)="minimizeChat('divusers_'+i,chatDetails.driverInfo.Email,'icon_'+i)" *ngIf="chatDetails.chatLoading==false"><i class="far fa-window-minimize mr10" id="icon_{{i}}"></i></a>
+    </div>
+    <div class="chat-details driver_{{chatDetails.driverInfo.Id}}" *ngIf="chatDetails.chatLoading==false">
+        <div class="text-center pr">
+            <span class="chat-loader pa text-center" *ngIf="chatDetails.showsmallLoder===true"></span>
+            <a (click)="sbLoadMoreMessage(chatDetails.driverInfo.Email)" class="btn btn-default btn-xs fs10" *ngIf="chatDetails.loadmore===true">Load More</a>
+        </div>
+        <div *ngFor="let driverChat of chatDetails.chatData">
+            <div class="messageHeader" *ngIf="driverChat.headerText!=''">{{driverChat.headerText}}</div>
+            <div [ngClass]="(driverChat.messageType===1)?'you':'driver'">
+                <span *ngIf="driverChat.messageType===2" style="color: #ec9f5a">{{driverChat.nickname}}<br /></span>
+                {{driverChat.message}}
+                <div class="text-right time">{{driverChat.dateTime}}</div>
+            </div>
+        </div>
+    </div>
+    <div class="message-box" [formGroup]="sbSendbird" *ngIf="chatDetails.chatLoading==false">
+        <textarea placeholder="message" formControlName="textMessage" (keypress)="typingIndicatorEvent(chatDetails.driverInfo.Email,$event)"></textarea>
+        <button (click)="sendMessage(chatDetails.driverInfo.Email)"><i class="fas fa-play"></i></button>
+    </div>
+
+</div>

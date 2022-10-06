@@ -1,0 +1,310 @@
+<button id="btn-assignedByMe" type="button" class="btn btn-link pa0 fs13" data-target="divAssignedByMe" (click)="openAssignedByMePanel();" onclick="slidePanel('#divAssignedByMe','80%')"> <i class="fa fa-user mt3 pull-left mr-3"></i> Assigned By Me</button>
+
+<div class="dip-test-container">
+    <div class="side-panel pl5 pr5" id="divAssignedByMe">
+        <div class="side-panel-wrapper p-3">
+            <div class="mb-2">
+                <a class="close-panel float-left" onclick="closeSlidePanel();">
+                    <i class="fa fa-close fs18"></i>
+                </a>
+                <h3 class="dib mt0 mb0 ml15">Assigned By Me</h3>
+            </div>
+            <div class="card shadow p-3">
+                <div class="row mr15" [formGroup]="FilterForm">
+                    <div class="col-sm-3">
+                        <ng-multiselect-dropdown [placeholder]="'Customer'"
+                                                 [formControl]="FilterForm.controls['SelectedCustomers']"
+                                                 [settings]="multiDropdownSettings"
+                                                 [data]="customerList"
+                                                 (onSelect)="onCustomerChange()" (onDeSelect)="onCustomerChange()" (onSelectAll)="onCustomerChange()" (onDeSelectAll)="onCustomerChange()">
+                        </ng-multiselect-dropdown>
+                    </div>
+                    <div class="col-sm-3">
+                        <ng-multiselect-dropdown [placeholder]="'Location'"
+                                                 [formControl]="FilterForm.controls['SelectedLocations']"
+                                                 [settings]="multiDropdownSettings"
+                                                 [data]="locationList"
+                                                 (onSelect)="onLocationChange()" (onDeSelect)="onLocationChange()" (onSelectAll)="onLocationChange()" (onDeSelectAll)="onLocationChange()">
+                        </ng-multiselect-dropdown>
+                    </div>
+                    <div class="col-sm-3">
+                        <ng-multiselect-dropdown [placeholder]="'Priority'"
+                                                 [formControl]="FilterForm.controls['SelectedPriorities']"
+                                                 [settings]="multiDropdownSettings"
+                                                 [data]="priorityList"
+                                                 (onSelect)="onPriorityChange()" (onDeSelect)="onPriorityChange()" (onSelectAll)="onPriorityChange()" (onDeSelectAll)="onPriorityChange()">
+                        </ng-multiselect-dropdown>
+                    </div>
+                    <div class="col-sm-3">
+                        <button type="button" id="apply" (click)="ApplyFilters();" class="btn btn-primary mr-2">
+                            Filter
+                        </button>
+                        <button type="button" id="reset" (click)="ResetFilters();" class="btn btn-link">
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="body-panel p-0 pr-2 mt-2">
+                <div class='pa bg-white top0 left0 z-index5 loading-wrapper' *ngIf="IsLoading">
+                    <span class='spinner-dashboard pa'></span>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12" id="grid-view">
+                        <div *ngIf="showMustGo == true">
+                            <h4 class="mustgo mb5" style="color: #fd7668 !important ">Must Go</h4>
+                            <div class="well bg-white shadow-sm border pr pb0">
+                                <div class="ibox mb0">
+                                    <div class="ibox-content no-padding no-border">
+                                        <div class="table-responsive">
+                                            <!--Enum - GridName.DispatherMustGoGrid => 19-->
+                                            <table id="table-mustgo" class="table table-bordered table-hover" datatable [dtOptions]="dtMustGoOptions" [dtTrigger]="dtMustGoTrigger">
+                                                <thead>
+                                                    <tr>
+                                                        <th data-key="Customer">Customer Name</th>
+                                                        <th data-key="Loc">Location Address</th>
+                                                        <th data-key="Product">Product</th>
+                                                        <th data-key="DR_ID">DR ID</th>
+                                                        <th data-key="Quantity">Requested Quantity</th>
+                                                        <th data-key="RW">Retain Window</th>
+                                                        <th data-key="CI">Current Inventory</th>
+                                                        <th data-key="Ullg">Ullage</th>
+                                                        <th data-key="Status">Status</th>
+                                                        <th data-key="CR">Carrier Rejected</th>
+                                                        <th data-key="CC">Current Carrier</th>
+                                                        <th data-key="UC">Upcoming Carrier</th>
+                                                        <th data-key="Recal">Recall</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody *ngIf="MustGoDrs?.length > 0">
+                                                    <tr *ngFor="let row of MustGoDrs">
+                                                        <td>{{row.CustomerCompany}}</td>
+                                                        <td>{{row.JobName}}, {{row.JobAddress}}, {{row.JobCity}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">
+                                                            {{row.ProductType}}
+                                                        </td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">
+                                                            {{row.BlendedProductName }}, {{row.AdditiveProductName}}
+                                                        </td>
+                                                        <td>{{row.UniqueOrderNo}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">{{row.RequiredQuantity > 0 ? row.RequiredQuantity : row.ScheduleQuantityTypeText}} {{row.RequiredQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">{{row.TotalBlendedQuantity > 0 ? row.TotalBlendedQuantity : row.ScheduleQuantityTypeText}} {{row.TotalBlendedQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td>{{row.DeliveryWindow != '' && row.DeliveryWindow != null ?row.DeliveryWindow:"--"}}</td>
+                                                        <td *ngIf="row.CurrentInventory !='--'">{{row.CurrentInventory}} {{row.UoM ==2?'L':'G'}}</td>
+                                                        <td *ngIf="row.CurrentInventory =='--'">{{row.CurrentInventory}}</td>
+                                                        <td>{{row.Ullage}} {{row.UoM ==2?'L':'G'}}</td>
+                                                        <td>
+                                                            <div [ngSwitch]="true">
+                                                                <div *ngSwitchCase="row.Status == 3"><b>Schedule Created</b></div>
+                                                                <div *ngSwitchCase="row.Status == 5"><b>Draft</b></div>
+                                                                <div *ngSwitchCase="row.Status != 3 && row.Status != 5 && row.CarrierStatus == 2"><b>Accepted</b></div>
+                                                                <div *ngSwitchCase="row.Status != 3 && row.Status != 5 && row.CarrierStatus == 3"><b>Rejected</b></div>
+                                                                <div *ngSwitchDefault><b>Pending</b></div>
+                                                            </div>
+                                                        </td>
+                                                        <td>{{row.CarrierRejected != '' && row.CarrierRejected != null ? row.CarrierRejected : "--"}}</td>
+                                                        <td>{{row.CurrentCarrier != '' && row.CurrentCarrier != null ? row.CurrentCarrier : "--"}}</td>
+                                                        <td>{{row.UpcomingCarrier != '' && row.UpcomingCarrier != null ? row.UpcomingCarrier : "--"}}</td>
+                                                        <td>
+                                                            <a *ngIf="row.Status != 3" class="fs12 color-black" placement="bottom" container="body" ngbTooltip="Recall this delivery request" (click)="recallBrokeredDrRequest(row)"><i class="fas fa-undo-alt fs13 mr5 ml5"></i></a>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                                <tbody *ngIf="MustGoDrs?.length == 0">
+                                                    <tr>
+                                                        <td colspan="12" class="no-data-available text-center">No data available</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="showShouldGo == true">
+                            <h4 class="shouldgo mb5" style="color: #f3c316 !important">Should Go</h4>
+                            <div class="well bg-white shadow-sm border pr pb0">
+                                <div class="ibox mb0">
+                                    <div class="ibox-content no-padding no-border">
+                                        <div class="table-responsive">
+                                            <!--Enum - GridName.DispatherShouldGoGrid => 20-->
+                                            <table id="table-shouldgo" class="table table-bordered table-hover" datatable [dtOptions]="dtShouldGoOptions" [dtTrigger]="dtShouldGoTrigger">
+                                                <thead>
+                                                    <tr>
+                                                        <th data-key="Customer">Customer Name</th>
+                                                        <th data-key="Loc">Location Address</th>
+                                                        <th data-key="Product">Product</th>
+                                                        <th data-key="DR_ID">DR ID</th>
+                                                        <th data-key="Quantity">Requested Quantity</th>
+                                                        <th data-key="RW">Retain Window</th>
+                                                        <th data-key="CI">Current Inventory</th>
+                                                        <th data-key="Ullg">Ullage</th>
+                                                        <th data-key="Status">Status</th>
+                                                        <th data-key="CR">Carrier Rejected</th>
+                                                        <th data-key="CC">Current Carrier</th>
+                                                        <th data-key="UC">Upcoming Carrier</th>
+                                                        <th data-key="Recal">Recall</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody *ngIf="ShouldGoDrs?.length > 0">
+                                                    <tr *ngFor="let row of ShouldGoDrs">
+                                                        <td>{{row.CustomerCompany}}</td>
+                                                        <td>{{row.JobName}}, {{row.JobAddress}}, {{row.JobCity}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">
+                                                            {{row.ProductType}}
+                                                        </td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">
+                                                            {{row.BlendedProductName }}, {{row.AdditiveProductName}}
+                                                        </td>
+                                                        <td>{{row.UniqueOrderNo}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">{{row.RequiredQuantity > 0 ? row.RequiredQuantity : row.ScheduleQuantityTypeText}} {{row.RequiredQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">{{row.TotalBlendedQuantity > 0 ? row.TotalBlendedQuantity : row.ScheduleQuantityTypeText}} {{row.TotalBlendedQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td>{{row.DeliveryWindow != '' && row.DeliveryWindow != null ?row.DeliveryWindow:"--"}}</td>
+                                                        <td *ngIf="row.CurrentInventory !='--'">{{row.CurrentInventory}} {{row.UoM ==2?'L':'G'}}</td>
+                                                        <td *ngIf="row.CurrentInventory =='--'">{{row.CurrentInventory}}</td>
+                                                        <td>{{row.Ullage}} {{row.UoM ==2?'L':'G'}}</td>
+                                                        <td>
+                                                            <div [ngSwitch]="true">
+                                                                <div *ngSwitchCase="row.Status == 3"><b>Schedule Created</b></div>
+                                                                <div *ngSwitchCase="row.Status == 5"><b>Draft</b></div>
+                                                                <div *ngSwitchCase="row.Status != 3 && row.Status != 5 && row.CarrierStatus == 2"><b>Accepted</b></div>
+                                                                <div *ngSwitchCase="row.Status != 3 && row.Status != 5 && row.CarrierStatus == 3"><b>Rejected</b></div>
+                                                                <div *ngSwitchDefault><b>Pending</b></div>
+                                                            </div>
+                                                        </td>
+                                                        <td>{{row.CarrierRejected != '' && row.CarrierRejected != null ? row.CarrierRejected : "--"}}</td>
+                                                        <td>{{row.CurrentCarrier != '' && row.CurrentCarrier != null ? row.CurrentCarrier : "--"}}</td>
+                                                        <td>{{row.UpcomingCarrier != '' && row.UpcomingCarrier != null ? row.UpcomingCarrier : "--"}}</td>
+                                                        <td>
+                                                            <a *ngIf="row.Status != 3" class="fs12 color-black" placement="bottom" container="body" ngbTooltip="Recall this delivery request" (click)="recallBrokeredDrRequest(row)"><i class="fas fa-undo-alt fs13 mr5 ml5"></i></a>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                                <tbody *ngIf="ShouldGoDrs?.length == 0">
+                                                    <tr>
+                                                        <td colspan="12" class="no-data-available text-center">No data available</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="showCouldGo == true">
+                            <h4 class="couldgo mb5" style="color:#a7a2a2 !important">Could Go</h4>
+                            <div class="well bg-white shadow-sm border pr pb0">
+                                <div class="ibox mb0">
+                                    <div class="ibox-content no-padding no-border">
+                                        <div class="table-responsive">
+                                            <!--Enum - GridName.DispatherCouldGoGrid => 21-->
+                                            <table id="table-couldgo" class="table table-bordered table-hover" datatable [dtOptions]="dtCouldGoOptions" [dtTrigger]="dtCouldGoTrigger">
+                                                <thead>
+                                                    <tr>
+                                                        <th data-key="Customer">Customer Name</th>
+                                                        <th data-key="Loc">Location Address</th>
+                                                        <th data-key="Product">Product</th>
+                                                        <th data-key="DR_ID">DR ID</th>
+                                                        <th data-key="Quantity">Requested Quantity</th>
+                                                        <th data-key="RW">Retain Window</th>
+                                                        <th data-key="CI">Current Inventory</th>
+                                                        <th data-key="Ullg">Ullage</th>
+                                                        <th data-key="Status">Status</th>
+                                                        <th data-key="CR">Carrier Rejected</th>
+                                                        <th data-key="CC">Current Carrier</th>
+                                                        <th data-key="UC">Upcoming Carrier</th>
+                                                        <th data-key="Recal">Recall</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody *ngIf="CouldGoDrs?.length > 0">
+                                                    <tr *ngFor="let row of CouldGoDrs">
+                                                        <td>{{row.CustomerCompany}}</td>
+                                                        <td>{{row.JobName}}, {{row.JobAddress}}, {{row.JobCity}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">
+                                                            {{row.ProductType}}
+                                                        </td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">
+                                                            {{row.BlendedProductName }}, {{row.AdditiveProductName}}
+                                                        </td>
+                                                        <td>{{row.UniqueOrderNo}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==false">{{row.RequiredQuantity > 0 ? row.RequiredQuantity : row.ScheduleQuantityTypeText}} {{row.RequiredQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td *ngIf="row.IsBlendedDrParent==true">{{row.TotalBlendedQuantity > 0 ? row.TotalBlendedQuantity : row.ScheduleQuantityTypeText}} {{row.TotalBlendedQuantity > 0 ?  (row.UoM == 1 ? 'G' : 'L') : ''}}</td>
+                                                        <td>{{row.DeliveryWindow != '' && row.DeliveryWindow != null ?row.DeliveryWindow:"--"}}</td>
+                                                        <td *ngIf="row.CurrentInventory !='--'">{{row.CurrentInventory}} {{row.UoM ==2?'L':'G'}}</td>
+                                                        <td *ngIf="row.CurrentInventory =='--'">{{row.CurrentInventory}}</td>
+                                                        <td>{{row.Ullage}} {{row.UoM ==2?'L':'G'}}</td>
+                                                        <td>
+                                                            <div [ngSwitch]="true">
+                                                                <div *ngSwitchCase="row.Status == 3"><b>Schedule Created</b></div>
+                                                                <div *ngSwitchCase="row.Status == 5"><b>Draft</b></div>
+                                                                <div *ngSwitchCase="row.Status != 3 && row.Status != 5 && row.CarrierStatus == 2"><b>Accepted</b></div>
+                                                                <div *ngSwitchCase="row.Status != 3 && row.Status != 5 && row.CarrierStatus == 3"><b>Rejected</b></div>
+                                                                <div *ngSwitchDefault><b>Pending</b></div>
+                                                            </div>
+                                                        </td>
+                                                        <td>{{row.CarrierRejected != '' && row.CarrierRejected != null ? row.CarrierRejected : "--"}}</td>
+                                                        <td>{{row.CurrentCarrier != '' && row.CurrentCarrier != null ? row.CurrentCarrier : "--"}}</td>
+                                                        <td>{{row.UpcomingCarrier != '' && row.UpcomingCarrier != null ? row.UpcomingCarrier : "--"}}</td>
+                                                        <td>
+                                                            <a *ngIf="row.Status != 3" class="fs12 color-black" placement="bottom" container="body" ngbTooltip="Recall this delivery request" (click)="recallBrokeredDrRequest(row)"><i class="fas fa-undo-alt fs13 mr5 ml5"></i></a>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                                <tbody *ngIf="CouldGoDrs?.length == 0">
+                                                    <tr>
+                                                        <td colspan="12" class="no-data-available text-center">No data available</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- recall brokered dr start -->
+<div id="recallBrokeredDrBtn" hidden="hidden" data-toggle="modal" data-target="#recallBrokeredDrModal" data-backdrop="static"></div>
+<div class="modal fade" id="recallBrokeredDrModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Recall Brokered Delivery Request?</h2>
+                <div class="row">
+                    <div class="col-sm-6 form-group">
+                        <label *ngIf="requestToUpdate.IsBlendedDrParent==false">
+                            {{requestToUpdate?.ProductType}}
+                        </label>
+                        <label *ngIf="requestToUpdate.IsBlendedDrParent==true">
+                            {{requestToUpdate.BlendedProductName}}, {{requestToUpdate.AdditiveProductName}}
+                        </label>
+                        <label class="mb10 fs10">{{requestToUpdate?.JobName}} - {{requestToUpdate?.JobAddress}} </label>
+                    </div>
+                    <div class="col-sm-6 form-group">
+                        <div class="mt8 fs14 f-normal dib mr5">Required Quantity </div>
+                        <div *ngIf="requestToUpdate.ScheduleQuantityType>1; else quantity">
+                            <div class="mt5 fs10">{{requestToUpdate?.ScheduleQuantityTypeText}}</div>
+                        </div>
+                        <ng-template #quantity>
+                            <span *ngIf="requestToUpdate?.UoM==1; else litres">(G)</span>
+                            <ng-template #litres>(L)</ng-template>
+                            <div *ngIf="requestToUpdate.IsBlendedDrParent==false">{{requestToUpdate?.RequiredQuantity}}</div>
+                            <div *ngIf="requestToUpdate.IsBlendedDrParent==true">{{requestToUpdate?.TotalBlendedQuantity}}</div>
+                        </ng-template>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="recallBrokeredDr(requestToUpdate)" class="btn btn-primary btn-lg">Recall</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- recall brokered dr end -->

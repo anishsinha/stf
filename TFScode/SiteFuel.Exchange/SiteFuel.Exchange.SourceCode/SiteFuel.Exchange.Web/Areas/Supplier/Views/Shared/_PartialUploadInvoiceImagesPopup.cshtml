@@ -1,0 +1,212 @@
+﻿@model UpdateImagesViewModel
+@using (Html.BeginForm("", "", new { @id = "uploadImagesForm", enctype = "multipart/form-data" }))
+{
+    <div class="modal animated" id="upload-images-modal-popup" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" keyboard="false">
+        <div class="modal-dialog" role="document">
+            @Html.HiddenFor(m => m.InvoiceHeaderId)
+            @{ Model.ImagesModels.Add(new UpdateImagesModel());}
+            <div class="modal-content pa10 pt0">
+                <div class='pa text-center bg-white upload-images-model-loader loading-wrapper hide-element'>
+                    <span class='spinner-small pa col-xs-1'></span>
+                </div>
+                <div class="modal-body" id="upload-images-div">
+                    <div class="row">
+
+                        <div class="col-sm-12">
+                            <div id="body-upload-images">
+                                    <h4 class="pt0">@Resource.lblUploadImages</h4>
+                                        <div id="upload-invoice-images-section" class="partial-section col-12 sec-upload-bdnimg">
+                                            <div class="partial-block-collection-section mt5">
+                                                @if (Model.ImagesModels != null && Model.ImagesModels.Count > 0)
+                                                {
+                                                    foreach (var model in Model.ImagesModels)
+                                                    {
+                                                        model.InvoiceHeaderId = Model.InvoiceHeaderId;
+                                                        model.IsMarineLocation = Model.IsMarineLocation;
+                                                        model.countryId = Model.countryId;
+                                                        Html.RenderPartial("~/Areas/Supplier/Views/Shared/_PartialUploadImagesCollection.cshtml", model);
+                                                    }
+                                                }
+                                            </div>
+                                                <div id="auto-add-normal-common-fee" class="row mt-2">
+                                                    <a href="javascript:void(0)" class="add-partial-block mb-2"
+                                                       data-url="@Url.Action("GetUploadImagesCollectionView", "Invoice", new { invoiceHeaderId = Model.InvoiceHeaderId, isMarineLocation = Model.IsMarineLocation, countryId=Model.countryId, @area = "Supplier" })">
+                                                        <span class="fa fa-plus-circle"></span> @Resource.btnLabelAddNew
+                                                    </a>
+                                                </div>
+                                        </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div>
+                                <span class="field-validation-error hide" id="spnUploadImagesPopupMsg"></span>
+                            </div>
+                            <div class="alert alert-warning fs12 f-bold pt10  pb10 mt5">@Resource.errorMessageFileSizeWarning1MB</div>
+                            <div class="text-right mt-2">
+                                <a href="javascript:void(0);" data-dismiss="modal" class="btn actions" onclick="closeUploadImagesPopup()">@Resource.btnLabelCancel</a>
+                                <input id="btnUploadImages" type="button" value="@Resource.btnLabelUpload" class="btn btn-lg btn-primary" onclick="return uploadInvoiceImages();" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            showUploadPopup();
+        });
+
+        function uploadInvoiceImages() {
+            var url = '@Url.Action("UpdateImagesToInvoice", "Invoice", new { area = "Supplier" })';
+            var mainContainer = $('#upload-invoice-images-section');
+            var selectedUploadImagesBlocks = mainContainer.find('.upload-images-main-container');
+            var fileData = new FormData();
+            var isValid = true;
+            var uploadedImagesArr = [];
+            var uploadedImages = {};
+            var invoiceHeaderId = parseInt($("#@Html.IdFor(m => m.InvoiceHeaderId)").val());
+
+            if (isNaN(invoiceHeaderId) || invoiceHeaderId <= 0) {
+                msgerror('Invalid invoice details');
+                isValid = false;
+            }
+
+            fileData.append('InvoiceHeaderId', invoiceHeaderId);
+            selectedUploadImagesBlocks.each((index, element) => {
+                var imageType = parseInt($(element).find('.imageTypeDDL').val());
+                var imageName = $(element).find('.imageTypeDDL option:selected').text();
+                var bolId = parseInt($(element).find('.imageUploadBolId').val());
+
+                if (isNaN(imageType) || imageType <= 0) {
+                    msgerror('Please select upload image type');
+                    isValid = false;
+                }
+
+                var fileUpload = $(element).find('.upload-images').get(0);
+                var file = fileUpload.files[0];
+                if (isValid && (file == null || file == undefined)) {
+                    msgerror('Please select image to upload');
+                    isValid = false;
+                }
+                else if (!isValidFiles(file, true, true)) {
+                    msgerror('Invalid ' + imageName + ' image. ' + '@Resource.errorMessageFileFormatAndSize');
+                    isValid = false;
+                }
+
+                if (imageType != '@((int)InvoiceImageType.Bol)') {
+                    uploadedImages = { 'ImageTypeId': imageType, 'BolId': 0 };
+                    uploadedImagesArr.push(uploadedImages);
+                }
+                else {
+                    uploadedImages = { 'ImageTypeId': imageType, 'BolId': bolId };
+                    uploadedImagesArr.push(uploadedImages);
+                }
+
+                if (imageType == '@((int)InvoiceImageType.Drop)') {
+                    $(element).find('.upload-images').attr('name', 'DropImage');
+                    fileData.append('DropImage', file);
+                }
+                else if (imageType == '@((int)InvoiceImageType.AdditionalImage)') {
+                    $(element).find('.upload-images').attr('name', 'AdditionalImage');
+                    fileData.append('AdditionalImage', file);
+                }
+                else if (imageType == '@((int)InvoiceImageType.Bol)') {
+                    if (isNaN(bolId) || bolId <= 0) {
+                        msgerror('Select BOL# for ' + imageName);
+                        isValid = false;
+                    }
+                    fileData.append('InvoiceFtlDetailsId', bolId);
+
+                    $(element).find('.upload-images').attr('name', 'BolImages');
+                    var fileName = file.name.replace('|', '');
+                    var newFileName = bolId + '|' + fileName;
+                    fileData.append('BolImages', file, newFileName);
+                }
+                else if (imageType == '@((int)InvoiceImageType.CGInspection)') {
+                    $(element).find('.upload-images').attr('name', 'CGInspectionImage');
+                    fileData.append('CGInspectionImage', file);
+                }
+                else if (imageType == '@((int)InvoiceImageType.RequestInspectionVoucher)') {
+                    $(element).find('.upload-images').attr('name', 'InspectionVoucherImage');
+                    fileData.append('InspectionVoucherImage', file);
+                }
+                else if (imageType == '@((int)InvoiceImageType.TaxAffidavit)') {
+                    $(element).find('.upload-images').attr('name', 'TaxAffidavitImage');
+                    fileData.append('TaxAffidavitImage', file);
+                }
+                else if (imageType == '@((int)InvoiceImageType.BDNImage)') {
+                    $(element).find('.upload-images').attr('name', 'BDNImage');
+                    fileData.append('BDNImage', file);
+                }
+                else if (imageType == '@((int)InvoiceImageType.Signature)') {
+                    $(element).find('.upload-images').attr('name', 'SignatureImage');
+                    fileData.append('SignatureImage', file);
+                }
+            });
+
+            // check for duplicate image uploads
+            if (uploadedImagesArr.length > 1) {
+                var uniqueArr = uploadedImagesArr.filter((arr, index, self) =>
+                    index === self.findIndex((t) => (t.ImageTypeId === arr.ImageTypeId && t.BolId === arr.BolId)));
+                if (uniqueArr.length != uploadedImagesArr.length) {
+                    msgerror('Trying to upload multiple images for same type');
+                    isValid = false;
+                }
+            }
+
+            if (isValid) {
+                $('.upload-images-model-loader').removeClass("hide-element");
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    data: fileData,
+                    success: function (result) {
+                        if (result != null && result != undefined && result.StatusCode == '@((int)Status.Success)') {
+                            msgsuccess(result.StatusMessage);
+                            closeUploadImagesPopup();
+                        }
+                        else {
+                            msgerror('Failed to upload invoice images');
+                        }
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.log(jqXHR, textStatus, errorThrown);
+                    }
+                }).always(function () {
+                    $('.upload-images-model-loader').addClass("hide-element");
+                });
+            }
+        }
+
+        function closeUploadImagesPopup() {
+            $('#upload-images-modal-popup').hide();
+        }
+
+        function showUploadPopup() {
+            $('#spnUploadImagesPopupMsg').addClass('hide').text('');
+            $('#upload-images-modal-popup').show();
+            $('#div-upload-image-container').show();
+        }
+
+        function isValidFiles(file, isFileTypeChk, isFileSizeCheck) {
+            var isValid = true;
+            if (isFileSizeCheck) {
+                if (file.size > 1000000) { // 1mb
+                    isValid = false;
+                }
+            }
+            if (isFileTypeChk) {
+                if (!(/\.(bmp|jpg|jpeg|png|pdf)$/i).test(file.name)) {
+                    isValid = false;
+                }
+            }
+            return isValid;
+        }
+    </script>
+}

@@ -1,0 +1,1335 @@
+﻿@model InvoiceDetailViewModel
+
+<div class="col-sm-12 tab-scroll">
+    @*not showing for Credit & Rebill*@
+    @if (Model.SplitLoadInvoices != null && !Model.OriginalInvoiceId.HasValue)
+    {
+        <div id="invoiceLinks" class="col-sm-9">
+            <div class="row mb15">
+                @foreach (var splitLoadInvoice in Model.SplitLoadInvoices)
+                {
+                    <a id="splitinvoice-@splitLoadInvoice.Id" data-invoiceid="@splitLoadInvoice.Id" data-invoicenumber="@splitLoadInvoice.Number" class="well slidedetails mr10 pt5 dib mb5 pb5 pr15 pl15 @(splitLoadInvoice.Id == Model.Invoice.Id ? " btn-primary pntr-none" : "")" href='@Url.Action("Details", "Invoice", new { area = "Supplier", Id = splitLoadInvoice.Id })'>
+                        <span>@splitLoadInvoice.Number</span>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+    <!-- details starts -->
+    <div class="panel-section hide-element bg-white radius-5 animated slideInLeft pa mt40">
+        <a href="#." class="pa fs25 right0 top0 color-darkgrey mr15 mt5 z-index5" onclick="closeLeftSidePanel(this)">×</a>
+        <div class="pt15 pb15 ph20">
+            <div class="row mt10">
+                <div class="col-md-6 mb10">
+                    @if (Model.Invoice.ShouldHidePricing() || Model.Invoice.StatusId == (int)InvoiceStatus.Draft || Model.Invoice.StatusId == (int)InvoiceStatus.Canceled || Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned)
+                    {
+                        <div class="no-margins fs18">@Resource.lblHyphen</div>
+                    }
+                    else
+                    {
+                        <div class="no-margins fs18 float-left">@((Model.TotalInvoiceAmount).GetInvoiceAmountValue(2, @Resource.constSymbolCurrency)) </div>
+                        <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                    }
+                    <div class="fs12 clearboth">
+                        @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                        {
+                            @Resource.lblAmount
+                        }
+                        else
+                        {
+                            <div> @Resource.lblInvoice @Resource.lblAmount </div>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-6 mb10">
+                    @if (Model.Invoice.ShouldHidePricing() || Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DryRun)
+                    {
+                        <div class="no-margins fs18">@Resource.lblHyphen</div>
+                        <span class="fs12">@(string.Format(Resource.lblRackPP, "PPU"))</span>
+                    }
+                    else
+                    {
+                        if (!Model.IsBuyAndSellOrder)
+                        {
+                            if (Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.Tier)
+                            {
+                                <span class="float-left">@Resource.constSymbolCurrency</span>
+                                <div class="no-margins fs18 float-left">@Model.Invoice.PricePerGallon.ToString(ApplicationConstants.DecimalFormat4WOZero)</div>
+                                <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                                <div class="fs12 clearboth">(@Model.DisplayPricePerGallon)</div>
+                            }
+                            else if (Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackAverage
+                            || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackLow
+                            || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.RackHigh
+                            || Model.FuelRequest.FuelDetails.FuelPricing.PricingTypeId == (int)PricingType.Suppliercost)
+                            {
+                                <span class="float-left">@Resource.constSymbolCurrency</span>
+                                <div class="no-margins fs18 float-left">@Model.Invoice.PricePerGallon.ToString(ApplicationConstants.DecimalFormat4WOZero)</div>
+                                <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                                <div class="fs12 clearboth">(@Model.DisplayPricePerGallon)</div>
+                            }
+                            else
+                            {
+                                <span class="float-left">@Resource.constSymbolCurrency</span>
+                                <div class="no-margins fs18 float-left">@Model.Invoice.PricePerGallon.ToString(ApplicationConstants.DecimalFormat4WOZero)</div>
+                                <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                            }
+                            <span class="fs12 float-left clearboth">@(string.Format(Resource.lblRackPP, Model.Invoice.Currency == Currency.USD ? "PPU" : "PPU"))</span>
+                        }
+                        else if (Model.IsBuyAndSellOrder && Model.BuyAndSellPricingDetail.IsBuyPriceInvoice)
+                        {
+                            <span class="float-left">@Resource.constSymbolCurrency</span>
+                            <div class="no-margins fs18 float-left">@Model.BuyAndSellPricingDetail.BuyPrice.ToString(ApplicationConstants.DecimalFormat4WOZero) @Model.Invoice.Currency</div>
+                            <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                            <div class="fs12 mb10 float-left clearboth">(@Model.BuyAndSellPricingDetail.BuyPriceDetail)</div>
+                        }
+                        else if (Model.IsBuyAndSellOrder && !Model.BuyAndSellPricingDetail.IsBuyPriceInvoice)
+                        {
+                            <span class="float-left">@Resource.constSymbolCurrency</span>
+                            <div class="no-margins fs18 float-left">@Model.BuyAndSellPricingDetail.SellPrice.ToString(ApplicationConstants.DecimalFormat4WOZero) @Model.Invoice.Currency</div>
+                            <span class="currency-symbol float-left fs11 pt8 pl2">@Model.Invoice.Currency</span>
+                            <div class="fs12 mb10 float-left clearboth">(@Model.BuyAndSellPricingDetail.SellPriceDetail)</div>
+                        }
+                    }
+                </div>
+                <div class="col-md-6 mb10">
+                    @if ((Model.Invoice.UoM == UoM.Barrels || Model.Invoice.UoM == UoM.MetricTons) && Model.Invoice.ConvertedQuantity.HasValue
+                        && Model.Invoice.ConvertedQuantity.Value > 0)
+                    {
+                        <div class="no-margins fs18 float-left">@Model.Invoice.ConvertedQuantity.Value.GetPreciseValue(2).GetCommaSeperatedValue()</div>
+                    }
+                    else
+                    {
+                        <div class="no-margins fs18 float-left">@Model.Invoice.DroppedGallons.GetPreciseValue(2).GetCommaSeperatedValue()</div>
+                    }
+                    <span class="float-left fs11 pt8 pl2">@Model.Invoice.UoM</span>
+                    <span class="fs12 float-left clearboth">@Resource.lblGallonsDelivered</span>
+                </div>
+                <div class="col-md-6 mb10">
+                    <div class="no-margins fs18">@Model.PercentFuelDelivered</div>
+                    <span class="fs12">@Resource.lblOrderCompleted</span>
+                </div>
+            </div>
+        </div>
+        <div class="border-b-dash mr20 ml20 clearboth"></div>
+        <div class="pt15 pb25 ph20">
+            @Html.Partial("_PartialNewsfeeds")
+        </div>
+    </div>
+    <div class="row mb10">
+        <div class="col-md-10 tab-headers">
+            <a href="javascript:void(0)" id="auto-tabdetails" onclick="showPanelsection('invoice-details'), activePanellink(this), inputBoxShowHide('detailsTab', 'download'), inputBoxShowHide('download-images', null)" class="active mr20"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoice-details"
+                   data-ajax-url="@Url.Action("InvoiceSummary", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })">
+                <div class="step-inprogress fs16">
+                    <span class="f-light step-text float-left">@(Model.IsMarineLocation ? Resource.stepLabelSummary : Resource.tabheadingDetails)</span>
+                </div>
+            </a>
+            @if (Model.IsMarineLocation)
+            {
+                <a id="auto-tabBdr" onclick="showPanelsection('BdrPdf'), activePanellink(this)" class="mr20"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#BdrPdf"
+                   data-ajax-url="@Url.Action("BDRPdf", "Invoice", new { area = "Supplier", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">@Resource.lblBDR</span>
+                    </div>
+                </a>
+                if (Model.JobCountryId.HasValue && Model.JobCountryId.Value == (int)Country.USA)
+                {
+                    if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                    {
+                        if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                        {
+                            <a id="auto-tabMarinetaxaffidavit" onclick="showPanelsection('marinetaxaffidavit'), activePanellink(this)" class="mr20"
+                               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#marinetaxaffidavit"
+                               data-ajax-url="@Url.Action("MarineTaxAffidavit", "Invoice", new { area = "Supplier", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })">
+                                <div class="step-inprogress fs16">
+                                    <span class="f-light step-text float-left">@Resource.lblTaxAffidavit</span>
+                                </div>
+                            </a>
+                            <a id="auto-tabMarinecgdocument" onclick="showPanelsection('marinecgdocument'), activePanellink(this)" class="mr20"
+                               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#marinecgdocument"
+                               data-ajax-url="@Url.Action("MarineCGInspectionDocument", "Invoice", new { area = "Supplier", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })">
+                                <div class="step-inprogress fs16">
+                                    <span class="f-light step-text float-left">@Resource.lblCG</span>
+                                </div>
+                            </a>
+                            <a id="auto-tabMarineinspectionvoucher" onclick="showPanelsection('marineinspectionvoucher'), activePanellink(this)" class="mr20"
+                               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#marineinspectionvoucher"
+                               data-ajax-url="@Url.Action("MarineInspectionVoucherDocument", "Invoice", new { area = "Supplier", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })">
+                                <div class="step-inprogress fs16">
+                                    <span class="f-light step-text float-left">@Resource.lblMarineInspVoucher</span>
+                                </div>
+                            </a>
+                        }
+                    }
+
+
+                }
+                <a id="auto-tabMarineDdts" onclick="showPanelsection('MarineDdts'), activePanellink(this)" class="mr20"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#MarineDdts"
+                   data-ajax-url="@Url.Action("GetMarineDDTsEditView", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId, invoiceTypeId = Model.Invoice.InvoiceTypeId, displayInvoiceNumber = Model.Invoice.DisplayInvoiceNumber, orderId = Model.OrderId, uom = Model.Invoice.UoM, canEdit = Model.CanEdit })">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">@Resource.lblMarineDdts</span>
+                    </div>
+                </a>
+
+
+            }
+            <a id="auto-tabinvoice" onclick="showPanelsection('invoice'), activePanellink(this), inputBoxShowHide('download', 'detailsTab'), inputBoxShowHide(null, 'download-images')" class="mr20 @(Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned ? "pntr-none" : "")   hideOn_AprovalException"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoice"
+               data-ajax-url="@Url.Action("PartialConsolidatedInvoicePdf", "Invoice", new { area = "Supplier", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })">
+                <div class="step-inprogress fs16">
+                    @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                    {
+                        <span class="f-light step-text float-left">@Resource.tabheadingDropTicket</span>
+                    }
+                    else
+                    {
+                        <span class="f-light step-text float-left">@Resource.tabheadingInvoice</span>
+                    }
+                </div>
+            </a>
+            @if (Model.Invoice.StatementId > 0)
+            {
+                <a id="tab-statement" class="mr20" onclick="showPanelsection('tab-contents-statement'), activePanellink(this), inputBoxShowHide('download', null)"
+                   data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#tab-contents-statement"
+                   data-ajax-url="@Url.Action("GetStatementPdfDetails", "BillingStatement", new { area = "Supplier", id = Model.Invoice.StatementId })">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">
+                            @Resource.tabHeadingStatement
+                        </span>
+                    </div>
+                </a>
+            }
+            @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin)
+            {
+                if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp && Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun && Model.Invoice.StatusId != (int)InvoiceStatus.Approved && Model.Invoice.InvoiceTypeId != (int)InvoiceType.Balance && Model.Invoice.InvoiceTypeId != (int)InvoiceType.TankRental && Model.FuelRequest.FuelRequestTypeId != (int)FuelRequestType.ThirdPartyRequest && Model.PaymentStatus == PaymentStatus.NotPaid && Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit && Model.Invoice.StatusId != (int)InvoiceStatus.Credited && Model.Invoice.StatusId != (int)InvoiceStatus.CreditedAndRebilled)
+                {
+                    <a id="discount-tab" href="@Url.Action("DiscountTab", "Invoice", new { area = "Supplier", invoiceId = Model.Invoice.Id, orderId = Model.OrderId, currency = Model.Invoice.Currency })" onclick="showPanelsection('invoice-discount'),activePanellink(this), inputBoxShowHide(null, 'download-images'), inputBoxShowHide(null, 'download')" class="mr20 pr"
+                       data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace" data-ajax-update="#invoice-discount" data-ajax-success="parseForm();addRequiredSymbol();">
+                        <div class="step-inprogress fs16">
+                            <span class="f-light step-text float-left">@Resource.tabHeadingInvoiceAdjustment</span>
+                        </div>
+                        <span class="label label-warning fs8 pa badge-new hide-element">@Resource.lblPending</span>
+                    </a>
+                }
+            }
+            @if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit)
+            {
+                <a href="javascript:void(0)" id="auto-tabhistory" onclick="showPanelsection('invoice-history'),  activePanellink(this), inputBoxShowHide(null, 'download'), inputBoxShowHide(null, 'download-images')" class="mr20">
+                    <div class="step-inprogress fs16">
+                        <span class="f-light step-text float-left">@Resource.tabHeadingHistory</span>
+                    </div>
+                </a>
+            }
+        </div>
+        <div id="auto-divinvoiceation" class="col-md-2 text-right">
+            @{
+                bool isEditVisible = false;
+                var emailUrl = Url.Action("EmailDocumentPopup", "Invoice", new { area = "Supplier" });
+                var isDdt = Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp;
+                if (Model.ActingCompanyType == (int)CompanyType.Supplier)
+                {
+                    if (Model.Invoice.StatusId == (int)InvoiceStatus.Unassigned && Model.ParentId == null && (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier))
+                    {
+                        using (Html.BeginForm("AssignToOrder", "Invoice", new { area = "Supplier" }, FormMethod.Post))
+                        {
+                            <div class="btn-group hideOn_AprovalException">
+                                <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                <ul class="dropdown-menu dropdown-menu-right">
+                                    @Html.AntiForgeryToken()
+                                    @Html.HiddenFor(m => m.Invoice.Id)
+                                    <li class="dropdown-item hideOn_AprovalException" >
+                                        @Html.ActionLink(Resource.btnLabelAssignToOrder, "AssignToOrder", "Invoice", new { area = "Supplier", invoiceId = Model.Invoice.Id }, null)
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                    }
+
+                    else if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                    {
+                        if ((Model.Invoice.StatusId == (int)InvoiceStatus.Received || Model.Invoice.StatusId == (int)InvoiceStatus.Draft) && (Model.LinkedInvoiceId == 0 || Model.IsMarineLocation)
+                            && (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin))
+                        {
+                            // this is ddt and it is approved and no invoice is created from this ddt - then only show this button
+                            using (Html.BeginForm("CreateInvoiceFromDropTicket", "Invoice", new { area = "Supplier" }, FormMethod.Post, new { role = "form", @id = "createinvoicefromddtform" }))
+                            {
+                                isEditVisible = true;
+                                @Html.AntiForgeryToken()
+                                @Html.HiddenFor(m => m.Invoice.Id)
+                                @Html.HiddenFor(m => m.SplitLoadChainId)
+                                @Html.HiddenFor(m => m.Invoice.TimeZoneName)
+                                <div class="btn-group">
+                                    <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                    <ul class="dropdown-menu dropdown-menu-right large-menu">
+                                        @if (Model.IsSingleBolInvoice && Model.Invoice.WaitingForAction != (int)WaitingAction.PDITaxes)
+                                        {
+                                            if (Model.SplitLoadInvoices != null && !Model.OriginalInvoiceId.HasValue)
+                                            {
+                                                if (Model.Invoice.StatusId != (int)InvoiceStatus.Draft)
+                                                {
+                                                    <li class="dropdown-item"><a id="auto-btneditddt" href="javascript:void(0)" onclick="location.href='@Url.Action("EditSplitInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit float-left mt5"></i></a></li>
+                                                }
+                                                else
+                                                {
+                                                    <li class="dropdown-item"><a id="auto-btneditddt" href="javascript:void(0)" onclick="location.href='@Url.Action("EditSplitDraftInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit float-left mt5"></i></a></li>
+                                                }
+                                            }
+                                            else if (Model.Invoice.WaitingForAction != (int)WaitingAction.ExceptionApproval && Model.Invoice.WaitingForAction != (int)WaitingAction.InventoryVerification && Model.Invoice.WaitingForAction != (int)WaitingAction.FilldResponse)
+                                            {
+                                                <li class="dropdown-item"><a id="auto-btneditddt" href="javascript:void(0)" onclick="location.href='@Url.Action("Edit", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit float-left mt5"></i></a></li>
+                                            }
+                                        }
+                                        <li role="separator" class="divider"></li>
+                                        @if (Model.Invoice.StatusId == (int)InvoiceStatus.Draft)
+                                        {
+                                            <li class="dropdown-item">
+                                                <a href="@Url.Action("CancelDraft", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })" data-toggle="confirmation"
+                                                   data-placement="bottom"
+                                                   data-popout="true"
+                                                   data-singleton="true">@Resource.btnLabelCancel<i class="fa fa-times float-left mt5"></i></a>
+                                            </li>
+                                            <li role="separator" class="divider"></li>
+                                        }
+
+                                        @if (Model.FuelRequest.FuelRequestTypeId != (int)FuelRequestType.FreightOnlyRequest && (Model.Invoice.StatusId == (int)InvoiceStatus.Received || (Model.PreferencesSetting != null && !Model.PreferencesSetting.IsSupressOrderPricing)))
+                                        {
+                                            if (Model.FuelRequest.FuelDetails.FuelDisplayGroupId == (int)ProductDisplayGroups.OtherFuelType && Model.Invoice.WaitingForAction != (int)WaitingAction.UpdatedPrice)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" id="btnCreateInvoiceFromDDT" onclick="location.href='@Url.Action("Edit", "Invoice", new { area = "Supplier", id = Model.Invoice.Id, isConvertFromDDT = true })'">@Resource.btnLabelCreateInvoice <i class="fa fas fa-dollar pull-left mt5"></i></a></li>
+                                                <li role="separator" class="divider"></li>
+                                            }
+                                            else
+                                            {
+                                                if ((Model.Invoice.WaitingForAction == (int)WaitingAction.Nothing || Model.Invoice.IsSupplierPreferenceDDT)
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.ExceptionApproval && Model.Invoice.WaitingForAction != (int)WaitingAction.UpdatedPrice
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.AvalaraTax && Model.Invoice.WaitingForAction != (int)WaitingAction.BolDetails
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.PrePostDipData
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.FilldResponse
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.AllDRCompletion
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.NextMarineDrop
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.PDITaxes
+                                                    && Model.Invoice.WaitingForAction != (int)WaitingAction.InventoryVerification && Model.Invoice.WaitingForAction != (int)WaitingAction.Images
+                                                    && (Model.PreferencesSetting == null ? true : (!Model.PreferencesSetting.IsSupressOrderPricing)))
+                                                {
+
+                                                    <li class="dropdown-item"><input type="button" onclick="createInvoiceFromDdt(this);" id="btnCreateInvoiceFromDDT" value="@Resource.btnLabelCreateInvoice" class="submit-invoice ico-create-invoice" /></li>
+                                                    @*<li role="separator" class="divider"></li>*@
+                                                }
+                                                else
+                                                {
+                                                    if (Model.Invoice.WaitingForAction == (int)WaitingAction.BolDetails || Model.Invoice.WaitingForAction == (int)WaitingAction.PrePostDipData)
+                                                    {
+                                                        if (Model.SplitLoadInvoices != null && !Model.OriginalInvoiceId.HasValue)
+                                                        {
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" id="btnCreateInvoiceFromDDT" onclick="location.href='@Url.Action("EditSplitInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id, isConvertFromDDT = true })'">@Resource.btnLabelCreateInvoice <i class="fa fas fa-dollar pull-left mt5"></i></a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                        }
+                                                        else
+                                                        {
+                                                            if (Model.Invoice.WaitingForAction != (int)WaitingAction.PrePostDipData)
+                                                            {
+                                                                <li class="dropdown-item"><a href="javascript:void(0)" id="btnCreateInvoiceFromDDT" onclick="location.href='@Url.Action("ConvertToInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id, orderId = Model.Invoice.OrderId, waitingAction = Model.Invoice.WaitingForAction })'">@Resource.btnLabelCreateInvoice <i class="fa fas fa-dollar pull-left mt5"></i></a></li>
+                                                                <li role="separator" class="divider"></li>
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        <li class="dropdown-item">
+                                            <a href="#"><i class="fa fas fa-download pull-left mt5"></i> @Resource.btnLabelDownload <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                            <ul class="submenu submenu-left dropdown-menu">
+                                                @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblDDT</a></li>
+                                                }
+                                                else
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblInvoice</a></li>
+                                                }
+                                                @if ((Model.AssetDropImages.Count > 1 || (Model.InvoiceImage != null && Model.InvoiceImage.Id > 0 && Model.AssetDropImages.Count > 0) || (Model.SignatureImage != null && Model.SignatureImage.Id > 0 && Model.AssetDropImages.Count > 0)))
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download download-images" onclick="location.href='@Url.Action("DownloadInvoiceImages", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">All Images</a></li>
+                                                }
+
+                                                @if (!string.IsNullOrWhiteSpace(Model.Invoice.CsvFilePath))
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadCsv", "Invoice", new { area = "Supplier", fileName = Model.Invoice.CsvFilePath })'">CSV</a></li>
+                                                }
+                                                @if (Model.IsMarineLocation)
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRPdf", "", new { area = "", id = Model.Invoice.InvoiceHeaderId })'" class="btn-download">BDN</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRSummary", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download">Summary</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                    {
+                                                        if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                        {
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadTaxAffidavitAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">Tax Affidavit</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action(" DownloadMarineCGInspectionDocument", "" , new { area="" , invoiceHeaderId=Model.Invoice.InvoiceHeaderId })'" class="btn-download">CG</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineInspectionVouchers", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download download-images">@Resource.lblMarineInspVoucherMenu</a></li>
+                                                        }
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="downloadDocument()" class="btn-download download-images idDownloadAll">@Resource.lblDownloadPackage</a></li>
+                                                    }
+
+                                                }
+                                            </ul>
+                                        </li>
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item">
+                                            <a href="#"><i class="fa fas fa-envelope pull-left mt5"></i> Email <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                            <ul class="submenu submenu-left dropdown-menu">
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.Invoice)', '@emailUrl');">@(string.Format((isDdt ? Resource.lblDropTicket : Resource.lblInvoice)))</a></li>
+                                                @if (Model.IsMarineLocation)
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDR)', '@emailUrl');">@(string.Format(Resource.lblBDR))</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InvoiceSummary)', '@emailUrl');">@(string.Format(Resource.stepLabelSummary))</a></li>
+
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDNImage)', '@emailUrl');">@(string.Format(Resource.lblBDNImage))</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                    {
+                                                        if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                        {
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.CGInspection)', '@emailUrl');">@(string.Format(Resource.lblCG))</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InspRequestVoucher)', '@emailUrl');">@(string.Format(Resource.lblMarineInspVoucherMenu))</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.MarineTaxAffidavit)', '@emailUrl');">@(string.Format(Resource.lblTaxAffidavit))</a></li>
+                                                        }
+                                                    }
+                                                }
+                                            </ul>
+                                        </li>
+
+                                        @*@if (Model.IsMarineLocation)
+        {*@
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="showUploadImagePopup();">@Resource.lblUploadImages<i class="fa fas fa-upload pull-left mt5"></i></a></li>
+                                        @*}*@
+                                        @if (Model.IsMarineLocation)
+                                        {
+                                            if (Model.Invoice.shouldShowBDNConfirmationDropdown())
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmBdnDetails()">@Resource.lblConfirmBdnDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                            }
+                                            else if (Model.Invoice.shouldShowInvoiceConfirmationDropdown())
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmInvoiceDetails()">@Resource.lblConfirmInvoiceDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                            }
+                                        }
+
+                                        @if (Model.Invoice.shouldShowConvertToInvoiceWithoutTax())
+                                        {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="convertToInvoiceWithoutTax()">@Resource.btnProcessInvoiceWithoutTax<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="btn-group">
+                                <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                <ul class="dropdown-menu dropdown-menu-right  medium-menu">
+                                    @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin)
+                                    {
+                                        isEditVisible = true;
+                                        <li role="separator" class="divider"></li>
+                                        if (Model.Invoice.StatusId != (int)InvoiceStatus.Received && Model.Invoice.StatusId != (int)InvoiceStatus.Unassigned && Model.IsSingleBolInvoice)
+                                        {
+                                            if (Model.SplitLoadInvoices != null && !Model.OriginalInvoiceId.HasValue)
+                                            {
+                                                if (Model.Invoice.StatusId != (int)InvoiceStatus.Draft)
+                                                {
+                                                    <li class="dropdown-item"><a id="auto-btneditddt" href="javascript:void(0)" onclick="location.href='@Url.Action("EditSplitInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit pull-left mt5"></i></a></li>
+                                                }
+                                                else
+                                                {
+                                                    <li class="dropdown-item"><a id="auto-btneditddt" href="javascript:void(0)" onclick="location.href='@Url.Action("EditSplitDraftInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit pull-left mt5"></i></a></li>
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item">
+                                        <a href="#"><i class="fa fas fa-download pull-left mt5"></i> @Resource.btnLabelDownload <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                        <ul class="submenu submenu-left dropdown-menu">
+                                            @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin)
+                                            {
+                                                isEditVisible = true;
+                                                if (Model.Invoice.StatusId != (int)InvoiceStatus.Received && Model.Invoice.StatusId != (int)InvoiceStatus.Unassigned && Model.IsSingleBolInvoice)
+                                                {
+                                                    if (Model.SplitLoadInvoices != null && !Model.OriginalInvoiceId.HasValue)
+                                                    {
+
+                                                    }
+                                                    else
+                                                    {
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("Edit", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit pull-left mt5"></i></a></li>
+                                                    }
+                                                }
+                                                if (Model.AssetDropImages.Count > 1 || (Model.InvoiceImage != null && Model.InvoiceImage.Id > 0 && Model.AssetDropImages.Count > 0) || (Model.SignatureImage != null && Model.SignatureImage.Id > 0 && Model.AssetDropImages.Count > 0))
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadInvoiceImages", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download download-images">@Resource.btnLabelDownloadAllImages <i class="fa fas fa-download pull-left mt5"></i></a></li>
+                                                }
+                                            }
+
+                                            <li role="separator" class="divider"></li>
+                                            @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblDDT</a></li>
+                                            }
+                                            else
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblInvoice</a></li>
+                                            }
+                                            @if ((Model.AssetDropImages.Count > 1 || (Model.InvoiceImage != null && Model.InvoiceImage.Id > 0 && Model.AssetDropImages.Count > 0) || (Model.SignatureImage != null && Model.SignatureImage.Id > 0 && Model.AssetDropImages.Count > 0)))
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadInvoiceImages", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download download-images">All Images</a></li>
+                                            }
+                                            @if (Model.IsMarineLocation)
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'" class="btn-download ">BDN</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRSummary", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download">Summary</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                {
+                                                    if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                    {
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadTaxAffidavitAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">Tax Affidavit</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineCGInspectionDocument", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">CG</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineInspectionVouchers", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download download-images">@Resource.lblMarineInspVoucherMenu</a></li>
+                                                    }
+                                                    <li role="separator" class="divider"></li>
+                                                    @*<li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("GetZipFile", "Invoice", new { area = "Supplier", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download download-images idDownloadAll">@Resource.lblDownloadPackage</a></li>*@
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="downloadDocument()" class="btn-download download-images idDownloadAll">@Resource.lblDownloadPackage</a></li>
+                                                }
+                                            }
+                                        </ul>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item">
+                                        <a href="#"><i class="fa fas fa-envelope pull-left mt5"></i> Email <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                        <ul class="submenu submenu-left dropdown-menu">
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.Invoice)', '@emailUrl');">@(string.Format((isDdt ? Resource.lblDropTicket : Resource.lblInvoice)))</a></li>
+                                            @if (Model.IsMarineLocation)
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDR)', '@emailUrl');">@(string.Format(Resource.lblBDR))</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InvoiceSummary)', '@emailUrl');">@(string.Format(Resource.stepLabelSummary))</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDNImage)', '@emailUrl');">@(string.Format(Resource.lblBDNImage)) </a></li>
+                                                <li role="separator" class="divider"></li>
+                                                if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                {
+                                                    if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                    {
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.MarineTaxAffidavit)', '@emailUrl');">@(string.Format(Resource.lblTaxAffidavit)) </a></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.CGInspection)', '@emailUrl');">@(string.Format(Resource.lblCG))</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InspRequestVoucher)', '@emailUrl');">@(string.Format(Resource.lblMarineInspVoucherMenu))</a></li>
+                                                    }
+                                                }
+                                            }
+                                        </ul>
+                                    </li>
+                                    @*@if (Model.IsMarineLocation)
+        {*@
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="showUploadImagePopup();">@Resource.lblUploadImages<i class="fa fas fa-upload pull-left mt5"></i></a></li>
+                                    @*}*@
+                                    @if (Model.IsMarineLocation)
+                                    {
+                                        if (Model.Invoice.shouldShowBDNConfirmationDropdown())
+                                        {
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmBdnDetails()">@Resource.lblConfirmBdnDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                        }
+                                        else if (Model.Invoice.shouldShowInvoiceConfirmationDropdown())
+                                        {
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmInvoiceDetails()">@Resource.lblConfirmInvoiceDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                        }
+                                    }
+
+                                </ul>
+                            </div>
+                        }
+                    }
+
+                    else if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin)
+                    {
+                        if (Model.Invoice.StatusId == (int)InvoiceStatus.WaitingForApproval || Model.Invoice.StatusId == (int)InvoiceStatus.Received || Model.Invoice.StatusId == (int)InvoiceStatus.PartiallyPaid || Model.Invoice.StatusId == (int)InvoiceStatus.Paid || Model.Invoice.StatusId == (int)InvoiceStatus.Rejected || Model.Invoice.StatusId == (int)InvoiceStatus.Credited || Model.Invoice.StatusId == (int)InvoiceStatus.CreditedAndRebilled)
+                        {
+                            if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun && Model.Invoice.InvoiceTypeId != (int)InvoiceType.Balance && Model.Invoice.InvoiceTypeId != (int)InvoiceType.TankRental && Model.Invoice.InvoiceTypeId != (int)InvoiceType.CreditInvoice && Model.Invoice.InvoiceTypeId != (int)InvoiceType.PartialCredit && Model.Invoice.StatusId != (int)InvoiceStatus.Credited && Model.Invoice.StatusId != (int)InvoiceStatus.CreditedAndRebilled)
+                            {
+                                <div class="btn-group">
+                                    <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                    <ul class="dropdown-menu dropdown-menu-right large-menu">
+                                        @if (Model.SplitLoadInvoices != null)
+                                        {
+                                            if (Model.Invoice.StatusId != (int)InvoiceStatus.Draft && Model.PaymentStatus == PaymentStatus.NotPaid)
+                                            {
+                                                if (Model.ShowEditInvoiceMenu && Model.IsSingleBolInvoice && Model.Invoice.WaitingForAction != (int)WaitingAction.PDITaxes )
+                                                {
+                                                    if (!Model.OriginalInvoiceId.HasValue)
+                                                    {
+                                                        <li class="dropdown-item"><a id="auto-btneditddt" href="javascript:void(0)" onclick="location.href='@Url.Action("EditSplitInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit float-left mt5 mr5"></i></a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                    }
+                                                    else
+                                                    {
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btneditinvoice" onclick="location.href='@Url.Action("Edit", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit pull-left mt5"></i></a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                    }
+                                                }
+                                                if (Model.ShowCreditRebillMenu)
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btncreditandrebillinvoice" onclick="location.href='@Url.Action("CreditAndRebillSplitInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelCreditAndRebill <i class="fa fas fa-scroll pull-left mt5"></i></a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btncreditinvoice" onclick="creditInvoice('@Url.Action("Credit", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })')">@Resource.btnLabelCredit <i class="fa fas fa-file-invoice-dollar pull-left mt5"></i></a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btnpartialcreditinvoice" onclick="location.href='@Url.Action("CreditPartial", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelPartialCredit <i class="fa fas fa-file-invoice-dollar pull-left mt5"></i></a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                }
+                                            }
+                                            else if (Model.Invoice.StatusId == (int)InvoiceStatus.Draft)
+                                            {
+                                                <li class="dropdown-item"><a id="auto-btneditddt" href="javascript:void(0)" onclick="location.href='@Url.Action("EditSplitDraftInvoice", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit pull-left mt5"></i></a></li>
+                                            }
+                                        }
+                                        else if (Model.PaymentStatus == PaymentStatus.NotPaid)
+                                        {
+                                            if (Model.ShowEditInvoiceMenu && Model.IsSingleBolInvoice && Model.Invoice.WaitingForAction!=(int)WaitingAction.PDITaxes )
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btneditinvoice" onclick="location.href='@Url.Action("Edit", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelEdit <i class="fa fas fa-edit pull-left mt5"></i></a></li>
+                                                <li role="separator" class="divider"></li>
+                                            }
+                                            if (Model.ShowCreditRebillMenu)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btncreditandrebillinvoice" onclick="location.href='@Url.Action("CreditAndRebill", "Invoice", new { area = "Supplier", id = Model.Invoice.Id, orderId = Model.OrderId })'">@Resource.btnLabelCreditAndRebill <i class="fa fas fa-scroll pull-left mt5"></i></a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btncreditinvoice" onclick="creditInvoice('@Url.Action("Credit", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })')">@Resource.btnLabelCredit <i class="fa fas fa-file-invoice-dollar pull-left mt5"></i></a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btnpartialcreditinvoice" onclick="location.href='@Url.Action("CreditPartial", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelPartialCredit <i class="fa fas fa-file-invoice-dollar pull-left mt5"></i></a></li>
+                                                <li role="separator" class="divider"></li>
+                                            }
+                                        }
+
+                                        @if (!string.IsNullOrWhiteSpace(Model.RefId))
+                                        {
+                                            <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="uploadDtnFile()">@Resource.lblUploadDtnFileToFtp <i class="fa fas fa-upload pull-left mt5"></i></a></li>
+                                        }
+                                        <li class="dropdown-item">
+                                            <a href="#"><i class="fa fas fa-download pull-left mt5"></i> @Resource.btnLabelDownload <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                            <ul class="submenu submenu-left dropdown-menu">
+                                                @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">DDT</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                }
+                                                else
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">Invoice</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                }
+                                                @if (!isEditVisible && (Model.AssetDropImages.Count > 1 || (Model.InvoiceImage != null && Model.InvoiceImage.Id > 0 && Model.AssetDropImages.Count > 0) || (Model.SignatureImage != null && Model.SignatureImage.Id > 0 && Model.AssetDropImages.Count > 0)))
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadSingleInvoiceImage", "Invoice", new { area = "Supplier", imageId = Model.InvoiceImage.Id })'" class="btn-download download-images">All Images</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(Model.Invoice.CsvFilePath))
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadCsv", "Invoice", new { area = "Supplier", fileName = Model.Invoice.CsvFilePath })'">@Resource.lblDownloadCsv <i class="fa fas fa-download pull-left mt5"></i></a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(Model.RefId))
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadDtnFile", "Invoice", new { area = "Supplier", invoiceHeaderId = Model.Invoice.InvoiceHeaderId, refId = Model.RefId, password = Model.Password, siteNumber = Model.SiteNumber, invoiceNumber = Model.Invoice.DisplayInvoiceNumber })'">@Resource.lblDownloadDtnFile <i class="fa fas fa-download pull-left mt5"></i></a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                }
+                                                @if (Model.IsMarineLocation)
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'" class="btn-download">BDN</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRSummary", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download">Summary</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                    {
+                                                        if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                        {
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadTaxAffidavitAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">Tax Affidavit</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineCGInspectionDocument", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">CG</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineInspectionVouchers", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">@Resource.lblMarineInspVoucherMenu</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                        }
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="downloadDocument()" class="btn-download idDownloadAll">@Resource.lblDownloadPackage</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                    }
+                                                }
+                                            </ul>
+                                        </li>
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item">
+                                            <a href="#"><i class="fa fas fa-envelope pull-left mt5"></i> Email <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                            <ul class="submenu submenu-left dropdown-menu">
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.Invoice)', '@emailUrl');">@(string.Format((isDdt ? Resource.lblDropTicket : Resource.lblInvoice)))</li>
+                                                @if (Model.IsMarineLocation)
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDR)', '@emailUrl');">@(string.Format(Resource.lblBDR))</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InvoiceSummary)', '@emailUrl');">@(string.Format(Resource.stepLabelSummary))</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                    {
+                                                        if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                        {
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.MarineTaxAffidavit)', '@emailUrl');">@(string.Format(Resource.lblTaxAffidavit))</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.CGInspection)', '@emailUrl');">@(string.Format(Resource.lblCG)) </a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InspRequestVoucher)', '@emailUrl');">@(string.Format(Resource.lblMarineInspVoucherMenu))</a></li>
+                                                        }
+                                                    }
+                                                }
+                                            </ul>
+                                        </li>
+                                        @*@if (Model.IsMarineLocation)
+        {*@
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="showUploadImagePopup();">@Resource.lblUploadImages<i class="fa fas fa-upload pull-left mt5"></i></a></li>
+
+                                        @*}*@
+                                        @if (Model.IsMarineLocation)
+                                        {
+                                            if (Model.Invoice.shouldShowBDNConfirmationDropdown())
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmBdnDetails()">@Resource.lblConfirmBdnDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                            }
+                                            else if (Model.Invoice.shouldShowInvoiceConfirmationDropdown())
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmInvoiceDetails()">@Resource.lblConfirmInvoiceDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                            }
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                            else if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DryRun || Model.Invoice.InvoiceTypeId == (int)InvoiceType.Balance || Model.Invoice.InvoiceTypeId == (int)InvoiceType.TankRental || Model.Invoice.InvoiceTypeId == (int)InvoiceType.CreditInvoice || Model.Invoice.StatusId == (int)InvoiceStatus.Credited || Model.Invoice.InvoiceTypeId == (int)InvoiceType.PartialCredit || Model.Invoice.StatusId == (int)InvoiceStatus.CreditedAndRebilled)
+                            {
+                                <div class="btn-group">
+                                    <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                    <ul class="dropdown-menu dropdown-menu-right large-menu">
+                                        @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.TankRental || Model.Invoice.InvoiceTypeId == (int)InvoiceType.Balance)
+                                        {
+                                            <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btncreditandrebillinvoice" onclick="location.href='@Url.Action("CreditAndRebill", "Invoice", new { area = "Supplier", id = Model.Invoice.Id,orderId=Model.OrderId, invoiceType = Model.Invoice.InvoiceTypeId })'">@Resource.btnLabelCreditAndRebill <i class="fa fas fa-scroll pull-left mt5 mr5"></i></a></li>
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btncreditinvoice" onclick="creditInvoice('@Url.Action("Credit", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })')">@Resource.btnLabelCredit <i class="fa fas fa-file-invoice-dollar pull-left mt5 mr5"></i></a></li>
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" id="auto-btnpartialcreditinvoice" onclick="location.href='@Url.Action("CreditPartial", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnLabelPartialCredit <i class="fa fas fa-file-invoice-dollar pull-left mt5 mr5"></i></a></li>
+                                            <li role="separator" class="divider"></li>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(Model.RefId))
+                                        {
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="uploadDtnFile()">@Resource.lblUploadDtnFileToFtp <i class="fa fas fa-upload pull-left mt5 mr5"></i></a></li>
+                                        }
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item">
+                                            <a href="#"><i class="fa fas fa-download pull-left mt5"></i> @Resource.btnLabelDownload <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                            <ul class="submenu submenu-left dropdown-menu">
+                                                <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblInvoice</a></li>
+                                                @if (!string.IsNullOrWhiteSpace(Model.RefId))
+                                                {
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadDtnFile", "Invoice", new { area = "Supplier", invoiceHeaderId = Model.Invoice.InvoiceHeaderId, refId = Model.RefId, password = Model.Password, siteNumber = Model.SiteNumber, invoiceNumber = Model.Invoice.DisplayInvoiceNumber })'">DTN File</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                }
+                                                @if (Model.IsMarineLocation)
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'" class="btn-download">BDN</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRSummary", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download">Summary</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                    {
+                                                        if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                        {
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadTaxAffidavitAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">Tax Affidavit</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineCGInspectionDocument", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">CG</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineInspectionVouchers", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download download-images">@Resource.lblMarineInspVoucherMenu</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                        }
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="downloadDocument()" class="btn-download download-images idDownloadAll">@Resource.lblDownloadPackage</a></li>
+                                                    }
+
+                                                }
+                                            </ul>
+                                        </li>
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item">
+                                            <a href="#"><i class="fa fas fa-envelope pull-left mt5"></i> Email <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                            <ul class="submenu submenu-left dropdown-menu">
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.Invoice)', '@emailUrl');">@(string.Format((isDdt ? Resource.lblDropTicket : Resource.lblInvoice)))</a></li>
+                                                @if (Model.IsMarineLocation)
+                                                {
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDR)', '@emailUrl');">@(string.Format(Resource.lblBDR))</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InvoiceSummary)', '@emailUrl');">@(string.Format(Resource.stepLabelSummary))</a></li>
+                                                    <li role="separator" class="divider"></li>
+                                                    if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                    {
+                                                        if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                        {
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.MarineTaxAffidavit)', '@emailUrl');">@(string.Format(Resource.lblTaxAffidavit))</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.CGInspection)', '@emailUrl');">@(string.Format(Resource.lblCG))</a></li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InspRequestVoucher)', '@emailUrl');">@(string.Format(Resource.lblMarineInspVoucherMenu))</a></li>
+                                                        }
+                                                    }
+                                                }
+                                            </ul>
+                                        </li>
+                                        @*@if (Model.IsMarineLocation)
+        {*@
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="showUploadImagePopup();">@Resource.lblUploadImages<i class="fa fas fa-upload pull-left mt5"></i></a></li>
+                                        @*}*@
+                                        @if (Model.IsMarineLocation)
+                                        {
+                                            if (Model.Invoice.shouldShowBDNConfirmationDropdown())
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmBdnDetails()">@Resource.lblConfirmBdnDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                            }
+                                            else if (Model.Invoice.shouldShowInvoiceConfirmationDropdown())
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmInvoiceDetails()">@Resource.lblConfirmInvoiceDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                            }
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        }
+                        else if (Model.Invoice.StatusId == (int)InvoiceStatus.Approved || Model.Invoice.StatusId == (int)InvoiceStatus.PartiallyPaid || Model.Invoice.StatusId == (int)InvoiceStatus.Paid)
+                        {
+                            <div class="btn-group">
+                                <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                <ul class="dropdown-menu dropdown-menu-right medium-menu">
+                                    <li class="dropdown-item">
+                                        <a href="#"><i class="fa fas fa-download pull-left mt5"></i> @Resource.btnLabelDownload <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                        <ul class="submenu submenu-left dropdown-menu">
+                                            @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">DDT</a></li>
+                                            }
+                                            else
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblInvoice</a></li>
+                                            }
+                                            @if ((Model.AssetDropImages.Count > 1 || (Model.InvoiceImage != null && Model.InvoiceImage.Id > 0 && Model.AssetDropImages.Count > 0) || (Model.SignatureImage != null && Model.SignatureImage.Id > 0 && Model.AssetDropImages.Count > 0)))
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadInvoiceImages", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download download-images">All Images</a></li>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(Model.Invoice.CsvFilePath))
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadCsv", "Invoice", new { area = "Supplier", fileName = Model.Invoice.CsvFilePath })'">CSV</a></li>
+                                            }
+                                            @if (Model.IsMarineLocation)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'" class="btn-download">BDN</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRSummary", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download">Summary</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                {
+                                                    if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                    {
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadTaxAffidavitAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">Tax Affidavit</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineCGInspectionDocument", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">CG</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineInspectionVouchers", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download download-images">@Resource.lblMarineInspVoucherMenu</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                    }
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="downloadDocument()" class="btn-download download-images idDownloadAll">@Resource.lblDownloadPackage</a></li>
+                                                }
+
+                                            }
+                                        </ul>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item">
+                                        <a href="#"><i class="fa fas fa-envelope pull-left mt5"></i> Email <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                        <ul class="submenu submenu-left dropdown-menu">
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.Invoice)', '@emailUrl');">@(string.Format((isDdt ? Resource.lblDropTicket : Resource.lblInvoice)))</a></li>
+                                            @if (Model.IsMarineLocation)
+                                            {
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDR)', '@emailUrl');">@(string.Format(Resource.lblBDR))</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InvoiceSummary)', '@emailUrl');">@(string.Format(Resource.stepLabelSummary))</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                {
+                                                    if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                    {
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.MarineTaxAffidavit)', '@emailUrl');">@(string.Format(Resource.lblTaxAffidavit))</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.CGInspection)', '@emailUrl');">@(string.Format(Resource.lblCG))</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InspRequestVoucher)', '@emailUrl');">@(string.Format(Resource.lblMarineInspVoucherMenu))</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                    }
+                                                }
+
+                                            }
+                                        </ul>
+                                    </li>
+                                    @*@if (Model.IsMarineLocation)
+        {*@
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="showUploadImagePopup();">@Resource.lblUploadImages<i class="fa fas fa-upload pull-left mt5"></i></a></li>
+                                    @*}*@
+                                    @if (Model.IsMarineLocation)
+                                    {
+                                        if (Model.Invoice.shouldShowBDNConfirmationDropdown())
+                                        {
+                                             <li role="separator" class="divider"></li>
+                                             <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmBdnDetails()">@Resource.lblConfirmBdnDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                        }
+                                        else if (Model.Invoice.shouldShowInvoiceConfirmationDropdown())
+                                        {
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmInvoiceDetails()">@Resource.lblConfirmInvoiceDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                        }
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        else if (Model.Invoice.StatusId == (int)InvoiceStatus.CreditedAndRebilled)
+                        {
+                            <div class="btn-group">
+                                <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                <ul class="dropdown-menu dropdown-menu-right medium-menu">
+                                    <li class="dropdown-item">
+                                        <a href="#"><i class="fa fas fa-download pull-left mt5"></i> @Resource.btnLabelDownload <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                        <ul class="submenu submenu-left dropdown-menu">
+                                            @if (Model.IsMarineLocation)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblInvoice</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'" class="btn-download">BDN</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                {
+                                                    if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                    {
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadTaxAffidavitAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">Tax Affidavit</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineCGInspectionDocument", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">CG</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineInspectionVouchers", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download download-images">@Resource.lblMarineInspVoucherMenu</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                    }
+                                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="downloadDocument(true)" class="btn-download download-images idDownloadAll">@Resource.lblDownloadPackage</a></li>
+                                                }
+
+                                            }
+                                        </ul>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item">
+                                        <a href="#"><i class="fa fas fa-envelope pull-left mt5"></i> Email <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                        <ul class="submenu submenu-left dropdown-menu">
+                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.Invoice)', '@emailUrl');">@(string.Format((isDdt ? Resource.lblDropTicket : Resource.lblInvoice)))</a></li>
+                                            <li role="separator" class="divider"></li>
+                                            @if (Model.IsMarineLocation)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDR)', '@emailUrl');">@(string.Format(Resource.lblBDR))</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                                {
+                                                    if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                                    {
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.MarineTaxAffidavit)', '@emailUrl');">@(string.Format(Resource.lblTaxAffidavit))</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.CGInspection)', '@emailUrl');">@(string.Format(Resource.lblCG))</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InspRequestVoucher)', '@emailUrl');">@(string.Format(Resource.lblMarineInspVoucherMenu))</a></li>
+                                                    }
+                                                }
+
+                                            }
+                                        </ul>
+                                    </li>
+                                    @if (Model.IsMarineLocation)
+                                    {
+                                        if (Model.Invoice.shouldShowBDNConfirmationDropdown())
+                                        {
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmBdnDetails()">@Resource.lblConfirmBdnDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                        }
+                                        else if (Model.Invoice.shouldShowInvoiceConfirmationDropdown())
+                                        {
+                                            <li role="separator" class="divider"></li>
+                                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmInvoiceDetails()">@Resource.lblConfirmInvoiceDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                        }
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    }
+                }
+                else if (Model.ApprovalUserId == CurrentUser.Id || CurrentUser.IsSupplierAdmin || CurrentUser.IsAccountingPerson || CurrentUser.IsCarrier || CurrentUser.IsCarrierAdmin)
+                {
+                    <div class="btn-group">
+                        <button id="btnAction" data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                        <ul class="dropdown-menu dropdown-menu-right medium-menu">
+                            @if (Model.Invoice.StatusId == (int)InvoiceStatus.Received && (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketManual && Model.Invoice.InvoiceTypeId != (int)InvoiceType.DigitalDropTicketMobileApp))
+                            {
+                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("Approved", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnApproved <i class="fa fa-check pull-left mt7 mr5"></i></a></li>
+                                <li role="separator" class="divider"></li>
+                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("Decline", "Invoice", new { area = "Supplier", id = Model.Invoice.Id, statusId = Model.Invoice.StatusId })'">@Resource.btnLabelReject <i class="fa fa-times pull-left mt7 mr5"></i></a></li>
+                            }
+                            else if (Model.Invoice.StatusId == (int)InvoiceStatus.Approved)
+                            {
+                            }
+                            else if (Model.Invoice.StatusId == (int)InvoiceStatus.Rejected)
+                            {
+                                <li role="separator" class="divider"></li>
+                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("Approved", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'">@Resource.btnApproved <i class="fa fa-check pull-left mt7 mr5"></i></a></li>
+                            }
+                            <li class="dropdown-item">
+                                <a href="#"><i class="fa fas fa-download pull-left mt5"></i> @Resource.btnLabelDownload <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                <ul class="submenu submenu-left dropdown-menu">
+                                    @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                                    {
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblDDT</a></li>
+                                    }
+                                    else
+                                    {
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'">@Resource.lblInvoice</a></li>
+                                    }
+                                    @if (!isEditVisible && (Model.AssetDropImages.Count > 1 || (Model.InvoiceImage != null && Model.InvoiceImage.Id > 0 && Model.AssetDropImages.Count > 0) || (Model.SignatureImage != null && Model.SignatureImage.Id > 0 && Model.AssetDropImages.Count > 0)))
+                                    {
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadInvoiceImages", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download download-images">All Images</a></li>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.Invoice.CsvFilePath))
+                                    {
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" class="btn-download" onclick="location.href='@Url.Action("DownloadCsv", "Invoice", new { area = "Supplier", fileName = Model.Invoice.CsvFilePath })'">CSV</a></li>
+                                    }
+                                    @if (Model.IsMarineLocation)
+                                    {
+                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })'" class="btn-download">BDN</a></li>
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadBDRSummary", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })'" class="btn-download">Summary</a></li>
+                                        <li role="separator" class="divider"></li>
+                                        if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                        {
+                                            if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadTaxAffidavitAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">Tax Affidavit</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineCGInspectionDocument", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">CG</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="location.href='@Url.Action("DownloadMarineInspectionVouchers", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })'" class="btn-download">@Resource.lblMarineInspVoucherMenu</a></li>
+                                            }
+                                        }
+
+                                    }
+                                </ul>
+                            </li>
+                            <li role="separator" class="divider"></li>
+                            <li class="dropdown-item">
+                                <a href="#"><i class="fa fas fa-envelope pull-left mt5"></i> Email <i class="fa fas fa-chevron-right ml-2 mt5"></i></a>
+                                <ul class="submenu submenu-left dropdown-menu">
+                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.Invoice)', '@emailUrl');">@(string.Format((isDdt ? Resource.lblDropTicket : Resource.lblInvoice)))</a></li>
+                                    <li role="separator" class="divider"></li>
+                                    @if (Model.IsMarineLocation)
+                                    {
+                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.BDR)', '@emailUrl');">@(string.Format(Resource.lblBDR))</a></li>
+                                        <li role="separator" class="divider"></li>
+                                        <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.Id', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InvoiceSummary)', '@emailUrl');">@(string.Format(Resource.stepLabelSummary))</a></li>
+                                        <li role="separator" class="divider"></li>
+                                        if (Model.Invoice.InvoiceTypeId != (int)InvoiceType.DryRun)
+                                        {
+                                            if (Model.Invoice.WaitingForAction != (int)WaitingAction.BDNConfirmation && Model.Invoice.WaitingForAction != (int)WaitingAction.InvoiceConfirmation)
+                                            {
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.MarineTaxAffidavit)', '@emailUrl');">@(string.Format(Resource.lblTaxAffidavit))</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.CGInspection)', '@emailUrl');">@(string.Format(Resource.lblCG))</a></li>
+                                                <li role="separator" class="divider"></li>
+                                                <li class="dropdown-item"><a href="javascript:void(0)" onclick="return showEmailDocPopup('@Model.Invoice.InvoiceHeaderId', '@Model.Invoice.DisplayInvoiceNumber', '@Model.PoNumber', '@((int)CompanyType.Supplier)', '@((int)DocumentName.InspRequestVoucher)', '@emailUrl');">@(string.Format(Resource.lblMarineInspVoucherMenu))</a></li>
+                                            }
+                                        }
+
+                                    }
+                                </ul>
+                            </li>
+                            @*@if (Model.IsMarineLocation)
+        {*@
+                            <li role="separator" class="divider"></li>
+                            <li class="dropdown-item"><a href="javascript:void(0)" onclick="showUploadImagePopup();">@Resource.lblUploadImages<i class="fa fas fa-upload pull-left mt5"></i></a></li>
+                            @*}*@
+                            @if (Model.IsMarineLocation)
+                            {
+                                if (Model.Invoice.shouldShowBDNConfirmationDropdown())
+                                {
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmBdnDetails()">@Resource.lblConfirmBdnDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                }
+                                else if (Model.Invoice.shouldShowInvoiceConfirmationDropdown())
+                                {
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-item"><a href="javascript:void(0)" onclick="confirmInvoiceDetails()">@Resource.lblConfirmInvoiceDetail<i class="fa fas fa-check pull-left mt-2"></i></a></li>
+
+                                }
+                            }
+                        </ul>
+                    </div>
+                }
+
+                if (Model.Invoice.StatusId == (int)InvoiceStatus.Unconfirmed || Model.Invoice.StatusId == (int)InvoiceStatus.Confirmed)
+                {
+                    <div class="dib">
+                        @if (@Model.Invoice.PaymentDate.HasValue)
+                        {
+                            <label class="f-normal pt10 pr5">@Resource.lblDatePaid:</label>@Model.Invoice.PaymentDate.Value.ToString(Resource.constFormatDate)
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    <div class="side-panel-body cg-side-panel-body">
+        <div class="tab-container">
+            <div class="mb10 panel-icon">
+                <a href="javascript:void(0)" class="radius-5 dib text-center" onclick="loadLeftSidePanel(this);">
+                    @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                    {
+                        @Resource.lblDDTInfo
+                    }
+                    else
+                    {
+                        @Resource.lblInvoiceInfo
+                    }
+                </a>
+            </div>
+            <div id="BdrPdf" class="hide-element">
+            </div>
+            <div id="marinetaxaffidavit" class="hide-element">
+            </div>
+            <div id="marineBDNImage" class="hide-element">
+            </div>
+            <div id="marinecgdocument" class="hide-element">
+            </div>
+            <div id="marineinspectionvoucher" class="hide-element">
+            </div>
+            <div id="MarineDdts" class="hide-element">
+            </div>
+            <div id="invoice-details">
+                @Html.Partial("~/Views/Shared/_PartialInvoiceDetailSummary.cshtml", Model)
+            </div>
+            <div id="invoice" class="hide-element">
+            </div>
+            <div id="invoice-history" class="hide-element">
+                @if (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp)
+                {
+                    @Html.Partial("_PartialDropTicketHistoryGrid", Model.Invoice.Id)
+                }
+                else
+                {
+                    @Html.Partial("_PartialInvoiceHistoryGrid", Model.Invoice.Id)
+                }
+            </div>
+            <div id="invoice-discount" class="hide-element">
+            </div>
+            <div id="tab-contents-statement" class="hide-element">
+            </div>
+            @*<div class="position-abs mt15 text-center hide-element" id="ajax-loading">
+                <span class='spinner-small ml10 mt5'></span>
+            </div>*@
+            <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element" id="ajax-loading"><span class="spinner-dashboard pa"></span></div>
+            <div id="div-upload-image-container">
+                @*@{
+                var uploadImagesModel = new UpdateImagesViewModel() { InvoiceHeaderId = Model.Invoice.InvoiceHeaderId };
+                @Html.Partial("~/Areas/Supplier/Views/Shared/_PartialUploadInvoiceImagesPopup.cshtml", uploadImagesModel)
+            }*@
+            </div>
+        </div>
+    </div>
+</div>
+<div id="email-document-popup-container"></div>
+@Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/multiple-emails")
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/js/news-feed")
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/multiple-emails")
+<script type="text/javascript">
+	var invoiceTypeId = @Model.Invoice.InvoiceTypeId;
+	var invoiceId = @Model.Invoice.Id;
+	var currentEntityId = @Model.Invoice.InvoiceHeaderId; // for newsfeed
+	var applicationQueryTypeInvoice = '@AppMessageQueryType.Invoice';
+	var applicationQueryTypeDdt = '@AppMessageQueryType.DDT';
+	var isPendingAdj = '@Model.Invoice.IsPendingInvoiceAdjustment';
+	var culture = '@Model.Culture';
+	var lblNoAdjAvail = '@Resource.lblNoInvoiceAdjustmentAvailable';
+	var discountGridUrl = "@Url.Action("DiscountGrid", "Invoice", new { area = "Supplier", invoiceId = "@Model.Invoice.Id" })";
+	var currentUserCompany = '@CurrentUser.CompanyId';
+	var dealStatusPending = @((int)DealStatus.Pending);
+	var lblLoading = '@Resource.lblLoading';
+	var btnAccept = '@Resource.btnLabelAccept';
+	var btnDecline = '@Resource.btnLabelDecline';
+	var agreeConfirmationMessage = '@Resource.lblDealAgreeConfirmationMessage';
+	var notAgreeConfirmationMessage = '@Resource.lblDealNotAgreeConfirmationMessage';
+	var valMessageInvoiceNumber = '@ResourceMessages.GetMessage(Resource.valMessageInvalid,new object[] { Resource.lblInvoiceNumber })';
+	var discountAcceptUrl = '@Url.Action("DealAgree", "Invoice", new { area = "Supplier" })';
+	var discountDeclineUrl = '@Url.Action("DealNotAgree", "Invoice", new { area = "Supplier" })';
+	var editInvoiceNumberUrl = '@Url.Action("EditInvoiceNumber", "Invoice", new {area = "Supplier"})?id=@Model.Invoice.Id&displayInvoiceNumber=';
+	var newsfeedUrl = "@Url.Action("GetNewsfeed", "Invoice", new {area = "Supplier", entityTypeId = (Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.Invoice.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp) ? EntityType.DigitalDropTicket : EntityType.Invoice })";
+    var uploadDtnUrl = '@Url.Action("UploadDtnFileToFtp", "Invoice", new {area = "Supplier"})?invoiceHeaderId=@Model.Invoice.InvoiceHeaderId&buyerCompanyId=@Model.BuyerCompanyId&invoiceNumber=';
+	var downloadInvoiceUrl = "@Url.Action("DownloadInvoiceFile", "Invoice")?invoiceId=@Model.Invoice.Id&fileName=";
+	var acceptDealUrl = "@Url.Action("DealAgree", "Invoice", new { area = "Supplier" })";
+	var declineDealUrl = "@Url.Action("DealNotAgree", "Invoice", new { area = "Supplier" })";
+	$(document).ajaxComplete(function () {
+		if ('@Model.Invoice.UoM' == '@(UoM.Litres.ToString())') {
+			$('th').each(function () {
+				$(this).text($(this).text().replace('@Resource.lblGallons', '@Resource.lblLitres'));
+				$(this).text($(this).text().replace('@Resource.lblPricePerGallon', '@Resource.lblPricePerLitre'));
+				$(this).text($(this).text().replace('@Currency.USD.ToString()', '@Currency.CAD.ToString()'));
+			});
+		}
+    });
+    $(document).off('editInvoiceNumber');
+    $(document).on('editInvoiceNumber', function (e) {
+        editInvoiceNumber();
+    });
+
+    function showUploadImagePopup() {
+        var url = "@Url.Action("GetUploadInvoiceImagesView", "Invoice", new { area = "Supplier" })";
+        $.get(url, { 'invoiceHeaderId': @Model.Invoice.InvoiceHeaderId, 'isMarineLocation': @Model.IsMarineLocation ,'countryId': @Model.JobCountryId}, function (response) {
+            if (response != null) {
+                $('#div-upload-image-container').empty();
+                $('#div-upload-image-container').html(response);
+                parseForm();
+            }
+        });
+    }
+      function confirmBdnDetails() {
+        $(".loader").show();
+        var url = '@Url.Action("ConfirmBdnDetails", "Invoice", new { area = "Supplier" })';
+        $.post(url, { 'InvoiceId': @Model.Invoice.Id, 'orderId': '@Model.Invoice.OrderId', 'InvoiceHeaderId':'@Model.Invoice.InvoiceHeaderId' }, function (response) {
+            $(".loader").hide();
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess("BDN Approved.");
+                window.location.reload();
+            }
+            else
+            msgerror(response.StatusMessage);
+             });
+         }
+    function downloadDocument(isDownloadPDF) {
+        if (isDownloadPDF == true) {
+            window.open('@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier", id = Model.Invoice.InvoiceHeaderId })');
+        } else {
+         window.open('@Url.Action("DownloadBDRSummary", "Invoice", new { area = "Supplier", id = Model.Invoice.Id })');
+        }
+        window.open('@Url.Action("DownloadTaxAffidavitAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })');
+        window.open('@Url.Action("DownloadBDNAsPdf", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })');
+        window.open('@Url.Action("DownloadMarineCGInspectionDocument", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })');
+        window.open('@Url.Action("DownloadBDRPdf", "", new { area = "", id = Model.Invoice.InvoiceHeaderId })');
+         window.open('@Url.Action("DownloadMarineInspectionVouchers", "", new { area = "", invoiceHeaderId = Model.Invoice.InvoiceHeaderId })');
+    }
+
+    function confirmInvoiceDetails() {
+        $(".loader").show();
+        var url = '@Url.Action("ConfirmInvoiceDetails", "Invoice", new { area = "Supplier" })';
+        $.post(url, { 'InvoiceId': @Model.Invoice.Id, 'orderId': '@Model.Invoice.OrderId', 'InvoiceHeaderId':'@Model.Invoice.InvoiceHeaderId' }, function (response) {
+            $(".loader").hide();
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess(response.StatusMessage);
+                window.location.reload();
+            }
+            else
+            msgerror(response.StatusMessage);
+             });
+    }
+
+    function convertToInvoiceWithoutTax() {
+        $(".loader").show();
+        var url = '@Url.Action("ConvertDdtToInvoiceWithoutTax", "Invoice", new { area = "Supplier" })';
+        $.post(url, { 'InvoiceId': @Model.Invoice.Id, 'orderId': '@Model.Invoice.OrderId', 'InvoiceHeaderId': '@Model.Invoice.InvoiceHeaderId' }, function (response) {
+            $(".loader").hide();
+            if (response.StatusCode == @((int)Status.Success)) {
+                msgsuccess(response.StatusMessage);
+                window.location.reload();
+            }
+            else
+                msgerror(response.StatusMessage);
+        });
+    }
+
+</script>
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/InvoiceDetail")
+
+

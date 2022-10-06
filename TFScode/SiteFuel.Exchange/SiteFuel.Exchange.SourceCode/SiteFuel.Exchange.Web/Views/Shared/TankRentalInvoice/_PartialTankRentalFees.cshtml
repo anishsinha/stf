@@ -1,0 +1,203 @@
+﻿@model FuelFeesViewModel
+@{ var randomNum100999 = (new Random()).Next(100, 999);}
+@Html.HiddenFor(m => m.Currency)
+@Html.HiddenFor(m => m.UoM)
+<div>
+    <div class="mt10">
+        <b>@Resource.lblGeneral</b>
+    </div>
+    <div class="row fees-section">
+        <div class="col-sm-12">
+            <div id="common-fee-section-@randomNum100999" class="partial-section">
+                <div class="partial-block-collection-section mt5">
+                    @if (Model.FuelRequestFees != null && Model.FuelRequestFees.Count(t => t.FeeConstraintTypeId == null && t.CommonFee) > 0)
+                    {
+                        foreach (var f in Model.FuelRequestFees.Where(t => t.FeeConstraintTypeId == null && t.CommonFee))
+                        {
+                            f.Currency = Model.Currency;
+                            f.UoM = Model.UoM;
+                            @Html.Partial("TankRentalInvoice/_PartialTankRentalFeeDetails", f)
+                        }
+                    }
+                </div>
+                <div class="row">
+                    <div id="auto-add-normal-common-fee" class="col-12">
+                        <a href="javascript:void(0)" class="add-partial-block mb20"
+                           data-url="@Url.Action("AddTankRentalFee", "Invoice",
+                            new { currency = Model.Currency, uoM = Model.UoM })">
+                            <span class="fa fa-plus-circle"></span> @Resource.btnLabelAddFee
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div id="other-fee-section-@randomNum100999" class="partial-section">
+                <div class="mt10">
+                    <b>@Resource.lblOther</b>
+                </div>
+                <div class="partial-block-collection-section mt5">
+                    @if (Model.FuelRequestFees != null && Model.FuelRequestFees.Count(t => t.FeeConstraintTypeId == null && !t.CommonFee) > 0)
+                    {
+                        foreach (var f in Model.FuelRequestFees.Where(t => t.FeeConstraintTypeId == null && !t.CommonFee))
+                        {
+                            f.Currency = Model.Currency;
+                            f.UoM = Model.UoM;
+                            <div class="partial-block">
+                                @Html.Partial("TankRentalInvoice/_PartialTankRentalFeeDetails", f)
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="row">
+                    <div id="auto-add-normal-other-fee" class="col-12">
+                        <a href="javascript:void(0)" class="add-partial-block mb20"
+                           data-url="@Url.Action("AddTankRentalFee", "Invoice", new
+                                {
+                                    currency = Model.Currency,
+                                    uoM = Model.UoM,
+                                    feeCategoryId = (int)FeeCategory.OtherFee
+                                }
+                                    )"><span class="fa fa-plus-circle"></span>@Resource.btnLabelAddFee</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @using (Html.BeginScripts())
+            {
+                <script type="text/javascript">
+        var ftlFees = [];
+        var normalFeeOriginalUrl = "", specialFeeOriginalUrl = "";
+        var demurrageFees = [];
+
+        function showHideControlsByElement(radioBtn, showClassArr, hideClassArr) {
+            var hideSectionList = hideClassArr.split(",");
+            var showSectionList = showClassArr.split(",");
+            for (var i = 0; i < hideSectionList.length; i++) {
+                $(radioBtn).closest('.fee-type-row').find("." + hideSectionList[i]).addClass("hide-element");
+            }
+            for (var s = 0; s < showSectionList.length; s++) {
+                $(radioBtn).closest('.fee-type-row').find("." + showSectionList[s]).removeClass("hide-element");
+            }
+        }
+
+        function showHideWaiver(ctrl) {
+            $(ctrl).closest(".fee-type-row").find(".fee-sub-type-ddl .loading-wrapper").show();
+            var target = $(ctrl).closest(".fee-type-row").find('.waiver');
+            var invoicetarget = $(ctrl).closest("div.ftl-invoice-fee .fee-type-row").find('.show-in-invoice');
+            var feeTypeId = parseInt($(ctrl).val());
+            if (jQuery.inArray(feeTypeId, demurrageFees) !== -1) {
+                target.show();
+                invoicetarget.show();
+            }
+            else if (feeTypeId == 22) { //22 is for Retain fee
+                invoicetarget.show();
+            }
+            else {
+                target.hide();
+                invoicetarget.hide();
+            }
+        }
+
+        function hidePrevFeeTypeOption(elemt) {
+            // Remove dry run fee option from invoice create
+            RemoveDryRunOptionForInvoice();
+
+            var feeTypeDdls = $('.fee-type-row .feetype-ddl').not('.special-feetype-ddl');
+            var currentDDL = $(elemt).parents('.fee-types').find('select.feetype-ddl');
+            $.each(feeTypeDdls, function (idx, dropdown) {
+                var selected = $(dropdown).val();
+                if (selected != null && selected != undefined && selected != '' && !$(dropdown).is(currentDDL)) {
+                    var elemtToRemove = currentDDL.find("option[value='" + selected + "']");
+                    elemtToRemove.remove();
+                }
+            });
+        }		
+
+					function showHideQuantity(ctrl) {
+						$(ctrl).closest('.partial-block').find('.fee-subtype').val("2");
+		}
+
+        function refreshFeeTypeDdl(ctrl) {
+            var currentDDL = $(ctrl).parents('.fee-types').find('select.feetype-ddl').not('.special-feetype-ddl');
+            if (currentDDL != undefined && currentDDL.length > 0) {
+                var selectFeeOpt = currentDDL.find("option:first");
+                var optionToAdd = currentDDL.find("option:selected");
+                if (!selectFeeOpt.is(optionToAdd)) {
+                    var feeTypeDdlList = $('.fee-type-row .feetype-ddl').not('.special-feetype-ddl');
+                    if (feeTypeDdlList != undefined) {
+                        $.each(feeTypeDdlList, function (idx, dropdown) {
+                            if (!$(dropdown).is(currentDDL) && $(dropdown).text().indexOf(optionToAdd.text()) < 0) {
+                                $(dropdown).append("<option value='" + optionToAdd.val() + "'>" + optionToAdd.text() + "</option>");
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        function LoadFTLFees() {
+            var url = '@Url.Action("GetFTLFees", "FuelRequest")';
+            var data = { };
+            $.get(url, data).done(function (fees) {
+                if (fees.length > 0) {
+                    $.each(fees, function (i, element) {
+                        ftlFees.push(element);
+                    });
+                }
+            });
+        }
+
+        function LoadDemurrageFees() {
+            var url = '@Url.Action("GetWaiverApplicableFees", "FuelRequest")';
+            var data = { };
+            $.get(url, data).done(function (fees) {
+                if (fees.length > 0) {
+                    $.each(fees, function (i, element) {
+                        demurrageFees.push(element);
+                    });
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            normalFeeOriginalUrl = $('#auto-add-normal-common-fee a').attr('data-url');
+            specialFeeOriginalUrl = $('#auto-add-weekend-common-fee a').attr('data-url');
+            LoadFTLFees();
+            LoadDemurrageFees();
+            $(document).on('focus', '.feetype-ddl:not(.special-feetype-ddl)', function () { hidePrevFeeTypeOption(this); });
+            ShowHideFeeTypeControls();
+            $(document).on('keyup', '.rental-fee,.tax-percentage', function () { calculateTaxAmount(this); });
+        });
+
+        $(document).ajaxComplete(function () {
+            ShowHideFeeTypeControls();
+        });
+
+        function ShowHideFeeTypeControls() {
+            $.each($(document).find('.fee-types'), function (idx, elem) {
+                var commonFee = $(elem).find('.hidden-value-common-fee').find('input[type=hidden]').val();
+                if (commonFee == 'True') {
+                    showHideControlsByElement(elem, 'fee-type-ddl,fee', 'fee-type-name,fee-type-addtocommon'); 
+                }
+                else {
+                    showHideControlsByElement(elem, 'fee-type-name,fee-type-addtocommon,fee', 'fee-type-ddl,under-gallon-fee,byquantity-fee');
+                }
+            });
+        }
+
+        function calculateTaxAmount(elem) {
+            var taxAmountElem = $(elem).closest('.fee-type-row').find('.tax-amount');
+            var taxPercentageElem = $(elem).closest('.fee-type-row').find('.tax-percentage').val();
+            var feeElem = $(elem).closest('.fee-type-row').find('.fee-amount').val();
+
+            if (IsNumeric(feeElem) && IsNumeric(taxPercentageElem)) {
+                taxAmountElem.val(feeElem * taxPercentageElem / 100);
+            }
+            else {
+                taxAmountElem.val('');
+            }
+        }
+                </script>
+            }
+

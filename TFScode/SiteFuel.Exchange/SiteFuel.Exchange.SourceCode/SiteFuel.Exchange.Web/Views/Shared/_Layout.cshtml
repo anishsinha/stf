@@ -1,0 +1,526 @@
+﻿@using SiteFuel.Exchange.Web.Common
+@using System.Web.Optimization
+<!DOCTYPE html>
+<html>
+<head>
+    @RenderSection("header", required: false)
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="TrueFill Exchange Application">
+    <meta name="author" content="TrueFill, Inc.">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800" rel="stylesheet">
+    @if (!string.IsNullOrEmpty(CurrentUser.SupplierFaviconPath))
+    {
+        <link rel="icon" href="@CurrentUser.SupplierFaviconPath">
+    }
+    else
+    {
+        <link rel="icon" href="~/Content/images/logo-favicon.png">
+    }
+
+
+    <title>TrueFill - @ViewBag.Title</title>
+
+    <!-- CSS -->
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/common")
+    @RenderSection("styles", required: false)
+
+    <!-- JS -->
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/common")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/bootbox")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/unobtrusive-ajax")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/partial-collection")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/supplierbranding")
+    @RenderSection("scripts", required: false)
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css">
+</head>
+<body class="page-bg">
+    <!-- Modal -->
+    <div class="modal fade" id="demandCapture" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+
+    </div>
+    <div id="fr-incoming-alert" class="mb20"></div>
+    @*<a href="javascript:void(0)" class="scroll-to-top text-center animated fixed hide-element"><i class="fa fa-arrow-circle-up fa-2x"></i></a>*@
+    <div class="loader">
+        <div class="loading-content text-center">
+            <div class="spinner"></div>
+        </div>
+    </div>
+    <div class="icon-wrapper">
+        @if (CurrentUser.IsSalesCalculatorAllowed)
+        {
+            <div class="right0 btn-calculator z-index5 mb10">
+                <a id="auto-SalesCalculator" class="btn btn-circle btn-sm color-white"
+                   onclick='LoadSalesCalculator(); ' @*data-toggle='modal' data-target='#sales-calculator-modal'*@
+                   title="@Resource.headingSalesCalculator">
+                    <i class="fa fa-calculator fs16"></i>
+                </a>
+            </div>
+        }
+        @if (CurrentUser.IsImpersonated)
+        {
+            <div class="right0 btn-switch z-index5 mb10">
+                <a id="auto-IsImpersonated" href="@Url.Action("ToggleUser", "Account", new { area = "" })" onclick="removeCompanyGroup();" class="btn btn-danger btn-circle btn-sm color-white" data-toggle="tooltip" data-placement="bottom" data-html="true" title="@Resource.lblSwitchToSuperAdmin">
+                    <i class="fas fa-toggle-on fs16"></i>
+                </a>
+            </div>
+        }
+        @RenderSection("tilePreferences", required: false)
+    </div>
+    <!-- fixed header starts -->
+    <header class="fixed full-width top0 bg-white" id="layoutHeader">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-8 pr0 col-md-6 col-lg-7">
+                    <div class="mt1">
+                        <div id="mobile-menu-toggle" class="float-left color-white pr">
+                            <span class="db pa full-width bg-darkgray"></span>
+                            <span class="db pa full-width bg-darkgray"></span>
+                            <span class="db pa full-width bg-darkgray"></span>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(CurrentUser.SupplierLogoPath))
+                    {
+                        <div class="pull-left ml10">
+                            <a href="/"><img src="@CurrentUser.SupplierLogoPath" height="34" role="button" class="mt8"></a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="float-left mt3 ml-3 d-none d-lg-block"><a href="/"><img src="~/Content/images/truefill-logo.png" width="125" role="button" alt="TrueFill" class="mt5"></a></div>
+                        <div class="float-left mt3 ml5  d-none d-lg-none d-sm-block d-md-block d-block d-sm-none"><a href="/"><img src="~/Content/images/truefill-symbol.png" width="25" role="button" alt="TrueFill" class="ml5"></a></div>
+                    }
+
+                    @Html.Partial("_PartialCompanyTypeToggle")
+                    @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+                    {
+                        <div class="mt3 ml5 float-left" id="auto-create">
+                            <div class="btn-group mt7 mr5">
+                                <button data-toggle="dropdown" class="btn btn-default dropdown-toggle" aria-expanded="false">
+                                    <span class="float-left fs13"><i class="fa fa-plus float-left mr5 fs13 mt3"></i>@Resource.btnLabelCreate</span>
+                                    @*<i class="fa fa-angle-down float-left ml5 fs14 mt4"></i>*@
+                                </button>
+                                <ul class="dropdown-menu dropdown-menuleft mt20">
+                                    @if (CurrentUser.IsBuyerAdmin)
+                                    {
+                                        <li class="dropdown-item">
+                                            <img src="~/Content/images/ico-droparrow.png" class="left-droparrow pa" />
+
+                                            <a onclick='LoadCreateAsset();' class="db">
+                                                <span class="text-center"><i class="fa fa-truck mt4 fs16 ml2"></i></span>
+                                                @Resource.lblAssets
+                                            </a>
+                                        </li>
+                                        <li class="dropdown-item">
+                                            <a href="@Url.Action("Create", "Job", new { area = "Buyer" })" class="db">
+                                                <span class="text-center"><i class="fas fa-map-marker-alt mt3 fs16 ml2"></i></span>
+                                                @Resource.lblJobs
+                                            </a>
+                                        </li>
+                                        <li role="separator" class="divider"></li>
+                                    }
+                                    <li class="dropdown-item">
+                                        <a href="@Url.Action("Create", "FuelRequest", new { area = "Buyer" })" class="db">
+                                            <span class="text-center"><i class="fa fa-tint mt4 fs16 ml3"></i></span>
+                                            @Resource.lblFuelRequests
+                                        </a>
+                                    </li>
+                                    <li class="dropdown-item">
+                                        <a href="javascript:void(0);" onclick="getDemandCaptureForm();" class="db">
+                                            <span><i class="fas fa-thermometer-half fs18 mt5 ml5"></i></span>
+                                            @Resource.lblDemandCapture
+                                        </a>
+                                    </li>
+                                    <li class="dropdown-item">
+                                        <a href="@Url.Action("CreateNomination", "FuelRequest", new { area = "Buyer" })" class="db">
+                                            <span class="text-center"><i class="fas fa-ship mt4 fs16"></i></span>
+                                            @Resource.lblMarineFuelNomination
+                                        </a>
+                                    </li>
+                                    <li class="dropdown-item">
+                                        <a href="@Url.Action("Create", "Quote", new { area = "Buyer" })" class="db">
+                                            <span class="text-center"><i class="fas fa-clipboard-list fs16 mt4 ml3"></i></span>
+                                            @Resource.lblRequestforQuote
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt3 float-left">
+                            <div class="btn-group mt7 mr5">
+                                <a href="javascript:void(0);" onclick="getBuyerOfferUrl();" class="btn btn-default">
+                                    <i class="fa fa-tint float-left mr5 fs14 mt2"></i>
+                                    <span class="float-left fs13">@Resource.btnLabelBuyFuel</span>
+                                </a>
+                            </div>
+                        </div>
+                        if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+                        {
+
+                            <div class="mt3 float-left" id="demandCaptureButton">
+                                <div class="btn-group mt7">
+                                    <a href="javascript:void(0);" id="showModal" class="btn btn-default" style="border-radius: 15px;">
+                                        <i class="fa fa-truck float-left mr5 fs14 mt3"></i>
+                                        <span class="pull-left fs13">@Resource.lblCreateDR</span>
+                                    </a>
+                                </div>
+                            </div>
+                        }
+
+                    }
+                    @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson)
+                    {
+                        <div class="mt3 float-left ml5" id="auto-create">
+                            <div class="btn-group mt7 mr5">
+                                <button data-toggle="dropdown" class="btn btn-default dropdown-toggle" aria-expanded="false">
+                                    <span class="float-left fs13"><i class="fa fa-plus float-left mr5 fs13 mt3"></i>@Resource.btnLabelCreate</span>
+                                    @*<i class="fa fa-angle-down float-left ml5 fs14 mt4"></i>*@
+                                </button>
+                                <ul class="dropdown-menu dropdown-menuxs mt17">
+                                    <li class="dropdown-item">
+                                        <img src="~/Content/images/ico-droparrow.png" class="left-droparrow pa" />
+                                    </li>
+                                    @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)
+                                    {
+                                        <li class="dropdown-item">
+                                            <a href="@Url.Action("Create", "Order", new { area = "Supplier" })" class="db">
+                                                <span><i class="far fa-file-alt fs16 mt5 ml2"></i></span>
+                                                @Resource.lblOrder
+                                            </a>
+                                        </li>
+                                        <li class="dropdown-item">
+                                            <a href="javascript:void(0);" onclick="getSupplierOfferUrl();" data-page-code="@FeatureTypes.ManageOffer.ToString()" class="db feature-setting-@((int)CurrentUser.CompanyId)">
+                                                <span><i class="fas fa-hand-holding-usd fs18 ml2"></i></span>
+                                                @Resource.lblOffer
+                                            </a>
+                                        </li>
+                                        <li class="dropdown-item">
+                                            <a href="javascript:void(0);" onclick="getDemandCaptureForm();" class="db">
+                                                <span><i class="fas fa-thermometer-half fs18 mt5 ml5"></i></span>
+                                                @Resource.lblDemandCapture
+                                            </a>
+                                        </li>
+                                        <li class="dropdown-item">
+                                            <a href="@Url.Action("CreateTPONomination", "Order", new { area = "Supplier" })" class="db">
+                                                <span><i class="fas fa-ship fs16 mt4"></i></span>
+                                                @Resource.lblMarineFuelNomination
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson)
+                                    {
+                                        <li class="dropdown-item">
+                                            <a href="@Url.Action("Create", "BillingSchedule", new { area = "Supplier" })" class="db">
+                                                <span><i class="fas fa-sync fs16 ml2"></i></span>
+                                                @Resource.lblBillingSchedule
+                                            </a>
+                                        </li>
+                                        <li class="dropdown-item">
+                                            <a href="@Url.Action("Create", "FuelSurcharge", new { area = "Supplier" })" class="db">
+                                                <span><i class="fa fas fa-percent fs14 ml2"></i></span>
+                                                @Resource.lblFuelSurcharge
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (CurrentUser.IsCarrierAdmin || CurrentUser.IsCarrier)
+                                    {
+                                        <li class="dropdown-item">
+                                            <a href="@Url.Action("Create", "Freight", new { area = "Carrier" })" class="db">
+                                                <span><i class="fas fa-truck-moving fs16"></i></span>
+                                                @Resource.lblFreight
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+                    @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsDispatcher)
+                    {
+                        <div class="pull-left hidden-xsd-none d-sm-block hide mb5 mt10" id="supplierDipTestButton" data-toggle="tooltip" data-placement="bottom" title="Create Dip Test">
+                            <button class="btn btn-primary" id="showModal">
+                                <i class="glyphicon glyphicon-stats pull-left mr5 fs14"></i>
+                                <span class="pull-left fs13">@Resource.lblDipTest</span>
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <div class="col-4 pl0 col-md-6 col-lg-5 text-right float-right">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="float-right">
+                                <ul class="list-inline float-right mt2">
+                                    @*@Html.Partial("_PartialChangeLanguage")*@
+                                    @Html.Partial("_PartialUserAlerts")
+                                    @Html.Partial("_PartialCompanyMenu")
+                                    @Html.Partial("_PartialAuthenticatedUser")
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- fixed header ends -->
+    <!-- left navigation starts -->
+    @Html.Partial("_PartialSideMenu")
+    <!-- left navigation ends -->
+    <main>
+        <div class="col-xs-12 full-width pa0" id="display-custom-message">
+            @Html.Partial("_DisplayCustomMessage")
+        </div>
+        <div class="container-fluid pt8 main-wrapper pb20 page-bg">
+            <div id="breadcrumbs">
+            </div>
+            @RenderSection("pageTabs", required: false)
+            @if (!IsSectionDefined("pageTabs"))
+            {
+                <app-root></app-root>
+            }
+            @RenderBody()
+        </div>
+        <div class="container-fluid bg-footer fs12 text-center color-lightgrey" id="layoutFooter">
+            <div class="footer-wrapper pt25 mt10">
+                <span class="float-left mtm10" id="dynamic-footer-text">@Html.Raw(Resource.txtCopyright) </span>
+                <span class="float-right dib"><img src="~/Content/images/comodo-secure-logo.png" border="0" /></span>
+            </div>
+        </div>
+    </main>
+
+    <div class="currency-container">
+        <input type="hidden" class="hdn-currency" id="hdnCurrencyCulture" />
+    </div>
+
+    <div id="sliderpanel" class="side-panel pl5 pr5">
+        <div class="side-panel-wrapper">
+            <div class="pt15 pb15">
+                <a class="ml15 close-panel" onclick="closeSlidePanel()"><i class="fa fa-close fs18"></i></a>
+                <h3 class="dib mt0 mb0 fs18 ml10" id="slider-heading"></h3>
+            </div>
+            <div id="slider-content" class="side-panel-body pl15 pr15"></div>
+            @*<div class="text-right ml15 mr15">
+            <button type="button" id="close-slider" class="btn btn-secondary close-panel" onclick="closeSlidePanel()">@Resource.btnLabelClose</button>
+            <button type="button" class="btn btn-primary hide-element slider-data-loader"><div class='spinner-xsmall'></div></button>
+        </div>*@
+            <div id="slider-loader" class="position-abs text-center s-spinner">
+                <div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>
+            </div>
+            <div class='pa bg-white top0 left0 z-index5 loading-wrapper hide-element'><span class='spinner-dashboard pa'></span></div>
+        </div>
+    </div>
+
+    <div id="createdr" class="side-panel pl5 pr5">
+        <div class="side-panel-wrapper">
+            <div class="pt15 pb15">
+                <a class="ml15 close-panel" onclick="closeSlidePanel()"><i class="fa fa-close fs18"></i></a>
+                <h2 class="dib mt0 mb0 fs18 ml10" id="createdr-heading"></h2>
+            </div>
+            <div id="createdr-content" class="pl15 pr15"></div>
+            @*<div class="text-right ml15 mr15">
+            <button type="button" id="close-slider" class="btn btn-secondary close-panel" onclick="closeSlidePanel()">@Resource.btnLabelClose</button>
+            <button type="button" class="btn btn-primary hide-element slider-data-loader"><div class='spinner-xsmall'></div></button>
+        </div>*@
+            <div id="createdr-loader" class="position-abs text-center s-spinner">
+                <div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>
+            </div>
+            <div class='pa bg-white top0 left0 z-index5 loading-wrapper hide-element'><span class='spinner-dashboard pa'></span></div>
+        </div>
+            
+        </div>
+
+    <div class="demand-capture-angular">  @*Added for DR  creation from angular locations grid*@
+        @Html.Hidden("jobIdForDr")
+    </div>
+        @Html.PageScripts()
+        <script src="~/Scripts/Main/FreightService.js"></script>
+        @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/SendBird/SendBird")
+        <script type="text/javascript">
+        $.ajaxSetup(
+        {
+            beforeSend: function (xhr, settings) {
+                if (settings.url.indexOf('googleapis') == -1)
+                    xhr.setRequestHeader('X-Culture-Header', $("#hdnCurrencyCulture").val());
+            }
+        });
+
+        var isImpersonated = ('@CurrentUser.IsImpersonated' == 'True');
+	    var isSuperAdmin = ('@CurrentUser.IsSuperAdmin' == 'True');
+	    var breadCrumbUrl = '@Url.Action("GetBreadcrumbMapping", "Home", new { area = ""})';
+	    var homePageUrl = '@Url.Action("Index", "Home", new { area = ""})';
+
+        if(window.location.href.toLowerCase().indexOf("dashboard") > -1){
+            if ((isImpersonated || isSuperAdmin)) {
+                PreventBackNavigation();
+            }
+        }
+
+        var newFrInterval;
+        var userArea = '@CurrentUser.IsSupplierCompany' == 'True' ? '/Supplier' : '/Buyer';
+        //var notificationUrl = userArea + '@Url.Action("GetWebNotifications", "Dashboard", new { area = "" })?currentId=';
+        //var notificationUrl = userArea + baseUrl;
+        var notificationOfferUrl = '@Url.Action("View", "Offer", new { area = "Buyer" })';
+        var notificationInvoiceUrl = '@Url.Action("Details", "Invoice", new { area = "Buyer" })';
+        var updateNotificationUrl = userArea + '@Url.Action("SetWebNotificationsAsRead", "Dashboard", new { area = "" })' + '?notificationType=';
+        //var updateNotificationUrl = userArea + baseNotificationUrl;
+        var viewAllInvoiceUrl = '@Url.Action("View", "Invoice", new { area = "Buyer" })';
+        var isBuyerCompanyWebNotification = '@CurrentUser.IsBuyerCompany';
+        var isSupplierCompanyWebNotification = '@CurrentUser.IsSupplierCompany';
+        var notificationDispatchUrl = '@CurrentUser.IsSupplierCompany' == 'True' ? '@(Url.Action("Index", "Dashboard", new { area = "Dispatcher" }))' : 'javascript:void(0)';
+            $(document).ready(function () {
+            //preference setting//branding
+            if ('@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplierAndCarrierCompany' ||  '@CurrentUser.IsBuyerAndSupplierCompany' == 'True' || '@CurrentUser.IsBuyerSupplierAndCarrierCompany' == 'True')
+            {
+                getSupplierPreferenceSetting();
+            }
+            //dip test start
+            if ('@CurrentUser.IsDispatcher' == 'True' || '@CurrentUser.IsSupplierAdmin' == 'True' || '@CurrentUser.IsSupplier' == 'True') {
+
+                supplierDipTestAvailability();
+
+                function supplierDipTestAvailability() {
+                    var url = '@Url.Action("GetSupplierDiptestAvailability", "Dashboard", new { area = "Supplier" })';
+                    $.get(url, function (response) {
+                        if (response && response > 0) {
+                            $('#supplierDipTestButton').addClass('show').removeClass('hide');
+                        }
+                        else {
+                            $('#supplierDipTestButton').addClass('hide').removeClass('show');
+                        }
+                    });
+                }
+
+                // dip test button pressed
+                $('#supplierDipTestButton').click(function () {
+                    $('#sliderpanel').animate({ "right": "0px" }, "fast").css('display', 'inline-block').width("100%");
+                    $('.side-panel-wrapper').width("95%");
+                    $("#slider-heading").text('Tank Dip Test');
+
+                    $('#slider-loader').show();
+                    var url = '@Url.Action("GetSupplierDipTestView", "Dashboard", new { area = "Supplier" })';
+                    $.ajax({
+                        type: "Get",
+                        url: url,
+                        success: function (data) {
+                            $('#slider-content').html(data);
+                            $('.tab-scroll').height(docHeight);
+                        }
+                    }).always(function () { $('#slider-loader').hide(); });
+                });
+            }
+            //dip test end
+            
+            if ('@CurrentUser.IsBuyerAdmin' == 'True' || '@CurrentUser.IsBuyer' == 'True') {
+
+
+                // load map view
+                $('#demandCaptureButton').click(function () {
+                    var jobId = 0;
+                    //$('#sliderpanel').animate({ "right": "0px" }, "fast").css('display', 'inline-block').width("95%");
+                    $('#sliderpanel').animate({ "right": "0px" }, "fast").css('display', 'inline-block').width("100%");
+                    $('.side-panel-wrapper').width("95%");
+                    $("#slider-heading").text('Demand capture');
+
+                    $('#slider-loader').show();
+                    var url = '/Buyer/Dashboard/GetBuyerDemandCaptureView';
+                    $.ajax({
+                        type: "Get",
+                        url: url,
+                        success: function (data) {
+                            $('#slider-content').html(data);
+                            $('.tab-scroll').height(docHeight);
+                        }
+                    }).always(function () { $('#slider-loader').hide(); });
+                });
+            }
+
+            if (isImpersonated) {
+                $.ajax({
+                    type: "get",
+				    url: "@Url.Action("GetImpersonationTerminatedMessage", "Account", new { area = "" })",
+                    dataType: "json",
+				    data: {},
+                    success: function (response) {
+                        if (response.length > 0)
+                        {
+                            window.location.href = '@Url.Action("Index", "Home", new { area = "" })';
+                        }
+				    }
+                });
+            }
+            maintainTabState();
+        });
+
+        function removeCompanyGroup() {
+            setCompanyGroup("", '');
+            return true;
+        }
+
+        function LoadCreateAsset() {
+            var url = '@Url.Action("Create", "Asset", new { area = "Buyer" })?type=' +@((int)AssetType.Asset)+'';
+            $.get(url, function (response) {
+                if (response != null || response != "") {
+                    $("#slider-heading").text('@Resource.lblCreateAsset');
+                    $("#slider-content").html(response);
+                    parseForm();
+                    slidePanel("#sliderpanel");
+                }
+            }).always(
+                function () {
+                    $("#slider-loader").hide();
+                }
+            );
+        }
+
+        function getSupplierOfferUrl() {
+            var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+            var url = "@Url.Action("Create", "Offer", new { area = "Supplier" })?currency=" + selectedCountryAndCurrency.currencyType + "&country=" + selectedCountryAndCurrency.countryId;
+            location.href = url;
+        }
+
+        function getBuyerOfferUrl() {
+            var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+            var url = "@Url.Action("View", "Offer", new { area = "Buyer" })?currency=" + selectedCountryAndCurrency.currencyType + "&country=" + selectedCountryAndCurrency.countryId;
+            location.href = url;
+        }
+
+        function LoadSalesCalculator() {
+            var url = '@Url.Action("Calculator", "InternalSales", new { area = "Sales" })';
+            $.get(url, function (response) {
+                if (response != null || response != "") {
+                    $("#slider-heading").text('@Resource.headingSalesCalculator');
+                    $("#slider-content").html(response);
+                    parseForm();
+                    slidePanel("#sliderpanel");
+                }
+            }).always(
+                function () {
+                    $("#slider-loader").hide();
+                }
+            );
+        }
+
+        function LoadJobsforDeliveryRequest(panelWidth) {
+            $("#createdr").css('width', panelWidth);
+            var url = '@Url.Action("CreateDeliveryRequest", "Freight", new { area= "Carrier" })';
+            $.get(url, function (response) {
+                $("#createdr-heading").text('@Resource.lblCreateDeliveryRequest');
+                $("#createdr-content").html(response);
+                //parseForm();
+                slidePanel("#createdr");
+            }).always(function () {
+                $("#createdr-loader").hide();
+                });
+        }
+        var getFreightServiceParameterUri = '@Url.Action("GetFreightServiceParameters")';
+        var postFreightServiceSfxUri = '@Url.Action("SaveDemandCaptureInfo")';
+        var demandCaptureFormUri = '@Url.Action("GetDemandCaptureForm")';
+
+
+        </script>
+</body>
+</html>
+

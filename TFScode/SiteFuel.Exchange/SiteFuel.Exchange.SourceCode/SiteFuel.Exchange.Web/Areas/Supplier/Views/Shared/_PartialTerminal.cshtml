@@ -1,0 +1,129 @@
+﻿@model ManualInvoiceViewModel
+
+<label class="f-normal">@Resource.lblTerminal</label>
+<a class="edit-terminal" onclick="showAutoCompleteForTerminal()" title="Change Terminal"><span class="fa fa-edit"></span></a>
+<div class="pr row">
+    <div class="pa bg-white top0 left0 z-index5 loading-wrapper terminal-loader mtm10 hide"><span class='spinner-dashboard pa'></span></div>
+    <div class="col-md-12">      
+        <div class="break-word" id="divLblTerminalName">
+            <span id="spnTerminalName">@Model.TerminalName</span>
+        </div>
+        <div id="divTxtTerminalName" class="hide">
+            @Html.TextBoxFor(m => m.TerminalName, new { @id = "txtTerminalName", @class = "form-control", @onblur = "validateTerminal(this);" })
+            @Html.ValidationMessageFor(m => m.TerminalName)
+            @Html.HiddenFor(m => m.TerminalId)
+        </div>        
+    </div>
+</div>
+<script>
+    var terminalUrl = '';
+    $(document).ready(function () {
+        $("#txtTerminalName").click(function () {
+            $("#txtTerminalName").val('');
+        });
+    });
+
+    function showAutoCompleteForTerminal() {
+        if ($("#divTxtTerminalName").hasClass('hide')) {
+            $("#divTxtTerminalName").removeClass("hide");
+        }
+        $('#divLblTerminalName').hide();
+    }
+
+    function autoCompleteGetClosestTerminals(element, orderId) {
+        var target = $(element);
+        var prevTerminal = $(element).val();
+        var terminalId = @Model.TerminalId;
+
+        target.focus(function () {
+            target.val('');
+            $(this).autocomplete("search", '  ');
+        });
+        target.autocomplete({
+            search: function (e, u) {
+                $(".terminal-loader").show();
+            },
+            source: function (request, response) {
+                var inputData = {
+                    orderId: orderId, terminal: $.trim(request.term)
+                };
+                $.ajax({
+                    url: terminalUrl,
+                    type: "GET",
+                    dataType: "json",
+                    data: inputData,
+                    success: function (data) {
+                        response($.map(data, function (item) {
+                            return {
+                                label: item.Name,
+                                value: item.Id
+                            };
+                        }));
+                    },
+                    complete: function (event, xhr, settings) {
+                        $(".terminal-loader").hide();
+                    },
+                    error: function (jqXHR, exception) {
+                        var exp = exception;
+                    }
+                });
+            },
+            select: function (event, ui) {
+                isSelected = true;
+                $('#txtTerminalName').val(ui.item.label); // display the selected text
+                $('#spnTerminalName').text(ui.item.label);
+                terminalId = ui.item ? ui.item.value : 0;
+                prevTerminal = ui.item ? ui.item.label : prevTerminal;
+                //if (terminalId != 0)
+                //    updateInvoiceTerminal(terminalId);
+                $("#@Html.IdFor(m => m.TerminalId)").val(terminalId);
+                $("#@Html.IdFor(m => m.TerminalName)").val(ui.item.label);
+
+                $("#divTxtTerminalName").addClass("hide");
+                $('#divLblTerminalName').show();
+                getTerminalPriceById(terminalId);
+                return false;
+            },
+            messages: {
+                noResults: '',
+                results: function () { }
+            },
+            minLength: 2,
+            maxShowItems: 10,
+            scroll: true
+        });
+        $.ui.autocomplete.prototype._resizeMenu = function () {
+            var ul = this.menu.element;
+            ul.outerWidth(this.element.outerWidth());
+        }
+    }
+
+    function validateTerminal(terminalEle) {
+        var selectedTerminal = $(terminalEle).val();
+        if (selectedTerminal == undefined || selectedTerminal == '' || selectedTerminal == null) {
+            validationMessageFor('@Html.NameFor(m => m.TerminalName)', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblTerminal })');
+        }
+        else {
+            validationMessageFor('@Html.NameFor(m => m.TerminalName)', '');
+        }
+    }
+
+    function getTerminalPriceById(terminalId) {
+        var date = $("#DeliveryDate").val();
+        var orderId = @Model.OrderId;
+        if (date != undefined && date != null && date != '' && date.length == 10) {
+            $('.terminal-loader').show();
+            var data = {
+                terminalId: terminalId,
+                orderId: orderId,
+                deliveryDate: date,
+            }
+            var url = '@Url.Action("GetTerminalPriceById", "Invoice", new { area = "Supplier" })';
+            $.post(url, data, function (data) {
+                if (!isNaN(parseFloat(data))) $('#terminalPrice').val(data);
+            }).done(function () {
+                $('.terminal-loader').hide();
+            });
+        }
+    }
+</script>

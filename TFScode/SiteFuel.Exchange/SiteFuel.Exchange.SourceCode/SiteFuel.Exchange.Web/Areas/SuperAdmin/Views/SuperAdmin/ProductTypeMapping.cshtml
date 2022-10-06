@@ -1,0 +1,125 @@
+﻿@model ProductTypeMappingViewModel
+@{
+    ViewBag.Title = "Product Type Mapping";
+}
+
+<div class="row mb10">
+    <div class="col-sm-6 col-md-6 col-xs-12 pr0 float-left">
+        <h3 class="mt0 mb0 f-light fs21 pt5">@Resource.headingProductTypeMapping</h3>
+    </div>
+</div>
+@Html.Partial("_PartialProductTypeMappingGrid")
+
+<div class="row mb20">
+    <div class="col-sm-6 col-md-6 col-xs-12 pr0 float-left">
+        <h3 class="mt0 mb0 f-light fs21 pt5">Blend Product Type Mapping</h3>
+    </div>
+</div>
+@Html.Partial("_PartialBlendProductTypeMappingGrid")
+<div class="modal fade productType-mapping" id="productType-mapping" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            @using (Ajax.BeginForm("CreateProductTypeMapping", "SuperAdmin", null, new AjaxOptions
+            {
+                HttpMethod = "POST",
+                OnSuccess = "createProductTypeMappingSuccess",
+                OnFailure = "createProductTypeMappingFailed"
+            }, new { id = "create-producttype-mapping-form" }))
+            {
+                <div class="modal-header">
+                    <h4 class="modal-title">Product Type Mapping</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body ">
+                    <div id="div-mapping-body">
+                        <div class="row">
+                            <div class="col-sm-5">
+                                <div class="form-group">
+                                    @Html.HiddenFor(m => m.ProductTypeId)
+                                    @Html.HiddenFor(m => m.IsBlend)
+                                    @Html.LabelFor(m => m.ProductType)
+                                    <div><label id="lblProductType" name="lblProductType"></label></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-7">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.MappedToProductTypeIds)
+                                    @Html.ListBoxFor(m => m.MappedToProductTypeIds, new SelectList(CommonHelperMethods.GetProductTypes(0), "Id", "Name", 0), new { @class = "form-control multi-select full-width mt5 mb5 producttype-list", placeholder = @Html.DisplayNameFor(m => m.MappedToProductTypeIds) })
+                                    @Html.ValidationMessageFor(m => m.MappedToProductTypeIds)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                        <button type="button" id="btnSaveProductTypeMapping" class="btn btn-lg btn-primary" onclick="saveProductTypeMapping();">@Resource.btnLabelUpdate</button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+        $(document).ready(function () {
+
+        });
+
+        function saveProductTypeMapping() {
+            $('#create-producttype-mapping-form').submit();
+        }
+
+        function createProductTypeMappingSuccess(result) {
+            $(".loading-wrapper").hide();
+            if (result.StatusCode == '@((int)Status.Failed)') {
+                msgerror(result.StatusMessage);
+                return false;
+            }
+            else {
+                msgsuccess(result.StatusMessage);
+                $('#productType-mapping').modal("hide");
+                if ($("#@Html.IdFor(m => m.IsBlend)").val() == "true") {
+                    ReloadBlendDataTable();
+                } else {
+                    ReloadDataTable();
+                }
+            }
+        }
+
+        function createProductTypeMappingFailed(result) {
+            msgerror(result.StatusMessage);
+            $(".loading-wrapper").hide();
+            return false;
+        }
+
+        function showProductTypeDetails(ele,productTypeId, isblend) {
+            $("#@Html.IdFor(m => m.ProductTypeId)").val(productTypeId);
+            $("#@Html.IdFor(m => m.IsBlend)").val(isblend);
+            var productType = $(ele).attr('productType');
+            $('#lblProductType').text(productType);
+            var target = $("#@Html.IdFor(m => m.MappedToProductTypeIds)");
+            $.get("@Url.Action("GetProductTypeList", "SuperAdmin", new { area= "SuperAdmin" })", { productTypeId: productTypeId },
+                function (productTypeList) {
+                    target.empty(), $.each(productTypeList, function (i, element) {
+                        target.append($('<option></option>').val(element.Id).html(element.Name));
+                    });
+                });
+
+            $.get("@Url.Action("GetMappedProductType", "SuperAdmin", new { area = "SuperAdmin" })", { productTypeId: productTypeId, isBlend: isblend },
+                function (response) {
+                    $(".producttype-list").select2('destroy');
+                    //alert(response.MappedToProductTypeIds);
+                    $(".producttype-list").val(response.MappedToProductTypeIds);
+                    initMultiSelect();
+                });
+
+            $('#productType-mapping').modal("show");
+        }
+</script>
+}
+
+

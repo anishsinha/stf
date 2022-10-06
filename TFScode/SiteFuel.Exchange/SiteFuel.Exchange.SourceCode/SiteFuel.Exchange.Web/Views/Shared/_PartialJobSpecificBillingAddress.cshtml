@@ -1,0 +1,248 @@
+﻿@model JobSpecificBillToViewModel
+
+<div class="mt5 dib">
+    <h4 class="pull-left mb5 pt0 pb0" id="model-popup-heading">@Resource.lblJobSpecificBillTo</h4>
+    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true" style="font-size:35px">&times;</span>
+    </button>
+</div>
+<div class="jobspecific-billing-address address-container">
+    @Html.HiddenFor(m => m.Id)
+    <div id="billing-address-radio" class="form-row mb-2 hide-billing-address-radio hide-element">
+        <div class="col-sm-5">
+            <div class="custom-control custom-radio custom-control-inline radio">
+                @Html.RadioButtonFor(m => m.IsExistingBillAddress, false, new { @id = "radio-newBillAddress", @class = "custom-control-input", onclick = "inputBoxShowHide('new-CompanyBillAddress','existing-CompanyBillAddress');", onchange = "onChangeNewBillingAddress();" })
+                <label class="custom-control-label" for="radio-newBillAddress">@Resource.lblNew</label>
+            </div>
+            <div class="custom-control custom-radio custom-control-inline radio" id="existing-billing-Address">
+                @Html.RadioButtonFor(m => m.IsExistingBillAddress, true, new { @id = "radio-existingBillAddress", @class = "custom-control-input", onclick = "inputBoxShowHide('existing-CompanyBillAddress','new-CompanyBillAddress');" })
+                <label class="custom-control-label" for="radio-existingBillAddress">@Resource.lblExisting</label>
+            </div>
+        </div>
+        <div class="col-sm-6 pl-0" id="selection-list-billing-Address">
+            @Html.DropDownListFor(m => m.BillingAddressId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name"), Resource.btnLabelSelect, new { @class = "form-control existing-CompanyBillAddress", onchange = "onChangeBillingAddress();" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.LabelFor(m => m.Name)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                @Html.TextBoxFor(m => m.Name, new { @class = "form-control", autofocus = "autofocus" })
+                @Html.ValidationMessageFor(m => m.Name)
+            </div>
+        </div>
+
+        
+    </div>
+    @*<div class="row">
+        
+     </div>*@
+<div class="row">
+    <div class="col-sm-6">
+        <div class="form-group">
+            @Html.LabelFor(m => m.Address)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+            @Html.TextBoxFor(m => m.Address, new { @class = "form-control address-type" })
+            @Html.ValidationMessageFor(m => m.Address)
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="form-group">
+            @Html.LabelFor(m => m.AddressLine2)
+            @Html.TextBoxFor(m => m.AddressLine2, new { @class = "form-control address-type" })
+            @Html.ValidationMessageFor(m => m.AddressLine2)
+        </div>
+    </div>
+</div>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.AddressLine3)
+                    @Html.TextBoxFor(m => m.AddressLine3, new { @class = "form-control address-type" })
+                    @Html.ValidationMessageFor(m => m.AddressLine3)
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.City)
+                    @Html.TextBoxFor(m => m.City, new { @class = "form-control address-type" })
+                    @Html.ValidationMessageFor(m => m.City)
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    @Html.HiddenFor(m => m.State.Id, new { @Value = 0, @class = "billinfostate" })
+                    @Html.HiddenFor(m => m.State.Code, new { @Value = Resource.lblDummy })
+                    @Html.Label(Resource.lblStateProvince)
+                    @Html.TextBoxFor(m => m.State.Name, new { @class = "form-control address-type" })
+                    @Html.ValidationMessageFor(m => m.State.Name)
+                </div>
+                
+            </div>
+            <div class="col-sm-4">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.ZipCode)
+                    @Html.TextBoxFor(m => m.ZipCode, new { @class = "form-control address-type" })
+                    @Html.ValidationMessageFor(m => m.ZipCode)
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.County)
+                    @Html.TextBoxFor(m => m.County, new { @class = "form-control address-type" })
+                    @Html.ValidationMessageFor(m => m.County)
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    @Html.HiddenFor(m => m.Country.Id, new { @Value = 0, @class = "address-type" })
+                    @Html.HiddenFor(m => m.Country.Code, new { @Value = Resource.lblDummy })
+                    @Html.Label(Resource.lblCountryGroup)
+                    @Html.TextBoxFor(m => m.Country.Name, new { @class = "form-control address-type" })
+                    @Html.ValidationMessageFor(m => m.Country.Name)
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 text-right">
+                <input type="button" id="JobSpecificBillToSubmit" onclick="onJobSpecificBillToSubmitt(true);" value="@Resource.btnLabelSubmit" class="btn btn-lg btn-primary submit-form" />
+            </div>
+        </div>
+    </div>
+<script>
+    var billInfoStateId = '@Model.State.Id';
+
+    $(document).ready(function () {
+        $(document).on('change', '.country', function () {
+            var countryId = parseInt($(this).val());
+            var container = $(this).closest('.address-container');
+            if (container != undefined && container.length > 0) {
+                if (!isNaN(countryId) && countryId == '@((int)Country.CAR)') {
+                    container.find('.mandatory-symbol').addClass('hide-element');
+                }
+                else {
+                    container.find('.mandatory-symbol').removeClass('hide-element');
+                }
+            }
+        });
+
+        $("#radio-existingcustomer").on("change", function (e) {
+            $('#billing-address-radio').removeClass('hide-element');
+            $('#selection-list-billing-Address').removeClass('hide-element');
+            clearform();
+            MakeItNonEditable(false);
+        });
+
+        $("#radio-newcustomer").on("change", function (e) {
+            $('#billing-address-radio').addClass('hide-element');
+            $('#selection-list-billing-Address').addClass('hide-element');
+            clearform();
+            MakeItNonEditable(false);
+        });
+
+        $("#CustomerDetails_CompanyId").on("change", function (e) {
+            clearform();
+            $("#radio-newBillAddress").prop("checked", true);
+            $("#@Html.IdFor(m => m.IsExistingBillAddress)").val(false);
+            inputBoxShowHide('new-CompanyBillAddress', 'existing-CompanyBillAddress');
+        });
+    })
+
+
+    function onChangeNewBillingAddress() {
+        $('#billing-address-radio').removeClass('hide-element');
+        $('#selection-list-billing-Address').removeClass('hide-element');
+        clearform();
+        MakeItNonEditable(false);
+    }
+
+    function onChangeBillingAddress() {
+        var billingAddressId = $("#@Html.IdFor(m => m.BillingAddressId)").val();
+        if (billingAddressId != null && billingAddressId > 0) {
+            $(".edit-loader").show();
+            var url = '@Url.Action("GetBillingAddressDetails", "YourCustomer", new { Area="Supplier" })';
+            $.get(url, { billingAddressId: billingAddressId }, function (response) {
+                if (response.Id != undefined && response.Id > 0) {
+                    $("#@Html.IdFor(m => m.BillingAddressId)").val(response.Id);
+                    $("#@Html.IdFor(m => m.Id)").val(response.Id);
+                    $("#@Html.IdFor(m => m.Name)").val(response.Name);
+                    $("#@Html.IdFor(m => m.Address)").val(response.Address);
+                    $("#@Html.IdFor(m => m.AddressLine2)").val(response.AddressLine2);
+                    $("#@Html.IdFor(m => m.AddressLine3)").val(response.AddressLine3);
+                    $("#@Html.IdFor(m => m.ZipCode)").val(response.ZipCode);
+                    $("#@Html.IdFor(m => m.City)").val(response.City);
+                    $("#@Html.IdFor(m => m.State.Name)").val(response.State.Name);
+                    $("#@Html.IdFor(m => m.County)").val(response.County);
+                    $("#@Html.IdFor(m => m.Country.Name)").val(response.Country.Name);
+                    MakeItNonEditable(true)
+                }
+            });
+            $(".edit-loader").hide();
+            $('#jobSpecificBillToModel').modal('show');
+        }
+        else {
+            clearform();
+        }
+    }
+
+    function MakeItNonEditable(isTrue) {
+        $("#@Html.IdFor(m => m.Name)").prop("readonly", isTrue);
+        $("#@Html.IdFor(m => m.Address)").prop("readonly", isTrue);
+        $("#@Html.IdFor(m => m.AddressLine2)").prop("readonly", isTrue);
+        $("#@Html.IdFor(m => m.AddressLine3)").prop("readonly", isTrue);
+        $("#@Html.IdFor(m => m.ZipCode)").prop("readonly", isTrue);
+        $("#@Html.IdFor(m => m.City)").prop("readonly", isTrue);
+        $("#@Html.IdFor(m => m.State.Name)").prop("readonly", isTrue);
+        $("#@Html.IdFor(m => m.County)").prop("readonly", isTrue);
+        $("#@Html.IdFor(m => m.Country.Name)").prop("readonly", isTrue);
+    }
+
+    function LoadExistingAddress() {
+        var customerDetails_CompanyId = $("#CustomerDetails_CompanyId").val();
+        if (customerDetails_CompanyId == null) {
+            customerDetails_CompanyId = $("#BuyerCompanyId").val();
+        }
+        if (customerDetails_CompanyId != null && customerDetails_CompanyId > 0) {
+            var target = $("#@Html.IdFor(m => m.BillingAddressId)");
+            $(".edit-loader").show();
+            var url = '@Url.Action("GetBillingAddress", "Order", new { Area="Supplier" })';
+            $.get(url, { companyId: customerDetails_CompanyId }, function (response) {
+                if (response != undefined && response.length > 0) {
+
+                    target.empty(), $.each(response, function (i, element) {
+                        target.append($('<option></option>').val(element.Id).html(element.Name));
+                    });
+
+                    $(target).prepend("<option value selected='selected'>@Resource.btnLabelSelect</option>");
+                    $(target).val('@Model.BillingAddressId');
+                    $('#existing-billing-Address').removeClass('hide-element');
+                }
+                else {
+                    $('#existing-billing-Address').addClass('hide-element');
+                }
+            });
+            $(".edit-loader").hide();
+        }
+        else {
+            clearform();
+        }
+    }
+
+    function clearform() {
+        $("#@Html.IdFor(m => m.Id)").val(0);
+        $("#@Html.IdFor(m => m.Name)").val('');
+        $("#@Html.IdFor(m => m.Address)").val('');
+        $("#@Html.IdFor(m => m.AddressLine2)").val('');
+        $("#@Html.IdFor(m => m.AddressLine3)").val('');
+        $("#@Html.IdFor(m => m.ZipCode)").val('');
+        $("#@Html.IdFor(m => m.City)").val('');
+        $("#@Html.IdFor(m => m.State.Name)").val('');
+        $("#@Html.IdFor(m => m.County)").val('');
+        $("#@Html.IdFor(m => m.Country.Name)").val('');
+        MakeItNonEditable(false);
+        $('#@Html.IdFor(m => m.BillingAddressId)')[0].selectedIndex = 0;
+    }
+</script>

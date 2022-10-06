@@ -1,0 +1,69 @@
+﻿@model OrderTaxDetailsViewModel
+
+@using (Html.BeginCollectionItem("TaxDetailsViewModel"))
+{
+    <div class="partial-block">
+        <div class="row taxesRow">
+            <div class="col-xs-7 col-sm-3">
+                <div class="form-group mb5">
+                    @Html.DropDownListFor(m => m.TaxPricingTypeId, new SelectList(CommonHelperMethods.GetTaxesForOtherProductFuelType(), "Id", "Name"), new { @class = "form-control ddl-other-product-tax" })
+                    @Html.ValidationMessageFor(m => m.TaxPricingTypeId)
+                </div>
+            </div>
+            <div class="col-xs-5 col-sm-3">
+                <div class="input-group">
+                    <span class="input-group-addon tax-currency">@Model.Currency</span>
+                    @Html.TextBoxFor(m => m.TaxRate, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.TaxRate) })
+                    <span class="input-group-addon tax-percent hide-element">@Resource.constSymbolPercent</span>
+                </div>
+                @Html.ValidationMessageFor(m => m.TaxRate)
+            </div>
+            <div class="col-xs-7 col-sm-3">
+                <div class="form-group mb5">
+                    @Html.TextAreaFor(m => m.TaxDescription, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.TaxDescription) })
+                    @Html.ValidationMessageFor(m => m.TaxDescription)
+                </div>
+            </div>
+            <div class="fs18 col-xs-1">
+                <a href="javascript:void(0)" class="fa fa-trash-alt mt10 color-maroon" title="@Resource.btnLabelRemove" onclick="removeTaxesPartial(this);"></a>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+    $('#taxesSaveBtnDiv').show();
+
+    function removeTaxesPartial(me) {
+        removePartial(me);
+        //if ($('.taxesRow').length === 0)
+        //    $('#taxesSaveBtnDiv').hide();
+    }
+
+    $(document).on('change', '.ddl-other-product-tax', function () {
+        var otherProdTax = $(this).children("option:selected").val();
+        if (otherProdTax == 1 || otherProdTax == 3) {
+            $(this).closest(".taxesRow").find(".tax-currency").removeClass("hide-element");
+            $(this).closest(".taxesRow").find(".tax-percent").addClass("hide-element");
+        }
+        else {
+            $(this).closest(".taxesRow").find(".tax-currency").addClass("hide-element");
+            $(this).closest(".taxesRow").find(".tax-percent").removeClass("hide-element");
+        }
+    });
+
+    $(document).ready(function () {
+        $(".taxesRow").each(function () {
+            var otherProdTax = $(this).find(".ddl-other-product-tax").children("option:selected").val();
+            if (otherProdTax == 1 || otherProdTax == 3) {
+                $(this).find(".tax-currency").removeClass("hide-element");
+                $(this).find(".tax-percent").addClass("hide-element");
+            }
+            else {
+                $(this).find(".tax-currency").addClass("hide-element");
+                $(this).find(".tax-percent").removeClass("hide-element");
+            }
+        });
+        UpdateOtherProductTaxesUoM();
+    });
+</script>

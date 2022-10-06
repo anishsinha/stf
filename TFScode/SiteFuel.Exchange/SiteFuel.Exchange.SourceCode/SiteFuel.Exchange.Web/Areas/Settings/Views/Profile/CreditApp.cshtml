@@ -1,0 +1,170 @@
+﻿@model CreditAppViewModel
+
+@{
+    ViewBag.Title = "Credit App";
+}
+<div class="row">
+    <div class="col-md-3 mb15 tab-headers">
+        <a href="javascript:void(0)" onclick="showsection('creditapp-details'), activelink(this)" class="active mr20">
+            <div class="step-inprogress fs18">
+                <span id="tabCreditAppDetails" class="f-light step-text float-left">@Resource.tabheadingDetails</span>
+            </div>
+        </a>
+        <a href="javascript:void(0)" onclick="showsection('creditapp-documents'), activelink(this)" class="mr20 creditapp-documents">
+            <div class="step-inprogress fs18">
+                <span id="tabCreditAppDocs" class="f-light step-text float-left">
+                    @Resource.tabHeadingDocuments
+                </span>
+            </div>
+        </a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="tab-container pt10">
+            <div id="creditapp-details">
+                @using (Html.BeginForm("CreditApp", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form" }))
+                {
+                    @Html.AntiForgeryToken()
+                            <!-- order details starts -->
+                    <div class="row @(CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsAccountingPerson ? "" : "disable-controls")">
+                        <div class="col-sm-12 pb20 ">
+                            @Html.HiddenFor(m => m.Id)
+                            @Html.HiddenFor(m => m.CompanyId)
+                            <div class="row">
+                                <div class="col-md-6 col-sm-7">
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="checkbox mt0">
+                                                <label class="checkbox-inline">
+                                                    @Html.CheckBoxFor(m => m.IsEnabled)
+                                                    @Resource.lblEnable
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-7">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.FromEmail)
+                                                @Html.DropDownListFor(m => m.FromEmail, new SelectList(CommonHelperMethods.GetSuppliers(Model.CompanyId), "Id", "Name", 0), new { @class = "form-control onchange-select-showhide" })
+                                                @Html.ValidationMessageFor(m => m.FromEmail)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.Subject)
+                                                @Html.TextBoxFor(m => m.Subject, new { @class = "form-control" })
+                                                @Html.ValidationMessageFor(m => m.Subject)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.Body)
+                                                @Html.TextAreaFor(m => m.Body, new { @class = "form-control", @rows = 10 })
+                                                @Html.ValidationMessageFor(m => m.Body)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row text-right pb20 mt10">
+                                <div class="col-sm-12 text-right">
+                                    <input type="button" id="btnCancel" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Index", "Home", new { area = "" })'" />
+                                    @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)
+                                    {
+                                        <input id="btnSaveDetails" type="submit" class="btn btn-lg btn-primary btn-md" value="@Resource.btnLabelSave" />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div id="creditapp-documents" class="hide-element">
+                <div class="row">
+                    @Html.Partial("_PartialCreditAppDocuments")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+		var totalFileCount = 0, filedetails;
+		$(document).ready(function () {
+
+			$('[data-toggle=confirmation]').confirmation({
+				rootSelector: '[data-toggle=confirmation]',
+				html: true
+			});
+
+			var previousTab = GetLocalStorage(window.location.href);
+            if (typeof previousTab != 'undefined' && previousTab != null && previousTab != '') {
+				triggerEvent('.creditapp-documents', 'click');
+				RemoveLocalStorage(window.location.href);
+			}
+
+			$('input:file').on("change", function (e) {
+				var isValid = true;
+				if ((totalFileCount + e.target.files.length) > 10) {
+					$('#upload-warning-message').text('@Resource.errMessageUploadFileCountWarning');
+					$('#files').val('');
+					$('#btnName').html('@Resource.btnChooseFile');
+					isValid = false;
+				}
+				if (isValid && e.target.files.length > 0)
+				{
+					$(e.target.files).each(function () {
+						if (this.size > 1000000) {
+							$('#upload-warning-message').text('@Resource.errMessageUploadFileSizeWarning');
+							$('#files').val('');
+							$('#btnName').html('@Resource.btnChooseFile');
+							isValid = false;
+						}
+					})
+				}
+				if (isValid) {
+					$('#upload-warning-message').text('');
+				}
+				$('#uploadFiles').prop('disabled', !$(this).val());
+			});
+
+			$('#uploadFiles').on('show.bs.confirmation', function () {
+				var files = $('#files')[0].files;
+				var isValid = true;
+				for (var i = 0; i < files.length; i++) {
+					var matchingFiles = $.grep(filedetails, function (file) {
+						return file.FileName == files[i].name;
+					});
+					if (matchingFiles.length > 0) {
+						isValid = false;
+					}
+				}
+				if (isValid) {
+					event.preventDefault();
+					$('#creditapp-documents-form').submit();
+				}
+			});
+		});
+
+    </script>
+}
+
+
+
+
+
+
+
+
+
+
+

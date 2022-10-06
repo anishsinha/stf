@@ -1,0 +1,123 @@
+<div class="api-dashboard-container ">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="well pb10 pt15 mb10 no-shadow">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">Filter</label></div>
+                    <div class="col-xs-6 col-sm-3 col-md-2 mb5">
+                        <select class="form-control" (change)="apiChanged($event)" >
+                            <!--<option [value]='' disabled>Select API</option>-->
+                            <option *ngFor="let api of ApiList" [value]="api" [selected]="api==selectedApi">
+                                {{api}}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-xs-6 col-sm-3 col-md-2 mb5">
+                        <input type="text" [(ngModel)]="fromDate" #fromDate1 class="form-control datepicker" placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'" (onDateChange)="setFromDate($event);"  />
+                    </div>
+                    <div class="col-xs-6 col-sm-3 col-md-2 mb5">
+                        <input type="text" [(ngModel)]="toDate" #EndDate1 class="form-control datepicker" placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'" (onDateChange)="setToDate($event);" />
+                    </div>
+                    <div class="col-xs-12 col-sm-4 col-md-3">
+                        <input type="button" class="btn btn-primary" id="btnApplyFilter" value="Apply" (click)="ReloadDataTable();" />
+                        <!--<input type="button" class="btn ml5" id="btnClearFilter" value="Clear Filter" (click)="ClearFilter();" />-->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt10">
+        <div class="col-sm-2 col-xs-12 mb10-xs">
+            <div class="col-xs-12 api-cards-container">
+                <a class="col-sm-12 col-xs-3 card" [ngClass]="{'active':viewType==ApiResultType.Total}" (click)="getView(ApiResultType.Total);">
+                    <h1 class="digit color-default">{{Log.TotalCall}}</h1>
+                    <span class="text color-default">Total Calls</span>
+                </a>
+                <a class="col-sm-12 col-xs-3 card" [ngClass]="{'active':viewType==ApiResultType.Success}" (click)="getView(ApiResultType.Success);">
+                    <h1 class="digit color-lightgreen">{{Log.SuccessCall}}</h1>
+                    <span class="text color-lightgreen">Success</span>
+                </a>
+                <!--<a class="col-sm-12 col-xs-3 card active">
+                    <h1 class="digit color-failed">24</h1>
+                    <span class="text color-failed">Failed</span>
+                </a>-->
+                <a class="col-sm-12 col-xs-3 card" [ngClass]="{'active':viewType==ApiResultType.Exception}" (click)="getView(ApiResultType.Exception);">
+                    <h1 class="digit color-failed">{{Log.FailedCall}}</h1>
+                    <span class="text color-failed">Failed</span>
+                </a>
+            </div>
+        </div>
+        <div class="col-sm-10 col-xs-12">
+            <div class="well bg-white shadow-b pr">
+                <div class='pa bg-white top0 left0 z-index5 loading-wrapper schedule-loading-wrapper hide-element'><span class='spinner-dashboard pa'></span></div>
+                <div class="ibox mb0">
+                    <div class="ibox-content no-padding no-border location_table">
+                        <div class="table-responsive">
+                            <table id="iapi-dashboard-datatable" data-gridname="26" datatable [dtOptions]="dtOptions" [dtTrigger]="dtTrigger" class="table table-striped table-bordered table-hover">
+                                <!--<table id="api-dashboard-datatable" data-gridname="18" class="table table-bordered" datatable>-->
+                                <thead>
+                                    <tr>
+                                        <th data-key="Api_Name">API Name</th>
+                                        <th data-key="External_Ref_ID">External Ref ID</th>
+                                        <th data-key="DateTime">DateTime</th>
+                                        <th data-key="Status">Status</th>
+                                        <th data-key="Request">Request</th>
+                                        <th data-key="Response">Response</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <ng-container>
+                                        <tr *ngFor="let log of Log?.ApiLogList">
+                                            <td>{{log.Url}}</td>
+                                            <td>{{log.ExternalRefID ?log.ExternalRefID : '--'}}</td>
+                                            <td>{{log.CreatedDate}}</td>
+                                            <td>{{log.Message ==1 ? 'Failed':'Success'}}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-link" (click)="showReqRes(log,ReqResType.Request)" data-toggle="modal" data-target="#idReqResModel">
+                                                    <i class="fa fa-arrow-up" alt="Request" title="Request"></i>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-link" (click)="showReqRes(log,ReqResType.Response)" data-toggle="modal" data-target="#idReqResModel">
+                                                    <i class="fa fa-arrow-down" alt="Response" title="Response"></i>
+                                                </button>
+                                            </td>
+
+                                        </tr>
+                                    </ng-container>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--req json-->
+<div id="idReqResModel" class="modal fade" role="dialog" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <!--<button type="button" class="close" data-dismiss="modal">&times;</button>-->
+                <h4 class="modal-title"> {{modelHeader}}  <span class="pull-right"></span></h4>
+            </div>
+            <div class="modal-body">
+                <ngx-json-viewer *ngIf="selectedReqRes" [json]="selectedReqRes"></ngx-json-viewer>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" id="idCloseModel" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!--end view Shift-->
+
+<div class="loader" *ngIf="IsLoading">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Loading...</div>
+    </div>
+</div>

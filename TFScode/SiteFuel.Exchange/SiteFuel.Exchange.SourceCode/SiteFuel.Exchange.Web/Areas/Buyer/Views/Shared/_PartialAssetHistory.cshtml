@@ -1,0 +1,128 @@
+﻿@model Int32
+    <div class="well bg-white shadow-b pr">
+        <div class="ibox">
+            <div class="ibox-content no-padding no-border">
+                <div class="table-responsive">
+                    <table id="asset-history-datatable" class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>@Resource.gridColumnJob</th>
+                                <th>@Resource.gridColumnDateAdded</th>
+                                <th>@Resource.gridColumnRemovedDate</th>
+                                <th>@Resource.gridColumnFirstDrop</th>
+                                <th>@Resource.gridColumnLastDrop</th>
+                                <th>@Resource.lblTotalDrops</th>
+                                <th>@Resource.gridColumnTotalGallons</th>
+                                <th>@Resource.lblTotalFuelCost</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+
+        var assetHistoryTable, exportColumns = { columns: [1, 2, 3, 4, 5, 6, 7, 8] };
+        function format(d) {
+            var childTableData = '';
+
+            if (d.AssetDropHistory.length == 0) {
+                childTableData = '<tr><td colspan="4" class="pa5">@Resource.lblNoDropsAvailable</td></tr>';
+            }
+            $(d.AssetDropHistory).each(function (index, record) {
+                childTableData += '<tr>' +
+                    '<td class="pa5">' + record.DropDate + '</td>' +
+                    '<td class="pa5">' + record.DropTime + '</td>' +
+					'<td class="pa5">' + record.DropAmount.toFixed(2) + '</td>' +
+					'<td class="pa5">' + record.SubcontractorName + '</td>' +
+                '</tr>';
+            });
+
+            return '<table cellpadding="0" cellspacing="0" border="1" width="40%" class="border">' +
+                '<thead>' +
+                    '<tr>' +
+                        '<th class="pa5">@Resource.gridColumnDropDate</th>' +
+                        '<th class="pa5">@Resource.gridColumnDropTime</th>' +
+						'<th class="pa5">@Resource.gridColumnGallons</th>' +
+						'<th class="pa5">@Resource.gridColumnSubcontractor</th>' +
+                '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+                childTableData +
+            '</tbody>' +
+        '</table>';
+        }
+
+        $(document).ready(function () {
+            assetHistoryTable = $('#asset-history-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("PartialAssetHistoryView", "Asset", new { area ="Buyer"})/" + @Model,
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                            {
+                                "className": 'details-control',
+                                "orderable": false,
+                                "data": null,
+                                "defaultContent": ''
+                            },
+                            { "data": "JobName", "autoWidth": true },
+                            { "data": "AssignedDate", "autoWidth": true },
+                            { "data": "RemovedDate", "autoWidth": true },
+                            { "data": "StartDate", "autoWidth": true },
+                            { "data": "EndDate", "autoWidth": true },
+                            { "data": "TotalDrops", "autoWidth": true},
+                            { "data": "TotalFuel", "autoWidth": true },
+                            { "data": "TotalCost", "autoWidth": true }
+                ],
+                "order": [[1, 'asc']],
+                pageLength: 10,
+                responsive: true,
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingAssetHistory',exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingAssetHistory', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingAssetHistory', exportOptions: exportColumns },
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language : {
+                    sLoadingRecords : "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+            $('#asset-history-datatable tbody').on('click', 'td.details-control', function () {
+                var tr = $(this).closest('tr');
+                var row = assetHistoryTable.row(tr);
+
+                if (row.child.isShown()) {
+                    row.child.hide();
+                    tr.removeClass('shown');
+                }
+                else {
+                    row.child(format(row.data())).show();
+                    tr.addClass('shown');
+                }
+            });
+        });
+    </script>
+}

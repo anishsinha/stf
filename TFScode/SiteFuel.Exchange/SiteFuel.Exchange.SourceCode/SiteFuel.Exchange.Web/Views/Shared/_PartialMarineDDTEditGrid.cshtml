@@ -1,0 +1,517 @@
+﻿@model InvoiceBDNEditFilterViewModel
+<style type="text/css">
+    #bdn-invoice-div table tr td {
+        padding: 1px !important;
+        margin: 5px !important;
+    }
+</style>
+<div class="row">
+    <div class="pa bg-white top0 left0 z-index5 loading-wrapper invoice-bdn-grid-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div id="bdn-invoice-div" class="table-responsive">
+                        <table id="bdn-invoice-datatable" data-gridname="@GridName.BDNInvoice" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th data-key="DisplayNumber">@(Model.InvoiceType == InvoiceType.DigitalDropTicketManual || Model.InvoiceType == InvoiceType.DigitalDropTicketMobileApp ? Resource.lblDropTicketNumber : Resource.gridColumnInvoiceNumber)</th>
+                                    <th data-key="Driver">@Resource.gridColumnDriver</th>
+                                    <th data-key="DeliveryLevelPO">@Resource.gridDeliveryLevelPO</th>
+                                    <th data-key="BolOrLiftNumber">@Resource.gridColumnBolLiftNumber</th>
+                                    <th data-key="NetQty">@Resource.lblNet</th>
+                                    <th data-key="GrossQty">@Resource.lblGross</th>
+                                    <th data-key="DroppedQty">@Resource.lblDeliveredQuantity</th>
+                                    @*<th data-key="DropDate">@Resource.gridColumnDropDate</th>*@
+                                    <th data-key="APIGravity">@Resource.lblAPIGravity</th>
+                                    <th data-key="Temperature">@Resource.lblTemperature</th>
+                                    <th data-key="Density">@Resource.lblDensity</th>
+                                    <th data-key="SulfurContent">@Resource.lblSulfur</th>
+                                    <th data-key="Viscosity">@Resource.gridHeadingViscosity</th>
+                                    <th data-key="FlashPoint">@Resource.gridHeadingFlashPoint</th>
+                                    <th class="exclude-export">@Resource.btnLabelAction</th>
+                                    <th data-key="InvoiceId" class="exclude-export col-hide hide"></th>
+                                    <th data-key="InvoiceFtlDetailId" class="exclude-export col-hide hide"></th>
+                                    <th data-key="IsEdited" class="exclude-export col-hide hide"></th>
+                                    <th data-key="UoM" class="exclude-export col-hide hide"></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="row mt-2">
+            <div class="col-sm-6">
+                @if (Model.InvoiceType != InvoiceType.CreditInvoice && Model.InvoiceType != InvoiceType.TankRental && Model.CanEdit)
+                {
+                    <a href="javascript:void(0)" id="btnAddDeliveryDetails" onclick="location.href='@Url.Action("CreateNew", "Invoice", new { area = "Supplier", orderId = Model.OrderId, trackableScheduleId = 0, existingHeaderId = Model.InvoiceHeaderId })'"><i class="fa fa-plus-circle fs18 mt3 pull-left"></i> <span class="fs14 mt1 pull-left">Add Delivery Details</span></a>
+                }
+            </div>
+            <div class="col-sm-6 text-right">
+                @if (Model.InvoiceType != InvoiceType.CreditInvoice && Model.InvoiceType != InvoiceType.TankRental && Model.CanEdit)
+                {
+                    <button type="button" class="btn btn-link" onclick="reloadGrid();">@Resource.btnLabelCancel</button>
+                    <button type="button" class="btn btn-primary pntr-none subSectionOpacity" id="btnUpdateBDN" data-toggle="confirmation" data-placement="top" data-html="true" data-popout="true" data-singleton="true" data-title="Are you sure?" data-confirmation-event="postGridData">@Resource.btnLabelUpdate</button>
+                }
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+
+<script type="text/javascript">
+    var exportBDNInvoiceEditColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,12,13] };
+    var gridData = [];
+    var originalGridData = [];
+    var isValidApiGravity = true;
+    var dataGridRq;
+    ExportGrid();
+    $(document).ready(function () {
+        $('#bdn-invoice-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetMarineInvoiceBolListAsync", "Invoice", new { headerId = Model.InvoiceHeaderId, area = "Supplier" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    dataGridRq = data;
+                    $('#bdn-invoice-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#bdn-invoice-div").find('.loading-wrapper').remove();
+                    gridData = json;
+                    originalGridData = JSON.parse(JSON.stringify(json));
+                    return json;
+                }
+            },
+            "columns": [
+                { "data": "DisplayNumber", "autoWidth": true, class: 'datakey-DisplayNumber' },
+                { "data": "Driver", "autoWidth": true, class: 'datakey-Driver' },
+                { "data": "DeliveryLevelPO", "autoWidth": true, class: 'datakey-DeliveryLevelPO @(Model.InvoiceType == InvoiceType.DigitalDropTicketManual || Model.InvoiceType == InvoiceType.DigitalDropTicketMobileApp ? "BOLeditable" :"")' },
+                { "data": "BolOrLiftNumber", "autoWidth": true, class: 'datakey-BolOrLiftNumber BOLeditable' },
+                { "data": "NetQty", "autoWidth": true, class: 'datakey-NetQty editable' },
+                { "data": "GrossQty", "autoWidth": true, class: 'datakey-GrossQty editable' },
+                { "data": "DroppedQty", "autoWidth": true, class: 'datakey-DroppedQty editable' },
+                //{ "data": "DropDate", "autoWidth": true, class: 'datakey-DropDate editable' },
+                { "data": "ApiGravity", "autoWidth": true, class: 'datakey-ApiGravity editable' },
+                { "data": "Temperature", "autoWidth": true, class: 'datakey-Temperature editable' },
+                { "data": "Density", "autoWidth": true, class: 'datakey-Density editable' },
+                { "data": "SulfurContent", "autoWidth": true, class: 'datakey-SulfurContent editable' },
+                { "data": "Viscosity", "autoWidth": true, class: 'datakey-Viscosity editable' },
+                { "data": "FlashPoint", "autoWidth": true, class: 'datakey-FlashPoint editable' },
+                 {
+                     "data": function (data, type, row, meta) {
+                         return "<button type='button' class='btn btn-link'> <i class='fas fa-trash-alt color-maroon' invoiceHeaderId=" + data.InvoiceHeaderId + " invoiceFtlDetailId=" + data.InvoiceFtlDetailId + " invoiceId=" + data.InvoiceId + " alt='Delete' title='Delete' data-toggle='confirmation' data-placement='top' data-html='true' data-popout='true' data-singleton='true'  data-confirmation-event='deleteBol'></i></button >";
+                        },
+                    "autoWidth": true,
+                    //"visible": false,
+                    "className": 'dt-body-center'
+                 } ,
+                { "data": "InvoiceId", "autoWidth": true, class: 'datakey-InvoiceId col-hide hide' },
+                { "data": "InvoiceFtlDetailId", "autoWidth": true, class: 'datakey-invoiceFtlDetailId col-hide hide' },
+                { "data": "IsEdited", "autoWidth": true, class: 'datakey-IsEdited col-hide hide' },
+                { "data": "UoM", "autoWidth": true, class: 'datakey-UoM col-hide hide' },
+            ],
+            "columnDefs": [
+                { "targets": [14], "orderable": false, "searchable": false },
+                { "targets": [15], "visible": false, "searchable": false },
+                { "targets": [16], "visible": false, "searchable": false },
+                { "targets": [17], "visible": false, "searchable": false }
+            ],
+            pageLength: 10,
+            fixedHeader: false,
+            responsive: true,
+            "order": [14, 'desc'],
+            aaSorting: [[]],
+            "serverSide": false,
+            "searchDelay": 500,
+            processing: true,
+            "searching": { "regex": false },
+            "bProcessing": true,
+            lengthChange: true,
+            "initComplete": function (settings, json) {
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                     html: true
+                });
+                wrapperHeight();
+                tabGridHeader(this);
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'colvis', columns: exportBDNInvoiceEditColumns.columns },
+                { extend: 'csv', title: '@Resource.headingInvoices', exportOptions: exportBDNInvoiceEditColumns },
+                { extend: 'excel', title: '@Resource.headingInvoices', exportOptions: exportBDNInvoiceEditColumns },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    },
+                    exportOptions: exportBDNInvoiceEditColumns
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>",
+                "language": { "emptyTable": "No data available" },
+            },
+            'aoColumnDefs': [{
+                'bSortable': true,
+                'aTargets': [-1]
+            }]
+        });
+
+        $('#bdn-invoice-datatable').on('click', 'tbody td', function (e) {
+            if ($(this).hasClass('editable') || $(this).hasClass('BOLeditable')) {
+                if (!$(this).hasClass('editing')) {
+                    fnResetControls();
+                    var classStr = $.trim($(this).attr('class'));
+                    var dataKey = classStr.substr(0, classStr.indexOf(' '));
+                    if (dataKey != undefined && dataKey != null && dataKey != '') {
+                        var keyArr = dataKey.split('-');
+                        if (keyArr.length == 2) {
+                            var keyName = keyArr[1];
+
+                            if ($(this).hasClass('BOLeditable')) {
+                                var textbox = fnCreateBOLTextBox($(this).html(), keyName);
+                                $(this).html($(textbox));
+                            }
+                            else if ($(this).hasClass('BOLeditable')) {
+                                var textbox = fnCreateBOLTextBox($(this).html(), keyName);
+                                $(this).html($(textbox));
+                            }
+                            else {
+                                var textbox = fnCreateTextBox($(this).html(), keyName);
+                                $(this).html($(textbox));
+                            }
+
+                            $(this).addClass('editing');
+                            $(this).find('input').focus();
+                        }
+                    }
+                }
+                else {
+                    $(this).removeClass('editing');
+                }
+            }
+            else {
+                fnResetControls();
+            }
+        });
+
+        $(document).on('keypress', '.only-numbers', function (event) {
+            return isNumber(event, this);
+        });
+
+        $(document).on('keypress', '.all-string', function (event) {
+            return true;
+        });
+
+        $(document).on('blur', '#bdn-invoice-datatable input', function (event) {
+            fnResetControls();
+        });
+
+        $(document).on('change', 'input.api-gravity', function (event) {
+            event.stopImmediatePropagation();
+            var isValid = validateApiGravity($(this));
+            if (isValid) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        });
+        $(document).on('change', 'input.drop-quantity', function (event) {           
+            event.stopImmediatePropagation();
+            var isValid = IsValidDeliveredQuantity($(this));
+            if (isValid) {
+                $('#btnUpdateBDN').attr('disabled', false);
+                return true;
+            }
+            else {
+                $('#btnUpdateBDN').attr('disabled', true);
+                msgerror("Quantity should not be greater than net/gross quantity.")
+                return false;
+            }
+        });
+
+
+
+    });
+    function updateGravityToSameInvoiceRows(gravity,invoiceId) {
+         if (gravity && invoiceId) {
+            let tableRows = $("tr:contains(" + invoiceId + ")");
+            if (tableRows && tableRows.length > 0) {
+                tableRows.each(function () {
+                    let apiGravitycell = $(this).find('td.datakey-ApiGravity');
+                    if (apiGravitycell) {
+                        apiGravitycell.text(gravity);
+                        apiGravitycell.trigger('click');
+                    }
+                });
+            }
+        }
+       
+    }
+    function updateData(ele) {
+        if (ele != undefined && ele.length == 1) {
+            var row = ele.closest('tr');
+            if (row != undefined && row.length == 1) {
+                var invoiceFtlDetailId = parseInt($(row).find('td.datakey-invoiceFtlDetailId').html());
+                if (!isNaN(invoiceFtlDetailId) && invoiceFtlDetailId > 0) {
+                    var rowData = gridData.filter(function (data, i) {
+                        return data.InvoiceFtlDetailId === invoiceFtlDetailId;
+                    });
+
+                    var origRowData = originalGridData.filter(function (data, i) {
+                        return data.InvoiceFtlDetailId === invoiceFtlDetailId;
+                    });
+
+                    var classStr = $.trim($(ele).closest('td').attr('class'));
+                    var dataKey = classStr.substr(0, classStr.indexOf(' '));
+                    if (dataKey != undefined && dataKey != null && dataKey != '') {
+                        var keyArr = dataKey.split('-');
+                        if (keyArr.length == 2) {
+                            var column = keyArr[1];
+                            rowData[0][column] = ele.val();
+
+                            var isEditedEle = $(row).find('td.datakey-IsEdited');
+                            if (origRowData[0][column] != ele.val()) {
+                                isEditedEle.html(true);
+                                rowData[0]["IsEdited"] = true;
+
+                                $('#btnUpdateBDN').removeClass('pntr-none subSectionOpacity');
+                            }
+                            else {
+                                isEditedEle.html(false);
+                                rowData[0]["IsEdited"] = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+     function postGridData() {
+        var url = '@Url.Action("SaveBDNInvoiceDetails", "Invoice", new { area = "Supplier"})';
+         $('.invoice-bdn-grid-loader').removeClass("hide-element");
+         $.ajax({
+             type: 'POST',
+             url: url,
+             dataType: "json",
+             contentType: 'application/json; charset=utf-8',
+             data: '{gridData: ' + JSON.stringify(gridData) + '}',
+             success: function (result) {
+                 if (result != null && result != undefined && result.StatusCode == '@((int)Status.Success)') {
+                     msgsuccess(result.StatusMessage);
+                     reloadDDTEditGrid(result.EntityHeaderId);
+                 }
+                 else {
+                     msgerror(result.StatusMessage);
+                 }
+             },
+             error: function (jqXHR, textStatus, errorThrown) {
+                 console.log(jqXHR, textStatus, errorThrown);
+             }
+         }).always(function () {
+             $('.invoice-bdn-grid-loader').addClass("hide-element");
+         });
+    }
+
+    function validateApiGravity(ele) {
+        var uom = parseInt($(ele).closest('tr').find('td.datakey-UoM').html());
+        if (uom != '@((int)UoM.MetricTons)') {
+            msgerror('@Resource.errorMessageApiGravityNotApplicable');
+            return false;
+        }
+
+        $('#btnUpdateBDN').addClass('pntr-none subSectionOpacity');
+        var gravity = parseFloat($(ele).val());
+        var invoiceId = parseInt($(ele).closest('tr').find('td.datakey-InvoiceId').html());
+        $('.invoice-bdn-grid-loader').removeClass("hide-element");
+        var url = "@Url.Action("IsValidApiGravity", "Invoice", new { area = "Supplier" })?invoiceId=" + invoiceId + "&gravity=" + gravity;
+        $.ajax({
+            type: 'GET',
+            url: url,
+            dataType: "json",
+            contentType: 'application/json; charset=utf-8',
+            success: function (data) {
+                if (data != null && data != undefined) {
+                    if (data.IsValidGravity) {
+                        isValidApiGravity = true;
+                        $('#btnUpdateBDN').removeClass('pntr-none subSectionOpacity');
+                        updateGravityToSameInvoiceRows(gravity, invoiceId);
+                        return true;
+                    }
+                    else {
+                        $(ele).val('');
+                        msgerror(data.StatusMessage);
+                        isValidApiGravity = false;
+                        $('#btnUpdateBDN').addClass('pntr-none subSectionOpacity');
+                        return false;
+
+                    }
+                }
+                else {
+                    msgerror(result.StatusMessage);
+                    isValidApiGravity = false;
+                    return false;
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(jqXHR, textStatus, errorThrown);
+                isValidApiGravity = false;
+                return false;
+            }
+        }).always(function () {
+            $('.invoice-bdn-grid-loader').addClass("hide-element");
+        });
+    }
+
+    function reloadGrid() {
+        var url = "@Url.Action("GetMarineInvoiceBolListAsync", "Invoice", new { headerId = Model.InvoiceHeaderId, area = "Supplier" })";
+        $('#bdn-invoice-datatable').DataTable().ajax.url(url);
+        $('#bdn-invoice-datatable').DataTable().ajax.reload();
+    }
+
+    function fnCreateTextBox(value, fieldprop) {
+        let className = '';
+        switch (fieldprop) {
+            case "ApiGravity":
+                className ='api-gravity'
+                break;
+            case 'DroppedQty':
+                className ='drop-quantity'
+                break;
+            default:
+                className =''
+        }
+        return '<input data-field="' + fieldprop + '" class="only-numbers ' + className +'" type="text" value="' + value + '" ></input>';
+    }
+
+
+    function fnCreateBOLTextBox(value, fieldprop) {
+        var gravityClassName = fieldprop == 'ApiGravity' ? 'api-gravity' : '';
+        return '<input data-field="' + fieldprop + '" class="all-string' + gravityClassName + '" type="text" value="' + value + '" ></input>';
+    }
+
+    function fnResetControls() {
+        var openedTextBox = $('#bdn-invoice-datatable').find('input');
+        if (openedTextBox.length == 1) {
+            updateData(openedTextBox);
+            $.each(openedTextBox, function (k, $cell) {
+                $(openedTextBox[k]).closest('td').html($cell.value);
+            });
+        }
+    }
+
+    //function fnUpdateDataTableValue($inputCell, value) {
+    //    var dataTable = $('#dtExample').DataTable();
+    //    var rowIndex = dataTable.row($($inputCell).closest('tr')).index();
+    //    var fieldName = $($inputCell).attr('data-field');
+    //    dataTable.rows().data()[rowIndex][fieldName] = value;
+    //}
+    function IsValidDeliveredQuantity(ele) {
+        let isValid = true;
+        let deliveredQty = parseFloat($(ele).val());
+        let netQty = parseInt($(ele).closest('tr').find('td.datakey-NetQty').html());
+        let grossQty = parseInt($(ele).closest('tr').find('td.datakey-GrossQty').html());
+        if (deliveredQty && netQty && grossQty) {
+            if (deliveredQty > Math.max(netQty, grossQty)) {
+                isValid = false;
+            }
+        }
+        return isValid;
+    }
+    function isNumber(evt, element) {
+        var charCode = (evt.which) ? evt.which : event.keyCode
+        if (
+            (charCode != 45 || $(element).val().indexOf('-') != -1) &&      // “-” CHECK MINUS, AND ONLY ONE.
+            (charCode != 46 || $(element).val().indexOf('.') != -1) &&      // “.” CHECK DOT, AND ONLY ONE.
+            (charCode < 48 || charCode > 57))
+            return false;
+
+        return true;
+    }
+
+    $(document).off('postGridData');
+    $(document).on('postGridData', function (e) {
+        postGridData();
+    });
+
+    function reloadDDTEditGrid(invoiceHeaderId) {
+        if (invoiceHeaderId) {
+            var headerId = parseInt(invoiceHeaderId);
+            var url = "@Url.Action("GetMarineInvoiceBolListAsync", "Invoice", new {  area = "Supplier" })?headerId=" + headerId;
+            $('#bdn-invoice-datatable').DataTable().ajax.url(url);
+            $('#bdn-invoice-datatable').DataTable().ajax.reload();
+        }
+
+    }
+
+    function ExportGrid() {
+        registerExportDataEvent('#bdn-invoice-datatable',  @ApplicationConstants.ExportRestrictionCount,
+            '@Url.Action("GetMarineInvoiceBolListAsync", "Invoice", new { headerId = Model.InvoiceHeaderId, area = "Supplier" })',
+            '@string.Format(Resource.messageExportRestrictionCount, ApplicationConstants.ExportRestrictionCount)',
+            function callBack(jsonResult) {
+                return $.map(jsonResult.responseJSON, function (item) {
+                    return {
+                        DisplayNumber: item.DisplayNumber,
+                        Driver: (item.Driver == null || item.Driver == "" || item.Driver == undefined) ? "--" : item.Driver,
+                        DeliveryLevelPO: (item.DeliveryLevelPO == null || item.DeliveryLevelPO == "" || item.DeliveryLevelPO == undefined) ? "--" : item.DeliveryLevelPO,
+                        BolOrLiftNumber: item.BolOrLiftNumber,
+                        NetQty: item.NetQty,
+                        GrossQty: item.GrossQty,
+                        DroppedQty: item.DroppedQty,
+                        ApiGravity: (item.ApiGravity == null || item.ApiGravity == "" || item.ApiGravity == undefined) ? "--" : item.ApiGravity,
+                        Temperature: (item.Temperature == null || item.Temperature == "" || item.Temperature == undefined) ? "--" : item.Temperature,
+                        Density: (item.Density == null || item.Density == "" || item.Density == undefined) ? "--" : item.Density,
+                        Viscosity: (item.Viscosity == null || item.Viscosity == "" || item.Viscosity == undefined) ? "--" : item.Viscosity,
+                        FlashPoint: (item.FlashPoint == null || item.FlashPoint == "" || item.FlashPoint == undefined) ? "--" : item.FlashPoint,
+                        SulfurContent: (item.SulfurContent == null || item.SulfurContent == "" || item.SulfurContent == undefined) ? "--" : item.SulfurContent
+                    };
+                });
+            }
+        );
+    }
+
+
+    $(document).off('deleteBol');
+    $(document).on('deleteBol', function (e) {
+        var invoiceHeaderId = parseInt($(e.target).attr('invoiceHeaderId'));
+        var invoiceFtlDetailsId = parseInt($(e.target).attr('invoiceFtlDetailId'));
+        var invoiceId = parseInt($(e.target).attr('invoiceId'));
+        if (invoiceHeaderId && invoiceFtlDetailsId) {
+            var url = " @Url.Action("DeleteBolForMarineInvoice", "Invoice", new { area = "Supplier" })";
+            $('#bdn-invoice-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+            $.get(url, { invoiceHeaderId: invoiceHeaderId, invoiceFtlDetailsId: invoiceFtlDetailsId, invoiceId: invoiceId}, function (data) {
+                if (data.StatusCode == 0) {
+                    msgsuccess(data.StatusMessage);
+                    reloadGrid();
+                    if ('@Model.InvoiceType' == '@InvoiceType.DigitalDropTicketManual' || '@Model.InvoiceType' == '@InvoiceType.DigitalDropTicketMobileApp') {
+                        reloadDdtDataTable();
+
+                    }
+                    else {
+                        reloadInvoiceDataTable();
+                    }
+                    //location.reload();
+                }
+                else {
+                    msgerror(data.StatusMessage);
+                }
+            }).always(function () {
+                $("#bdn-invoice-div").find('.loading-wrapper').hide();
+            });
+                }
+    });
+</script>

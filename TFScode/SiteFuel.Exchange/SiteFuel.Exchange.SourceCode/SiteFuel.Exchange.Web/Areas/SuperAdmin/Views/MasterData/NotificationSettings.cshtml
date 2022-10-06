@@ -1,0 +1,137 @@
+﻿@model NotificationSettingsViewModel
+@{
+    ViewBag.Title = "User Notifications";
+}
+<div class="col-sm-12">
+    <div class="row well">
+        <div class="col-sm-12">
+            <h4>@Resource.headingUserNotifications</h4>
+            <div class="row mb15">
+                <div class="col-sm-3">
+                    @Html.Label(Resource.lblEventGroups)
+                    @Html.ListBoxFor(m => m.EventGroupIds, new SelectList(CommonHelperMethods.GetEventsGroupList(), "Id", "Name", Model.EventGroupIds), new { @class = "form-control multi-select", onchange = "updateNotificationData(this)" })
+                </div>
+            </div>
+            <div class="row table-responsive">
+                <div class="col-md-12">
+                    <table id="notifications-table" class="table table-bordered table-hover no-footer">
+                        <thead>
+                            <tr>
+                                <th>@Resource.btnLabelNotifications</th>
+                                <th>@Resource.lblBuyer</th>
+                                <th>@Resource.lblSupplier</th>
+                                <th>@Resource.lblEmail</th>
+                                <th>@Resource.gridColumnSms</th>
+                                <th class="text-center">@Resource.lblTemplate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @Html.Partial("_PartialUserNotificationDetails", Model)
+                        </tbody>
+                    </table>
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
+<div id="notification-modal" class="modal fade" role="dialog" data-keyboard="true" tabindex="-1">
+    <div class="modal-dialog  modal-lg">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body pa0 ml15 mb10">
+                <p id="templates" style="word-wrap: break-word;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">@Resource.btnLabelClose</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function updateUserRole(element) {
+        var companyTypeId = $(element).attr("id") == "BuyerUsers" ? @((int)CompanyType.Buyer) : @((int)CompanyType.Supplier);
+        var roleIds = JSON.stringify($(element).val());
+        var eventTypeId = $(element).attr("eventId");
+        var isEmail = $(element).closest('tr').find('#IsEmail').is(":checked");
+        var isSms = $(element).closest('tr').find('#IsSms').is(":checked");
+
+        var url = '@Url.Action("UpdateUserNotifications", "MasterData","SuperAdmin")';
+        $.post(url, { companyTypeId, eventTypeId, roleIds, isEmail, isSms }, function (response) {
+            updateNotificationData();
+            initMultiSelect();
+            if (response.StatusCode == 0) {
+                msgsuccess(response.StatusMessage, "Success", 5000);
+            }
+            else {
+                msgerror(response.StatusMessage, "Error", 5000);
+            }
+        });
+    }
+
+    function updateUserRoleForSelectedEvent(element) {
+        var eventTypeId = parseInt($(element).closest('tr').find('.event-type').val());
+        var buyerRolesIds = JSON.stringify($(element).closest('tr').find('select.buyerRoles').val());
+        var supplierRoleIds = JSON.stringify($(element).closest('tr').find('select.supplierRoles').val());
+        var isEmail = $(element).closest('tr').find('#IsEmail').is(":checked");
+        var isSms = $(element).closest('tr').find('#IsSms').is(":checked");
+        var isForBuyerUsers = $(element).closest('tr').find('.isForBuyerUsers').val(); 
+        var isForSupplierUsers = $(element).closest('tr').find('.isForSupplierUsers').val();
+
+        var buyerRole = $(element).closest('tr').find('select.buyerRoles').val();
+        var supplierRole = $(element).closest('tr').find('select.buyerRoles').val();
+        if (buyerRole.length == 0 && supplierRole.length == 0) {
+            msgerror("Please select altleast one role in Buyer or Supplier Company", "Error", 5000);
+            $(element).closest('tr').find('#IsSms').prop('checked', false);
+            $(element).closest('tr').find('#IsEmail').prop('checked', false);
+        }
+        else {
+            var url = '@Url.Action("updateUserRoleForSelectedEvent", "MasterData","SuperAdmin")';
+            $.post(url, { eventTypeId, buyerRolesIds, supplierRoleIds, isEmail, isSms, isForBuyerUsers, isForSupplierUsers }, function (response) {
+                updateNotificationData();
+                initMultiSelect();
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.StatusMessage, "Success", 5000);
+                }
+                else {
+                    msgerror(response.StatusMessage, "Error", 5000);
+                }
+            });
+        }
+    }
+
+    function updateNotificationData()
+    {
+        var element = $("#EventGroupIds");
+        var value = $(element).val();
+        var selectedValue = JSON.stringify(value); 
+        var url = '@Url.Action("GetEventGroupDetails", "MasterData", "SuperAdmin")';
+        $(".loading-wrapper").show();
+        $.get(url, { eventGroupId: selectedValue }, function (response) {
+            $("#notifications-table tbody").html(response);
+        }).always(function () {
+            initMultiSelect();
+            $(".loading-wrapper").hide();
+        });
+    }
+
+    function getTemplates(eventId, notificationType) {
+        $.ajax({
+            url: "@Url.Action("GetNotificationTemplates", "MasterData", new { area = "SuperAdmin" })",
+            data: {
+                eventId: eventId,
+                notificationType: notificationType,
+            },
+            success: function (result) {
+                if (result.length != 0)
+                {
+                    $("#templates").html(result);
+                    $(".tab-headers a:first-child").trigger("click");
+                }
+                else
+                    $("#templates").html("Template not present");
+            }
+        });
+    }
+</script>

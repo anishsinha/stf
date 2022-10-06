@@ -1,0 +1,127 @@
+﻿@model Int32
+
+<div class="modal fade" id="edit-tankSequence" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">@Resource.lblTankSequence</h4>
+                    <button aria-label="Close" class="close color-grey pull-right pa" data-dismiss="modal" type="button"><i class="fa fa-close fs21"></i></button>
+                </div>
+                <div class="mt15 mb15">
+                    <input id="tankSequenceToChange" maxlength="5" type="text" class="form-control" onkeypress="return validatePositiveNumber(event,this)" autofocus />
+                    <input id="tankIdToChange" type="text" class="hide-element" />
+                </div>
+                <div class="text-right">
+                    <button type="button" class="btn" data-dismiss="modal">Cancel</button>
+                    <button type="button" onclick="checkDuplicateTankSequence();" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="duplicateSequence" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+        <div class="modal-content">
+            <div class="modal-body">
+                <label>@Resource.warningDuplicateTankSequence</label>
+                <div class="text-right">
+                    <button type="button" class="btn btn-lg btn-success" onclick="ConfirmYes()">Yes</button>
+                    <button type="button" class="btn btn-lg btn-danger" onclick="ConfirmNo()">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var globalJobId = 0;
+    var pageReload;
+
+    $('#duplicateSequence').appendTo("body"); 
+    $('#edit-tankSequence').appendTo("body"); 
+
+    function setTankIdToChange(id, tankSequence, JobId, _pageReload) {
+        if (_pageReload == null || _pageReload == undefined) {
+            _pageReload = true;
+        }
+        globalJobId = JobId;
+        pageReload = _pageReload;
+        $("#tankSequenceToChange").val(tankSequence);
+        $("#tankIdToChange").val(id);
+    }
+    function checkDuplicateTankSequence() {
+        var tankId = $("#tankIdToChange").val();
+        var tankSequence = $("#tankSequenceToChange").val();
+        var jobId = @Model;
+        if (jobId == null || jobId == 0 ) {
+            jobId = globalJobId
+        }
+        var data = {
+            AssetId: tankId,
+            TankSequence: tankSequence,
+            JobId: jobId
+        }
+        if (tankSequence == "" || tankSequence == null || tankSequence == 0) {
+            //updateTankSequence();
+        }
+        else {               
+            $("#edit-tankSequence").find('.loading-wrapper').show();
+            var targetUrl = '@Url.Action("CheckDuplicateTankSequence")';
+            $.post(targetUrl, data, function (response) {
+                    if (response == true) {
+                        $('#edit-tankSequence').modal('hide');
+                        $('#duplicateSequence').modal('show');
+                    } else {
+                        updateTankSequence();
+                    }
+            }).always(function () {
+                $('#edit-tankSequence').modal('hide');
+                $("#edit-tankSequence").find('.loading-wrapper').hide();
+            });
+            }
+    }
+    function updateTankSequence() {
+        $("#edit-tankSequence").find('.loading-wrapper').show();
+        $("#duplicateSequence").find('.loading-wrapper').show();
+        var tankId = $("#tankIdToChange").val();
+        var tankSequence = $("#tankSequenceToChange").val();
+        var jobId = '@Model';
+        if (jobId == null || jobId == 0) {
+            jobId = globalJobId
+        }
+        var data = {
+            AssetId: tankId,
+            TankSequence: tankSequence,
+            JobId: jobId
+        }
+
+        var updateUrl = '@Url.Action("UpdateTankSequence")' + '?pageReload=' + pageReload;
+
+        $("#edit-tankSequence").find('.loading-wrapper').show();
+        $.post(updateUrl, data, function (response) {
+
+            if (response.StatusCode == 0) {
+                if (pageReload) {
+                    window.location.reload(true);
+                }
+                else {
+                    $("#creatediptestLink").click();
+                    msgsuccess('@Resource.successMessageForUpdateTankSequence');
+                }
+            }
+        }).always(function () {
+            $("#duplicateSequence").modal('hide');
+            $('#edit-tankSequence').modal('hide');
+            $("#edit-tankSequence").find('.loading-wrapper').hide();
+            $("#duplicateSequence").find('.loading-wrapper').hide();
+        });
+    }
+    function ConfirmYes() {
+        updateTankSequence();
+    }
+    function ConfirmNo() {
+        $("#duplicateSequence").modal('hide');
+    }
+</script>

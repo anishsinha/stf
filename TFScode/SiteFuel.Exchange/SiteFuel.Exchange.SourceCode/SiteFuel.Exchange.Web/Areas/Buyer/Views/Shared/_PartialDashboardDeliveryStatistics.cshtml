@@ -1,0 +1,218 @@
+﻿@model DashboardDeliveryStatisticsViewModel
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b mb0 overflow-h ">
+            <div class="row">
+                <div class="col-sm-12">
+                    <h2 class="fs16 f-normal dib mb0">
+                        <span class="fa fa-road mr5"></span> @Resource.lblDeliveries
+                    </h2>
+                    <div class="float-right ">
+                        <a href="#." class="color-grey fs18 ml5 toggle-tiledata" onclick="toggleData(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.Deliveries.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+                        <a href="#." class="color-grey fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.Deliveries.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="row tile-content mt10 @(Model.IsCollapsed ? "hide-element" : "")">
+                <div class="col-md-4">
+                    <canvas id="DeliveryChart" height="100"></canvas>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <h2 class="fs14 f-normal">
+                                @Resource.lblTotalDeliveries
+                            </h2>
+                            <div class="donut-inner">
+                                <h4 class="fs21 mt0 pt0 font-bold"></h4>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <h2 class="fs14 f-normal">
+                                @Resource.lblAvgDeliveryTime
+                            </h2>
+                            <div class="donut-inner">
+                                <h3 class="fs21 mt0 pt0 font-bold"></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="border radius-5 pa20 pb5 mb20">
+                        <div id="buyer-invoice-div" class="table-responsive no-lengthdropdown mtm5">
+                            <table id="Buyer-Delivery-Statistics-datatable" class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="text-left grouping-name">@Resource.gridColumnSupplier</th>
+                                        <th>@Resource.gridColumnTotalDeliveries</th>
+                                        <th>@Resource.lblOnTime</th>
+                                        <th>@Resource.lblLate</th>
+                                        <th>@Resource.lblAverageTimeDelayed</th>
+                                        @*<th>@Resource.lblTotalGallonsDelivered</th>*@
+                                        <th class="uom-by-country">@Resource.lblTotal <span class="uom-lbl"></span> @Resource.lblDelivered</th>
+                                        <th>@Resource.lblAverageQuantityPerDelivery</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var buyerDeliveryStatisticsGrid, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6] };
+        var ClearFilter;
+        $(document).ready(function () {
+            SetUoMCurrencyAndRacklables();
+            var groups = getCompanyGroup().groupIds;
+            if (parseInt(groups) > 0) {
+                $('.grouping-name').text('@Resource.lblGroup');
+            }
+            else {
+                $('.grouping-name').text('@Resource.lblSupplier');
+            }
+            buyerDeliveryStatisticsGrid = $('#Buyer-Delivery-Statistics-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetDeliveryStatistics", "Dashboard", new { area = "Buyer", selectedJobId = Model.SelectedJobId })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "data": function (data) {
+                        data.groupIds = groups;
+                        $('#Buyer-Delivery-Statistics-datatable').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                    },
+                    "dataSrc": function (data) {
+                        $("#Buyer-Delivery-Statistics-datatable").find('.loading-wrapper').remove();
+                        $("#Buyer-Delivery-Statistics-datatable").closest(".fr-wrapper").find('.loading-wrapper').hide();
+
+                        $(".donut-inner h4").html(data.GlobalTotalDeliveries);
+                        $(".donut-inner h3").html(data.GlobalAverageDeliveryTime);
+                        if (data.GlobalTotalDeliveries === '0') {
+                            $('.buyer-deliverystat-tile').hide();
+                        }
+                        else {
+                            var ctx = document.getElementById('DeliveryChart').getContext('2d');
+                            var deliverystatisticsChart = new Chart(ctx, {
+                                type: 'doughnut',
+                                data:
+                                {
+                                    labels: ['On Time: ' + data.GlobalTotalOnTimeDeliveries + ' (' + data.GlobalOnTimeDeliveryPercentage + '%)',
+                                    'Late: ' + data.GlobalTotalLateDeliveries + ' (' + data.GlobalLateDeliveryPercentage + '%)'
+                                    ],
+                                    datasets: [{
+                                        position: 'bottom',
+                                        label: '# of Votes',
+                                        data: [data.GlobalOnTimeDeliveryPercentage, data.GlobalLateDeliveryPercentage],
+                                        backgroundColor: [
+                                            '#aadb8d',
+                                            '#eb826a'
+                                        ],
+                                        borderColor: [
+                                            '#fff',
+                                            '#fff'
+                                        ],
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options:
+                                {
+                                    responsive: true,
+                                    legend:
+                                    {
+                                        position: 'right',
+                                        labels:
+                                        {
+                                            boxWidth: 10,
+                                            boxHeight: 2,
+                                            fontSize: 11
+                                        }
+                                    },
+                                    labels:
+                                    {
+                                        fontColor: "white",
+                                    },
+                                    hover:
+                                    {
+                                        onHover: function (e) {
+                                            $("#ddtPieChart").css("cursor", e[0] ? "pointer" : "default");
+                                        }
+                                    },
+                                    tooltips:
+                                    {
+                                        callbacks:
+                                        {
+                                            label: function (tooltipItem, data) {
+                                                return data['labels'][tooltipItem['index']];
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        return data.Deliveries;
+                    }
+                },
+                'lengthMenu': [[5, 10], [5, 10]],
+                aaSorting: [[]],
+                "serverSide": false,
+                "searchDelay": 500,
+                processing: true,
+                "searching": { "regex": false },
+                "bProcessing": true,
+                lengthChange: true,
+                searching: false,
+                fixedHeader: false,
+                "columns": [
+                    { "data": "GroupingName", "autoWidth": true, className: "text-left", "bSortable": false },
+                    { "data": "TotalDeliveries", "autoWidth": true, className: "break-word text-center", "bSortable": false },
+                    { "data": "OnTimeDeliveryPercentage", "autoWidth": true, className: "break-word text-center", "bSortable": false },
+                    { "data": "LateDeliveryPercentage", "autoWidth": true, className: "text-center", "bSortable": false },
+                    { "data": "AverageTimeDelay", "autoWidth": true, className: "text-center", "bSortable": false },
+                    { "data": "TotalQuantityDelivered", "autoWidth": true, className: "text-center", "bSortable": false },
+                    { "data": "AverageQuantityPerDelivery", "autoWidth": true, className: "text-center", "bSortable": false }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                },
+                "drawCallback": function (settings, json) {
+                    hideLinksForCompanyGroup(this);
+                },
+                "columnDefs": [
+                    { "name": "GroupingName", "targets": 0 },
+                    { "name": "TotalDeliveries", "targets": 1 },
+                    { "name": "OnTimeDeliveryPercentage", "targets": 2 },
+                    { "name": "LateDeliveryPercentage", "targets": 3 },
+                    { "name": "AverageTimeDelay", "targets": 4 },
+                    { "name": "TotalQuantityDelivered", "targets": 5 },
+                    { "name": "AverageQuantityPerDelivery", "targets": 6 }
+                ],
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingDeliveryStatistics', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingDeliveryStatistics', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingDeliveryStatistics', exportOptions: exportColumns, orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                },
+            });
+        });
+    </script>
+}

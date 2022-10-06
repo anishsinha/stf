@@ -1,0 +1,164 @@
+﻿@model DashboardViewModel
+<div class="well mb0 col-sm-12">
+    <div class="m-b-md mb0">
+            <h2 class="fs16 f-normal mb0 mt0 dib">
+                <span class="fas fa-clipboard-list mr5"></span> <a id="lnkViewAllQuotes" class="mt2" href="@Url.Action("View", "Quote", new { area = "Buyer", jobId = Model.SelectedJobId })">@Resource.lblRequestForQuotes</a>
+            </h2>
+            <div class="pull-right">
+                <a href="#." class="color-grey fs18 ml5 toggle-tiledata" onclick="toggleData(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.RequestForQuote.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsFRQuoteTileCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+                <a href="#." class="color-grey fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(BuyerDashboardTiles.RequestForQuote.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+            </div>
+    </div>
+    <div class="bottom-radius tile-content mt25 @(Model.IsFRQuoteTileCollapsed ? "hide-element" : "")">
+        <div>
+            <canvas id="QuoteBarChart" height="70"></canvas>
+        </div>
+        <div class="pr group-element">
+            <small>@Resource.lblRecentQuoteRequests</small>
+            <div class="overflow-x dashboard-grids">
+                <table id="table-last5ActiveQuoteRequests" class="table table-hover margin bottom row-pointer">
+                    <thead>
+                        <tr>
+                            <th class="no-break pl0">@Resource.lblJobName</th>
+                            <th>@Resource.lblDueDate</th>
+                            <th>@Resource.lblZipState</th>
+                            <th class="text-center">@Resource.gridColumnNeeded</th>
+                            <th class="text-center">@Resource.lblReceived</th>
+                            <th class="text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script>
+        $(document).ready(function () {
+            var dashboardFilter = getDashboardFilter();
+            var groupIds = getCompanyGroup().groupIds;
+
+            $.ajax({
+                type: "get",
+                url: "@Url.Action("GetQuoteRequestsCount", "Dashboard",new { area= "Buyer", jobId = Model.SelectedJobId })",
+                dataType: "json",
+                data: { 'countryId': dashboardFilter.countryId, 'currency': dashboardFilter.currencyType, 'groupIds': groupIds },
+                success: function (data) {
+                    if (data.RecentQuoteRequests.length > 0) {
+                        for (i = 0; i < data.RecentQuoteRequests.length; i++) {
+                            var statusClass = data.RecentQuoteRequests[i].Status == '@QuoteRequestStatuses.Open.ToString()' ? "warning" : data.RecentQuoteRequests[i].Status == '@QuoteRequestStatuses.Completed.ToString()' ? "primary" : data.RecentQuoteRequests[i].Status == '@QuoteRequestStatuses.Expired.ToString()' ? "danger" : data.RecentQuoteRequests[i].Status == '@QuoteRequestStatuses.Canceled.ToString()' ? "danger" : "default";
+                            $("#table-last5ActiveQuoteRequests tbody").append("<tr>" +
+                                "<td class='pl0'><a href='@Url.Action("Details", "Quote", new { area = "Buyer"})/" + data.RecentQuoteRequests[i].Id + "'>" + data.RecentQuoteRequests[i].JobName + "</a></td>" +
+                                "<td width='170'>" + data.RecentQuoteRequests[i].QuoteDueDate + "</td>" +
+                                "<td>" + data.RecentQuoteRequests[i].Address + "</td>" +
+                                "<td class='text-center'>" + data.RecentQuoteRequests[i].QuotesNeeded + "</td>" +
+                                "<td class='text-center'>" + data.RecentQuoteRequests[i].QuotesReceived + "</td>" +
+                                "<td class='text-center'><span class='label label-" + statusClass + "'>" + data.RecentQuoteRequests[i].Status + "</span></td></tr> ")
+                        }
+                        wrapperHeight();
+
+
+                var canvas = document.getElementById("QuoteBarChart");
+                var ctx1 = canvas.getContext("2d");
+                 var quotechart = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: "Open: " + data.OpenQuoteRequestCount,
+                            data: [data.OpenQuoteRequestCount],
+                            backgroundColor: [
+                                '#91b6e8',
+                            ]
+                        },
+                        {
+                            label: "Completed: " + data.CompletedQuoteRequestCount,
+                            data: [data.CompletedQuoteRequestCount],
+                            backgroundColor: [
+                                '#aadb8d',
+                            ]
+                        },
+                        {
+                            label: "Expired: " + data.ExpiredQuoteRequestCount,
+                            data: [data.ExpiredQuoteRequestCount],
+                            backgroundColor: [
+                                '#bb877b',
+                            ]
+                        },
+                        {
+                            label: "Canceled: " + data.CancelledQuoteRequestCount,
+                            data: [data.CancelledQuoteRequestCount],
+                            backgroundColor: [
+                                '#eb826a',
+                            ]
+                        }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 1,
+                                fontSize: 11
+                            }
+                        },
+                        labels: { fontColor: "grey", },
+                        scales: {
+                            xAxes: [{
+                                barPercentage: 0.6,
+                                barThickness: 2,
+                                maxBarThickness: 4
+                            }]
+                        },
+                        hover: {
+                            mode: 'single',
+                            onHover: function (e) {
+                                $("#QuoteBarChart").css("cursor", e[0] ? "pointer" : "default");
+                            }
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function (tooltipItem, data) {
+                                    return data.datasets[tooltipItem['datasetIndex']].label;
+                                }
+                            }
+                        }
+                    }
+                });
+
+            document.getElementById("QuoteBarChart").onclick = function (evt) {
+                        var activePoint = quotechart.getElementAtEvent(evt)[0];
+                        var label = quotechart.data.datasets[activePoint._datasetIndex].label;
+
+                        var spaceChar = label.indexOf(" ");
+                        var labelStr = label.substring(0, spaceChar);
+
+                        switch (labelStr) {
+                            case 'Open:':
+                                window.open('@Html.Raw(@Url.Action("View", "Quote", new { area = "Buyer", jobId = Model.SelectedJobId, filter = QuoteRequestFilterType.Open }))', "_self");
+                                break;
+                            case 'Completed:':
+                                window.open('@Html.Raw(@Url.Action("View", "Quote", new { area = "Buyer", jobId = Model.SelectedJobId, filter = QuoteRequestFilterType.Completed }))', "_self");
+                                break;
+                            case 'Expired:':
+                                window.open('@Html.Raw(@Url.Action("View", "Quote", new { area = "Buyer", jobId = Model.SelectedJobId, filter = QuoteRequestFilterType.Expired }))', "_self");
+                                break;
+                            case 'Canceled:':
+                                window.open('@Html.Raw(@Url.Action("View", "Quote", new { area = "Buyer", jobId = Model.SelectedJobId, filter = QuoteRequestFilterType.Canceled }))', "_self");
+                                break;
+                        }
+                        };
+                    }
+                    else {
+                        $("#table-last5ActiveQuoteRequests tbody").append("<tr><td colspan='5'>@Resource.msgNoActiveQuote</td ></tr >");
+                    }
+                    $("#QuoteBarChart").closest(".buyer-quote-tile").find('.loading-wrapper').remove();
+                }
+            });
+        });
+    </script>
+}

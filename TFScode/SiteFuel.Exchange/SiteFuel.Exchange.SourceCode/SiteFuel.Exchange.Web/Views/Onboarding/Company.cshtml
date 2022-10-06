@@ -1,0 +1,676 @@
+﻿@model OnboardingViewModel
+@{
+    ViewBag.Title = "Onboarding";
+    if (!Model.IsExternalSupplier && Model.User.Company.Id > 0)
+    {
+        Layout = "~/Views/Shared/_LayoutOnboarding.cshtml";
+    }
+}
+
+<div class="row">
+    @using (Html.BeginForm("Company", "Onboarding", new { area = "" }, FormMethod.Post, new { role = "form", enctype = "multipart/form-data", id = "onboarding-form" }))
+    {
+        var IsSupplierOrCarrier = (Model.User.Company.CompanyTypeId != (int)CompanyType.Buyer);
+        @Html.AntiForgeryToken()
+        <div class="tab-container">
+            @Html.HiddenFor(m => m.IsExternalSupplier)
+            @Html.HiddenFor(m => m.User.Id)
+            @Html.HiddenFor(m => m.User.Password)
+            @Html.HiddenFor(m => m.User.ConfirmPassword)
+            @Html.HiddenFor(m => m.User.SupplierURL)
+            @Html.HiddenFor(m => m.ExternalSupplierId)
+            @Html.HiddenFor(m => m.User.Company.AccountOwnerId)
+            @Html.HiddenFor(m => m.Card.BypassPaymentDetails)
+            @*@Html.HiddenFor(m => m.CompanyAddress.State.Id, new { @id="hdnCompanyAddressStateId" })*@
+            <div class="col-md-12 companyprofile">
+
+                @if (Model.User.Company.Id == 0 || Model.IsExternalSupplier || IsSupplierOrCarrier)
+                {
+                    <div class="col-sm-12">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4>Contact Information</h4>
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label>Title</label>
+                                        <div class="form-group">
+                                            @Html.TextBoxFor(m => m.User.Title, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.User.Title) })
+                                            @Html.ValidationMessageFor(m => m.User.Title)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label>Email</label>
+                                        <div class="form-group">
+                                            @if (IsSupplierOrCarrier)
+                                            {
+                                                @Html.HiddenFor(m => m.User.Email)
+                                                @Html.TextBoxFor(m => m.User.Email, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.User.Email), @disabled = true })
+                                            }
+                                            else
+                                            {
+                                                @Html.TextBoxFor(m => m.User.Email, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.User.Email) })
+                                            }
+                                            @Html.ValidationMessageFor(m => m.User.Email)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label>First Name</label>
+                                        <div class="form-group">
+                                            @Html.TextBoxFor(m => m.User.FirstName, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.User.FirstName) })
+                                            @Html.ValidationMessageFor(m => m.User.FirstName)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label>Last Name</label>
+                                        <div class="form-group">
+                                            @Html.TextBoxFor(m => m.User.LastName, new { @class = "form-control", placeholder = @Html.DisplayNameFor(m => m.User.LastName) })
+                                            @Html.ValidationMessageFor(m => m.User.LastName)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <div class="form-group">
+                                            @Html.TextBoxFor(m => m.User.MobileNumber, new { @class = "form-control input-phoneformat phone", placeholder = @Html.DisplayNameFor(m => m.User.MobileNumber) })
+                                            @Html.ValidationMessageFor(m => m.User.MobileNumber)
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        @if (Model.User.Company.Id == 0)
+                                        {
+                                            <div class="form-group">
+                                                @Html.CheckBoxFor(m => m.User.IsAccountSfxOwned)
+                                                @Resource.gridColumnSfxOwned
+                                            </div>
+                                            <div class="alert alert-warning mb0 pt5 pb5 fs12">
+                                                @Resource.warningMessageSFXOwnedNotReceiveEmail
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @Html.HiddenFor(m => m.User.Title)
+                    @Html.HiddenFor(m => m.User.FirstName)
+                    @Html.HiddenFor(m => m.User.LastName)
+                    @Html.HiddenFor(m => m.User.Email)
+                    @Html.HiddenFor(m => m.User.MobileNumber)
+                }
+                <!-- profile starts -->
+                <div class="col-sm-12">
+                    <div class="row well mb15">
+                        <div class="col-sm-12">
+                            <h4>@Resource.headingCompanyProfile</h4>
+                            <div class="row">
+                                @Html.PartialFor("_PartialCompanySettings", m => m.User.Company)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- profile ends -->
+                <!-- company address starts -->
+                <div class="col-sm-12">
+                    <div class="row well mb15">
+                        <div class="col-sm-12">
+                            <h4>@Resource.headingCompanyAddress <span class="fa fa-info-circle fs14 ml5" data-toggle="tooltip" data-placement="top" title="@Resource.lblAddressInfo"></span></h4>
+                            <div class="row">
+                                <div class="col-md-6 companyaddress">
+                                    @Html.PartialFor("_PartialCompanyAddressSettings", m => m.CompanyAddress)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- company address ends -->
+                <!-- company address starts -->
+                <div class="col-sm-12">
+                    <div class="row well mb15">
+                        <div class="col-sm-12">
+                            <h4>@Resource.headingBillingAddress</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="@((CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsSuperAdmin || CurrentUser.IsAccountingPerson || CurrentUser.IsCarrierAdmin || CurrentUser.IsAccountSpecialist) ? "" : "disable-controls")">
+                                        @Html.PartialFor("_PartialBillingAddress", m => m.BillingAddress)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- company address ends -->
+                @if (CurrentUser.CompanyTypeId != CompanyType.Buyer || CurrentUser.IsSuperAdmin)
+                {
+                    <div class="col-sm-12 service-offerings">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4>Service Offerings</h4>
+                                <div class="mt-1">
+                                    @foreach (var service in Model.CompanyAddress.ServiceOffering)
+                                    {
+                                        @Html.PartialFor("_PartialCompanyServiceArea", m => service)
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <!-- services starts -->
+                <div class="col-sm-12">
+                    <div class="row well mb15 selected-val-supplier selected-val-buyersupplier selected-val-carrier selected-val-suppliercarrier selected-val-buyersuppliercarrier @(Model.User.Company.CompanyTypeId == (int)CompanyType.Buyer ? "hide-element" : "show-element" )">
+                        <div class="col-sm-12">
+                            <h4>@Resource.lblProducts</h4>
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <div class="col-sm-12">
+                                                        @Html.LabelFor(m => m.CompanyAddress.SupplierProductTypes)
+                                                    </div>
+                                                </div>
+                                                @Html.ListBoxFor(m => m.CompanyAddress.SupplierProductTypes, new SelectList(CommonHelperMethods.GetProductTypes(), "Id", "Name", 0), new { @class = "form-control multi-select productlist", onchange = "checkStatus('product-check', 'productlist')" })
+                                                <div class="checkbox mt5">
+                                                    <label>
+                                                        <input id="auto-chkselectallfueltypes" type="checkbox" class="select-all product-check" onclick="selectall('product-check', 'productlist')" /> @Resource.lblSelectAll
+                                                    </label>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-12">
+                                                        @Html.ValidationMessageFor(m => m.CompanyAddress.SupplierProductTypes)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-12">
+                                            @*<div class="checkbox-inline hide-from-hauler">
+                                        <label>
+                                            @Html.CheckBoxFor(m => m.SupplierProfile.IsHedgeOrderAllowed) @Resource.lblHedgeOrders
+                                        </label>
+                                        @Html.ValidationMessageFor(m => m.SupplierProfile.IsHedgeOrderAllowed)
+                                    </div>
+                                    <div class="checkbox-inline hide-from-hauler">
+                                        <label>
+                                            @Html.CheckBoxFor(m => m.SupplierProfile.IsOverWaterRefuelingAllowed) @Resource.lblWaterRefueling
+                                        </label>
+                                        @Html.ValidationMessageFor(m => m.SupplierProfile.IsOverWaterRefuelingAllowed)
+                                    </div>*@
+                                            @*<div id="service-questions" class="row partial-block mt15 show-to-hauler @(IsCarrier ? " " : " hide-element")">
+                                        @foreach (var question in Model.ServiceQuestions)
+                                        {
+                                            using (Html.BeginCollectionItem("ServiceQuestions"))
+                                            {
+                                                var Id = question.Id; var Question = question.Question; var Answer = question.Answer;
+                                                <div class="col-sm-6 col-xs-12">
+                                                    <div class="form-group">
+                                                        @Html.HiddenFor(m => Id)
+                                                        @Html.HiddenFor(m => Question)
+                                                        <label>@Html.DisplayFor(m => Question)</label>
+                                                        @Html.TextBoxFor(m => Answer, new { @class = "form-control" })
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>*@
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- services ends -->
+                @if (CurrentUser.IsSupplierCompany || CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsBuyerAndSupplierCompany || CurrentUser.IsBuyerSupplierAndCarrierCompany || CurrentUser.IsSupplierAndCarrierCompany)
+                {
+                    <!-- supplier onboarding preferences starts -->
+                    <div class="col-sm-12 selected-val-supplier selected-val-buyersupplier selected-val-suppliercarrier selected-val-buyersuppliercarrier">
+                        <div class="row well mb15">
+                            <div class="col-sm-12">
+                                <h4 class="dib mb0">@Resource.headingPreferencesSetting <span class="fa fa-info-circle fs14" data-toggle="tooltip" data-placement="top" title="@Resource.messageTooltipOnboardingPreferencesSetting"></span></h4>
+                                <div class="checkbox ml15 dib">
+                                    <label>
+                                        @Html.CheckBoxFor(m => m.PreferencesSetting.IsByPassPreferencesSetting, new { onchange = "enableDisablePreferencesSetting(this)", @checked = "checked" }) @Resource.lblBypassPreferencesSetting
+                                    </label>
+                                </div>
+                                <div class="row mt5" id="divPreferencesSetting">
+                                    @Html.PartialFor("_PartialPreferencesSetting", m => m.PreferencesSetting)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- supplier onboarding preferences ends -->
+                }
+                <div class="row mb15">
+                    <div class="col-sm-12">
+                        <div class="dib pull-right">
+                            @if (CurrentUser.IsSuperAdmin || CurrentUser.IsAccountSpecialist)
+                            {
+                                <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="window.history.go(-1);" />
+                            }
+                            <input type="submit" value="@Resource.btnLabelSubmit" data-url="@Url.Action("IsValidFullAddress", "Validation" , new { area="" })" class="btn btn-primary btn-lg form-submit" id="btnFinish" onclick="return validateForm()" />
+                        </div>
+                        <div class="dib pull-right mt10 mr20">
+                            @(string.Format(Resource.lblAutoAgreeTerms, Resource.btnLabelFinish))
+                            <a href="@Url.Action("Terms", "Onboarding" , new { area="" })" target="_blank" rel="nofollow">@Resource.lblTermsAndConditions</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                </div>
+    }
+</div>
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/partial-collection")
+    @*@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/quantityrange-validate")*@
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+    @*@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/ServingStateAutofill")*@
+
+    <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
+    <script type="text/javascript">
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = @Model.CompanyAddress.State.Id; // for state autofill
+
+        $(document).ready(function () {
+			if (parseInt('@(Model.CompanyAddress.SupplierProductTypes.Count)') == $('#@Html.IdFor(m=>m.CompanyAddress.SupplierProductTypes) option').length) {
+                $('.product-check').prop('checked', true);
+            }
+            $(".default-address :input").keyup(function () {
+                cloneAddress();
+                cloneDefaultAddressToBilling();
+            });
+
+            $(".default-address :input").change(function () {
+                cloneAddress();
+                cloneDefaultAddressToBilling();
+            });
+
+            $(".clone-address").change(function () {
+                $('#use-default-address').val($(".clone-address input").prop("checked"));
+
+                if ($(".clone-address input").prop("checked")) {
+                    cloneAddress();
+                }
+                else {
+                    $(".billing-address :input").val("");
+                    $("#@Html.IdFor(m => m.Country.Id)").prop("selectedIndex", 0);
+                }
+            });
+
+            Stripe.setPublishableKey('@Html.GetStripePublicKey()');
+
+            $('#btnFinish').click(function () {
+                if (!$('#onboarding-form').valid()) {
+                    return;
+                }
+
+                var bypassPaymentDetails = $('#@Html.IdFor(m => m.Card.BypassPaymentDetails)').is(":checked");
+                if (!bypassPaymentDetails) {
+                    // Get the values:
+                    var ccNum = $('#@Html.IdFor(m => m.Card.CardNumber)').val(),
+                        cvcNum = $('#@Html.IdFor(m => m.Card.Cvv)').val(),
+                        expMonth = $('#@Html.IdFor(m => m.Card.ExpirationMonth)').val(),
+                        expYear = $('#@Html.IdFor(m => m.Card.ExpirationYear)').val();
+
+                    // Validate the number:
+                    if (!Stripe.card.validateCardNumber(ccNum)) {
+                        validationMessageFor("@Html.NameFor(m => m.Card.CardNumber)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { Resource.lblNumber })');
+                        return;
+                    }
+
+                    // Validate the CVC:
+                    if (!Stripe.card.validateCVC(cvcNum)) {
+                        validationMessageFor("@Html.NameFor(m => m.Card.Cvv)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { Resource.lblCvv })');
+                        return;
+                    }
+
+                    // Validate the expiration:
+                    if (!Stripe.card.validateExpiry(expMonth, expYear)) {
+                        validationMessageFor("@Html.NameFor(m => m.Card.ExpirationYear)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { string.Format("{0} & {1}", Resource.lblMonth,Resource.lblYear) })');
+                        return;
+                    }
+                }
+                else {
+                    $('#@Html.IdFor(m => m.Card.ExpirationMonth)').val("0");
+                    $('#@Html.IdFor(m => m.Card.ExpirationYear)').val("0");
+                    $(".clone-address input").prop("checked", "checked");
+                    cloneAddress();
+                }
+                $('.form-submit').attr('disabled', 'disabled');
+                // validate full address
+                $this = $(this);
+                setTimeout(validateCompanyAddress, 100);
+            });
+
+            $(".clone-default-address-as-billing").change(function () {
+                if ($("#chk-billing-as-default-address").prop("checked")) {
+                    cloneDefaultAddressToBilling();
+                }
+                else {
+                    $(".company-billing-address :input").val("");
+                    @*$("#@Html.IdFor(m => m.BillingAddress.Country.Id)").prop("selectedIndex", 0);
+                    $("#@Html.IdFor(m => m.BillingAddress.State.Id)").prop("selectedIndex", 0);*@
+                    $("#@Html.IdFor(m => m.BillingAddress.Phone.PhoneType)").prop("selectedIndex", 0);
+                    $("#@Html.IdFor(m => m.BillingAddress.State.Code)").val('@Resource.lblDummy');
+                    $("#@Html.IdFor(m => m.BillingAddress.State.Id)").val(0);
+                    $("#@Html.IdFor(m => m.BillingAddress.Country.Code)").val('@Resource.lblDummy');
+                    $("#@Html.IdFor(m => m.BillingAddress.Country.Id)").val(0);
+                    $("#@Html.IdFor(m => m.BillingAddress.Id)").val('0');
+                    $("#mobile-validation-msg-billingaddress").html('');
+                }
+            });
+            showHideCarrierItems(@Model.User.Company.CompanyTypeId);
+            $('#@Html.IdFor(m=>m.User.Company.CompanyTypeId)').change(function () {
+                showHideCarrierItems(parseInt($(this).val(),10));
+            });
+            parseForm();
+
+            var chkPrefSetting = $("#@Html.IdFor(m => m.PreferencesSetting.IsByPassPreferencesSetting)");
+            $(chkPrefSetting).prop('checked', false);
+            enableDisablePreferencesSetting(chkPrefSetting);
+
+            showHideFleetAndServingLocationItems(@Model.User.Company.CompanyTypeId);
+             $('#@Html.IdFor(m=>m.User.Company.CompanyTypeId)').change(function () {
+                 showHideFleetAndServingLocationItems(parseInt($(this).val(),10));
+            });
+
+        });
+
+        function showHideCarrierItems(companyTypeId) {
+            if (companyTypeId == @((int)CompanyType.Carrier)) {
+                $('.show-to-hauler').show(); $('.hide-from-hauler').hide();
+            }
+            else {
+                $('.show-to-hauler').hide(); $('.hide-from-hauler').show();
+            }
+        }
+        
+        function showHideFleetAndServingLocationItems(companyTypeId) {
+            if (companyTypeId == @((int)CompanyType.Buyer)) {
+                $('#fleet-info-details').hide(); $('.service-offerings').hide();
+            }
+            else {
+                $('#fleet-info-details').show(); $('.service-offerings').show();
+            }
+        }
+
+        function validateCompanyAddress() {
+            var url = $this.data("url");
+            var model = {
+                address: {
+                    Address: $('#@Html.IdFor(m => m.CompanyAddress.Address)').val().toLowerCase(),
+                    City: $('#@Html.IdFor(m => m.CompanyAddress.City)').val().toLowerCase(),
+                    StateCode: $('#@Html.IdFor(m => m.CompanyAddress.State.Id)').find("option:selected").text(),
+                    CountryCode: $('#@Html.IdFor(m => m.CompanyAddress.Country.Id)').find("option:selected").text(),
+                    ZipCode: $('#@Html.IdFor(m => m.CompanyAddress.ZipCode)').val().toLowerCase()
+                }
+            };
+
+            $.post(url, model).done(function (response) {
+                if (response == true) {
+                    if (!$('#use-above-address').is(':checked')) {
+                        setTimeout(validatePaymentBillingAddress, 100);
+                    }                    
+                    else {
+                        submitOnboardingForm();
+                    }
+                }
+                else {
+                    showInvalidAddressMessage("@Html.NameFor(m => m.CompanyAddress.Address)");
+                    $('.form-submit').removeAttr('disabled');
+                }
+            });
+        }
+
+        function IsPhoneNumberValid(phoneNumber,callername) {
+            var new_phoneNumber = phoneNumber.replace(/-|\s/g, "");
+            var divname = "";
+            if (callername == "companyaddress") {
+                divname = "#mobile-validation-msg-companyaddress";
+            }
+            else {
+                divname = "#mobile-validation-msg-billingaddress";
+            }
+
+            if (new_phoneNumber != "" && new_phoneNumber.length == 10) {
+                var isPhoneNumberValid = '@Url.Action("IsPhoneNumberValid", "Validation", new { area = "" })' + '?phoneNumber=' + phoneNumber;
+                $.get(isPhoneNumberValid, function (result) {
+                    if (!result) {
+                        validationMessageFor("@Html.NameFor(m => m.CompanyAddress.Phone.PhoneNumber)", '');
+                        $(divname).html('@Resource.valMessageNumberNotValid');
+                    } else {
+                        $(divname).html('');
+                    }
+                });
+            }
+            else {
+                $(divname).html('');
+            }
+        }
+
+        function validatePaymentBillingAddress() {
+            var url = $this.data("url");
+            var model = {
+                address: {
+                    Address: $('#@Html.IdFor(m => m.Address)').val().toLowerCase(),
+                    City: $('#@Html.IdFor(m => m.City)').val().toLowerCase(),
+                    StateCode: $('#@Html.IdFor(m => m.State.Id)').find("option:selected").text(),
+                    CountryCode: $('#@Html.IdFor(m => m.Country.Id)').find("option:selected").text(),
+                    ZipCode: $('#@Html.IdFor(m => m.ZipCode)').val().toLowerCase()
+                }
+            };
+
+            $.post(url, model, function (response) {
+                if (response == true) {
+                    submitOnboardingForm();
+                }
+                else {
+                    showInvalidAddressMessage("@Html.NameFor(m => m.Address)");
+                    $('.form-submit').removeAttr('disabled');
+                }
+            });
+        }
+
+        function validateCompanyBillingAddress() {
+            var url = $this.data("url");
+            var model = {
+                address: {
+                    Address: $('#@Html.IdFor(m => m.BillingAddress.Address)').val().toLowerCase(),
+                    City: $('#@Html.IdFor(m => m.BillingAddress.City)').val().toLowerCase(),
+                    StateCode: $('#@Html.IdFor(m => m.BillingAddress.State.Id)').find("option:selected").text(),
+                    CountryCode: $('#@Html.IdFor(m => m.BillingAddress.Country.Id)').find("option:selected").text(),
+                    ZipCode: $('#@Html.IdFor(m => m.BillingAddress.ZipCode)').val().toLowerCase()
+                }
+            };
+
+            $.post(url, model, function (response) {
+                if (response == true) {
+                    submitOnboardingForm();
+                }
+                else {
+                    showInvalidAddressMessage("@Html.NameFor(m => m.BillingAddress.Address)");
+                    $('.form-submit').removeAttr('disabled');
+                }
+            });
+        }
+
+        function cloneAddress() {
+            if ($(".clone-address input").prop("checked")) {
+                var address = $("#@Html.IdFor(m => m.CompanyAddress.Address)").val();
+                var city = $("#@Html.IdFor(m => m.CompanyAddress.City)").val();
+                var state = $("#@Html.IdFor(m => m.CompanyAddress.State.Id) option:selected").val();
+                var country = $("#@Html.IdFor(m => m.CompanyAddress.Country.Id)").val();
+                var zip = $("#@Html.IdFor(m => m.CompanyAddress.ZipCode)").val();
+                $("#@Html.IdFor(m => m.Address)").val(address);
+                $("#@Html.IdFor(m => m.City)").val(city);
+                $("#@Html.IdFor(m => m.Country.Id)").val(country).trigger("change");
+                $("#@Html.IdFor(m => m.State.Id)").val(state).trigger("change");
+                $("#@Html.IdFor(m => m.ZipCode)").val(zip);
+            }
+        }
+
+        function submitOnboardingForm() {
+            $form = $('#onboarding-form');
+            if ($form.valid()) {
+                $form.submit();
+            }
+            else {
+                $('.form-submit').removeAttr('disabled');
+            }
+        }
+
+        function showInvalidAddressMessage(elementName) {
+            validationMessageFor(elementName, '@ResourceMessages.GetMessage(Resource.valMessageFullAddressInvalid
+            , new object[] { Resource.lblAddress, Resource.lblCity, Resource.lblState, Resource.lblCountry, Resource.lblZipcode })');
+        }
+
+        function enableDisablePaymentDetails(element) {
+            if ($(element).is(":checked")) {
+                    $("#idPaymentDetails").hide();
+                    $('#@Html.IdFor(m => m.Card.NameOnCard)').val("");
+                    $('#@Html.IdFor(m => m.Card.CardNumber)').val("");
+                    $('#@Html.IdFor(m => m.Card.Cvv)').val("");
+                    $('#@Html.IdFor(m => m.Card.ExpirationMonth)').val("");
+                    $('#@Html.IdFor(m => m.Card.ExpirationYear)').val("");
+                    $('#@Html.IdFor(m => m.Address)').val("");
+                    $('#@Html.IdFor(m => m.ZipCode)').val("");
+                    $('#@Html.IdFor(m => m.City)').val("");
+                    $('#@Html.IdFor(m => m.State.Id)').val("");
+                    $("#use-above-address").prop('checked', false);
+
+            } else {
+                    $("#idPaymentDetails").show();
+                    $('#@Html.IdFor(m => m.Card.ExpirationMonth)').val("");
+                    $('#@Html.IdFor(m => m.Card.ExpirationYear)').val("");
+            }
+        }
+
+        function enableDisablePreferencesSetting(element) {
+            if ($(element).is(":checked")) {
+                $("#divPreferencesSetting").slideUp();
+                $("#idAccountLevelForcastingEnabled").prop("checked", false);
+            } else {
+                $("#divPreferencesSetting").slideDown();
+                $("#idAccountLevelForcastingEnabled").prop("checked", false);
+                $("#forcastingForm").hide();
+            }
+        }
+
+        function cloneDefaultAddressToBilling() {
+            if ($(".clone-default-address-as-billing input").prop("checked")) {
+                var address = $("#@Html.IdFor(m => m.CompanyAddress.Address)").val();
+                var city = $("#@Html.IdFor(m => m.CompanyAddress.City)").val();
+                var state = $("#@Html.IdFor(m => m.CompanyAddress.State.Id) option:selected").text();
+                var country = $("#@Html.IdFor(m => m.CompanyAddress.Country.Id) option:selected").text();
+                var zip = $("#@Html.IdFor(m => m.CompanyAddress.ZipCode)").val();
+                var phoneType = $("#@Html.IdFor(m => m.CompanyAddress.Phone.PhoneType)").val();
+                var phoneNo = $("#@Html.IdFor(m => m.CompanyAddress.Phone.PhoneNumber)").val();
+
+                $("#@Html.IdFor(m => m.BillingAddress.Address)").val(address);
+                $("#@Html.IdFor(m => m.BillingAddress.City)").val(city);
+                $("#@Html.IdFor(m => m.BillingAddress.Country.Name)").val(country);
+                $("#@Html.IdFor(m => m.BillingAddress.State.Name)").val(state);
+                $("#@Html.IdFor(m => m.BillingAddress.ZipCode)").val(zip);
+                $("#@Html.IdFor(m => m.BillingAddress.Phone.PhoneType)").val(phoneType);
+                $("#@Html.IdFor(m => m.BillingAddress.Phone.PhoneNumber)").val(phoneNo);
+            }
+
+            $("#@Html.IdFor(m => m.BillingAddress.State.Code)").val('@Resource.lblDummy');
+            $("#@Html.IdFor(m => m.BillingAddress.State.Id)").val(0);
+            $("#@Html.IdFor(m => m.BillingAddress.Country.Code)").val('@Resource.lblDummy');
+            $("#@Html.IdFor(m => m.BillingAddress.Country.Id)").val(0);
+        }
+
+        function validateForm() {
+            var validateform = true;
+            $("#spurlnamerequired").hide();
+            var isBrandWebsite = '@Model.PreferencesSetting.IsBrandMyWebsite';
+            var imagePath = '@Model.PreferencesSetting.ImageFilePath';
+            var backgroundImagePath = '@Model.PreferencesSetting.BackgroundImageFilePath'
+            if (isBrandWebsite.toLowerCase() === 'true') {
+                if ($("#URLName").val() == '') {
+                    $("#spurlnamerequired").show();
+                    validateform = false;
+                }
+                if ($("#imageUploadStatus").val() == 0) {
+                    $('#brand-img-message').text('@Resource.lblSelectImage');
+                    validateform = false;
+                }
+
+            }
+            else {
+                if ($("#IsBrandMyWebsite").prop("checked") == true) {
+                    if ($("#URLName").val() == '') {
+                        $("#spurlnamerequired").show();
+                        validateform = false;
+                    }
+                    if (imagePath == '') {
+                        if ($("#imageUploadStatus").val() == 0) {
+                            $('#brand-img-message').text('@Resource.lblSelectImage');
+                            validateform = false;
+                        }
+                    }
+                    if (backgroundImagePath == '') {
+                        if ($("#imageUploadStatus").val() == 0) {
+                            $('#brand-backgroundimg-message').text('@Resource.lblSelectImage');
+                            validateform = false;
+                        }
+                    }
+                }
+            }
+            validateform = validateCompanyAddressDetails();
+            return validateform;
+        }
+
+        function validateCompanyAddressDetails() {  
+            var isValid = true;
+            var countryId = parseInt($('#@Html.IdFor(m => m.CompanyAddress.Country.Id) option:selected').val()); 
+            var stateId = parseInt($("#@Html.IdFor(m => m.CompanyAddress.State.Id) option:selected").val());
+            var address = $.trim($("#@Html.IdFor(m => m.CompanyAddress.Address)").val());
+            var zipcode = $.trim($("#@Html.IdFor(m => m.CompanyAddress.ZipCode)").val());
+            var city = $.trim($("#@Html.IdFor(m => m.CompanyAddress.City)").val());
+            var phoneNumber = $.trim($("#@Html.IdFor(m => m.CompanyAddress.Phone.PhoneNumber)").val());
+            
+            $('.address-validation-error').addClass('hide-element');
+            if (isNaN(stateId) || stateId <= 0) {
+                validationMessageFor("@Html.NameFor(m => m.CompanyAddress.State.Id)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { string.Format("{0}", Resource.lblState) })');
+                isValid = false;
+            }
+            if (isNaN(countryId) || countryId <= 0) {
+                validationMessageFor("@Html.NameFor(m => m.CompanyAddress.Country.Id)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { string.Format("{0}", Resource.lblCountry) })');
+                isValid = false;
+            }
+
+            if (address == '') {
+                $('#spnErrorAddress').html('@(string.Format(Resource.valMessageRequired, "Address"))');
+                $('#spnErrorAddress').removeClass('hide-element');
+                isValid = false;
+            }
+            if (city == '') {
+                $('#spnErrorCity').html('@(string.Format(Resource.valMessageRequired, "City"))');
+                $('#spnErrorCity').removeClass('hide-element');
+                isValid = false;
+            }
+
+            if (zipcode == '') {
+                $('#spnErrorZipCode').html('@(string.Format(Resource.valMessageRequired, "ZipCode"))');
+                $('#spnErrorZipCode').removeClass('hide-element');
+                isValid = false;
+            }
+
+            if (phoneNumber == '') {
+                validationMessageFor("@Html.NameFor(m => m.CompanyAddress.Phone.PhoneNumber)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { string.Format("{0}", Resource.lblPhoneNumber) })');
+                isValid = false;
+            }
+
+            if (isValid)
+                $('.address-validation-error').addClass('hide-element');
+
+            return isValid;
+        }
+
+    </script>
+}

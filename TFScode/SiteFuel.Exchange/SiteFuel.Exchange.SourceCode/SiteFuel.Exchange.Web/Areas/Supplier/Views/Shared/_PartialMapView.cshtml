@@ -1,0 +1,150 @@
+﻿<!--target url from where map data will be loaded-->
+@model dynamic
+@{
+    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+    serializer.MaxJsonLength = int.MaxValue;
+    var jsonModel = serializer.Serialize(@Model.Data);
+}
+@{ var mapId = "map_" + DateTime.Now.ToString("yyyyMMddHHmmss"); }
+<div class="row">
+    <div class="col-md-8 col-12">
+        <div class="map_canvas" id="@mapId"></div>
+    </div>
+    <div class="col-md-4 col-12">
+        <div class="row mt5-xs">
+            <div class="col-sm-2 col-md-12 col-xs-4">
+                <div class="job-name">
+                    <h5 class="f-bold mb5">@Resource.headinPoNumber</h5>
+                    <p class="title"></p>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-12 col-xs-8">
+                <div class="job-location">
+                    <h5 class="f-bold mb5">@Resource.headingLocation</h5>
+                    <p class="address1 mb0"></p>
+                    <p class="address2 mt0"></p>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-12 col-xs-6">
+                <div class="job-contact">
+                    <h5 class="f-bold mb5">@Resource.headingContact</h5>
+                    <p class="contactname mb0"></p>
+                    <p class="email mb0"></p>
+                    <p class="phone"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+    var PageCountryId = selectedCountryAndCurrency.countryId;
+    var centerlat = 38, centerlon = -98.35, zoomarea = 4;
+    if (PageCountryId == '@((int)Country.CAN)') {
+        centerlat = 56.14;
+        centerlon = -106.34;
+    }
+    else {
+        centerlat = 38;
+        centerlon = -98.35;
+    }
+
+    function setMapData() {
+        var data = @Html.Raw(jsonModel);
+        var statelist = [];
+        $.each(data, function (i, elem) { statelist.push(elem.State); });
+        states = statelist.filter(function (elem, index, self) { return index == self.indexOf(elem); });
+
+        if (data.length > 0) {
+            setContactInfo(data[0]);
+        }
+
+        var mapObj = getMapObject();
+
+        for (var idx = 0; idx < data.length; idx++) {
+            var item = data[idx];
+            var marker = new google.maps.Marker({
+                position: new google.maps.LatLng(item.Latitude, item.Longitude),
+                map: mapObj,
+                title: "PO# Number" + " " + item.PoNumber
+            });
+
+            marker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png')
+
+            var groupIds = getCompanyGroup().groupIds;
+            if (groupIds == "") {
+                google.maps.event.addListener(marker, 'click', function () {
+                    var appPath = document.location.origin + '@Url.Action("Details", "Order", new { area = "Supplier" })';
+                    window.location.href = appPath + "/" + item.OrderId;
+                });
+            }
+
+            google.maps.event.addListener(marker, 'mouseover', function () {
+                setContactInfo(item);
+            });
+        }
+        setMapCenter(mapObj, data);
+    }
+
+    function setMapCenter(googleMap, data) {
+        window.setTimeout(function() {
+            if (googleMap) {
+                if (!data || data.length == 0) {
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(new google.maps.LatLng(centerlat, centerlon));
+                    googleMap.fitBounds(bounds);
+                    googleMap.setZoom(4);
+                } else {
+                    const bounds = new google.maps.LatLngBounds();
+                    data.forEach(function(x){
+                        bounds.extend(new google.maps.LatLng(x.Latitude, x.Longitude));
+                    });
+                    googleMap.fitBounds(bounds);
+                }
+            }
+        }, 500);
+    }
+
+    function setContactInfo(item) {
+		$(".job-name .title").html(item.PoNumber);
+		if (item.Address == '') {
+			$(".job-location .address1").hide();
+		}
+		else {
+			$(".job-location .address1").show();
+		}
+        $(".job-location .address1").html(item.Address);
+		$(".job-location .address2").html(item.City == '' ? item.State : item.City + ", " + item.State + " " + item.ZipCode);
+
+        var _onSiteContact = "@Resource.lblHyphen", _onSiteEmail = "", _onSitePhone = "";
+        if (item.ContactPersons.length > 0) {
+            _onSiteContact = item.ContactPersons[0].Name;
+            _onSiteEmail = item.ContactPersons[0].Email;
+            _onSitePhone = item.ContactPersons[0].PhoneNumber;
+        }
+
+        $(".job-contact .contactname").html(_onSiteContact);
+        $(".job-contact .email").html(_onSiteEmail);
+        $(".job-contact .phone").html(_onSitePhone);
+    }
+
+    function getMapObject() {
+        var map = new google.maps.Map(document.getElementById('@mapId'), {
+            maxZoom: 16,
+            mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+        });
+        return map;
+    }
+
+    function initMap() {
+        google.maps.visualRefresh = true;
+        getMapObject(zoomarea, centerlat, centerlon);
+        refreshMap();
+    }
+
+    function refreshMap() {
+       setMapData();
+    }
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)&callback=initMap" type="text/javascript"></script>

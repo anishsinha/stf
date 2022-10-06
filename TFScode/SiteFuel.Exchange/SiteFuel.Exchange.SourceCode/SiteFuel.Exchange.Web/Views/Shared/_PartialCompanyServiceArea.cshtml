@@ -1,0 +1,83 @@
+﻿@model CompanyServiceAreaModel
+@using (Html.BeginCollectionItem("CompanyAddress.ServiceOffering"))
+{
+    <div class="row mt-1">
+        <div class="col-sm-12">
+            <span>
+                <label class="f-bold">
+                    @Html.HiddenFor(m => m.ServiceDeliveryType)
+                    @Model.ServiceDeliveryType.GetDisplayName() Deliveries
+                </label>
+            </span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            @{
+                var countryId = Model.CountryId > 0 ? Model.CountryId : (int)Country.USA;
+                var isStatesAvailable = Model.AreaWide == ServiceAreaType.ZipWide && Model.StateIds.Any();
+                var stateIds = isStatesAvailable ? string.Join(",", Model.StateIds) : "0";
+                var cityIds = isStatesAvailable ? string.Join(",", Model.CityIds.Where(t => t.HasValue)) : "0";
+            }
+            <div class="form-group mb10 partial-block quantity-range row" id="serving-location-list">
+                <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element serving-cityZipServiceCall"><span class='spinner-dashboard pa'></span></div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Area Type</label>
+                        <div>
+                            @Html.DropDownListFor(m => m.AreaWide, new SelectList(CommonHelperMethods.GetServiceAreaTypes(), "Id", "Name"), new { @class = "form-control servingareatype" })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2 col-md-2">
+                    <div class="form-group">
+                        <label>Country</label>
+                        <div>
+                            @Html.DropDownListFor(m => m.CountryId, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code"), new { @class = "form-control servingcountry" })
+                            @Html.ValidationMessageFor(m => m.CountryId)
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2 col-md-2">
+                    <div class="form-group">
+                        <label>States Where You Deliver</label>
+                        <div>
+                            @Html.ListBoxFor(m => m.StateIds, new SelectList(CommonHelperMethods.GetStates(countryId), "Id", "Name"), new { @class = "form-control servingstates" })
+                            @Html.ValidationMessageFor(m => m.StateIds)
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2 col-md-2">
+                    <div class="form-group zipwidearea @(Model.AreaWide == ServiceAreaType.StateWide ? "hide-element" : "")">
+                        <label>City</label>
+                        <div>
+                            @Html.ListBoxFor(m => m.CityIds, new SelectList(isStatesAvailable ? CommonHelperMethods.GetMultipleCities(stateIds, false) : new List<DropdownDisplayItem>(), "Id", "Name"), new { @class = "form-control servingcity" })
+                            @Html.ValidationMessageFor(m => m.CityIds)
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2 col-md-2">
+                    <div class="form-group offer-zipwrapper zipwidearea @(Model.AreaWide == ServiceAreaType.StateWide ? "hide-element" : "")">
+                        <label>ZipCode</label>
+                        <div>
+                            @Html.ListBoxFor(m => m.ZipCodes, new SelectList(isStatesAvailable ? CommonHelperMethods.GetMultipleZipcodes(cityIds, false) : new List<DropdownDisplayItem>(), "Name", "Name"), new { @class = "form-control servingzip" })
+                            @Html.ValidationMessageFor(m => m.ZipCodes)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+    <script type="text/javascript">
+    $(document).ready(function () {
+        $('.servingstates,.servingcity,.servingzip').multiselect({
+			maxHeight: 200,
+			includeSelectAllOption: true,
+            nonSelectedText: '@Resource.btnLabelSelect',
+            buttonWidth: '100%',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true
+        });
+    });
+    </script>

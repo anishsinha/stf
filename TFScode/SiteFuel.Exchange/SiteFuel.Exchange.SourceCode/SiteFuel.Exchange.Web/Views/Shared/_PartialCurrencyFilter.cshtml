@@ -1,0 +1,114 @@
+﻿@model CountryViewModel
+@{ var servingCountries = CommonHelperMethods.ServingCountry(CurrentUser.CompanyId, CurrentUser.CompanyTypeId, CurrentUser.CompanySubTypeId);
+    if (servingCountries.Count > 1)
+    {
+        <div id="currency-filter" class="country-currency-partial-filter pull-right">
+            <div class="pull-right ml15">
+                <div class="form-group mb5">
+                    @Html.DropDownListFor(m => m.Currency, new SelectList(CommonHelperMethods.GetCurrenyList(), "Id", "Name", (int)Model.Currency), new { @class = "form-control currencyFilter", onchange = "setCurrencyFilter(this);" })
+                </div>
+            </div>
+            <div class="pull-right ">
+                <div class="form-group mb5">
+                    <div id="country-list"></div>
+                </div>
+                <div class="form-group mb5">
+                    @Html.HiddenFor(m => m.Id)
+                </div>
+            </div>
+        </div>
+        using (Html.BeginScripts())
+        {
+            <script type="text/javascript">
+
+    var selectedCountryAndCurrency = getSelectedCountryAndCurrency();
+    $('#@Html.IdFor(m => m.Id)').val(selectedCountryAndCurrency.countryId);
+    $('#@Html.IdFor(m => m.Currency) option[value = ' + selectedCountryAndCurrency.currencyType +']').attr('selected', 'selected');
+    setDefaultHeaderText($('#@Html.IdFor(m => m.Currency)')[0]);
+
+    $('#country-list').flagStrap({
+        countries: {
+            "1": "USA",
+            "2": "Canada",
+            "4": "Caribbean",
+        },
+        selectedCountry: selectedCountryAndCurrency.countryId,
+        placeholder: false,
+        labelMargin: "10px",
+        scrollable: false,
+        scrollableHeight: "350px",
+        onSelect: function (value, element) {
+            if (value == "1") {
+                $('#@Html.IdFor(m => m.Id)').val(@((int)Country.USA))
+                setSelectedCountryAndCurrency(@((int)Country.USA), @((int)Currency.USD));
+                $('.currencyFilter').val('@((int)Currency.USD)').trigger('change');
+
+            }
+            else if (value == "2") {
+                $('#@Html.IdFor(m => m.Id)').val(@((int)Country.CAN))
+                setSelectedCountryAndCurrency(@((int)Country.CAN), @((int)Currency.CAD));
+                $('.currencyFilter').val('@((int)Currency.CAD)').trigger('change');
+            }
+            else if (value == "4") {
+                $('#@Html.IdFor(m => m.Id)').val(@((int)Country.CAR))
+                setSelectedCountryAndCurrency(@((int)Country.CAR), @((int)Currency.USD));
+                $('.currencyFilter').val('@((int)Currency.USD)').trigger('change');
+            }
+            $('#@Html.IdFor(m => m.Id)').trigger('currencyChanged', [selectedCountryAndCurrency.countryId, selectedCountryAndCurrency.currencyType]);
+        }
+    });
+
+    function setCurrencyFilter(currency) {
+        setDefaultHeaderText(currency);
+        setSelectedCountryAndCurrency($('#@Html.IdFor(m => m.Id)').val(), $(currency).val());
+        var isDashboardPage = window.location.href.indexOf("/Dashboard") != -1;
+        isDashboardPage ? window.location.reload() : ReloadDataTable();
+    }
+
+    function PopulateHeader(elem, currency) {
+        var countryText = $(currency).find(":selected").text().toLowerCase();
+        $('.quantity-requested').text(elem["qty_req_" + countryText]);
+        $('.rackprice-per-qty').text(elem["rack_ppg_" + countryText]);
+        $('.total-amount').text(elem["total_amount_" + countryText]);
+        $('.invoice-amount-grid').text(elem["total_invoice_amount_" + countryText]);
+        $('.quantity-delivered-grid').text(elem["qty_delivered_" + countryText]);
+        $('.quantity-scheduled-grid').text(elem["qty_scheduled_" + countryText]);
+        $('.rack-ppg-paid-grid').text(elem["rack_paid_" + countryText]);
+        $('.rack-ppg-sold-grid').text(elem["rack_sold_" + countryText]);
+        $('.quantity-brokered').text(elem["qty_brokered_" + countryText]);
+        $('.broker-rackprice-per-qty').text(elem["rack_brokered_" + countryText]);
+        $('.budget-grid').text(elem["budget_" + countryText]);
+        $('.total-spend-grid').text(elem["total_spend_" + countryText]);
+    }
+
+    function setDefaultHeaderText(currency) {
+        var currencyBasedHeader = GetLocalStorage('currencyBasedHeader');
+        SetUoMCurrencyAndRacklables();
+        if (currencyBasedHeader === undefined || currencyBasedHeader == null || currencyBasedHeader.length <= 0) {
+            var url = '@Url.Action("GetCurrencySpecificHeaders")';
+            $.get("@Url.Action("GetCurrencySpecificHeaders")", '', function (response) {
+                SetLocalStorage('currencyBasedHeader', JSON.stringify(response));
+                PopulateHeader(response, currency);
+            });
+        }
+        else {
+            PopulateHeader(JSON.parse(currencyBasedHeader), currency);
+            SetUoMCurrencyAndRacklables();
+        }
+    }
+            </script>
+        }
+    }
+    else
+    {
+
+        using (Html.BeginScripts())
+        {
+            <script type="text/javascript">
+                setSelectedCountryAndCurrency(@servingCountries[0].ToString(), @servingCountries[0].ToString());
+                SetUoMCurrencyAndRacklables(); // Will get called when Supplier doesnt deal in multiple countries
+            </script>
+        }
+    }
+}
+

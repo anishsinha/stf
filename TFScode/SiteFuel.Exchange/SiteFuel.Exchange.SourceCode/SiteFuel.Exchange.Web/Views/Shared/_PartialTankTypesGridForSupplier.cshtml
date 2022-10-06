@@ -1,0 +1,285 @@
+﻿@model int
+<div id="slider-loader-tank" class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+<div class="col-md-12">
+    <div class="well pb10 pt15 mb10" id="tanktype_card">
+        <div class="row mb10">
+            <div class="col-sm-12 col-md-12">   
+                <span class="pull-left ml5" id="divTankBulkUploadTemplate">
+                    <span class="fa fa-download mr10 mt10"></span><a id="lnkTankBulkUploadTemplate" href="/Content/TankMakeModel_Bulkupload_Template.csv" class="mb5 btn-download">Sample Template</a>
+                </span>
+            </div>
+        </div>
+        <form id="csvFileTankTypeForm" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-sm-3 col-md-4">
+                    <input type="text" id="txtTankTypeName" placeholder="Tank Make" class="form-control" maxlength="50" required>
+                </div>
+                <div class="col-sm-3 col-md-4">
+                    <input type="text" id="txtTankTypeModal" placeholder="Tank Model" class="form-control" maxlength="50" required>
+                </div>
+                <div class="col-sm-3 col-md-4">
+                    <select id="scaleMeasurement" name="scaleMeasurement" class="form-control" required>
+                        <option value="1">@Resource.lblCm</option>
+                        <option value="2">@Resource.lblIn</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-4">
+                    <input type="file" id="csvFileTankType" name="csvFileTankType" class="inputfile upload-btn" accept=".csv" required>
+                    <label for="csvFileTankType" class="btn btn-choosefile btn-default ml0 mt10"><span id="btnChooseFile">@Resource.btnChooseFile</span></label>
+                    <button id="uploadTankTypeFile" class="btn btn-primary mt5" type="submit">
+                        Submit
+                    </button>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 mb5">
+                    <div id="file_name_div" class="hide-element">
+                        <h6 class="f-semibold mb0"><i class="fa fa-paperclip"></i>Attachment</h6>
+                        <span class="fs10"></span>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="col-md-12">
+    <div class="well bg-white shadow-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-padding no-border">
+                <div id="buyer-invoice-div" class="table-responsive">
+                    <!--Enum - GridName.TankTypeGrid => 24-->
+                    <table id="TankTypeDipChart-datatable" data-gridname="24" class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>@Resource.gridColumnTankMake</th>
+                                <th>@Resource.gridColumnTankModel</th>
+                                <th>@Resource.gridColumnScaleMeasurement</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var tankTypeDipChartGrid;
+
+    var urlGetTankTypeNames = "";
+    var urlGetTankTypesByCompany = "";
+    var urlTankTypeDipChartBulkUpload = "";
+    var urlDeleteTankDipChartById = "";
+    var urlRenderPartialView = "";
+    //var orderId = getQueryString('oId', false);
+    var orderId = getQueryString('oId', null);
+
+    if (orderId == null) {
+        var crUrl = window.location.href;
+        var array = crUrl.split('/');
+        orderId = array[6];
+    }
+
+
+    var True = true;
+    var False = false;
+
+
+    if (@CurrentUser.IsBuyerAdmin || @CurrentUser.IsBuyer)
+    {
+        urlGetTankTypeNames = "@Url.Action("GetAllTankTypeNameForDipChart", "Asset", new { area = "Buyer" })";
+        urlGetTankTypesByCompany = "@Url.Action("GetTankTypesByCompanyAsync", "Asset", new { area = "Buyer" })";
+        urlTankTypeDipChartBulkUpload = "@Url.Action("TankTypeDipChartBulkUpload", "Asset", new { area = "Buyer" })" + "?";
+        urlDeleteTankDipChartById = " @Url.Action("DeleteTankDipChartById", "Asset", new { area = "Buyer" })";
+        urlRenderPartialView = "@Url.Action("GetTankTypesGrid", "Asset", new { area = "Buyer" })";
+
+
+    }
+    if (@CurrentUser.IsSupplierAdmin || @CurrentUser.IsSupplier || @CurrentUser.IsCarrier || @CurrentUser.IsCarrierAdmin  )
+    {
+        urlGetTankTypeNames = "@Url.Action("GetAllTankTypeNameForDipChart", "Asset", new { area = "Supplier" })";
+        urlGetTankTypesByCompany = "@Url.Action("GetTankDipChartCompanyAsync", "Asset", new { area = "Supplier" })";
+        urlTankTypeDipChartBulkUpload = "@Url.Action("TankTypeDipChartBulkUpload", "Asset", new { area = "Supplier" })" + "?";
+        urlDeleteTankDipChartById = " @Url.Action("DeleteTankDipChartById", "Asset", new { area = "Supplier" })";
+        urlRenderPartialView = "@Url.Action("GetTankTypesGrid", "Asset", new { area = "Supplier" })";
+    }
+
+    function downloadURI(uri, name) {
+        var link = document.createElement("a");
+        link.download = name;
+        link.href = uri;
+        link.target = "_blank";
+        link.click();
+    }
+
+    $(document).ready(function () {
+            $('#csvFileTankType').change(function (e) {
+                if (e.target.files[0]) {
+                    var fileName = e.target.files[0].name;
+                    $("#file_name_div").children('span').text(fileName);
+                    $("#file_name_div").show();
+                }
+                else {
+                    $("#file_name_div").children('span').text('');
+                    $("#file_name_div").hide();
+                }
+        });
+       });
+
+
+    function autoCompleteLoadCompanies(element, url) {
+			var target = $(element);
+			target.autocomplete({
+                source: function (request, response) {
+                    var inputData = { searchValue: target.val() };
+					$.ajax({
+						url: url,
+						type: "GET",
+						dataType: "json",
+                        data: inputData,
+                        success: function (data) {
+                            if (data.length > 0) {
+                                response(
+                                    $.map(data, function (item, index) {
+                                        if (index == 5) { return null; }
+                                        else { return { value : item}; }
+                                    }));
+                            }
+                            else {
+                               response();
+                            }
+						},
+					})
+				},
+                select: function (event, ui) {
+                    isSelected = true;
+                    return false;
+                },
+                focus: function (event, ui) {
+                    this.value = ui.item.label;
+                    event.preventDefault();
+                },
+				messages: {
+					noResults: '',
+					results: function () { }
+				},
+				minLength: 2,
+				maxShowItems: 5,
+				scroll: true
+			});
+			$.ui.autocomplete.prototype._resizeMenu = function () {
+				var ul = this.menu.element;
+				ul.outerWidth(this.element.outerWidth());
+			}
+    }
+    //remove dip chart
+    function removeDipChart(id) {
+        var url = urlDeleteTankDipChartById + '?id=' + id;
+        $('#slider-loader-tank').show();
+        $.ajax({
+            url: url,
+            type: 'POST',
+            async: false,
+            success: function (data) {
+                if (data.StatusCode == 0) { msgsuccess(data.StatusMessage) }
+                else if (data.StatusCode == 1) { msgerror(data.StatusMessage); }
+                else { msgwarning(data.StatusMessage); }
+            },
+            error: function (xhr, error, status) {
+                console.log(error, status);
+            }
+        }).always(function () { $('#slider-loader-tank').hide(); bindDataTable(); });
+    }
+
+
+    $(document).ready(function () {
+        bindDataTable();
+
+    $('#csvFileTankTypeForm').submit(function (e) {
+        e.preventDefault();
+
+        let tankTypeName = $('#txtTankTypeName').val();
+        let tankTypeModal = $('#txtTankTypeModal').val();
+        var e = document.getElementById("scaleMeasurement");
+        var scaleMeasurement = e.options[e.selectedIndex].value;
+        let url = urlTankTypeDipChartBulkUpload + 'tankTypeName=' + tankTypeName + '&tankTypeModal=' + tankTypeModal + '&scaleMeasurement=' + scaleMeasurement + '&jobId=' +@Model;
+        $('#slider-loader-tank').show();
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: new FormData(this),
+            processData: false,
+            contentType: false,
+            cache: false,
+            dataType: 'json',
+            success: function (data) {
+                if (data.StatusCode == 0) { msgsuccess(data.StatusMessage) }
+                else if (data.StatusCode == 1) { msgerror(data.StatusMessage); }
+                else { msgwarning(data.StatusMessage); }
+            },
+            error: function (xhr, error, status) {
+                console.log(error, status);
+            }
+        }).always(function () {
+            $("#file_name_div").children('span').text('');
+            $("#file_name_div").hide();
+            $('#slider-loader-tank').hide();
+            $('#csvFileTankTypeForm').trigger("reset");
+            bindDataTable();
+        });
+        });
+    });
+
+    function bindDataTable() {
+        tankTypeDipChartGrid = $('#TankTypeDipChart-datatable').DataTable({
+            "ajax": {
+                "url": urlGetTankTypesByCompany,
+                "type": "GET",
+                "datatype": "json",
+                "data": function (data) { data.jobId = '@Model'}
+            },
+            "dataSrc": function (json) {
+                $("#buyer-invoice-div").find('.loading-wrapper').remove();
+                return json.data;
+            },
+            "bDestroy": true,
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            "serverSide": false,
+            "searchDelay": 500,
+            processing: true,
+            "searching": { "regex": false },
+            "bProcessing": true,
+            lengthChange: true,
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+                tabGridHeader(this);
+            },
+            "columns": [
+                { "data": "Name", "autoWidth": true },
+                { "data": "Modal", "autoWidth": true },
+                { "data": "ScaleMeasurementText", "autoWidth": true },
+                {
+                    "data": function (data, type, row, meta) {
+                        var id = "`" + data.Id.toString() + "`";
+                        var path = "`" + data.PdfFilePath.toString() + "`";
+                        let one = '<a href="javascript:void(0)" class="fa fa-trash-alt mt8 color-maroon" title="Remove" onclick="removeDipChart(' + id + ')"></a>';
+                        let two = '<a href="javascript:void(0)" class="fa fa-download mt8 ml10 color-green" title="Download" onclick="downloadURI(' + path + ',' + id + ')"></a>';
+                        return one + two;
+                    }, "autoWidth": true
+                },
+
+            ],
+            pageLength: 10,
+            responsive: true,
+            "columnDefs": [
+                { "name": "Name", "targets": 0 },
+                { "name": "Modal", "targets": 1 },
+                { "name": "Action" },
+            ],
+            dom: 'lTfgitp',
+        });
+
+        autoCompleteLoadCompanies("#txtTankTypeName", urlGetTankTypeNames);
+    }
+</script>

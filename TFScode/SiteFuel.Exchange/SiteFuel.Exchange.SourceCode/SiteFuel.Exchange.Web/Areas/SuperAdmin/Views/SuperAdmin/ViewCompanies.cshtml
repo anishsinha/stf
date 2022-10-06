@@ -1,0 +1,125 @@
+﻿@model CompanyFilterType
+@{
+    ViewBag.Title = "Companies";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-12">
+        <h4 class="float-left mtm5">@Resource.lblCompanies</h4>
+        <a href="@Url.Action("CreateCompany", "SuperAdmin", new { area = "SuperAdmin" })" class="fs18 float-left ml20 mt3" id="linkCreateNewCompany">
+            <i class="fa fa-plus-circle fs18 mt5 float-left mb10"></i><span class="fs14 mt4 float-left">@Resource.btnLabelCreateNew</span>
+        </a>
+        <a class="float-left ml20 mt7" onclick="ClearFilter();">@Resource.btnLabelViewAll</a>
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb5">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSuperadminCompanyFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSuperadminCompanyToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                    <input type="button" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @Html.Partial("_PartialCompanyGrid", Model)
+</div>
+
+<div class="row mt20">
+    <div class="col-sm-12 col-12">
+        <h4 class="float-left">@Resource.lblCompaniesCreatedbyTPO</h4>
+        <a class="float-left ml20 mt10 pt3" onclick="ClearTPOFilter();">@Resource.btnLabelViewAll</a>
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb5">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSuperadminTPOCompanyFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSuperadminTPOCompanyToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadTPODataTable();" />
+                    <input type="button" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearTPOFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @Html.Partial("_PartialTPOCompanyGrid", Model)
+</div>
+<script type="text/javascript">
+
+    $('#txtSuperadminCompanyFromDate').val(GetLocalStorage('txtSuperadminCompanyFromDate'));
+    $('#txtSuperadminCompanyToDate').val(GetLocalStorage('txtSuperadminCompanyToDate'));
+
+    var ClearFilter;
+    var accountSpecialistUsers;
+    $(document).ready(function () {
+
+        accountSpecialistUsers =  @Html.Raw(Json.Encode(CommonHelperMethods.GetAccountSpecialistUsers(CurrentUser.IsAccountSpecialist, false, CurrentUser.Id)));
+
+        ClearFilter = function () {
+            $('#txtSuperadminCompanyFromDate').val('');
+            $('#txtSuperadminCompanyToDate').val('');
+            $('#txtSuperadminCompanyToDate').data("DateTimePicker").minDate($("#txtSuperadminCompanyFromDate").datetimepicker("minDate"));
+            ReloadDataTable();
+        }
+
+        if ($('#txtSuperadminCompanyFromDate').length > 0 && $('#txtSuperadminCompanyToDate').length > 0) {
+            $("#txtSuperadminCompanyFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtSuperadminCompanyToDate').data("DateTimePicker").minDate($("#txtSuperadminCompanyFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtSuperadminCompanyToDate').data("DateTimePicker").minDate(moment($('#txtSuperadminCompanyFromDate').val()));
+            });
+        }
+    });
+
+    var superadmincompanyDataTable;
+    function ReloadDataTable() {
+        SetLocalStorage('txtSuperadminCompanyFromDate', $('#txtSuperadminCompanyFromDate').val());
+        SetLocalStorage('txtSuperadminCompanyToDate', $('#txtSuperadminCompanyToDate').val());
+        superadmincompanyDataTable.ajax.reload();
+    }
+
+    //Companies Created By TPO
+    $('#txtSuperadminTPOCompanyFromDate').val(GetLocalStorage('txtSuperadminTPOCompanyFromDate'));
+    $('#txtSuperadminTPOCompanyToDate').val(GetLocalStorage('txtSuperadminTPOCompanyToDate'));
+
+    var ClearTPOFilter;
+    $(document).ready(function () {
+        ClearTPOFilter = function () {
+            $('#txtSuperadminTPOCompanyFromDate').val('');
+            $('#txtSuperadminTPOCompanyToDate').val('');
+            $('#txtSuperadminTPOCompanyToDate').data("DateTimePicker").minDate($("#txtSuperadminTPOCompanyFromDate").datetimepicker("minDate"));
+            ReloadTPODataTable();
+        }
+
+        if ($('#txtSuperadminTPOCompanyFromDate').length > 0 && $('#txtSuperadminTPOCompanyToDate').length > 0) {
+            $("#txtSuperadminTPOCompanyFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtSuperadminTPOCompanyToDate').data("DateTimePicker").minDate($("#txtSuperadminTPOCompanyFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtSuperadminTPOCompanyToDate').data("DateTimePicker").minDate(moment($('#txtSuperadminTPOCompanyFromDate').val()));
+            });
+        }
+    });
+
+    var superadmintpocompanyDataTable;
+    function ReloadTPODataTable() {
+        SetLocalStorage('txtSuperadminTPOCompanyFromDate', $('#txtSuperadminCompanyTPOFromDate').val());
+        SetLocalStorage('txtSuperadminTPOCompanyToDate', $('#txtSuperadminCompanyTPOToDate').val());
+        superadmintpocompanyDataTable.ajax.reload();
+    }
+    //Companies Created By TPO
+
+</script>
+

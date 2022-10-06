@@ -1,0 +1,98 @@
+﻿@model Int32
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="supplierinvoicehistory-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnInvoiceNumber</th>
+                                    <th>@Resource.gridColumnVersion</th>
+                                    <th>@Resource.gridColumnInvoiceDate</th>
+                                    <th>@Resource.gridColumnDropDate</th>
+                                    <th>@Resource.gridColumnDropTime</th>
+                                    <th>@Resource.gridColumnInvoiceAmount (@Currency.USD.ToString())</th>
+                                    <th>@Resource.gridColumnGallonsDelivered</th>
+                                    <th>@Resource.lblRackPPG (@Currency.USD.ToString())</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th>@Resource.gridColumnModifiedBy</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@*@using (Html.BeginScripts())
+{*@
+    <script type="text/javascript">
+        var exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8] };
+        $(document).ready(function () {
+            $('#supplierinvoicehistory-datatable').dataTable({
+                "ajax": {
+                    "url": "@Url.Action("InvoiceHistoryGrid", "SuperAdmin", new { area = "SuperAdmin" })/" + @Model,
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                            { "data": "InvoiceNumber", "autoWidth": true },
+                            { "data": "Version", "autoWidth": true },
+                            { "data": "InvoiceDate", "autoWidth": true },
+                            { "data": "DropDate", "autoWidth": true },
+                            { "data": "DropTime", "autoWidth": true },
+                            { "data": "InvoiceAmount", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency')},
+                            { "data": "Quantity", "autoWidth": true },
+                            { "data": "PricePerGallon", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+                            { "data": "Status", "autoWidth": true },
+                            { "data": "ModifiedBy", "autoWidth": true },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    var disabled = data.Status.toLowerCase() == '@InvoiceStatus.Unassigned.ToString().ToLower()' ? "disabled" : "";
+                                    var url = "location.href='@Url.Action("DownloadPdf", "Invoice", new { area = "Supplier" })" + "/" + data.InvoiceHeaderId + "'";
+                                    return '<input type="button" ' + disabled +' class="btn btn-warning download-pdf btn-xs" value="@Resource.btnLabelDownload" onclick=' + url+' />';
+                                }, "autoWidth": true
+                            },
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                },
+                'aoColumnDefs': [{
+                    'bSortable': false,
+                    'aTargets': [-1]
+                }]
+            });
+        });
+        $("#supplierinvoicehistory-datatable").on("click", ".download-pdf", function () {
+			hideLoader();
+        });
+    </script>
+@*}*@

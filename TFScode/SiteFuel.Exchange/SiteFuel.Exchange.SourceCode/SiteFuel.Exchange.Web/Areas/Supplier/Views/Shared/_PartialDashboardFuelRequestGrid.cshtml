@@ -1,0 +1,129 @@
+﻿@model DashboardSupplierFuelRequestGridViewModel
+<div class="well mb0 tile-body pr col-sm-12">
+    <div class="db-fr-loader">
+        <div class="m-b-md mb0">
+            <div class="mb0 no-b-radius">
+                <h2 class="mt0 mb0 fs16 f-normal dib">
+                    <span class="fa fa-tint mr5"></span> @Html.ActionLink(Resource.lblFuelRequestsNominations, "View", "FuelRequest", new { area = "Supplier", filter = FuelRequestFilterType.All }, new { @class = "f-normal mt5" })
+                </h2>
+                <div class="pull-right">
+                    <a href="#." class="color-grey fs18 ml5 toggle-tiledata" onclick="toggleData(this, '@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.FuelRequests.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsFRTileCollapsed ? "fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+                    <a href="#." class="color-grey fs18 ml5" onclick="removeTile(this, '@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.FuelRequests.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="bottom-radius tile-content mt25 @(Model.IsFRTileCollapsed ? "hide-element" : "")">
+        <div>
+            <canvas id="FRBarChart" height="70"></canvas>
+        </div>
+        <div class="group-element">
+            <small>@Resource.lblLast5OpenFuelRequests</small>
+            <div class="table-responsive">
+                <table class="table table-hover mb0" id="table-fr" style="min-height:20vh;">
+                    <thead>
+                        <tr>
+                            <th width="155" class="no-break pl0">@Resource.gridColumnType</th>
+                            <th>@Resource.gridColumnDate</th>
+                            <th class="text-right uom-by-country"><span class="uom-lbl"></span></th>  @*// Quantity Delivered lable will be here*@
+                            <th>@Resource.gridColumnPrice</th>
+                            <th>@Resource.gridColumnStateAndZip</th>
+                            <th width="120" class="text-nowrap"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@Html.Partial("_PartialCommonSourceRegion")
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var AcceptedFrUrl = "@Url.Action("View", "FuelRequest", new { area = "Supplier", filter = FuelRequestFilterType.Accepted })";
+        var MissedFrUrl = "@Url.Action("View", "FuelRequest", new { area = "Supplier", filter = FuelRequestFilterType.Missed })";
+        var ExpiredFrUrl = "@Url.Action("View", "FuelRequest", new { area = "Supplier", filter = FuelRequestFilterType.Expired })";
+        var DeclinedFrUrl = "@Url.Action("View", "FuelRequest", new { area = "Supplier" , filter = FuelRequestFilterType.Declined})";
+        var CounterFrUrl = "@Url.Action("View", "FuelRequest", new { area = "Supplier" })";
+        var dashboardFilter = getDashboardFilter();
+
+        $(document).ready(function () {
+            getFRGrid();
+        });
+        function getFRGrid() {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetFuelRequestsGrid", "Dashboard", new { area = "Supplier"})",
+                dataType: "json",
+                data: { 'countryId': dashboardFilter.countryId, 'currency': dashboardFilter.currencyType },
+                success: function (data) {
+                    $("#totalRequestedGallonsStat").closest(".widget").find('.loading-wrapper').hide();
+
+                    if (data.RecentFuelRequests.length > 0) {
+                        for (i = 0; i < data.RecentFuelRequests.length; i++) {
+                            //sComment below two line for new source region flow
+                            var TnCurl = "@Url.Action("TermsAndConditions", "FuelRequest", new { area = "Supplier" })";
+                            var acceptUrl = "@Url.Action("AcceptFuelRequest", "Dashboard", new { area = "Supplier" })/" + data.RecentFuelRequests[i].FuelRequestId;
+                            var declineUrl = "@Url.Action("DeclineFuelRequest", "Dashboard", new { area = "Supplier" })/" + data.RecentFuelRequests[i].FuelRequestId;
+                            var counterOfferUrl = "@Url.Action("counteroffer", "FuelRequest", new { area = "Supplier" })" + "?fuelRequestId=" + data.RecentFuelRequests[i].FuelRequestId;
+                            //Comment below three lines for new source region flow and uncomment commented line
+                            var acceptData = "data-toggle='confirmation' data-html='true' data-popout='true' data-singleton='true' data-content='@(string.Format(Resource.lblAutoAgreeTerms, Resource.lblYes))";
+                            var termsLink = ' <a href="' + TnCurl + '" target="_blank">@Resource.headerTermsAndConditions</a>' + "'";
+                            var acceptConfirm = acceptData + termsLink;
+                            //var acceptConfirmSetParams = "setFRParams(" + data.RecentFuelRequests[i].FuelRequestId + ");";
+                            var declineConfirm = "data-toggle='confirmation' data-popout='true' data-singleton='true'";
+                            var isAllowedUser = '@CurrentUser.IsSupplier' == 'True' || '@CurrentUser.IsSupplierAdmin' == 'True';
+                            var hideBuyerAppCreatedFR = (data.RecentFuelRequests[i].OnboardedTypeId == @((int)OnboardedType.ThirdPartyOrderOnboarded) && data.RecentFuelRequests[i].IsOnboardingComplete == false) ? 'hide-element' : '';
+
+                            $("#table-fr tbody").append("<tr>" +
+                                "<td class='break-word pl0'><a href='@Url.Action("Details", "FuelRequest", new { area = "Supplier"})/" + data.RecentFuelRequests[i].FuelRequestId + "'>" + data.RecentFuelRequests[i].FuelType + "</a></td>" +
+                                "<td>" + data.RecentFuelRequests[i].StartDate + "</td>" +
+                                "<td class='text-right'>" + (data.RecentFuelRequests[i].GallonsNeeded).toLocaleString("en-US", { maximumFractionDigits: 2 }) + "</td>" +
+                                "<td width='100'>" + data.RecentFuelRequests[i].PricePerGallon + "</td>" +
+                                "<td class='pr0 text-left text-wrap'>" + data.RecentFuelRequests[i].StateAndZip + "</td>" +
+                                "<td class='pr0 text-right text-nowrap'>" +
+                                (isAllowedUser ?
+                                    (data.RecentFuelRequests[i].IsCounterOfferDeclinedByBuyer ? "<button class='btn btn-danger btn-xs'>@Resource.lblCounterOfferDeclined</button>" :
+                                        data.RecentFuelRequests[i].IsCounterOfferPendingOnBuyer ? "<button class='btn btn-warning btn-xs'>@Resource.lblCounterOfferPending</button>" :
+                                            data.RecentFuelRequests[i].IsCounterOfferPendingOnSupplier ? "<button class='btn btn-warning btn-xs'>@Resource.lblCounterOfferOpen</button>" :
+                                                "<div class='btn-group'><button data-toggle='dropdown' class='btn btn-primary btn-sm dropdown-toggle' aria-expanded='false'>@Resource.btnLabelAction <span class='caret'></span></button><ul class='dropdown-menu dropdown-menu-right'>" +
+                                            "<li  class='dropdown-item' ><a href='" + acceptUrl + "' " + acceptConfirm + ">@Resource.btnLabelAccept <i class='fa fa-check color-green float-left mt7 mr5'></i></a></li>" +
+                                            @*"<li  class='dropdown-item' ><a href='javascript:void(0)' data-toggle='modal' onclick='" + acceptConfirmSetParams +"' data-target='#acceptFRModalPopup'>@Resource.btnLabelAccept <i class='fa fa-check color-green float-left mt7 mr5'></i></a></li>" +*@
+                                                "<li class='divider'></li>" +
+                                            "<li class='dropdown-item'><a href='" + declineUrl + "' " + declineConfirm + ">@Resource.btnLabelDecline <i class='fa fa-times color-maroon float-left mt7 mr5'></i></a></li>" +
+                                                "<li class='divider'></li>" +
+                                            "<li class='dropdown-item " + hideBuyerAppCreatedFR + "'><a href='" + counterOfferUrl + "'>@Resource.btnLabelCounterOffer <i class='fa fa-exchange-alt float-left mt7 mr5'></i></a></li>" +
+                                                "</ul></div>")
+                                    : "") + "</td></tr>")
+                            $("#FRBarChart").closest(".grid-loader").find('.loading-wrapper').hide();
+                        }
+                        wrapperHeight();
+                    }
+                    else {
+                        $("#table-fr tbody").append("<tr onclick='return restrictFormPost(event);'><td colspan='5'>There are no items to display</td ></tr >");
+                        $("#FRBarChart").closest(".grid-loader").find('.loading-wrapper').hide();
+                    }
+                }
+            });
+        }
+
+        $(document).ajaxComplete(function () {
+            $('[data-toggle=confirmation]').confirmation({
+                rootSelector: '[data-toggle=confirmation]',
+                html: true
+            });
+        });
+
+        function restrictFormPost(e) {
+            // form is getting posted on click for empty grid. following code will restrict form posting for empty grid.
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        };
+
+        function setFRParams(fuelRequestId) {
+            $('#hdnFuelRequestId').val(fuelRequestId);
+        }
+</script>
+}

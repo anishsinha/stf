@@ -1,0 +1,247 @@
+﻿@{
+    ViewBag.Title = "User Notifications";
+}
+<div class="row">
+    <div class="col-sm-12">
+        <h3 class="mt0 f-light pb5 fs21">@Resource.headingUserNotifications</h3>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="notifications-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th>@Resource.lblEventTypes</th>
+                                    <th class="text-center">
+                                        <input type="checkbox" id="select-all-email" />
+                                        @Resource.gridColumnEmail
+                                    </th>
+                                    <th class="text-center">
+                                        <input type="checkbox" id="select-all-sms" />
+                                        @Resource.gridColumnSms
+                                    </th>
+                                    <th class="text-center">
+                                        <input type="checkbox" id="select-all-inapp" />
+                                        @Resource.gridColumnInApp
+                                    </th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row text-right btn-wrapper">
+    <div class="col-sm-12">
+        <div class="form-group">
+            <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Index", "Home", new { area = "" })'" />
+            <input type="button" class="btn btn-lg btn-primary btn-md disable-controls" value="@Resource.btnLabelSave" id="btnSave" />
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+
+        function updateSelectAllOnPageChange() {
+            var allChecked = true;
+
+            $('#notifications-datatable tbody tr').each(function () {
+                $(this).find(':checkbox[name=email]').each(function () {
+                    if (!$(this).is(':checked')) {
+                        allChecked = false;
+                    }
+                });
+            });
+            $('#select-all-email').prop('checked', allChecked);
+        }
+
+        var notificationsDatatable, exportColumns = { columns: [2, 3] };
+
+        $(document).ready(function () {
+
+            notificationsDatatable = $('#notifications-datatable').dataTable({
+                "ajax": {
+                    "url": "@Url.Action("UserNotificationsGrid", "Profile", new { area ="Settings"})",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                            { "data": "EventTypeId", "autoWidth": true },
+                            { "data": "UserId", "autoWidth": true },
+                            { "data": "EventTypeName", "autoWidth": true },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    var checked = data.IsEmail ? 'checked="checked"' : '';
+                                    var enabled = data.IsEmailEnabled ? '' : 'disabled="disabled"';
+                                    var columnCtrl = '<div class="custom-control custom-switch"><input IsEmailEnabled = ' + data.IsEmailEnabled + ' type="checkbox" name="email" class="chk-email-group custom-control-input" ' + checked + ' ' + enabled + ' data-id="' + data.EventTypeId + '" id="is-email-' + data.EventTypeId + '" value="' + data.IsEmail + '"/><label class="custom-control-label" style="display:inline" for="is-email-' + data.EventTypeId + '">&nbsp;</label></div>';
+                                    columnCtrl += '<span class="hidden">' + (data.IsEmail ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+                                    return columnCtrl;
+
+                                }, "autoWidth": true, "bSortable": false
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    var checked = data.IsSMS ? "checked=\"checked\"" : "";
+                                    var enabled = data.IsSmsEnabled ? '' : 'disabled="disabled"';
+                                    var columnCtrl = '<div class="custom-control custom-switch"><input IsSmsEnabled = ' + data.IsSmsEnabled + ' type="checkbox" class="chk-sms-group custom-control-input" ' + checked + ' ' + enabled + ' data-id="' + data.EventTypeId + '" id="is-sms-' + data.EventTypeId + '" value= "' + data.IsSMS + '"/><label class="custom-control-label" style="display:inline" for="is-sms-' + data.EventTypeId + '">&nbsp;</label></div>';
+                                    columnCtrl += '<span class="hidden">' + (data.IsSMS ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+                                    return columnCtrl;
+
+                                }, "autoWidth": true, "bSortable": false
+                            },
+                            {
+                                "data": function (data, type, row, meta) {
+                                    var checked = data.IsInApp ? "checked=\"checked\"" : "";
+                                    var columnCtrl = '<div class="custom-control custom-switch"><input type = "checkbox" class = "chk-inappp-group custom-control-input" ' + checked + ' data-id="' + data.EventTypeId + '" id = "is-isinapp-' + data.EventTypeId + '" value= "' + data.IsInApp + '"/><label class="custom-control-label" style="display:inline" for="is-isinapp-' + data.EventTypeId + '">&nbsp;</label></div>';
+                                    columnCtrl += '<span class="hidden">' + (data.IsInApp ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+                                    return columnCtrl;
+
+                                }, "autoWidth": true, "bSortable": false
+                            }
+                ],
+                "columnDefs": [{
+                    "targets": [0, 1, 5],
+                    "visible": false,
+                    "searchable": false
+                }],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    allPages = notificationsDatatable.fnGetNodes();
+                    updateSelectAllCheckboxStatus(json);
+                    wrapperHeight();
+                },
+                "fnDrawCallback": function( settings ) {
+                    updateSelectAllOnPageChange();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingUserNotifications', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingUserNotifications', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingUserNotifications', exportOptions: exportColumns },
+
+                    {
+                        extend: 'print', exportOptions: exportColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+
+            });
+
+            $('#btnSave').on('click', function (e) {
+                e.preventDefault();
+                var userNotificationSettings = [];
+                var selectedEmail = [];
+                var selectedSms = [];
+				$(".chk-email-group", notificationsDatatable.fnGetNodes()).each(function () {
+					if ($(this).is(':checked')) {
+						selectedEmail.push($(this).data('id'));
+					}
+				})
+
+                $(".chk-sms-group", notificationsDatatable.fnGetNodes()).each(function () {
+                    if ($(this).is(':checked')) {
+                        selectedSms.push($(this).data('id'));
+                    }
+                })
+
+                $.each(notificationsDatatable.fnGetData(), function (index, data) {
+                    var settings = {
+                        EventTypeId: data.EventTypeId,
+						UserId: data.UserId,
+						IsEmail: $.inArray(data.EventTypeId, selectedEmail) == -1 ? false : true,
+                        IsSMS: $.inArray(data.EventTypeId, selectedSms) == -1 ? false : true,
+						IsInApp: false
+                    };
+                    userNotificationSettings.push(settings);
+                });
+
+                var model = {
+                    viewModel: {
+                        UserId: 0,
+                        UserNotificationSettings: userNotificationSettings
+                    }
+                };
+
+                var url = '@Url.Action("UserNotifications", "Profile", new { area = "Settings" })';
+
+                $.post(url, model, function (response) {
+                                        window.location.href = "@Url.Action("UserNotifications", "Profile", new { area = "Settings" })";
+                });
+            });
+        });
+
+
+        function updateSelectAllCheckboxStatus(json) {
+            $('#select-all-email').click(function () {
+                var status = $(this).prop('checked');
+                $(".chk-email-group").each(function () {
+                    var isEmailEnabled = $(this).attr('IsEmailEnabled');
+                    if (isEmailEnabled == 'true')
+                        $(this).prop("checked", status);
+                });
+            });
+
+            $(':checkbox[name=email]', allPages).change(function () {
+                updateSelectAllOnPageChange();
+            });
+
+            $('#select-all-sms').click(function () {
+                var status = $(this).prop('checked');
+                $(".chk-sms-group").each(function () {
+                    var isSmsEnabled = $(this).attr('IsSmsEnabled');
+                    if (isSmsEnabled == 'true')
+                        $(this).prop("checked", status);
+                });
+            });
+
+            $('#select-all-inapp').click(function () {
+                var status = $(this).prop('checked');
+                $(".chk-inappp-group").each(function () {
+                    $(this).prop("checked", status);
+                });
+            });
+
+            $(".chk-sms-group").change(function () {
+                if ($('.chk-sms-group').length == $(".chk-sms-group:checked").length) {
+                    $('#select-all-sms').prop("checked", true);
+                }
+                else {
+                    $('#select-all-sms').prop("checked", false);
+                }
+            });
+
+            $(".chk-inappp-group").change(function () {
+                if ($('.chk-inappp-group').length == $(".chk-inappp-group:checked").length) {
+                    $('#select-all-inapp').prop("checked", true);
+                }
+                else {
+                    $('#select-all-inapp').prop("checked", false);
+                }
+            });
+        }
+
+    </script>
+}

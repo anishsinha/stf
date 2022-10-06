@@ -1,0 +1,128 @@
+﻿@model ThirdPartyOrderViewModel
+
+<div class="col-sm-12">
+    <div class="row">
+        <div class="col-sm-3 mt-2">
+            <label>Freight Type</label>
+            @Html.EnumDropDownListFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleType, Resource.btnLabelSelect, new { @class = "form-control enum-ddl-spt", onchange = "ToogleTableType();GetFreightTables();" })
+        </div>
+        <div class="col-sm-3 mt-2 table_type">
+            @{ 
+                var selectList = Enum.GetValues(typeof(TableTypes))
+                                     .Cast<TableTypes>()
+                                    .Where(e => e != TableTypes.CarrierSpecific)
+                                     .Select(e => new SelectListItem
+                                     {
+                                         Value = ((int)e).ToString(),
+                                         Text = e.GetDisplayName()
+                                     });
+            }
+            <label>Table Types</label>
+            @Html.DropDownListFor(m => m.OrderAdditionalDetailsViewModel.FreightRateTableType, selectList, Resource.btnLabelSelect, new { @class = "form-control enum-ddl-spt", onchange = "GetFreightTables();" })
+            @Html.ValidationMessageFor(m => m.OrderAdditionalDetailsViewModel.FreightRateTableType)
+        </div>
+        <div class="col-sm-3 mt-2">
+            <label>Freight Table Name</label>
+            @Html.DropDownListFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name"), Resource.btnLabelSelect, new { @class = "form-control", onchange = "onChangeFreightRateRuleId();" })
+            @Html.ValidationMessageFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleId)
+            <a class="mt-2" onclick="viewFreightRateRule();" id="lnkviewFreightRateRuleTable" class="pntr-none subSectionOpacity">View Freight Rate Rule Table </a>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+
+    function SetFreightRateRuleId(key, val) {
+        if (typeof Storage !== "undefined") {
+            localStorage.setItem(key, val);
+        }
+    }
+
+    function RemoveFreightRateRuleId(key) {
+        if (typeof Storage !== "undefined") {
+            localStorage.removeItem(key);
+        }
+    }
+    function ToogleTableType() {
+        $('#lnkviewFreightRateRuleTable').addClass('pntr-none subSectionOpacity');
+        var selectedFreightType = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleType)").val();
+
+        $(@Html.IdFor(m => m.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.FeeSubTypeId)).val("2");//for reset
+        FscFreightCost($("#@Html.IdFor(m => m.FuelDeliveryDetails.FuelFees.FuelSurchargeFreightFee.FeeSubTypeId)")) //for reset
+
+        $(".fuel-surcharge-range").removeClass("hide-element");
+        $(".fuel-surcharge-range").hide();
+
+        $(".fsc-freightcost").addClass("hide-element");
+        $(".fsc-freightcost").hide();
+
+        if (selectedFreightType == '@((int)FreightRateRuleType.Range)' || selectedFreightType == '@((int)FreightRateRuleType.Route)') {
+            $(".table_type").show();
+        } else {
+            $(".table_type").hide();
+        }
+    }
+
+    function GetFreightTables() {
+        var selectedFreightType = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleType)").val();      
+        var selectedTableType = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FreightRateTableType)").val();
+        if (selectedTableType == "") {
+            var selectedTableType = 0;
+        }
+        var selectedCustomerId = $("#@Html.IdFor(m => m.CustomerDetails.CompanyId)").val();
+        var selectedTerminalId = $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminalId)").val();
+        var selectedBulkPlantId = $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlantId)").val();
+        var selectedFuelTypeId = $("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").val();
+        var selectedTerminals = $('#@Html.IdFor(m => m.SourceRegion.SelectedTerminals) option:selected').toArray().map(item => parseInt(item.value));
+        var selectedBulkPlants = $('#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants) option:selected').toArray().map(item => parseInt(item.value));
+
+        if (selectedFreightType == '@((int)FreightRateRuleType.P2P)') {
+            selectedTableType = '@((int)TableTypes.CustomerSpecific)';
+        }
+        var sourceRegionIds = $('#@Html.IdFor(m => m.SourceRegion.SelectedSourceRegions) option:selected').toArray().map(item => parseInt(item.value));
+
+        var target = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleId)");
+        var url = "@Url.Action("GetFreightRateTables", "Order")";
+        var filter = {
+            'FreightRateRuleType': selectedFreightType,
+            'TableType': selectedTableType,
+            'CustomerId': selectedCustomerId,
+            'TerminalId': selectedTerminalId,
+            'BulkPlantId': selectedBulkPlantId,
+            'FuelTypeId': selectedFuelTypeId,
+            'SourceRegionIds': sourceRegionIds,
+            'SelectedTerminals': selectedTerminals,
+            'SelectedBulkPlants': selectedBulkPlants
+        }
+
+        $.post(url, filter,
+            function (response) {
+                target.empty(), $.each(response, function (i, element) {
+                    target.append($('<option></option>').val(element.Id).html(element.Name));
+                });
+
+                $(target).prepend("<option value selected='selected'>@Resource.btnLabelSelect</option>");
+
+            });
+    }
+
+    function onChangeFreightRateRuleId() {
+        var FreightRateRuleId = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleId)").val();
+        if (FreightRateRuleId == null || FreightRateRuleId == undefined || FreightRateRuleId == -1 || FreightRateRuleId =="") {
+            $('#lnkviewFreightRateRuleTable').addClass('pntr-none subSectionOpacity');
+        } else {
+            $('#lnkviewFreightRateRuleTable').removeClass('pntr-none subSectionOpacity');
+        }
+    }
+
+    function viewFreightRateRule() {
+         var FreightRateRuleId = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleId)").val();
+        RemoveFreightRateRuleId("FreightRateRuleId");
+        SetFreightRateRuleId("FreightRateRuleId", FreightRateRuleId);
+        var freightRateLink = "@Url.Action("Create", "FreightRate", new { area = "Supplier" })";
+        window.open(freightRateLink, '_blank');
+    }
+</script>
+}

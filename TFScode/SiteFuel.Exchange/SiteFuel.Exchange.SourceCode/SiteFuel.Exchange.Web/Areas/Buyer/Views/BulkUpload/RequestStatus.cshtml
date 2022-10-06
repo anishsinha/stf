@@ -1,0 +1,81 @@
+﻿@model RequestStatusViewModel
+
+@{
+    ViewBag.Title = "Bulk Upload";
+}
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="bulkUpload-status" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnRequestId</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th>@Resource.gridColumnDetails</th>
+                                    <th>@Resource.gridColumnDateTime</th>
+                                    <th>@Resource.gridColumnType</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var supplierinvoice, exportColumns = { columns: [0, 1, 2, 3, 4] };
+        $(document).ready(function () {
+
+            supplierinvoice = $('#bulkUpload-status').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("BulkUploadDetails", "BulkUpload", new { area = "Buyer" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    { "data": "RequestNumber", "autoWidth": true },
+                    { "data": "Status", "autoWidth": true },
+                    { "data": "Details", "autoWidth": true },
+                    { "data": "UploadedDateTime", "autoWidth": true },
+                    { "data": "QueueProcessoryType", "autoWidth": true },
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingInvoices', exportOptions: exportColumns, orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+        });
+
+    </script>
+}

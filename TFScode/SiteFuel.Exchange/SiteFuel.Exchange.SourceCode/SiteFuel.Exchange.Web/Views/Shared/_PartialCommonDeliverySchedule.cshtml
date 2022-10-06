@@ -1,0 +1,230 @@
+﻿@model SiteFuel.Exchange.ViewModels.DeliveryScheduleViewModel
+<script src="~/Content/js/common-supplier.js"></script>
+<div class="row col-12 p-0 schedule-trash">
+    @Html.HiddenFor(m => m.CreatedBy)
+    @Html.HiddenFor(m => m.StatusId)
+    @Html.HiddenFor(m => m.Id)
+    @Html.HiddenFor(m => m.GroupId)
+    @Html.HiddenFor(m => m.IsRescheduled)
+
+    @if (Model.ScheduleType == (int)DeliveryScheduleType.Monthly)
+    {
+        <div class="schedule-type-container col-sm-11 row">
+            <div class="col-xs-6 col-sm-2">
+                @Html.DropDownListFor(m => m.ScheduleType, new SelectList(CommonHelperMethods.GetMstScheduleTypes(), "Id", "Name", Model.ScheduleType), new { @class = "form-control schedule-type" })
+                @Html.ValidationMessageFor(m => m.ScheduleType)
+            </div>
+            <div class="col-sm-2 col-xs-6">
+                <div class="form-group delivery-date">
+                    @Html.TextBoxFor(m => m.ScheduleDate, new { @class = "form-control datepicker schedule-date", @placeholder = Resource.lblDate })
+                    @Html.ValidationMessageFor(m => m.ScheduleDate)
+                </div>
+                <div class="form-group delivery-day hide-element">
+                    @Html.ListBoxFor(m => m.ScheduleDays, new SelectList(CommonHelperMethods.GetWeekDays(), "Id", "Code", 0), new { @class = "form-control multi-select schedule-days", @placeholder = Resource.lblDay })
+                    @Html.ValidationMessageFor(m => m.ScheduleDays)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ScheduleStartTime, new { @class = "form-control timepicker starttime", @placeholder = Resource.lblStartTime })
+                    @Html.ValidationMessageFor(m => m.ScheduleStartTime)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ScheduleEndTime, new { @class = "form-control timepicker endtime", @placeholder = Resource.lblEndTime })
+                    @Html.ValidationMessageFor(m => m.ScheduleEndTime)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2 ddl-schedule-qty-type hide-element">
+                <div class="form-group">
+                    @Html.EnumDropDownListFor(m => m.ScheduleQuantityType, new { @class = "form-control schedule-quantity-type", @onchange = "return validateScheduleQuantityType(this);" })
+                    @Html.ValidationMessageFor(m => m.ScheduleQuantityType)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2 schedule-qty-container @(Model.ScheduleQuantityType != ScheduleQuantityType.Quantity ? "hide-element" : "")">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ScheduleQuantity, new { @class = "form-control datatype-decimal quantity", @placeholder = Resource.lblQuantity })
+                    @Html.ValidationMessageFor(m => m.ScheduleQuantity)
+                </div>
+            </div>
+        </div>
+    }
+    @if (Model.ScheduleType == (int)DeliveryScheduleType.SpecificDates)
+    {
+        @Html.HiddenFor(m => m.RescheduledTrackableId)
+        <div class="schedule-type-container col-sm-11 row">
+            <div class="col-xs-6 col-sm-2">
+                @Html.DropDownListFor(m => m.ScheduleType, new SelectList(CommonHelperMethods.GetMstScheduleTypes(), "Id", "Name", Model.ScheduleType), Model.StatusId == (int)DeliveryScheduleStatus.Rescheduled ?
+                                                       (object)new { @class = "form-control schedule-type", @readonly = "true" } : (object)new { @class = "form-control schedule-type" })
+                @Html.ValidationMessageFor(m => m.ScheduleType)
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group delivery-date">
+                    @Html.TextBoxFor(m => m.ScheduleDate, new { @class = "form-control datepicker schedule-date", @placeholder = Resource.lblDate })
+                    @Html.ValidationMessageFor(m => m.ScheduleDate)
+                </div>
+                <div class="form-group delivery-day hide-element">
+                    @Html.ListBoxFor(m => m.ScheduleDays, new SelectList(CommonHelperMethods.GetWeekDays(), "Id", "Code", 0), new { @class = "form-control multi-select schedule-days", @placeholder = Resource.lblDay })
+                    @Html.ValidationMessageFor(m => m.ScheduleDays)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ScheduleStartTime, new { @class = "form-control timepicker starttime", @placeholder = Resource.lblStartTime })
+                    @Html.ValidationMessageFor(m => m.ScheduleStartTime)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ScheduleEndTime, new { @class = "form-control timepicker endtime", @placeholder = Resource.lblEndTime })
+                    @Html.ValidationMessageFor(m => m.ScheduleEndTime)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2 ddl-schedule-qty-type hide-element">
+                <div class="form-group">
+                    @Html.EnumDropDownListFor(m => m.ScheduleQuantityType, new { @class = "form-control schedule-quantity-type", @onchange = "return validateScheduleQuantityType(this);" })
+                    @Html.ValidationMessageFor(m => m.ScheduleQuantityType)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2 schedule-qty-container @(Model.ScheduleQuantityType != ScheduleQuantityType.Quantity ? "hide-element" : "")">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ScheduleQuantity, new { @class = "form-control datatype-decimal quantity", @placeholder = Resource.lblQuantity })
+                    @Html.ValidationMessageFor(m => m.ScheduleQuantity)
+                </div>
+            </div>
+        </div>
+    }
+    @if (Model.ScheduleType == (int)DeliveryScheduleType.Weekly)
+    {
+        @Html.HiddenFor(m => m.ScheduleDate)
+        <div class="schedule-type-container col-sm-11 row">
+            <div class="col-xs-6 mb5 col-sm-2">
+                @Html.DropDownListFor(m => m.ScheduleType, new SelectList(CommonHelperMethods.GetMstScheduleTypes(), "Id", "Name", Model.ScheduleType), new { @class = "form-control schedule-type" })
+                @Html.ValidationMessageFor(m => m.ScheduleType)
+            </div>
+            <div class="col-sm-2">
+                <div class="form-group delivery-date hide-element">
+                    @Html.TextBoxFor(m => m.ScheduleDate, new { @class = "form-control datepicker schedule-date", @placeholder = Resource.lblDate })
+                    @Html.ValidationMessageFor(m => m.ScheduleDate)
+                </div>
+                <div class="form-group delivery-day">
+                    @Html.ListBoxFor(m => m.ScheduleDays, new SelectList(CommonHelperMethods.GetWeekDays(), "Id", "Code", 0), new { @class = "form-control multi-select schedule-days", @placeholder = Resource.lblDay })
+                    @Html.ValidationMessageFor(m => m.ScheduleDays)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="input-group">
+                    @Html.TextBoxFor(m => m.ScheduleStartTime, new { @class = "form-control timepicker starttime", @placeholder = Resource.lblStartTime })
+                    @Html.ValidationMessageFor(m => m.ScheduleStartTime)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="input-group">
+                    @Html.TextBoxFor(m => m.ScheduleEndTime, new { @class = "form-control timepicker endtime", @placeholder = Resource.lblEndTime })
+                    @Html.ValidationMessageFor(m => m.ScheduleEndTime)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2 ddl-schedule-qty-type hide-element">
+                <div class="form-group">
+                    @Html.EnumDropDownListFor(m => m.ScheduleQuantityType, new { @class = "form-control schedule-quantity-type", @onchange = "return validateScheduleQuantityType(this);" })
+                    @Html.ValidationMessageFor(m => m.ScheduleQuantityType)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2 schedule-qty-container @(Model.ScheduleQuantityType != ScheduleQuantityType.Quantity ? "hide-element" : "")">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ScheduleQuantity, new { @class = "form-control datatype-decimal quantity", @placeholder = Resource.lblQuantity })
+                    @Html.ValidationMessageFor(m => m.ScheduleQuantity)
+                </div>
+            </div>
+        </div>
+    }
+    @if (Model.ScheduleType == (int)DeliveryScheduleType.BiWeekly)
+    {
+        @Html.HiddenFor(m => m.ScheduleDate)
+        <div class="schedule-type-container col-sm-11 row ">
+             <div class="col-xs-6 mb5 col-sm-2">
+                @Html.DropDownListFor(m => m.ScheduleType, new SelectList(CommonHelperMethods.GetMstScheduleTypes(), "Id", "Name", Model.ScheduleType), new { @class = "form-control schedule-type" })
+                @Html.ValidationMessageFor(m => m.ScheduleType)
+            </div>
+            <div class="col-sm-2">
+                <div class="form-group delivery-date hide-element">
+                    @Html.TextBoxFor(m => m.ScheduleDate, new { @class = "form-control datepicker schedule-date", @placeholder = Resource.lblDate })
+                    @Html.ValidationMessageFor(m => m.ScheduleDate)
+                </div>
+                <div class="form-group delivery-day">
+                    @Html.ListBoxFor(m => m.ScheduleDays, new SelectList(CommonHelperMethods.GetWeekDays(), "Id", "Code", 0), new { @class = "form-control multi-select schedule-days", @placeholder = @Resource.lblDay })
+                    @Html.ValidationMessageFor(m => m.ScheduleDays)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="input-group">
+                    @Html.TextBoxFor(m => m.ScheduleStartTime, new { @class = "form-control timepicker starttime", @placeholder = Resource.lblStartTime })
+                    @Html.ValidationMessageFor(m => m.ScheduleStartTime)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="input-group">
+                    @Html.TextBoxFor(m => m.ScheduleEndTime, new { @class = "form-control timepicker endtime", @placeholder = Resource.lblEndTime })
+                    @Html.ValidationMessageFor(m => m.ScheduleEndTime)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2 ddl-schedule-qty-type hide-element">
+                <div class="form-group">
+                    @Html.EnumDropDownListFor(m => m.ScheduleQuantityType, new { @class = "form-control schedule-quantity-type", @onchange = "return validateScheduleQuantityType(this);" })
+                    @Html.ValidationMessageFor(m => m.ScheduleQuantityType)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2 schedule-qty-container @(Model.ScheduleQuantityType != ScheduleQuantityType.Quantity ? "hide-element" : "")">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ScheduleQuantity, new { @class = "form-control datatype-decimal quantity", @placeholder = @Resource.lblQuantity })
+                    @Html.ValidationMessageFor(m => m.ScheduleQuantity)
+                </div>
+            </div>
+        </div>
+    }
+    <div class="show-in-tpo tpo-carrier clearboth hide-element col-sm-11">
+        <div class="col-sm-12 row pa0">
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group">
+                    @Html.PartialFor("~/Views/Shared/_PartialCarrier.cshtml", m => m.Carrier)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group">
+                    @Html.PartialFor("~/Views/Shared/_PartialSupplierSource.cshtml", m => m.SupplierSource)
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.SupplierSource.ContractNumber, new { @class = "form-control", @placeholder = @Resource.lblContractNumber })
+                </div>
+            </div>
+            <div class="col-xs-6 col-sm-2">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.LoadCode, new { @class = "form-control", @placeholder = @Resource.lblLoadCode })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-1 hide-orderdetails text-right">
+        <a href="javascript:void(0)" class="fa fa-trash-alt fs18 color-maroon mt2" id="removeSchedule_@Model.Id" title="@Resource.btnLabelRemove" onclick="removePartial(this);EnableDisableSaveButtonChild()"></a>
+    </div>
+    
+</div>
+<div class="col-sm-12 border-b-dash mb15">
+
+</div>
+<script>
+    $(document).ready(function () {
+
+        EnableDisableSaveButtonChild();
+    });
+    function EnableDisableSaveButtonChild() {
+        if (typeof EnableDisableSaveButton == 'function') {
+            //Call Parent function
+            EnableDisableSaveButton()
+        }
+    }
+</script>
+

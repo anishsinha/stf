@@ -1,0 +1,166 @@
+﻿@model AssetViewModel
+
+@{
+	if (Model.Type == (int)AssetType.Asset)
+	{
+		ViewBag.Title = "Add Asset";
+	}
+	else if (Model.Type == (int)AssetType.Tank)
+	{
+		ViewBag.Title = "Add Tank";
+	}
+}
+@{
+	int orderId = ViewBag.OrderId;
+	int jobId = ViewBag.JobId;
+	int type = ViewBag.Type;
+	bool isCallFromOrderDetails = ViewBag.isCallFromOrderDetails;
+	bool shouldJobGetAssigned = ViewBag.ShouldJobGetAssigned != null ? ViewBag.ShouldJobGetAssigned : false;
+
+	<div class="row">
+		<div class="col-md-8 mb10 tab-headers">
+			<a href="javascript:void(0)" class="active mr20">
+				<div class="step-inprogress fs18">
+					<span class="f-light step-text float-left">@Resource.tabheadingDetails</span>
+				</div>
+			</a>
+		</div>
+		@*<div class="col-md-4 text-right">
+			@if (!isCallFromOrderDetails && Model.Type == (int)AssetType.Asset)
+            {
+                using (Html.BeginForm("AssetBulkUpload", "Order", new { area = "Supplier", oId = orderId, jId = jobId }, FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+					@Html.AntiForgeryToken()
+
+					@Html.Partial("_PartialAssetBulkUpload")
+                }
+            }
+            else if (!isCallFromOrderDetails && Model.Type == (int)AssetType.Tank)
+            {
+                using (Html.BeginForm("TankBulkUpload", "Order", new { area = "Supplier", oId = orderId, jId = jobId }, FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+					@Html.AntiForgeryToken()
+
+					@Html.Partial("_PartialTankBulkUpload")
+                }
+            }
+		</div>*@
+	</div>
+	<div class="tab-container">
+		<div class="row">
+			<div class="col-md-12">
+				@using (Html.BeginForm("CreateAsset", "Order", new
+				{
+					area = "Supplier",
+					oId = ViewBag.OrderId,
+					jId = ViewBag.JobId,
+					type = ViewBag.Type,
+					shouldJobGetAssigned = shouldJobGetAssigned,
+					isCallFromOrderDetails = isCallFromOrderDetails
+				}, FormMethod.Post, new { enctype = "multipart/form-data", @id = "createAssetForm" }))
+				{
+					@Html.AntiForgeryToken()
+
+					if (Model.Type == (int)AssetType.Asset)
+					{
+						<div class="row">
+							<div class="col-sm-12">
+								@Html.PartialFor("_PartialAsset", m => m)
+							</div>
+						</div>
+					}
+					else if (Model.Type == (int)AssetType.Tank)
+					{
+						<div class="row">
+							<div class="col-sm-12">
+								@Html.PartialFor("_PartialTank", m => m)
+							</div>
+						</div>
+					}
+					<div class="row">
+						<div class="col-sm-12 text-right pb30">
+							@*<span>
+									<input type="button" id="btnCancel" class="btn" value="@Resource.btnLabelCancel" />
+								</span>*@
+							<span>
+								<input type="button" class="btn btn-primary" id="btnSubmit" value="@Resource.btnLabelSubmit" />
+							</span>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+
+}
+
+<script>
+    $("#btnCancel").click(function () {
+        window.history.go(-1);
+    });
+
+    var isODP = '@isCallFromOrderDetails';
+    if (isODP == 'True') {
+        SetLocalStorage('AddingAssetFromODP', true);
+    }
+
+    $('#csvFile').bind('change', function () {
+            ValidateAssetUploadFileSize(this, parseInt('@Model.MaxAllowedFileSize'), "uploadAssetsButton", "divAssetFileSizeError");
+	});
+    $("#btnSubmit").click(function () {
+        var isValidForm = true;
+        if ('@(Model.Type == (int)AssetType.Tank)' == 'True') {
+            validationMessageFor('FuelType.Id', '');
+            validationMessageFor('AssetAdditionalDetail.TankModelTypeId', '');
+			if ($('#FuelType_Id').val() == null || $('#FuelType_Id').val() == undefined || $('#FuelType_Id').val() == 0) {
+				validationMessageFor('FuelType.Id', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblProductType })');
+				isValidForm = false;
+            }
+
+            var dipTestMethodId = parseInt($('#AssetAdditionalDetail_DipTestMethod').find(":selected").val());
+            if (!isNaN(dipTestMethodId) && dipTestMethodId == @((int)DipTestMethod.Pedigree)) {
+                var pedigreeAssetDBID = $.trim($('#AssetAdditionalDetail_PedigreeAssetDBID').val());
+                if (pedigreeAssetDBID == null || pedigreeAssetDBID == '' || pedigreeAssetDBID == undefined) {
+                    validationMessageFor('AssetAdditionalDetail.PedigreeAssetDBID', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblPedigreeAssetDBID })');
+                    isValidForm = false;
+                }
+            }
+
+            if (!isNaN(dipTestMethodId) && dipTestMethodId == @((int)DipTestMethod.Skybitz)) {
+                var skybitsRTUId = $.trim($('#AssetAdditionalDetail_SkyBitzRTUID').val());
+                if (skybitsRTUId == null || skybitsRTUId == '' || skybitsRTUId == undefined) {
+                    validationMessageFor('AssetAdditionalDetail.SkyBitzRTUID', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblSkyBitzRTUID })');
+                    isValidForm = false;
+                }
+            }
+            if (!isNaN(dipTestMethodId) && dipTestMethodId == @((int)DipTestMethod.Insight360)) {
+                var insight360Id = $.trim($('#AssetAdditionalDetail_Insight360TankId').val());
+                if (insight360Id == null || insight360Id == '' || insight360Id == undefined) {
+                    validationMessageFor('AssetAdditionalDetail.Insight360TankId', '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblInSight360ID })');
+                    isValidForm = false;
+                }
+            }
+
+            // validate veeder root controls
+            if (!isNaN(dipTestMethodId) && dipTestMethodId == @((int)DipTestMethod.VeederRoot)) {
+                isValidForm = validateVeederRootControls(isValidForm);
+            }
+
+            // validate water level threshold
+            isValidForm = validateWaterLevelThreshold(isValidForm);
+        }
+
+        if (isValidForm && isValidStorageTypeId && $('#createAssetForm').valid()) {
+            if (@Model.Type == 2) {
+                var tankId =$('#@Html.IdFor(m => m.Id)').val();
+                var tankSequence = $('#@Html.IdFor(m => m.AssetAdditionalDetail.TankSequence)').val();
+                var jobId = $('#@Html.IdFor(m => m.JobId)').val()
+                 var targetUrl = '@Url.Action("CheckDuplicateTankSequence")';
+                checkDuplicateTankSequenceForTankDetails(targetUrl,tankId,tankSequence,jobId);
+            } else {
+                SubmitAsset();
+            }
+        }
+    })
+</script>
+<script src="~/Content/js/tankSequence.js"></script>

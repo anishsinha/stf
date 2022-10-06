@@ -1,0 +1,55 @@
+﻿
+@{
+    ViewBag.Title = "QuickBooks Sync Report";
+}
+@*<div class="border-b mb10">
+        <h4 class="f-light fs18 dib mt0">@Resource.lblQuickBooks @Resource.lblSyncReport</h4>
+</div>*@
+<div class="well pb10 mb5">
+    <form id="syncReport">
+        <div class="row">
+            <div class="col-md-1 col-sm-1 col-xs-12 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">Filter</label></div>
+            <div class="col-md-2 col-sm-3 col-xs-6 mb5">
+                <input type="text" id="quickBooksReportDate" name="quick.BooksReport.Date" placeholder="Date" class="form-control datepicker">
+                <span class="field-validation-valid" data-valmsg-for="quick.BooksReport.Date" data-valmsg-replace="true"></span>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-12">
+                <input type="button" class="btn btn-primary" value="Get Report" id="btnGetReport" onclick="getSyncReport()">
+                <input type="button" class="btn btn-primary" value="Email Report" id="btnEmailReport" onclick="emailSyncReport()">
+            </div>
+        </div>
+    </form>
+</div>
+<div class="row justify-content-md-center">
+    <div class="col-md-7 col-sm-12" id="report-container"></div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#syncReport").removeData("validator");$("#syncReport").validate();
+        $("#quickBooksReportDate").rules("remove"); initDateTimePicker();
+        $("#quickBooksReportDate").rules("add", { 'required': true, messages: { required: "Report date is required." } });
+    });
+    function getSyncReport() {
+        var isvalid = $("#quickBooksReportDate").valid();
+        if (isvalid) {
+            $(".loader").show();
+            $.post('@Url.Action("SyncReport", "Quickbooks", new { area = "Supplier" })',
+            { reportDate: $("#quickBooksReportDate").val() }, function (res) {
+                $("#report-container").html(res);
+            }).done(function () { $(".loader").hide(); });
+        }
+    }
+    function emailSyncReport() {
+        var isvalid = $("#quickBooksReportDate").valid();
+        if (isvalid) {
+            $(".loader").show();
+            $.post('@Url.Action("EmailSyncReport", "Quickbooks", new { area = "Supplier" })',
+            { reportDate: $("#quickBooksReportDate").val() }, function (res) {
+                if (res.StatusCode == 0) { msgsuccess(res.StatusMessage); }
+                else { msgerror(res.StatusMessage); }
+            }).done(function () { $(".loader").hide(); });
+        }
+    }
+</script>
+

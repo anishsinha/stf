@@ -1,0 +1,237 @@
+﻿@model TaxExemptionViewModel
+@{
+    ViewBag.Title = "Create Tax Exemption License";
+}
+
+@using (Html.BeginForm("Create", "TaxExemption", new { area = "Settings" }, FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    @Html.HiddenFor(m => m.Id)
+    @Html.HiddenFor(m => m.CompanyEffectiveDate)
+<div class="col-sm-12">
+    <div class="row well mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.headingCompanyDetails</h4>
+            <div class="row">
+                <div class="container ml0">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-4 mb10 form-group">
+                            @Html.LabelFor(m => m.LegalName)
+                            @Html.TextBoxFor(m => m.LegalName, new { @class = "form-control defaultDisabled" })
+                            @Html.ValidationMessageFor(m => m.LegalName)
+                        </div>
+                        <div class="col-md-3 col-sm-4 mb10 form-group">
+                            @Html.LabelFor(m => m.TradeName)
+                            @Html.TextBoxFor(m => m.TradeName, new { @class = "form-control defaultDisabled" })
+                            @Html.ValidationMessageFor(m => m.TradeName)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="col-sm-12">
+    <div class="row well mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.headingAddress</h4>
+            <div class="row">
+                <div class="container ml0">
+                    <div class="row">
+                        <div class="col-sm-12 mt5">
+                                <div class="form-check form-check-inline mb10">
+                                    @Html.CheckBoxFor(m => m.IsSameCompanyAddress, new { @class = "form-check-input",@id= "checkbox-compaddress", onchange = "setCompanyAddress();" })
+                                    <label class="form-check-label" for="checkbox-compaddress">@Resource.lblUseCompanyAddress</label>
+                                </div>
+                        </div>
+                    </div>
+                    <div class="row combineDiv opacity1 address-container">
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.Address)
+                                        @Html.TextBoxFor(m => m.Address, new { @class = "form-control address addressInput" })
+                                        @Html.ValidationMessageFor(m => m.Address)
+                                    </div>
+                                </div>
+                                <div class="col-xs-6 col-sm-4">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.ZipCode)
+                                        @Html.TextBoxFor(m => m.ZipCode, new { @class = "form-control zipcode addressInput" })
+                                        @Html.ValidationMessageFor(m => m.ZipCode)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.City)
+                                        @Html.TextBoxFor(m => m.City, new { @class = "form-control city addressInput" })
+                                        @Html.ValidationMessageFor(m => m.City)
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        @Html.HiddenFor(m => m.State.Name, new { @Value = Model.State.Name })
+                                        @Html.HiddenFor(m => m.State.Code, new { @Value = Model.State.Code })
+                                        @Html.LabelFor(m => m.State)
+                                        @Html.DropDownListFor(m => m.State.Id, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", Model.State.Id), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state addressInput" })
+                                        @Html.ValidationMessageFor(m => m.State.Id)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.County)
+                                        @Html.TextBoxFor(m => m.County, new { @class = "form-control address county addressInput" })
+                                        @Html.ValidationMessageFor(m => m.County)
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        @Html.HiddenFor(m => m.Country.Name, new { @Value = Resource.lblDummy })
+                                        @Html.HiddenFor(m => m.Country.Code, new { @Value = Resource.lblDummy })
+                                        @Html.LabelFor(m => m.Country)
+                                        @Html.DropDownListFor(m => m.Country.Id, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.Country.Id), new { @class = "form-control country addressInput" })
+                                        @Html.ValidationMessageFor(m => m.Country.Id)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="col-sm-12">
+    <div class="row well mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.headingLicense</h4>
+            <div class="row">
+                <div class="container ml0">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-4 mb10">
+                            <label class="f-normal">@Resource.lblIDType</label>
+                            <div>
+                                @Resource.valTaxLicenseDefaultIDCode
+                                @*<select class="form-control" id="IDType" name="IDType">
+                                        <option value="" @(Model.IDType == null || Model.IDType.Equals("") ? "selected" : "")>Select IDType</option>
+                                        <option value="FEIN" @(Model.IDType != null && Model.IDType.Equals("FEIN") ? "selected" : "")>FEIN</option>
+                                        <option value="SSN" @(Model.IDType != null && Model.IDType.Equals("SSN") ? "selected" : "")>SSN</option>
+                                        <option value="CBN" @(Model.IDType != null && Model.IDType.Equals("CBN") ? "selected" : "")>CBN</option>
+                                    </select>*@
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-4 mb10 form-group">
+                            @Html.LabelFor(m => m.IDCode)
+                            @Html.TextBoxFor(m => m.IDCode, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.IDCode)
+                        </div>
+                        <div class="col-md-3 col-sm-4 mb10">
+                            @Html.LabelFor(m => m.LicenseNumber)
+                            @if (Model.Id > 0)
+                            {
+                                @Html.TextBoxFor(m => m.LicenseNumber, new { @class = "form-control" })
+                            }
+                            else
+                            {
+                                @Html.TextBoxFor(m => m.LicenseNumber, new { @class = "form-control" })
+                            }
+                            @Html.ValidationMessageFor(m => m.LicenseNumber)
+                        </div>
+                    </div>
+                    <div class="row mt10">
+                        <div class="col-md-3 col-sm-4 mb0 form-group">
+                            <div class="@(Model.Id > 0 ? "form-group subSectionOpacity pntr-none" : "form-group")">
+                                @Html.LabelFor(m => m.BusinessSubType)
+                                @if (Model.Id > 0)
+                                {
+                                    @Html.DropDownListFor(m => m.BusinessSubType, new SelectList(CommonHelperMethods.GetBusinessSubTypes(), "Id", "Name", Model.BusinessSubType), "", new { @class = "business-subtype form-control " })
+                                }
+                                else
+                                {
+                                    @Html.DropDownListFor(m => m.BusinessSubType, new SelectList(CommonHelperMethods.GetBusinessSubTypes(), "Id", "Name", Model.BusinessSubType), "", new { @class = "business-subtype form-control" })
+                                }
+                                @Html.ValidationMessageFor(m => m.BusinessSubType)
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-4 mb0">
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.EffectiveDate)
+                                @if (Model.Id > 0)
+                                {
+                                    @Html.TextBoxFor(m => m.EffectiveDate, new { @class = "form-control datepicker job-start-date", @readonly = "readonly" })
+                                }
+                                else
+                                {
+                                    @Html.TextBoxFor(m => m.EffectiveDate, new { @class = "form-control datepicker job-start-date" })
+                                }
+                                @Html.ValidationMessageFor(m => m.EffectiveDate)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+                <div class="form-check form-check-inline mb10">
+                    @Html.CheckBoxFor(m => m.IsAgreed, new { @name = "IsAgreed", @class = "form-check-input",@id="checkbox-acceptterm" })
+                    <label class="form-check-label" for="checkbox-acceptterm">@Resource.lblAcceptTerms</label>
+                    @Html.Hidden(nameof(Model.RequiredTrue), "true")
+                    @Html.ValidationMessageFor(m => m.IsAgreed)
+                </div>
+        </div>
+        <div class="col-sm-6 text-right">
+            @if (CurrentUser.IsBuyerAdmin)
+            {
+                <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Index", "Dashboard", new { area = "Buyer"})'">
+            }
+            else
+            {
+                <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Index", "Dashboard", new { area = "Supplier"})'">
+            }
+            @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+            {
+                <input type="submit" class="btn btn-lg btn-primary" value="@Resource.btnLabelSave">
+            }
+        </div>
+    </div>
+</div>
+}
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            setCompanyAddress();
+        });
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = @Model.State.Id; // for state autofill
+
+        function setCompanyAddress() {
+            var isChecked = $("#@Html.IdFor(m => m.IsSameCompanyAddress)").is(":checked");
+            if (isChecked) {
+                $(".address-container .field-validation-error").removeClass("field-validation-error").addClass("field-validation-valid");
+                $(".address-container .field-validation-valid span").hide();
+                $(".address-container input,.address-container select").attr("readonly", "readonly");
+                $("#@Html.IdFor(m => m.Address)").val('@Model.CompanyAddress.Address');
+                $("#@Html.IdFor(m => m.City)").val('@Model.CompanyAddress.City');
+                $("#@Html.IdFor(m => m.ZipCode)").val('@Model.CompanyAddress.ZipCode').trigger('change');
+                $("#@Html.IdFor(m => m.State.Id)").val('@Model.CompanyAddress.State.Id');
+                $("#@Html.IdFor(m => m.Country.Id)").val('@Model.CompanyAddress.Country.Id');
+            }
+            else if (!isChecked) {
+                $(".address-container input,.address-container select").removeAttr("readonly");
+            }
+        }
+
+        $(".business-subtype").select2({
+            placeholder: "@Resource.lblSelectBusinessType",
+            allowClear: true
+        });
+    </script>
+}

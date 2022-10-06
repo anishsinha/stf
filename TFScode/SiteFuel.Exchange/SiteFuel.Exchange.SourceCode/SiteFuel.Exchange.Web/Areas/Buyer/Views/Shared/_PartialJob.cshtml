@@ -1,0 +1,452 @@
+﻿@model JobViewModel
+<div class="col-sm-12">
+    <div class="row well bg-white shadow-a radius10 mb15">
+        <div class="col-md-12">
+            @if (Model.IsMarine)
+            {
+                <h4 class="pb10">@Resource.stepLabelMarineDetails</h4>
+            }
+            else
+            {
+                <h4 class="pb10">@Resource.stepLabelJobDetails</h4>
+
+            }
+            @if (Model.Id == 0)
+            {
+                <!-- Hiding marine location flag as ports are introduced-->
+                <div class="row hide-element">
+                    <div class="col-12 mt5 mb5">
+                        <div class="form-check form-check-inline">
+                            @Html.RadioButtonFor(m => m.IsMarine, false, new { @class = " form-check-input", @id = "inlineRadioJob", onchange = "SetMarineUom(false)" })
+                            <label class="form-check-label" for="inlineRadioJob"> @Resource.lblJob</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            @Html.RadioButtonFor(m => m.IsMarine, true, new { @class = " form-check-input", @id = "inlineRadioMarine", onchange = "SetMarineUom(true)" })
+                            <label class="form-check-label" for="inlineRadioMarine"> @Resource.lblMarineLocation</label>
+                        </div>
+
+                    </div>
+                </div>
+            }
+            else
+            {
+                @Html.HiddenFor(m => m.IsMarine)
+            }
+
+            <div class="row">
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        @Html.HiddenFor(m => m.Id)
+                        @Html.HiddenFor(m => m.CreatedBy)
+                        @Html.LabelFor(m => m.Name)
+                        @Html.TextBoxFor(m => m.Name, new { @class = "form-control", autofocus = "autofocus" })
+                        @Html.ValidationMessageFor(m => m.Name)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group clsDivSiteId">
+                        @Html.LabelFor(m => m.JobID)
+                        @Html.TextBoxFor(m => m.JobID, new { @class = "form-control", autofocus = "autofocus" })
+                        @Html.ValidationMessageFor(m => m.JobID)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.StartDate)
+                        @Html.TextBoxFor(m => m.StartDate, new { @class = "form-control datepicker job-start-date" })
+                        @Html.ValidationMessageFor(m => m.StartDate)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.EndDate)
+                        @Html.TextBoxFor(m => m.EndDate, new { @class = "form-control datepicker job-end-date", @autocomplete = "off" })
+                        @Html.ValidationMessageFor(m => m.EndDate)
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-3">
+                    @Html.LabelFor(m => m.LocationInventoryManagedBy)
+                    <div class="form-group">
+                        @Html.ListBoxFor(m => m.LocationInventoryManagedBy, new SelectList(CommonHelperMethods.GetLocationInventoryManagedByEnumList(), "Text", "Value", 0), new { @class = "form-control", @style = "padding-left:0px" })
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+</div>
+<!-- job details ends -->
+<!-- address starts -->
+<div class="col-sm-12">
+    <div class="row well bg-white shadow-a mb15 radius10">
+        <div class="col-md-12">
+            <h4 class="pb10">@Resource.headingAddress</h4>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="checkbox">
+                        <label class="radio-inline jobLocationTypes-various">
+                            @Html.CheckBoxFor(m => m.IsVarious, new { @checked = true, onclick = "showHideControls(this,'wrapper-various','wrapper-location');" })
+                            @Resource.lblVarious
+                        </label>
+
+                    </div>
+                </div>
+
+            </div>
+            <div class="row address-container">
+                <div class="col-sm-7">
+                    <div class="row">
+                        <div class="col-md-12 wrapper-location">
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        @Html.HiddenFor(m => m.Country.Name, new { @Value = Resource.lblDummy })
+                                        @Html.HiddenFor(m => m.Country.Code, new { @Value = Resource.lblDummy })
+                                        @*@Html.HiddenFor(m => m.CountyName, new { @class = "county" })*@
+                                        @Html.LabelFor(m => m.Country)
+                                        @Html.DropDownListFor(m => m.Country.Id, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.Country.Id), new { @class = "form-control country addressInput defaultDisabled" })
+                                        @Html.ValidationMessageFor(m => m.Country.Id)
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 countrygroup-div hide-element">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.CountryGroupId)
+                                        @Html.DropDownListFor(m => m.CountryGroupId, new SelectList(CommonHelperMethods.GetCountriesGroupEx(4), "Id", "Code", Model.CountryGroupId), new { @class = "form-control countrygroup addressInput defaultDisabled" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        @Html.HiddenFor(m => m.State.Name, new { @Value = Resource.lblDummy })
+                                        @Html.HiddenFor(m => m.State.Code, new { @Value = Resource.lblDummy })
+                                        @Html.LabelFor(m => m.State)
+                                        @Html.DropDownListFor(m => m.State.Id, new SelectList(new List<DropdownDisplayItem>(), Model.State.Id), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state addressInput defaultDisabled" })
+                                        @Html.ValidationMessageFor(m => m.State.Id)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row combineDiv">                                
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.Address)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                                        @Html.TextBoxFor(m => m.Address, new { @class = "form-control address addressInput defaultDisabled address-type" })
+                                        @*@Html.ValidationMessageFor(m => m.Address)*@
+                                        <span class="field-validation-error hide-element address-validation-error" id="spnErrorAddress"></span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.ZipCode)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                                        @Html.TextBoxFor(m => m.ZipCode, new { @class = "form-control zipcode addressInput defaultDisabled address-type" })
+                                        @*@Html.ValidationMessageFor(m => m.ZipCode)*@
+                                        <span class="field-validation-error hide-element address-validation-error" id="spnErrorZipCode"></span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.City)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                                        @Html.TextBoxFor(m => m.City, new { @class = "form-control city addressInput defaultDisabled address-type" })
+                                        @*@Html.ValidationMessageFor(m => m.City)*@
+                                        <span class="field-validation-error hide-element address-validation-error" id="spnErrorCity"></span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        @Html.LabelFor(m => m.CountyName)
+                                        <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgCountyNameReason" data-original-title="@Resource.msgCountyNameReason"></i>
+                                        @Html.TextBoxFor(m => m.CountyName, new { @class = "form-control county addressInput defaultDisabled address-type" })
+                                        @*@Html.ValidationMessageFor(m => m.CountyName)*@
+                                        @*<span class="field-validation-error hide-element address-validation-error" id="spnErrorCountyName"></span>*@
+                                    </div>
+                                </div>
+                                <div class="col-sm-8">
+                                    <div class="row">
+                                        @Html.PartialFor("~/Views/Shared/_PartialCompanyCurrency.cshtml", m => m.Country)
+                                        <div class="col-md-6 mfn-uom-section">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.Country.UoM) <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.lblUoM" data-original-title="@Resource.lblUoM"></i>
+                                                @Html.DropDownListFor(m => m.MarineUom,
+                                                             from UoM uom in Enum.GetValues(typeof(UoM)).Cast<UoM>().ToList().Where(t => (int)t != (int)UoM.None)
+                                                             select new SelectListItem() { Text = uom.ToString(), Value = ((int)uom).ToString() }, new { @class = "form-control", @id = "MFNQuantityUoM" }
+                                                         )
+                                                @Html.ValidationMessageFor(m => m.MarineUom)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="checkbox mt0 mb10">
+                                        @*<div class="form-group">
+                                                <label>
+                                                    @Html.CheckBoxFor(m => m.IsGeocodeUsed, new { onclick = "setReadOnlyMode(this,'geoInput','addressInput')" })
+                                                    @Resource.lblGeoCodes
+                                                </label>
+                                            </div>*@
+                                        <div class="form-check form-check-inline">
+                                            @Html.CheckBoxFor(m => m.IsGeocodeUsed, new { onclick = "setReadOnlyMode(this,'geoInput','addressInput'); setControlsEditableForCaribbean(this);", @id = "ChkGeoCodes", @class = "form-check-input" })
+                                            <label class="form-check-label" for="ChkGeoCodes"> @Resource.lblGeoCodes</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row col-sm-12">
+                                    <div class="col-6 col-md-4 combineDiv subSectionOpacity">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.Latitude)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                                            @Html.TextBoxFor(m => m.Latitude, new { @class = "form-control datatype-decimal mask-decimal latitude geoInput defaultDisabled address-type", @readonly = "true" })
+                                            @*@Html.ValidationMessageFor(m => m.Latitude)*@
+                                            <span class="field-validation-error hide-element address-validation-error" id="spnErrorLatitude"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4 combineDiv subSectionOpacity">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.Longitude)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                                            @Html.TextBoxFor(m => m.Longitude, new
+                                       {
+                                           @class = "form-control datatype-decimal mask-decimal longitude geoInput defaultDisabled address-type",
+                                           @readonly = "true"
+                                       })
+                                            @*@Html.ValidationMessageFor(m => m.Longitude)*@
+                                            <span class="field-validation-error hide-element address-validation-error" id="spnErrorLongitude"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.TimeZoneName)
+                                            @Html.TextBoxFor(m => m.TimeZoneName, new { @class = "form-control timeZoneName defaultDisabled", @readonly = "true" })
+                                        </div>
+                                    </div>
+                                </div>
+                                @*<div class="combineDiv subSectionOpacity ">
+                                        <div class="col-xs-6 col-md-4">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.Latitude)
+                                                @Html.TextBoxFor(m => m.Latitude, new { @class = "form-control datatype-decimal mask-decimal latitude geoInput defaultDisabled", @readonly = "true" })
+                                                @Html.ValidationMessageFor(m => m.Latitude)
+                                            </div>
+                                        </div>
+                                        <div class="col-xs-6 col-md-4">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.Longitude)
+                                                @Html.TextBoxFor(m => m.Longitude, new
+                                           {
+                                               @class = "form-control datatype-decimal mask-decimal longitude geoInput defaultDisabled",
+                                               @readonly = "true"
+                                           })
+                                                @Html.ValidationMessageFor(m => m.Longitude)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            @Html.LabelFor(m => m.TimeZoneName)
+                                            @Html.TextBoxFor(m => m.TimeZoneName, new { @class = "form-control timeZoneName defaultDisabled", @readonly = "true" })
+                                        </div>
+                                    </div>*@
+                            </div>
+                        </div>
+                        <div class="col-sm-12 wrapper-various hide-element">
+                            <div class="address-controls row">
+                                <div class="col-sm-5">
+                                    <div class="form-group">
+                                        @Html.HiddenFor(m => m.State.Name, new { @Value = Resource.lblDummy })
+                                        @Html.HiddenFor(m => m.State.Code, new { @Value = Resource.lblDummy })
+                                        @Html.LabelFor(m => m.State.Id)
+                                        @Html.DropDownListFor(m => m.State.Id, new SelectList(new List<DropdownDisplayItem>()), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state addressInput", onchange = "setStateValue(this);" })
+                                        @Html.ValidationMessageFor(m => m.State.Id)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-5">
+                    <div id="job-map" class="map-wrapper map-controls">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- address ends -->
+<!-- Resale Section starts -->
+<div class="well bg-white shadow-a mb15 overflow-h radius10">
+    <div class="col-md-12">
+        <h4 class="pb10">@Resource.headingResale</h4>
+        <div class="row">
+            <div class="col-sm-12 mb5">
+                <div class="form-check form-check-inline checkbox">
+                    @Html.CheckBoxFor(m => m.IsResaleEnabled, new { onclick = "checkBoxChange(this,'enableResale')", @id = "ChkEnable", @class = "form-check-input" })
+                    <label class="form-check-label" for="ChkEnable"> @Resource.lblEnable</label>
+                </div>
+            </div>
+        </div>
+        <div class="row enableResale">
+            <div class="col-sm-3">
+                <label>@Resource.lblContractNumber</label>
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.ContractNumber, new { @class = "form-control" })
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <label>@Resource.lblCustomerName</label>
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.CustomerName, new { @class = "form-control" })
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <label>@Resource.lblCustomerEmail</label>
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.CustomerEmail, new { @class = "form-control" })
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Resale Section ends -->
+<!-- Delivery Section starts -->
+
+<div class="well bg-white shadow-a mb15 overflow-h radius10">
+    <div class="col-md-12">
+        <h4 class="pb10">@Resource.headingSiteAvailablity</h4>
+        <div id="job-Site-Availability" class="partial-section mirror">
+            <div id="JobSiteAvailability" class="row partial-block-collection-section">
+                @foreach (var Delivery in Model.DeliveryDaysList)
+                {
+                    if (Model.DeliveryDaysList.First() == Delivery)
+                    {
+                        Delivery.Count = 1;
+                        Html.RenderPartial("_PartialSiteAvailavilityView", Delivery);
+                    }
+                    else
+                    {
+                        Delivery.Count = 2;
+                        Html.RenderPartial("_PartialSiteAvailavilityView", Delivery);
+
+                    }
+
+                }
+
+            </div>
+            <div id="divAddAnother" class="row">
+                <div class="form-group col-xs-10">
+                    <a hidden href="javascript:void(0)" id="AddAnotherClick" class="add-partial-block mb-4 ml-3" data-url="@Url.Action("PartialSiteAvailavility", "Job" , new { area = "Buyer",count=1})">
+                        <i class="fa fa-plus-circle fs18 mt2 mr-2 float-left"></i><span class="fs14 float-left">@Resource.btnLabelAddAnother</span>
+                    </a>
+                    <a href="javascript:void(0)" id="AddAnother" class="add-partial-block mb-4 ml-3" data-url="@Url.Action("PartialSiteAvailavilityView", "Job" , new { area = "Buyer", count = 2 })">
+                        <i class="fa fa-plus-circle fs18 mt2 mr-2 float-left"></i><span class="fs14 float-left">@Resource.btnLabelAddAnother</span>
+                    </a>
+
+                    @*<a href="#." id="AddAnother" class="add-partial-block mb20" data-url="something">
+                            <i class="fa fa-plus-circle fs18 float-left mb10"></i><span class="fs14 float-left">@Resource.btnLabelAddAnother</span>
+                        </a>*@
+
+                </div>
+            </div>
+        </div>
+        <h4 class="pb10">@Resource.lblSiteInstructions</h4>
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="form-group">
+                    @Html.TextAreaFor(m => m.SiteInstructions, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(m => m.SiteInstructions)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delivery Section ends -->
+
+
+
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Script/Main/Job")
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+        function resetControls() {
+            var DeliveryDaysCtrls = $('.DeliveryDays-type-row').find('select');
+            $.each(DeliveryDaysCtrls, function (idx, dropdown) {
+                var isDeliveryDaysType = $(dropdown).hasClass('DeliveryDays-ddl');
+                if (isDeliveryDaysType) {
+                    getSubTypesByDeliveryDaysType($(dropdown));
+                }
+            });
+        }
+
+        function getSubTypesByDeliveryDaysType(ctrl) {
+            $(ctrl).closest(".DeliveryDays-type-row").find(".DeliveryDays-sub-type-ddl .loading-wrapper").show();
+            var target = $(ctrl).closest(".DeliveryDays-type-row").find('.feesubtype-ddl');
+            var firstOption = target.find('option:first');
+            var DeliveryDaysTypeId = $(ctrl).val(), DeliveryDaysSubTypeId = target.val();
+            if (DeliveryDaysSubTypeId == null) { DeliveryDaysSubTypeId = ""; }
+            var isCommonType = $(ctrl).closest(".DeliveryDays-type-row").find('.common').prop('checked');
+            if (isCommonType != undefined && isCommonType == false) {
+                DeliveryDaysTypeId = '';
+            }
+            if (DeliveryDaysTypeId == undefined || DeliveryDaysTypeId == '' || DeliveryDaysTypeId == null) {
+                target.empty();
+            }
+        }
+
+        function hidePrevDeliveryDaysTypeOption(elemt) {
+            var DeliveryDaysTypeDdls = $('.DeliveryDays-type-row .DeliveryDays-ddl').not('.special-DeliveryDays-ddl');
+            var currentDDL = $(elemt).parents('.DeliveryDays-types').find('select.DeliveryDays-ddl');
+            $.each(DeliveryDaysTypeDdls, function (idx, dropdown) {
+                var selected = $(dropdown).val();
+                if (selected != null && selected != undefined && selected != '' && !$(dropdown).is(currentDDL)) {
+                    var elemtToRemove = currentDDL.find("option[value='" + selected + "']");
+                    elemtToRemove.remove();
+                }
+            });
+        }
+
+    function setControlsEditableForCaribbean(ele) {
+            var countryId = parseInt($("#@Html.IdFor(m => m.Country.Id)").val());
+            if (!isNaN(countryId) && countryId == '@((int)Country.CAR)') {
+                $("#@Html.IdFor(m => m.Country.Id)").removeClass('pntr-none');
+                $("#@Html.IdFor(m => m.CountryGroupId)").removeClass('pntr-none');
+            }
+        }
+
+        $(document).ready(function () {
+            $(document).on('focus', '.DeliveryDays-ddl:not(.special-DeliveryDays-ddl)', function () { hidePrevDeliveryDaysTypeOption(this); });
+            $(document).on('change', '.DeliveryDays-ddl', function () { getSubTypesByDeliveryDaysType(this); });
+            if (@Model.Country.Id == 4) {
+            $(".countrygroup-div").show();
+            }
+            $('#@Html.IdFor(m => m.LocationInventoryManagedBy)').multiselect({
+            });
+            applyCssToMultiSelect();
+
+            $(document).on('change', '.country', function () {
+                var countryId = parseInt($(this).val());
+                var container = $(this).closest('.address-container');
+                if (container != undefined && container.length > 0) {
+                    if (!isNaN(countryId) && countryId == '@((int)Country.CAR)') {
+                        container.find('.mandatory-symbol').addClass('hide-element');
+                    }
+                    else {
+                        container.find('.mandatory-symbol').removeClass('hide-element');
+                    }
+                }
+            });
+
+            $(document).on('blur', '.address-type', function () {
+                var eleVal = $.trim($(this).val());
+                if (eleVal != undefined && eleVal != null && eleVal != '') {
+                    var span = $(this).closest('div').find('span.field-validation-error');
+                    if (!span.hasClass('hide-element'))
+                        span.addClass('hide-element');
+                }
+            });
+            $('.country').trigger('change');
+            var isGeocodeUsed = $('[name="@Html.NameFor(m => m.IsGeocodeUsed)"]').prop('checked');
+            if (isGeocodeUsed) {
+                $('[name="@Html.NameFor(m => m.IsGeocodeUsed)"]').trigger('click');
+            }
+        });
+</script>
+}

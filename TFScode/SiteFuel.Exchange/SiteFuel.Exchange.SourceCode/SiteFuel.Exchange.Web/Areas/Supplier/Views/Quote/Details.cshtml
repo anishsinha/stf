@@ -1,0 +1,200 @@
+﻿@model QuoteDetailsViewModel
+@using System.Threading
+@{
+    ViewBag.Title = "Supplier Quote Details";
+    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(Model.Culture);
+}
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-xs-8 tab-headers">
+                    <a id="tab-quotedetails" href="javascript:void(0)" onclick="showsection('details'), activelink(this)" class="active mr20">
+                        <div class="step-inprogress fs18">
+                            <span class="f-light step-text float-left">@Resource.headingDetails</span>
+                        </div>
+                    </a>
+                    <a id="tab-quotegrid" href="javascript:void(0)" onclick="showsection('quotes'), activelink(this)">
+                        <div class="step-inprogress fs18">
+                            <span class="f-light step-text float-left">@Resource.lblQuote</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="tab-container">
+                <div id="details" data-parent-tab="tab-quotedetails" class="subTabs">
+                    <div class="well col-sm-12">
+                        <div class="row mt15">
+                            <div class="col-sm-12">
+                                <div class="border-b mb10">
+                                    <h4 class="f-light fs18 dib">@Resource.headingCustomerInformation</h4>
+                                    <div class="dib pull-right pt5">
+                                        <div class="dib mt3">
+                                            @if (Model.QuotationStatusId == (int)QuotationStatuses.Awarded)
+                                            {
+                                                <div><label class="label label-default" id="lblStatus">@Model.QuotationStatus</label></div>
+                                            }
+                                            else
+                                            {
+                                                <div><label class="label label-warning" id="lblStatus">@Resource.lblReceived</label></div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    @if (Model.QuotationStatusId == (int)QuotationStatuses.Awarded)
+                                    {
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblPoNumber</label>
+                                        @if (Model.IsOrderActive)
+                                        {
+                                            <div><a href="@Url.Action("Details", "Order", new { area = "Supplier", id = Model.OrderId })">@Model.PoNumber</a></div>
+                                        }
+                                        else
+                                        {
+                                            <div>@Model.PoNumber@Resource.lblDeleted</div>
+                                        }
+                                    </div>
+                                    }
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblCustomerCompany</label>
+                                        <div>
+                                            @Model.QuoteRequestCompany
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblRequestedBy</label>
+                                        <div class="break-word">
+                                            @Model.QuoteRequestCreatedBy
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt15">
+                            <div class="col-sm-12">
+                                <div class="border-b mb10">
+                                    <h4 class="f-light fs18 dib">@Resource.headingQuoteInformation</h4>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblCustomerQuoteNumber</label>
+                                        <div><a href="@Url.Action("BuyerQuoteDetails", "Quote", new { area = "Supplier", id = Model.QuoteRequest.Id })">@Model.QuoteRequest.QuoteNumber</a></div>
+                                    </div>
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblQuoteNumber</label>
+                                        <div>
+                                            @Model.SupplierQuoteNumber
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblDateCreated</label>
+                                        <div>
+                                            @Model.CreatedDate
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.gridColumnCreatedBy</label>
+                                        <div>
+                                            @Model.QuotationCreatedBy
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt10">
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblFuelType</label>
+                                        <div>@Model.QuoteRequest.FuelType</div>
+                                    </div>
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblQuantity</label>
+                                        <div>
+                                            @Model.QuoteRequest.Quantity.GetCommaSeperatedValue() @Model.QuoteRequest.UoM
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt15">
+                            <div class="col-sm-12">
+                                <div class="border-b mb10">
+                                    <h4 class="f-light fs18 dib">@Resource.headingPricingFees</h4>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-2 col-xs-6 col-sm-4 mb10">
+                                        <label class="f-normal">@Resource.lblRackPPG</label>
+                                        <div>@CommonHelperMethods.GetQuotationPricePerGallon(Model.FuelPricing.PricePerGallon, Model.FuelPricing.PricingTypeId, Model.FuelPricing.RackAvgTypeId)</div>
+                                    </div>
+                                    @Html.Partial("_PartialFuelFeeDetails", Model.FuelDeliveryDetails)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt15">
+                            <div class="col-sm-12">
+                                <div class="border-b mb10">
+                                    <h4 class="f-light fs18 dib">@Resource.lblNotes</h4>
+                                </div>
+                                <div class="mb10">
+                                    @Model.Notes
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt15">
+                            <div class="col-sm-12">
+                                <div class="border-b mb10">
+                                    <h4 class="f-light fs18 dib">@Resource.headingAttachments</h4>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="row">
+                                            <div id="image-block">
+                                                @if (Model.Id > 0 && Model.Documents.Count > 0)
+                                                {
+                                                    <div class="row mb25 mt10">
+                                                        @foreach (var item in Model.Documents)
+                                                        {
+                                                            var imgType = (item.FileName.Split('.')).LastOrDefault().ToLower() == "pdf" ? "/Content/images/ico-pdf.png" : "/Content/images/ico-image.png";
+                                                            <div class="col-sm-2 col-xs-4 text-center">
+                                                                <div>
+                                                                    <a href="@Url.Action("DownloadDocument", "Quote", new { area = "Supplier", fileName = item.ModifiedFileName, container = @BlobContainerType.Quotation.ToString().ToLower() })" title="Click to Download" class="btn-download" download="">
+                                                                        <img id="image-ctrl" src="@imgType" />
+                                                                    </a>
+                                                                </div>
+                                                                <div class="fs12 font-italic">@item.FileName</div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <img id="image-ctrl" class="company-logo-dim img-circle" src="~/Content/images/no-image.png" />
+                                                }
+                                                <input type="file" class="hidden" id="btn-logo" name="imageFile">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="quotes" data-parent-tab="tab-quotegrid" class="subTabs hide-element">
+                    <div class="row mt15">
+                        <div class="col-sm-12">
+                            @Html.Partial("_PartialQuotePDF", Model)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@using (Html.BeginScripts())
+{
+    <script>
+        SetPageCulture('@Model.Culture');
+    </script>
+}

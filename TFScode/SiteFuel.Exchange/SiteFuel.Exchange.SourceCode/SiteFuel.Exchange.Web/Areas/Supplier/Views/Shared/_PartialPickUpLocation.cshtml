@@ -1,0 +1,261 @@
+﻿@model PickUpAddressViewModel
+@Html.HiddenFor(m => m.OrderId)
+@Html.HiddenFor(m => m.Currency)
+<div class="new-terminal partial-block">
+    <div class="row">
+        <div class="col-md-6 address-container">
+            <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+            <div class="pickup-address-controls">
+                <div class="row ">
+                    <div class="col-sm-4 col-md-6">
+                        <div class="form-group">
+                            @Html.HiddenFor(m => m.Address.SiteId)
+                            @Html.LabelFor(m => m.Address.SiteName)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                            @Html.TextBoxFor(m => m.Address.SiteName, new { @class = " form-control SiteName ", onblur = " getbulkplantaddress()" })
+                            @Html.ValidationMessageFor(m => m.Address.SiteName)
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-6 combineDiv">
+                        <div class="form-group disable-pickup-controls disabled">
+                            @Html.LabelFor(m => m.Address.ZipCode)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                            @Html.TextBoxFor(m => m.Address.ZipCode, new { @class = "form-control zipcode addressInput disable-pickup-controls " })
+                            @Html.ValidationMessageFor(m => m.Address.ZipCode)
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-6 combineDiv">
+                        <div class="form-group disable-pickup-controls disabled">
+                            @Html.LabelFor(m => m.Address.Address)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                            @Html.TextBoxFor(m => m.Address.Address, new { @class = "form-control address addressInput disable-pickup-controls" })
+                            @Html.ValidationMessageFor(m => m.Address.Address)
+                        </div>
+                    </div>
+
+                    <div class="col-sm-4 col-md-6 combineDiv">
+                        <div class="form-group disable-pickup-controls disabled">
+                            @Html.LabelFor(m => m.Address.City)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                            @Html.TextBoxFor(m => m.Address.City, new { @class = "form-control city addressInput disable-pickup-controls" })
+                            @Html.ValidationMessageFor(m => m.Address.City)
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-6 combineDiv">
+                        <div class="form-group disable-pickup-controls disabled">
+                            @Html.HiddenFor(m => m.Address.State.Name, new { @Value = Resource.lblDummy, @class = "statename" })
+                            @Html.HiddenFor(m => m.Address.State.Code, new { @Value = Resource.lblDummy, @class = "statecode" })
+                            @Html.LabelFor(m => m.Address.State.Id)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                            @Html.DropDownListFor(m => m.Address.State.Id, new SelectList(new List<DropdownDisplayItem>(), Model.Address.State.Id), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state addressInput disable-pickup-controls " })
+                            @Html.ValidationMessageFor(m => m.Address.State.Id)
+                        </div>
+                    </div>
+                </div>
+                <div class="row combineDiv">
+                    <div class="col-sm-4 col-md-6">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Address.CountyName)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                            <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgCountyNameReason"></i>
+                            @Html.TextBoxFor(m => m.Address.CountyName, new { @class = "form-control county addressInput defaultDisabled" })
+                            @Html.ValidationMessageFor(m => m.Address.CountyName)
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-6">
+                        <div class="form-group disable-pickup-controls disabled">
+                            @Html.HiddenFor(m => m.Address.Country.Name, new { @Value = Resource.lblDummy, @class = "countryname" })
+                            @Html.HiddenFor(m => m.Address.Country.Code, new { @Value = Resource.lblDummy, @class = "countrycode" })
+                            @Html.LabelFor(m => m.Address.Country.Id)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                            @Html.DropDownListFor(m => m.Address.Country.Id, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.Address.Country.Id), new { @class = "form-control country addressInput disable-pickup-controls" })
+                            @Html.ValidationMessageFor(m => m.Address.Country.Id)
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-md-6 countrygroup-div hide-element">
+                        <div class="form-group disable-pickup-controls disabled">
+                            @Html.LabelFor(m => m.Address.CountryGroup)
+                            @Html.DropDownListFor(m => m.Address.CountryGroup.Id, new SelectList(CommonHelperMethods.GetCountriesGroupEx(), "Id", "Name", Model.Address.CountryGroup.Id), new { @class = "form-control countrygroup addressInput disable-pickup-controls" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 combineDiv">
+            <div class="checkbox mt0">
+                <div class="form-group">
+                    <label>
+                        @Html.CheckBoxFor(m => m.Address.IsGeocodeUsed, new { onclick = "setReadOnlyMode(this,'geoInput','addressInput')" })
+                        @Resource.lblGeoCodes
+                    </label>
+                </div>
+            </div>
+            <div class="combineDiv subSectionOpacity">
+                <div class="row geoCntrls">
+                    <div class="col-xs-6 col-sm-4 col-md-12">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Address.Latitude)
+                            @Html.TextBoxFor(m => m.Address.Latitude, new { @class = "form-control datatype-decimal mask-decimal lat latitude geoInput defaultDisabled", @readonly = "true" })
+                            @Html.ValidationMessageFor(m => m.Address.Latitude)
+                        </div>
+                    </div>
+                    <div class="col-xs-6 col-sm-4 col-md-12">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Address.Longitude)
+                            @Html.TextBoxFor(m => m.Address.Longitude, new { @class = "form-control datatype-decimal mask-decimal long longitude geoInput defaultDisabled", @readonly = "true" })
+                            @Html.ValidationMessageFor(m => m.Address.Longitude)
+                        </div>
+                    </div>
+                    <div class="col-xs-6 col-sm-4 col-md-12">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Address.TimeZoneName)
+                            @Html.TextBoxFor(m => m.Address.TimeZoneName, new { @class = "form-control timeZoneName defaultDisabled", @readonly = "true" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="~/Content/js/common-supplier.js"></script>
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+
+<script>
+    var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+    var bulkPlantUrl = "@Url.Action("GetBulkPlants","Dispatch",new { area = "Supplier"})";
+    var stateId = @(Model.Address.State.Id); // for state autofill
+
+    function getbulkplantaddress() {
+        var siteId = parseInt($("#@Html.IdFor(m => m.Address.SiteId)").val());
+        var bulkPlantName = $("#@Html.IdFor(m => m.Address.SiteName)").val();
+        var isGeoCoded = $("#@Html.IdFor(m => m.Address.IsGeocodeUsed)").is(':checked');
+        if ((bulkPlantName == null || bulkPlantName == '' || siteId == 0 ) && !isGeoCoded) {
+            clearPickupControls();
+            return false;
+        }
+        if (!isGeoCoded) // Logic inside this If fetches existing bulkplant details by bulkplantname no need of this when address is geocoded
+        {
+        var bulkPlantDetailsurl = "@Url.Action("GetBulkPlantDetails","Dispatch", new { area = "Supplier"})";
+        bulkPlantDetailsurl += '?name=' + bulkPlantName;
+        $.ajax({
+            type: "GET",
+            url: bulkPlantDetailsurl,
+            dataType: "json",
+            success: function (data) {
+                if (data.ZipCode == null || data.ZipCode == '' || data.ZipCode == undefined) {
+                    clearPickupControls();
+                }
+                else {
+                    var address = data.Address;
+                    var city = data.City;
+                    var countyname = data.CountyName;
+                    var zipcode = data.ZipCode;
+                    var code = data.Country.Code;
+                    var statecode = data.State.Code;
+                    var countryId = data.Country.Id;
+                    var countrygroupId = data.CountryGroup.Id;
+                    var stateId = data.State.Id;
+                    var siteId = data.SiteId;
+                    $("#@Html.IdFor(m => m.Address.ZipCode)").val(zipcode).trigger("change");                   
+                    $("#@Html.IdFor(m => m.Address.Address)").val(address);
+                    $("#@Html.IdFor(m => m.Address.City)").val(city);
+                    $("#@Html.IdFor(m => m.Address.CountyName)").val(countyname);                   
+                    $("#@Html.IdFor(m => m.Address.Country.Id)").val(countryId);
+                    $("#@Html.IdFor(m => m.Address.CountryGroup.Id)").val(countrygroupId);
+                    $("#@Html.IdFor(m => m.Address.State.Id)").val(stateId);
+                    $("#@Html.IdFor(m => m.Address.SiteId)").val(siteId);
+                    $(".disable-pickup-controls").attr('readonly', true);                  
+                }
+            },
+            error: function (error) {
+                $(".disable-pickup-controls").removeAttr('readonly');
+                console.log(error);
+            }
+        });
+        }
+
+    }
+    function clearPickupControls() {
+        $("#@Html.IdFor(m => m.Address.Address)").val('');
+        $("#@Html.IdFor(m => m.Address.City)").val('');
+        $("#@Html.IdFor(m => m.Address.CountyName)").val('');
+        $("#@Html.IdFor(m => m.Address.ZipCode)").val('');
+        $("#@Html.IdFor(m => m.Address.Country.Id)").val(1);
+        $("#@Html.IdFor(m => m.Address.CountryGroup.Id)").val(0);
+        $("#@Html.IdFor(m => m.Address.State.Id)").val(1);
+        $("#@Html.IdFor(m => m.Address.Longitude)").val('');
+        $("#@Html.IdFor(m => m.Address.Latitude)").val('');
+        $("#@Html.IdFor(m => m.Address.TimeZoneName)").val('');
+        $("#@Html.IdFor(m => m.Address.SiteId)").val(0);
+        $(".disable-pickup-controls").each(function () {
+            $(this).removeAttr('readonly');
+        });
+    }
+
+    $(document).ready(function () {
+        var element = "#@Html.IdFor(m => m.Address.SiteName)";
+        var siteId = parseInt($("#@Html.IdFor(m => m.Address.SiteId)").val());
+        if (siteId > 0)
+            $(".disable-pickup-controls").attr('readonly', true);
+
+        if (@Model.Address.Country.Id == 4) {
+            $(".countrygroup-div").show();
+        }
+        autoCompleteTextBoxforAddress(element, bulkPlantUrl);
+        function autoCompleteTextBoxforAddress(element, url) {
+            var target = $(element);
+            target.focus(function () {
+                $(this).autocomplete("search", $(this).val());
+            });
+            target.autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        dataType: "json",
+                        data: { Prefix: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item.Name,
+                                };
+
+                            }))
+                        }
+                    });
+                },
+                messages: {
+                    noResults: '',
+                    results: function () { }
+                },
+                minLength: 0,
+                maxShowItems: 5,
+                scroll: true,
+                select: function (event, ui) {
+                    $(".disable-pickup-controls").attr('readonly', true);
+                    var bulkPlantName = ui.item.label;
+                    var bulkPlantId = ui.item ? ui.item.value : 0;
+                    $("#@Html.IdFor(m => m.Address.SiteName)").val(bulkPlantName);
+                    $("#@Html.IdFor(m => m.Address.SiteId)").val(bulkPlantId);
+                    return false;
+                }
+
+                // select end
+            });// autocomplete end
+            $.ui.autocomplete.prototype._resizeMenu = function () {
+                var ul = this.menu.element;
+                ul.outerWidth(this.element.outerWidth());
+            }
+        }
+    });
+    $(document).on('change', '.country', function () {
+        toggleAddressValidationElements();
+    });
+        function toggleAddressValidationElements() {
+            var countryId = parseInt($("#@Html.IdFor(m=>m.Address.Country.Id)").val());
+            var htmlElement = $("#@Html.IdFor(m=> m.Address.Country.Id)");
+            var container = $(htmlElement).closest('.address-container');
+                if (container != undefined && container.length > 0) {
+                    if (!isNaN(countryId) && countryId == '@((int)Country.CAR)') {
+                        container.find('.mandatory-symbol').addClass('hide-element');
+                    }
+                    else {
+                        container.find('.mandatory-symbol').removeClass('hide-element');
+                    }
+                }
+            }
+</script>
+

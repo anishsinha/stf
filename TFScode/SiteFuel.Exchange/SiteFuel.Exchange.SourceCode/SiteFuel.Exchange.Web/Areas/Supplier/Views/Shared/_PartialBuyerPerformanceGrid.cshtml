@@ -1,0 +1,271 @@
+﻿@model UspBuyerPerformanceViewModel
+
+<div class="row">
+    <div class="col-sm-12">
+        <h4>@Resource.lblYourCustomers</h4>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="buyerPerformance-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>@Resource.lblCompanyName</th>
+                                    <th>@Resource.lblCustomerId</th>
+                                    <th>@Resource.gridColumnTotalOrders</th>
+                                    <th>@Resource.gridColumnTotalSpend</th>
+                                    <th>@Resource.lblTotalQuantityOrdered</th>
+                                    <th>@Resource.lblTotalQuantityDelivered</th>
+                                    <th>@Resource.lblAveragePrice</th>
+                                    <th>@Resource.gridColumnTotalDdtCount</th>
+                                    <th>@Resource.gridColumnTotalInvoiceCount</th>
+                                    <th>@Resource.gridColumnTier</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="accoutingCompanyId-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-lg">
+
+        @using (Html.BeginForm("EditAccountingCompanyId", "Dashboard", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "EditAccCompForm" }))
+        {
+            @*Add Modal Content here*@
+            <div class="modal-content">
+                <div class="modal-body modal-autoscroll">
+                    <h4>@Resource.lblEditAccCompanyId</h4>
+                    <p style="word-wrap: break-word;">
+                        <div class="pa bg-white z-index5 loading-wrapper edit-loader"><span class='spinner-dashboard pa'></span></div>
+                        <div id="edit-Id-form"></div>
+                    </p>
+                </div>
+                <div class="text-right pa15 shadow-t">
+                    <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                    <input type="button" onclick="saveCompanyIdDetails()" id="btn-save-accCompanyId" class="btn btn-primary btn-lg" value="@Resource.btnLabelSave" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<div id="CustomerId-modal" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-sm">
+        @*Add Modal Content here*@
+        <div class="modal-content">
+            <div class="pa bg-white z-index5 loading-wrapper edit-loader"><span class='spinner-dashboard pa'></span></div>
+            <div class="modal-body modal-autoscroll">
+                <h4 class="pt0">@Resource.lblCustomerId</h4>
+                <p style="word-wrap: break-word;">
+                    <div id="edit-CustomerId-form">
+                        <input type="hidden" id="oBuyerCompanyId" value=0 />
+                        <input class="form-control" id="txtCustomerId" type="text" value="" placeholder="@Resource.lblCustomerId" />
+                    </div>
+                </p>
+                <div class="text-right mt20">
+                    <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                    <input type="button" id="btn-save-CustomerId" class="btn btn-primary btn-lg" onclick="updateCustomerId()" value="@Resource.btnLabelSave" />
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var supplierYourCustomerGrid, tiers, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7] };
+    var ClearFilter;
+
+    $(document).ready(function () {
+        tiers =  @Html.Raw(Json.Encode(CommonHelperMethods.GetTiers()));
+
+        supplierYourCustomerGrid = $('#buyerPerformance-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("YourCustomersGrid", "Dashboard", new { area = "Supplier" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+            },
+            "columnDefs": [{
+                "targets": [0],
+                "orderable": false
+            }],
+            "columns": [
+                    {
+                    "data": function (data) {
+                        return '<input type="checkbox" class="selectCustomer" value="' + data.BuyerCompanyId + '">';
+                       }, "autoWidth": true
+                    },
+                    {
+                       "data": function (data) {
+                           return '<a href="@Url.Action("BuyerDetails", "Dashboard" )?buyerCompanyId=' + data.BuyerCompanyId + '">' + data.BuyerName + '</a>';
+                       }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if ((data.CustomerId != null) && (data.CustomerId != '')) {
+                            return data.CustomerId + '<a id="btnCustomerId"  class ="CustomerId"  data-toggle="modal" data-target="#CustomerId-modal"><span class="fas fa-edit ml5" data-placement="top" title="@Resource.lblCustomerId"></span></a>'
+                        }
+                        else {
+                            return '<a id="btnCustomerId" class ="CustomerId" data-toggle="modal" data-target="#CustomerId-modal"><span class="fas fa-edit ml5" data-placement="top"  title="@Resource.lblCustomerId"></span></a>'
+                        }
+                    },
+                    "autoWidth": true
+                },
+                    { "data": "TotalOrders", "autoWidth": true },
+                    { "data": "TotalSpend", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+                    { "data": "TotalGallonsOrdered", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 0, '') },
+                    { "data": "TotalGallonsDelivered", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 0, '') },
+					{ "data": "AveragePPG", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+                    { "data": "TotalDDTCount", "autoWidth": true },
+                    { "data": "TotalInvoiceCount", "autoWidth": true },
+                    {
+                        "data": function (data) {
+                            var $select = $("<select class='form-control' onchange = 'UpdateCustomerTier(this);'></select>").attr("buyerCompanyId", data.BuyerCompanyId);
+                            $select.append($("<option></option>", {
+                                "text": '@Resource.lblSelect',
+                                "value": -1
+                            }));
+
+                            $.each(tiers, function (k, tier) {
+                                var $option = $("<option></option>", {
+                                    "text": tier.Name,
+                                    "value": tier.Id
+                                });
+                                if (data.AssignedTierId === tier.Id) {
+                                    $option.attr("selected", "selected");
+                                    selectedtext = tier.Name;
+                                }
+                                $select.append($option);
+                            });
+
+                            var loader = '<span class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class="spinner-dashboard pa mtm10 mlm10"></span></span>'
+                            return loader + $select.prop("outerHTML");
+                        }, "autoWidth": true, className: "pr td-changetier"
+                    },
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.lblYourCustomers', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.lblYourCustomers', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.lblYourCustomers', exportOptions: exportColumns, orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                },
+        });
+
+        $('#buyerPerformance-datatable tbody').on('click', '.CustomerId', function () {
+            var $row = $(this).closest('tr');
+            var data = $('#buyerPerformance-datatable').DataTable().row($row).data();           
+            editCustomerId(data.BuyerCompanyId, data.CustomerId);
+        });
+    });
+
+
+    function editCustomerId(id, CustomerId) {
+        $(".edit-loader").show();
+        $("#txtCustomerId").val(CustomerId);
+        $("#oBuyerCompanyId").val(id);
+        $(".edit-loader").hide();
+    }
+
+    function UpdateCustomerTier(element) {
+        $(element).attr('disabled', 'disabled');
+        var selectedBuyerCompany = $(element).attr('buyerCompanyId');
+        var selectedTierId = $(element).find('option:selected').val();
+        var assignUrl = '@Url.Action("AssignTier", "Dashboard", new { area= "Supplier" })';
+        $(element).closest(".td-changetier").find(".loading-wrapper").show();
+        var model = {
+            buyerCompanyId: selectedBuyerCompany,
+            tierId: selectedTierId
+        };
+        $.post(assignUrl, model, function (response) {
+            $(element).removeAttr('disabled');
+            if (response.StatusCode == 0) {
+                msgsuccess(response.StatusMessage);
+                $(element).closest(".td-changetier").find(".loading-wrapper").hide();
+            }
+            else {
+                msgerror(response.StatusMessage);
+                $(element).closest(".td-changetier").find(".loading-wrapper").hide();
+            }
+        });
+    }
+
+    function editAccountingCompanyId(BuyerCompanyId) {
+        var url = '@Url.Action("GetAccountingCompanyId","Dashboard", new { area="Supplier"})';
+        $(".edit-loader").show();
+        $.get(url, { buyerCompanyId: BuyerCompanyId}, function (response) {
+            if (response != null || response != undefined) {
+                $("#edit-Id-form").html(response);
+                parseForm();
+            }
+        }).always(
+            function () {
+                $(".edit-loader").hide();
+            }
+        );
+    }
+
+    function saveCompanyIdDetails() {
+        var $form = $("#EditAccCompForm");
+        var isValid = $form.valid();
+        var url = $form.attr("action");
+        var data = $form.serialize();
+        $.post(url, data, function (response) {
+            if (response.StatusCode == 0 && response.StatusMessage == "@Resource.errMessageSuccess") {
+                $("#accoutingCompanyId-modal").modal("hide");
+                msgsuccess(response.StatusMessage);
+                window.location.href = '/Supplier/Dashboard/YourCustomers/';
+            } else {
+                msgerror(response.StatusMessage);
+            }
+        });
+    }
+
+    function updateCustomerId() {       
+        var url = '@Url.Action("SaveUpdateCustomerId", "Dashboard", new { area="Supplier"})';
+        var data = { buyerCompanyId: $("#oBuyerCompanyId").val(), customerId: $("#txtCustomerId").val()}
+        $.post(url, data, function (response) {
+            if (response.StatusCode == 0) {
+                $("#CustomerId-modal").modal("hide");
+                msgsuccess(response.StatusMessage);
+                setTimeout(function () {
+                    window.location.reload(true);
+                }, 1000);
+            } else if (response.StatusCode == 2) {
+                msgwarning(response.StatusMessage)
+            }
+            else
+            msgerror(response.StatusMessage);
+        });
+    }
+
+</script>
+

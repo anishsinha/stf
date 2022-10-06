@@ -1,0 +1,135 @@
+﻿@{
+    ViewBag.Title = "Messages";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<head>
+    <script src="~/Content/js/site.js"></script>
+    <style>
+        #inboxCount, #importantCount, #trashCount {
+            min-width : 54px;
+            text-align : center;
+        }
+        .folder-content {
+            position: absolute;
+            left: 100px;
+            z-index: 0;
+            width: 300px;
+            background-color: #fff;
+            border: 1px solid #e7eaec;
+            border-left : none !important;
+        }
+        .folder-slider {
+            position: absolute;
+            left: 45px;
+            background: #fff;
+            width: 60px;
+            border-radius: 8px 0 0 8px;
+            cursor: pointer;
+            color: #1062d1;
+            font-size: 3em;
+            padding: 23px 10px;
+            border: 1px solid #e7eaec;
+            border-right: none !important;
+        }
+        .folder-slider i {
+            padding: 10px 5px;
+        }
+        .compose-body {
+            width : 92vw;
+            z-index : 1;
+        }
+        .show-folder {
+            width : calc(91.5vw - 325px)
+        }
+        .spin {
+            transform : rotate(180deg);
+            padding : 10px 0 !important; 
+        }
+        .folder-list li:hover {
+            background-color: #f2f9ff;
+        }
+    </style>
+</head>
+<div class="row">
+    <div class="col-12">
+        <h3 class="mt0 f-light pb5 fs18 mb5">@Resource.headingMessages</h3>
+    </div>
+</div>
+    <div class="row pull-right">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content mailbox-content pr0 pl0 pt0">
+                <div class="folder-slider">
+                    <i class="fa fa-caret-right spin" aria-hidden="true"></i>
+                </div>
+                <div class="folder-content p-2">
+                    @*<a id="btnCompose" class="btn btn-block btn-primary compose-mail" href="@Url.Action("Compose", "Mailbox", new { area= "Messages" })">@Resource.lblComposeMessage</a>
+        <div class="space-25"></div>*@
+                    <ul class="folder-list m-b-md m-0" style="padding: 0">
+                        <li class="border-0">
+                            <a id="link-inbox" href="@Url.Action("Messages", "Mailbox", new { area= "Messages", type = AppMessageFilterType.Inbox })">
+                                <i class="fa fa-inbox "></i> @Resource.lblInbox
+                                <span id="inboxCount" class="label label-warning pull-right">0</span>
+                            </a>
+                        </li>
+                        @*<li>
+                <a id="link-sent" href="@Url.Action("Messages", "Mailbox", new { area= "Messages", type = AppMessageFilterType.SentMails })">
+                    <i class="fa fa-envelope"></i> @Resource.lblSentMessages
+                    <span id="sentMailCount" class="label label-success pull-right"></span>
+                </a>
+            </li>*@
+                        <li class="border-0">
+                            <a id="link-important" href="@Url.Action("Messages", "Mailbox", new { area= "Messages", type = AppMessageFilterType.Important })">
+                                <i class="fa fa-star"></i> @Resource.lblImportant
+                                <span id="importantCount" class="label label-info pull-right">0</span>
+                            </a>
+                        </li>
+                        @*<li>
+                <a id="link-draft" href="@Url.Action("Messages", "Mailbox", new { area= "Messages", type = AppMessageFilterType.Drafts })">
+                    <i class="fa fa-file-text"></i> @Resource.lblDrafts
+                    <span id="draftCount" class="label label-danger pull-right"></span>
+                </a>
+            </li>*@
+                        <li class="border-0">
+                            <a id="link-trash" href="@Url.Action("Messages", "Mailbox", new { area= "Messages", type = AppMessageFilterType.Deleted })">
+                                <i class="fa fa-trash"></i> @Resource.lblTrash
+                                <span id="trashCount" class="label label-primary pull-right">0</span>
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+            </div>
+        </div>
+        <div class="compose-body show-folder">
+            @RenderBody()
+        </div>
+    </div>
+
+@using (Html.BeginScripts())
+{
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/icheck")
+
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/icheck")
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.i-checks').iCheck({
+                checkboxClass: 'icheckbox_square-green',
+                radioClass: 'iradio_square-green',
+            });
+
+            var url = '@Url.Action("GetMailboxMessagesCount", "Mailbox", new { area= "Messages" })';
+            $.get(url, function (response) {
+                $("#inboxCount").text(response.UnreadInboxCount + '/' + response.TotalInboxCount);
+                $("#draftCount").text(response.TotalDraftsCount);
+                $("#importantCount").text(response.ImportantsCount || 0);
+                $("#trashCount").text(response.TrashCount || 0);
+            });
+
+            $('.folder-slider').on('click', () => {
+                $('.compose-body').toggleClass('show-folder');
+                $('.fa-caret-right').toggleClass('spin');
+            })
+        });
+    </script>
+}

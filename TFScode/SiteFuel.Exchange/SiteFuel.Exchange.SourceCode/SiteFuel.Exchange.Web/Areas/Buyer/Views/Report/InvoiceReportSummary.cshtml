@@ -1,0 +1,197 @@
+﻿@model InvoiceReportFilter
+
+@{
+    ViewBag.Title = "Invoice Report";
+}
+
+<div class="row">
+    <div class="col-sm-12 mb10 tab-headers dib">
+        <a id="tab-details" href="javascript:void(0)" onclick="showsection('tax-breakdown'), activelink(this), showHideElements('div-sendEmailAndDownload', null)" class="active mr15">
+            <div class="step-inprogress fs16">
+                <span class="f-light step-text float-left">@Resource.headerTaxBreakdown</span>
+            </div>
+        </a>
+        <a id="tab-po" href="javascript:void(0)" onclick="showsection('invoice-reconsilation'), activelink(this), showHideElements(null, 'div-sendEmailAndDownload')" class="mr15">
+            <div class="step-inprogress fs16">
+                <span class="f-light step-text float-left">
+                    @Resource.lblInvoiceReconcilation
+                </span>
+            </div>
+        </a>
+    </div>
+</div>
+
+
+<div class="row mb10 ">
+    <div class="col-sm-12">
+        <div class="well pb10 mb5">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5">
+                    <input type="text" id="txtInvoiceReportFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" />
+                    <div id="FromDateValidation" class="fs12 color-red"></div>
+                </div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5">
+                    <input type="text" id="txtInvoiceReportToDate" placeholder="@Resource.lblTo" class="form-control datepicker" />
+                    <div id="ToDateValidation" class="fs12 color-red"></div>
+                </div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5">@Html.ListBoxFor(m => m.SupplierCompanyIds, new SelectList(CommonHelperMethods.GetYourSuppliers(CurrentUser.CompanyId), "Id", "Name"), new { @class = "form-control multi-select suppliercompany", @placeholder = "Select your supplier(s)" })</div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5">@Html.ListBoxFor(m => m.JobIds, new SelectList(CommonHelperMethods.GetJobs(0), "Id", "Name"), new { @class = "form-control multi-select job", @placeholder = "Select location(s)" })</div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary mb5 mr5" value="@Resource.btnLabelApply" onclick="ApplyFilter();" />
+                    <input type="button" class="btn mb5 mr5" value="@Resource.btnLabelClearFilter" onclick="ClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mb5 mt20 div-sendEmailAndDownload">
+    <div class="col-sm-4">
+        <div class="row">
+            <div class="col-sm-8">
+                <input type="text" id="txtEmailTo" placeholder="@Resource.lblAddEmailAddress" class="form-control" />
+                <div id="EmailValidation" class="fs12 color-red"></div>
+            </div>
+            <div class="col-sm-4">
+                <input id="sendemail-invoicereport" type="button" class="btn btn-default btn-sm" value="@Resource.btnLabelSendEmail" />
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-8 text-right">
+        <a href="javascript:void(0);" class="btn btn-default btn-sm" onclick="downloadCsv();">@Resource.lblDownloadCsv</a>
+    </div>
+</div>
+<div id="custom-message"></div>
+
+<div class="tab-container pr">
+    <div id="tax-breakdown">
+        @Html.Partial("_PartialInvoiceTaxBreakdownReportGrid", new InvoiceReportFilter())
+    </div>
+    <div id="invoice-reconsilation">
+        @Html.Partial("_PartialInvoiceReconcilationReportGrid", new InvoiceReportFilter())
+    </div>
+</div>
+
+    @using (Html.BeginScripts())
+    {
+        <script type="text/javascript">
+    var ClearFilter;
+    $(document).ready(function () {
+        ClearFilter = function () {
+            $('#txtInvoiceReportFromDate').val('');
+            $('#txtInvoiceReportToDate').val('');
+            $("#@Html.IdFor(m => m.SupplierCompanyIds) option:selected").remove();
+            $("#@Html.IdFor(m => m.JobIds) option:selected").remove();
+            $('#txtInvoiceReportToDate').data("DateTimePicker").minDate($("#txtInvoiceReportFromDate").datetimepicker("minDate"));
+            ReloadDataTable();
+        }
+
+        ApplyFilter = function () {
+            $('#FromDateValidation').empty();
+            $('#ToDateValidation').empty();
+
+            if (!$('#txtInvoiceReportFromDate').val()) {
+                $('#FromDateValidation').html('@Resource.msgStartDateValidation').show();
+            }
+
+            if (!$('#txtInvoiceReportToDate').val()) {
+                $('#ToDateValidation').html('@Resource.msgEndDateValidation').show();
+            }
+
+            if ($('#txtInvoiceReportFromDate').val() && $('#txtInvoiceReportToDate').val()) {
+                ReloadDataTable();
+            }
+        }
+
+
+        $("#sendemail-invoicereport").on("click", function () {
+                var filter = {
+                    StartDate : $('#txtInvoiceReportFromDate').val() == 'undefined' ? "" : $('#txtInvoiceReportFromDate').val(),
+                    EndDate : $('#txtInvoiceReportToDate').val() == 'undefined' ? "" : $('#txtInvoiceReportToDate').val(),
+                    CompanyId : @CurrentUser.CompanyId,
+                    SupplierCompanyIds : $('select.suppliercompany').val(),
+                    CustomerCompanyIds : $('select.buyercompany').val(),
+                    JobIds : $('select.job').val(),
+                    CompanyProfile: '@(CurrentUser.CompanyTypeId == CompanyType.BuyerAndSupplier ? (int)CurrentUser.CompanySubTypeId:(int)CurrentUser.CompanyTypeId)',
+                    UserId: @CurrentUser.Id,
+                    EmailTo: $('#txtEmailTo').val(),
+                };
+
+                $('#FromDateValidation').empty();
+                $('#ToDateValidation').empty();
+                $('#EmailValidation').empty();
+
+                if (!$('#txtEmailTo').val()) {
+                    $('#EmailValidation').html('@Resource.msgEmailValidation').show();
+                }
+
+                if (!$('#txtInvoiceReportFromDate').val()) {
+                    $('#FromDateValidation').html('@Resource.msgStartDateValidation').show();
+                }
+
+                if (!$('#txtInvoiceReportToDate').val()) {
+                    $('#ToDateValidation').html('@Resource.msgEndDateValidation').show();
+                }
+
+            if ($('#txtInvoiceReportFromDate').val() && $('#txtInvoiceReportToDate').val() && $('#txtEmailTo').val())
+            {
+                var url = '@Url.Action("SendEmailInvoiceReport", "", new { area = "" })';
+                $.post(url, filter).done(function (response) {
+                    if (response) {
+                        msgsuccess('@Resource.msgEmailRequestReceived');
+                        $('#EmailValidation').empty();
+                    }
+                    else {
+                        msgerror('@Resource.msgEmailReportFailed');
+                    }
+                });
+            }
+        });
+
+    });
+
+    function downloadCsv() {
+        var startDate = $('#txtInvoiceReportFromDate').val() == 'undefined' ? "" : $('#txtInvoiceReportFromDate').val();
+        var endDate = $('#txtInvoiceReportToDate').val() == 'undefined' ? "" : $('#txtInvoiceReportToDate').val();
+        var supplierCompanyIds = $('select.suppliercompany').val();
+        var customerCompanyIds = $('select.buyercompany').val();
+        var jobIds = $('select.job').val();
+        var currencyType = GetLocalStorage("currencyTypeForDashboard");
+        var companyProfile = '@(CurrentUser.CompanyTypeId == CompanyType.BuyerAndSupplier ? (int)CurrentUser.CompanySubTypeId:(int)CurrentUser.CompanyTypeId)';
+
+        var url = '@Url.Action("ExportInvoiceReportToCsv", "", new { area = "" })?startDate=' + startDate + '&endDate=' + endDate + '&jobIds=' + jobIds + '&customerCompanyIds=' + customerCompanyIds + '&supplierCompanyIds=' + supplierCompanyIds + '&companyProfile=' + companyProfile + '&currencyType=' + currencyType;;
+        hideLoader();
+        location.href = url;
+    }
+
+    $(document).ready(function () {
+        $('#@Html.IdFor(m => m.SupplierCompanyIds)').on('change', function () {
+            GetJobsForCompany();
+        });
+    });
+
+    function GetJobsForCompany() {
+        var target = $("#@Html.IdFor(m => m.JobIds)");
+        $.get({
+            url: "@Url.Action("GetJobList", "Report", new { area = "Buyer" })",
+            data: {
+                supplierCompanyIds: $('select.suppliercompany').val()
+            },
+            traditional: true,
+            success: function (response) {
+                if (response.length > 0) {
+                    target.empty(), $.each(response, function (i, element) {
+                        target.append($('<option></option>').val(element.Id).html(element.Name));
+                    });
+                }
+                else {
+                    target.empty();
+                }
+            }
+        });
+    }
+        </script>
+    }
+
+
+

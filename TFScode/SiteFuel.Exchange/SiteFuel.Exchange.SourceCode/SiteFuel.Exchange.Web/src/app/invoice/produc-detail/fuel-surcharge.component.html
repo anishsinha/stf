@@ -1,0 +1,218 @@
+<div [formGroup]="SurchargeForm">
+
+    <div *ngIf="SurchargeForm.get('FreightPricingMethod').value != 1  && CheckBoxFreightCost">
+        <h3>Freight Cost</h3>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" formControlName="IsFreightCostApplicable" (change)="OncheckBoxChange($event)" />
+                            Apply Freight Rate
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div *ngIf="SurchargeForm.get('IsFreightCostApplicable').value">
+            <div class="row">
+                <div class="col-sm-12" *ngIf="IsFrieghtPricingMethodAuto">
+
+                    <div class="row">
+                        <div class="col-sm-2">
+                            <h5>Freight Type</h5>
+                            <div class="form-group">
+                                <ng-multiselect-dropdown formControlName="FreightType"
+                                                         [placeholder]="'Type'"
+                                                         class="single-select"
+                                                         (onSelect)="OnFreightTypeSelect($event)"
+                                                         (onDeSelect)="onTypeDeSelect($event)"
+                                                         [settings]="SingleSelectSettingsById"
+                                                         [data]="FreightTypeList">
+                                </ng-multiselect-dropdown>
+                            </div>
+                            <div *ngIf="SurchargeForm.get('FreightType').invalid && SurchargeForm.get('AutoFreightDistance').touched" class="color-maroon">
+                                <div *ngIf="SurchargeForm.get('FreightType').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div *ngIf="IsFreightTableTypeVisible" class="col-sm-3">
+                            <h5>Table Type</h5>
+                            <div class="form-group">
+                                <ng-multiselect-dropdown formControlName="FreightTableType"
+                                                         [placeholder]="'Table Type'"
+                                                         class="single-select"
+                                                         (onSelect)="OnFreightTableTypeSelect($event)"
+                                                         (onDeSelect)="onTypeDeSelect($event)"
+                                                         [settings]="SingleSelectSettingsById"
+                                                         [data]="FreightTableTypeList">
+                                </ng-multiselect-dropdown>
+                            </div>
+                            <div *ngIf="SurchargeForm.get('FreightTableType').invalid && SurchargeForm.get('AutoFreightDistance').touched" class="color-maroon">
+                                <div *ngIf="SurchargeForm.get('FreightTableType').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <h5>Freight Table Name</h5>
+                            <div class="form-group">
+                                <ng-multiselect-dropdown formControlName="FreightTableName"
+                                                         [placeholder]="'Type'"
+                                                         class="single-select"
+                                                         (onSelect)="OnFreightTableNameSelect()"
+                                                         (onDeSelect)="onTypeDeSelect($event)"
+                                                         [settings]="SingleSelectSettingsById"
+                                                         [data]="FreightTableNameList">
+                                </ng-multiselect-dropdown>
+                            </div>
+                            <div *ngIf="SurchargeForm.get('FreightTableName').invalid && SurchargeForm.get('AutoFreightDistance').touched" class="color-maroon">
+                                <div *ngIf="SurchargeForm.get('FreightTableName').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div *ngIf="IsDistanceVisible" class="col-sm-2">
+                            <h5>Distance (Miles)</h5>
+                            <div class="input-group">
+                                <input type="number" formControlName="AutoFreightDistance" oninput="this.value = Math.abs(this.value)" class="form-control" placeholder="Distance" />
+                            </div>
+                            <div *ngIf="SurchargeForm.get('AutoFreightDistance').invalid && SurchargeForm.get('AutoFreightDistance').touched" class="color-maroon">
+                                <div *ngIf="SurchargeForm.get('AutoFreightDistance').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-2">
+                            <h5>Freight Cost(Per Gallon)</h5>
+                            <div class="input-group">
+                                <input type="number" (input)="setAutoSurchargeFreightCost($event)" formControlName="AutoSurchargeFreightCost" class="form-control" placeholder="Fee" />
+                                <div class="input-group-addon fs12">USD</div>
+                            </div>
+                            <div *ngIf="SurchargeForm.get('AutoSurchargeFreightCost').invalid && SurchargeForm.get('AutoFreightDistance').touched" class="color-maroon">
+                                <div *ngIf="SurchargeForm.get('AutoSurchargeFreightCost').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row" *ngIf="(SurchargeForm.get('FreightPricingMethod').value == 1 && CheckBoxFuelSurcharge) ||
+         (SurchargeForm.get('FreightPricingMethod').value == 2 && SurchargeForm.get('IsFreightCostApplicable').value == true  && CheckBoxFuelSurcharge)">
+        <div class="row ml-1">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <input type="hidden" formControlName="SurchargePricingType" />
+                    <input type="hidden" formControlName="SurchargeProductType" />
+                    <input type="hidden" formControlName="FeeSubTypeId" />
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" formControlName="IsSurchargeApplicable"  (change)="OnChangeSurchargeApplicable($event)"/>
+                            Apply Fuel Surcharge
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+            <div *ngIf="SurchargeForm.get('IsSurchargeApplicable').value">
+                <div class="row ml-1">
+                    <div class="col-sm-12" *ngIf="IsFrieghtPricingMethodAuto">
+                        <div class="row">
+                            <div class="col-sm-3 ">
+                                <h5>Table Type</h5>
+                                <div class="form-group">
+                                    <ng-multiselect-dropdown formControlName="FuelSurchargeTableType"
+                                                             [placeholder]="'Table Type'"
+                                                             class="single-select"
+                                                             (onSelect)="OnFuelSurchargeTableTypeSelect($event)"
+                                                             (onDeSelect)="onTypeDeSelect($event)"
+                                                             [settings]="SingleSelectSettingsById"
+                                                             [data]="FuelSurchargeTableTypeList">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                                <div *ngIf="SurchargeForm.get('FuelSurchargeTableType').invalid && SurchargeForm.get('AutoFreightDistance').touched" class="color-maroon">
+                                    <div *ngIf="SurchargeForm.get('FuelSurchargeTableType').errors.required">
+                                        Required.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-3">
+                                <h5>Surcharge Table Name</h5>
+                                <div class="form-group">
+                                    <ng-multiselect-dropdown formControlName="FuelSurchargeTableName"
+                                                             [placeholder]="'Type'"
+                                                             class="single-select"
+                                                             (onSelect)="OnFuelSurchargeTableNameSelect()"
+                                                             (onDeSelect)="onFuelSurchargeNameDeSelect()"
+                                                             [settings]="SingleSelectSettingsById"
+                                                             [data]="FuelSurchargeTableNameList">
+                                    </ng-multiselect-dropdown>
+                                </div>
+                                <div *ngIf="SurchargeForm.get('FuelSurchargeTableName').invalid && SurchargeForm.get('AutoFreightDistance').touched" class="color-maroon">
+                                    <div *ngIf="SurchargeForm.get('FuelSurchargeTableName').errors.required">
+                                        Required.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row ml-1">
+                    <div class="col-sm-2" *ngIf="!IsFrieghtPricingMethodAuto">
+                        <div class="form-group">
+                            <label>Freight Cost</label>
+                            <input type="text" formControlName="SurchargeFreightCost" class="form-control" readonly="readonly" />
+                        </div>
+                    </div>
+                    <div class="col-sm-2" [style.display]="SurchargeForm.get('IsFeeByDistance').value ? 'block' : 'none'">
+                        <div class="form-group">
+                            <label>Distance</label>
+                            <input type="text" formControlName="Distance" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <div *ngIf="LoadingPrice" class="pa bg-white subSectionOpacity top0 left0 z-index5 loading-wrapper">
+                                <span class='spinner-dashboard pa'></span>
+                            </div>
+                            <label>EIA Price</label>
+                            <input type="text" formControlName="SurchargeEiaPrice" class="form-control" readonly="readonly" />
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <label>Interval Start</label>
+                            <input type="text" formControlName="SurchargeTableRangeStart" class="form-control" readonly="readonly" />
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <label>Interval End</label>
+                            <input type="text" formControlName="SurchargeTableRangeEnd" class="form-control" readonly="readonly" />
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <label>Surcharge %</label>
+                            <input type="text" formControlName="SurchargePercentage" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <label>Total</label>
+                            <input type="text" formControlName="TotalFuelSurchargeFee" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

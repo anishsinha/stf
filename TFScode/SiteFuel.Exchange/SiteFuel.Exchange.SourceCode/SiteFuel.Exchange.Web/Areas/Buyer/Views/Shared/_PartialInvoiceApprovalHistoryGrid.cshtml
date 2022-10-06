@@ -1,0 +1,77 @@
+﻿@model InvoiceViewModel
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="buyerinvoiceapprovalhistory-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@((Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp) ? Resource.gridColumnDropTicketNumber : Resource.gridColumnInvoiceNumber)</th>
+                                    <th>@Resource.gridColumnAssignedTo</th>
+                                    <th>@((Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp) ? Resource.gridColumnDropTicketDate : Resource.gridColumnInvoiceDate)</th>
+                                    <th>@((Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketManual || Model.InvoiceTypeId == (int)InvoiceType.DigitalDropTicketMobileApp) ? Resource.gridColumnDropTicketTime : Resource.gridColumnInvoiceTime)</th>
+                                    <th>@Resource.gridColumnApprovedOrRejectedBy</th>
+                                    <th>@Resource.gridColumnApprovedOrRejectedDate</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+	$('#buyerinvoiceapprovalhistory-datatable').dataTable({
+        "ajax": {
+            "url": "@Url.Action("InvoiceApprovalHistoryGrid", "Invoice", new { area = "Buyer", id=Model.Id })",
+            "type": "GET",
+            "datatype": "json",
+            "dataSrc": ""
+        },
+        "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("Details", "Invoice", new { area = "Buyer" })?id=' + data.Id + '">' + data.InvoiceNumber + '</a>';
+                        }, "autoWidth": true
+                    },
+					{ "data": "AssignedTo", "autoWidth": true },
+					{ "data": "CreatedDate", "autoWidth": true },
+					{ "data": "CreatedTime", "autoWidth": true },
+					{ "data": "ApprovedBy", "autoWidth": true },
+					{ "data": "ApprovedDate", "autoWidth": true },
+					{ "data": "Status", "autoWidth": true }
+
+        ],
+        pageLength: 10,
+        responsive: true,
+        "order": [],
+        "initComplete": function (settings, json) {
+            wrapperHeight();
+        },
+        dom: '<"html5buttons"B>lTfgitp',
+        buttons: [
+            { extend: 'copy' },
+            { extend: 'csv', title: '@Resource.headingApprovals'},
+            { extend: 'excel', title: '@Resource.headingApprovals' },
+            { extend: 'pdf', title: '@Resource.headingApprovals' },
+            {
+                extend: 'print',
+                customize: function (win) {
+                    $(win.document.body).addClass('white-bg');
+                    $(win.document.body).css('font-size', '10px');
+
+                    $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                }
+            }
+        ],
+        language: {
+            sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+        }
+    });
+</script>

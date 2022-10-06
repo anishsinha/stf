@@ -1,0 +1,92 @@
+﻿@model DashboardInvoicesViewModel
+<h2 class="fs16 f-normal mb15 mt0">
+    <span class="fas fa-dollar mr5"></span> @Html.ActionLink(Resource.lblInvoices, "View", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, groupIds = Model.GroupIds }, new { @class = "mt2" })
+</h2>
+<canvas id="invoicePieChart" class="mt10 mb20" height="120"></canvas>
+<script type="text/javascript">
+            var dashboardFilter = getDashboardFilter();
+            var groupIds = getCompanyGroup().groupIds;
+
+            var dbTotalInvoices = 0;
+            var url = '@Url.Action("GetInvoicesCount", "Dashboard",new { area= "Buyer", jobId = Model.SelectedJobId })';
+            $.get(url, { 'countryId': dashboardFilter.countryId, 'currency': dashboardFilter.currencyType, 'groupIds': groupIds }, function (response) {
+                dbTotalInvoices = response.TotalInvoiceCount;
+                $("#totalInvoices").text(response.TotalInvoiceCount);
+
+                var ctx = document.getElementById('invoicePieChart').getContext('2d');
+                var invoiceChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Received: ' + response.ReceivedInvoiceCount, 'Approved: ' + response.ApprovedInvoiceCount, 'Rejected: ' + response.NotApprovedInvoiceCount],
+                        datasets: [{
+                            position: 'bottom',
+                            data: [response.ReceivedInvoiceCount, response.ApprovedInvoiceCount, response.NotApprovedInvoiceCount],
+                            backgroundColor: [
+                                '#91b6e8',
+                                '#aadb8d',
+                                '#eb826a'
+                            ],
+                            borderColor: [
+                                'rgba(255, 255, 255, 1)',
+                                'rgba(255, 255, 255, 1)',
+                                'rgba(255, 255, 255, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 2,
+                                fontSize: 11
+                            }
+                        },
+                        hover: {
+                            onHover: function (e) {
+                                $("#invoicePieChart").css("cursor", e[0] ? "pointer" : "default");
+                            }
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function (tooltipItem, data) {
+                                    return data['labels'][tooltipItem['index']];
+                                }
+                            }
+                        }
+                    }
+                });
+
+                $("#invoicePieChart").closest(".chart-invoice").find('.loading-wrapper').remove();
+
+                document.getElementById("invoicePieChart").onclick = function (evt) {
+                    var activePoints = invoiceChart.getElementsAtEvent(evt);
+                    var firstPoint = activePoints[0];
+                    var label = invoiceChart.data.labels[firstPoint._index];
+
+                    var spaceChar = label.indexOf(" ");
+                    var labelStr = label.substring(0, spaceChar);
+
+                    switch (labelStr) {
+                        case 'Received:':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, filter = InvoiceFilterType.Received, groupIds = Model.GroupIds }))', "_self");
+                            break;
+                        case 'Approved:':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, filter = InvoiceFilterType.Approved, groupIds = Model.GroupIds }))', "_self");
+                            break;
+                        case 'Rejected:':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, filter = InvoiceFilterType.Rejected, groupIds = Model.GroupIds }))', "_self");
+                            break;
+                    }
+                    };
+            }).done(function () {
+                if (dbTotalInvoices == 0) {
+                    hideElementById("bd-invoice-tile");
+                }
+                if (dbTotalInvoices == 0 && dbTotalDDT == 0) {
+                    hideElementById("bd-invoice-ddt-tile");
+                }
+            });
+</script>

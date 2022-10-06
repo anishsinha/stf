@@ -1,0 +1,221 @@
+﻿@model PaymentViewModel
+
+@{
+    ViewBag.Title = Model.Id > 0 ? "Card Details" : "Add Payment Info";
+}
+
+@using (Html.BeginForm("CompanyPaymentInformation", "Profile", FormMethod.Post, new { role = "form", id = "companypayment-form" }))
+{
+    @Html.AntiForgeryToken()
+<div class="col-sm-12">
+    <div class="@((Model.DisplayMode != PageDisplayMode.View) ? "row well mb15" : "row well mb15 disable-controls")">
+        @Html.HiddenFor(m => m.DisplayMode)
+        @Html.HiddenFor(m => m.Id)
+        @Html.HiddenFor(m => m.UserId)
+        @Html.HiddenFor(m => m.CompanyId)
+        @Html.HiddenFor(m => m.CardToken)
+        @Html.HiddenFor(m => m.Card.BypassPaymentDetails)
+
+        <div class="col-sm-12">
+            <h4>@Resource.headingCardDetails</h4>
+            <div class="row">
+                <div class="container ml0">
+                    <div class="row">
+                        <div class="col-sm-10">
+                            <div class="row">
+                                <div class="@((Model.DisplayMode != PageDisplayMode.View) ? "col-sm-6" : "col-sm-3")">
+                                    <div class="row">
+                                        <div class="@(Model.DisplayMode == PageDisplayMode.Create ? "col-sm-6 " : "col-sm-12 ")">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.Card.NameOnCard)
+                                                @Html.TextBoxFor(m => m.Card.NameOnCard, new { @class = "form-control", autofocus = "autofocus" })
+                                                @Html.ValidationMessageFor(m => m.Card.NameOnCard)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="@(Model.DisplayMode == PageDisplayMode.Create ? "col-sm-6 col-xs-8" : "col-sm-12 ")">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.Card.CardNumber)
+                                                @Html.TextBoxFor(m => m.Card.CardNumber, new { @class = "form-control" })
+                                                @Html.ValidationMessageFor(m => m.Card.CardNumber)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            @if (Model.DisplayMode == PageDisplayMode.Create)
+                                            {
+                                                <div class="form-group">
+                                                    @Html.LabelFor(m => m.Card.Cvv)
+                                                    @Html.TextBoxFor(m => m.Card.Cvv, new { @class = "form-control" })
+                                                    @Html.ValidationMessageFor(m => m.Card.Cvv)
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (Model.DisplayMode == PageDisplayMode.Create)
+                                    {
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <div class="form-group">
+                                                    @Html.LabelFor(m => m.Card.ExpirationMonth)
+                                                    @Html.DropDownListFor(m => m.Card.ExpirationMonth, new SelectList(CommonHelperMethods.GetMonthsEx(), "Id", "Name", 0), @Resource.lblMonth, new { @class = "form-control" })
+                                                    @Html.ValidationMessageFor(m => m.Card.ExpirationMonth)
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <div class="form-group">
+                                                    <label>&nbsp;</label>
+                                                    @Html.DropDownListFor(m => m.Card.ExpirationYear, new SelectList(CommonHelperMethods.GetYearsEx(0, 10), "Id", "Name", 0), @Resource.lblYear, new { @class = "form-control" })
+                                                    @Html.ValidationMessageFor(m => m.Card.ExpirationYear)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="form-group">
+                                        <div class="checkbox-controls">
+                                            <label class="checkbox-inline">
+                                                @Html.CheckBoxFor(m => m.Card.IsPrimary, Model.Card.IsPrimary ? (object)new { @disabled = "disabled" } : new { })
+                                                @Resource.lblPrimaryCard
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 address-container">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                @Html.LabelForEx(m => m.Address, Resource.lblBillingAddress)
+                                                @Html.TextBoxFor(m => m.Address, new { @class = "form-control" })
+                                                @Html.ValidationMessageFor(m => m.Address)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.ZipCode)
+                                                @Html.TextBoxFor(m => m.ZipCode, new { @class = "form-control zipcode" })
+                                                @Html.ValidationMessageFor(m => m.ZipCode)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.City)
+                                                @Html.TextBoxFor(m => m.City, new { @class = "form-control city" })
+                                                @Html.ValidationMessageFor(m => m.City)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                @Html.HiddenFor(m => m.State.Name, new { @Value = Resource.lblDummy })
+                                                @Html.HiddenFor(m => m.State.Code, new { @Value = Resource.lblDummy })
+                                                @Html.LabelFor(m => m.State.Id)
+                                                @Html.DropDownListFor(m => m.State.Id, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", Model.State.Id), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state" })
+                                                @Html.ValidationMessageFor(m => m.State.Id)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6 col-xs-7">
+                                            <div class="form-group">
+                                                @Html.HiddenFor(m => m.Country.Name, new { @Value = Resource.lblDummy })
+                                                @Html.HiddenFor(m => m.Country.Code, new { @Value = Resource.lblDummy })
+                                                @Html.LabelFor(m => m.Country.Id)
+                                                @Html.DropDownListFor(m => m.Country.Id, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", 0), new { @class = "form-control country" })
+                                                @Html.ValidationMessageFor(m => m.Country.Id)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- card details starts -->
+        <!-- card details ends -->
+    </div>
+    <div class="row text-right mb25 btn-wrapper">
+        <div class="col-sm-12">
+            <div class="form-group">
+                <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("CompanyPaymentDetails", "Profile", new { area = "Settings" })'" />
+                @if ((CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin) && Model.DisplayMode == PageDisplayMode.Create)
+                {
+                    <input type="submit" class="btn btn-lg btn-primary" id="btnSave" data-url="@Url.Action("IsValidFullAddress", "Validation", new { area = ""})" value="@Resource.btnLabelSave" />
+                }
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+    <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
+    <script type="text/javascript">
+        var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+        var stateId = @Model.State.Id; // for state autofill
+
+        Stripe.setPublishableKey('@Html.GetStripePublicKey()');
+
+        $('#btnSave').click(function () {
+            if (!$('#companypayment-form').valid()) {
+                return;
+            }
+            // Get the values:
+            var ccNum = $('#@Html.IdFor(m => m.Card.CardNumber)').val(),
+                cvcNum = $('#@Html.IdFor(m => m.Card.Cvv)').val(),
+                expMonth = $('#@Html.IdFor(m => m.Card.ExpirationMonth)').val(),
+                expYear = $('#@Html.IdFor(m => m.Card.ExpirationYear)').val();
+
+            // Validate the number:
+            if (!Stripe.card.validateCardNumber(ccNum)) {
+                validationMessageFor("@Html.NameFor(m => m.Card.CardNumber)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { Resource.lblNumber })');
+                return;
+            }
+
+            // Validate the CVC:
+            if (!Stripe.card.validateCVC(cvcNum)) {
+                validationMessageFor("@Html.NameFor(m => m.Card.Cvv)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { Resource.lblCvv })');
+                return;
+            }
+
+            // Validate the expiration:
+            if (!Stripe.card.validateExpiry(expMonth, expYear)) {
+                validationMessageFor("@Html.NameFor(m => m.Card.ExpirationYear)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { string.Format("{0} & {1}", Resource.lblMonth,Resource.lblYear) })');
+                return;
+            }
+
+            //Validate full address
+            var url = $(this).data("url");
+            var model = {
+                address: {
+                    Address: $('#@Html.IdFor(m => m.Address)').val().toLowerCase(),
+                    City: $('#@Html.IdFor(m => m.City)').val().toLowerCase(),
+                    StateCode: $('#@Html.IdFor(m => m.State.Id)').find("option:selected").text(),
+                    CountryCode: $('#@Html.IdFor(m => m.Country.Id)').find("option:selected").text(),
+                    ZipCode: $('#@Html.IdFor(m => m.ZipCode)').val().toLowerCase()
+                }
+            };
+
+            $.post(url, model, function (response) {
+                if (response == true) {
+                }
+                else {
+                    validationMessageFor("@Html.NameFor(m => m.Address)",
+                                         '@ResourceMessages.GetMessage(Resource.valMessageFullAddressInvalid
+                                                                            , new object[] {
+                                                                                Resource.lblAddress,
+                                                                                Resource.lblCity,
+                                                                                Resource.lblState,
+                                                                                Resource.lblCountry,
+                                                                                Resource.lblZipcode })');
+                    return false;
+                }
+            });
+        });
+
+    </script>
+}

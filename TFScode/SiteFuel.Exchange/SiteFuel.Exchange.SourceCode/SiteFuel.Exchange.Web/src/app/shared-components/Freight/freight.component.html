@@ -1,0 +1,296 @@
+﻿<form [formGroup]="rcForm">
+    <fieldset [ngClass]="{'pntr-none': disableInputControls}" [disabled]="disableInputControls ? true : null">
+        <div class="well bg-white">
+            <div class="row">
+                <div *ngIf="(isLoadingSubject | async)" class='pa bg-white top0 left0 z-index5 loading-wrapper'>
+                    <span class='spinner-dashboard pa'></span>
+                </div>
+                <div class="col-sm-3 form-group">
+                    <label>Table Name</label>
+                    <input type="text" [readonly]="!IsEditable?true:null" formControlName="TableName" class="form-control" />
+                    <div *ngIf="rcForm.get('TableName').invalid && rcForm.get('TableName').touched" class="color-maroon">
+                        <div *ngIf="rcForm.get('TableName').errors.required">
+                            Required.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3 form-group">
+                        <label for="TableTypes">Table Type</label>
+                        <ng-multiselect-dropdown formControlName="TableTypes"
+                                                 [disabled]="PricingRuleType==1"
+                                                 class="single-select"
+                                                 id="TableTypes"
+                                                 [placeholder]="'Select Type'"
+                                                 [settings]="SingleSelectSettingsById"
+                                                 [data]="TableTypeList"
+                                                 (onSelect)="onTableTypeSelect($event)">
+                        </ng-multiselect-dropdown>
+                        <div *ngIf="rcForm.get('TableTypes').invalid && rcForm.get('TableTypes').touched" class="color-maroon">
+                            <div *ngIf="rcForm.get('TableTypes').errors.required">
+                                Required.
+                            </div>
+                        </div>
+                </div>
+                        <div class="col-sm-3" [ngClass]="{'hide-element':PricingRuleType==1,'pntr-none subSectionOpacity': IsMasterSelected}">
+                            <label for="Customers">Select Customer(s)</label>
+                            <ng-multiselect-dropdown formControlName="Customers"
+                                                     id="Customers"
+                                                     [data]="CustomerList"
+                                                     [placeholder]="'Select Customers'"
+                                                     [settings]="MultiSelectSettingsById">
+                            </ng-multiselect-dropdown>
+                        </div>
+                        <div class="col-sm-3 form-group" [ngClass]="{'hide-element':PricingRuleType!=1,'pntr-none subSectionOpacity': IsMasterSelected}">
+                            <label for="Customer">Select Customer</label>
+                            <ng-multiselect-dropdown formControlName="Customers"
+                                                     class="single-select"
+                                                     id="Customer"
+                                                     [data]="CustomerList"
+                                                     [placeholder]="'Select Customer'"
+                                                     [settings]="SingleSelectSettingsById">
+                            </ng-multiselect-dropdown>
+
+                            <div *ngIf="IsCustomerSelected && rcForm.get('Customers').invalid && rcForm.get('Customers').touched" class="color-maroon">
+                                <div *ngIf="rcForm.get('Customers').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3 form-group" [ngClass]="{'hide-element':PricingRuleType!=1,'pntr-none subSectionOpacity': IsMasterSelected}">
+                            <label for="Locations">Select Location(s)</label>
+                            <ng-multiselect-dropdown formControlName="Locations"
+                                                     id="Locations"
+                                                     [data]="LocationList"
+                                                     [placeholder]="'Select Locations'"
+                                                     [settings]="MultiSelectSettingsById">
+                            </ng-multiselect-dropdown>
+
+                            <div *ngIf="IsCustomerSelected && rcForm.get('Locations').invalid && rcForm.get('Locations').touched" class="color-maroon">
+                                <div *ngIf="rcForm.get('Locations').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+                <div class="col-sm-3 form-group">
+                        <div [ngClass]="{'pntr-none subSectionOpacity': IsMasterSelected}">
+                            <label for="Carriers">Select Carrier(s)</label>
+                            <ng-multiselect-dropdown formControlName="Carriers"
+                                                     id="Carriers"
+                                                     [placeholder]="'Select Carriers'"
+                                                     [settings]="MultiSelectSettingsById"
+                                                     [data]="CarrierList">
+                            </ng-multiselect-dropdown>
+                            <div *ngIf="IsCarrierSelected && rcForm.get('Carriers').invalid && rcForm.get('Carriers').touched" class="color-maroon">
+                                <div *ngIf="rcForm.get('Carriers').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+                </div>
+                <div class="col-sm-3 form-group">
+                        <label for="SourceRegions">Select Source Region(s)</label>
+                        <ng-multiselect-dropdown formControlName="SourceRegions"
+                                                 id="SourceRegions"
+                                                 [placeholder]="'Select Source Regions'"
+                                                 [settings]="MultiSelectSettingsById"
+                                                 [data]="SourceRegionList">
+                        </ng-multiselect-dropdown>
+                        <div *ngIf="rcForm.get('SourceRegions').invalid && rcForm.get('SourceRegions').touched" class="color-maroon">
+                            <div *ngIf="rcForm.get('SourceRegions').errors.required">
+                                Required.
+                            </div>
+                        </div>
+                </div>
+
+                <div class="col-sm-3 form-group">
+
+                        <div [ngClass]="{'pntr-none subSectionOpacity': !IsSourceRegionSelected}">
+                            <label for="TerminalsAndBulkPlants">Select Terminal(s)/BulkPlant(s)</label>
+                            <angular2-multiselect id="TerminalsAndBulkPlants"
+                                                  [data]="TerminalsAndBulkPlantList"
+                                                  formControlName="TerminalsAndBulkPlants"
+                                                  [settings]="MultiSelectSettingsByGroup">
+                            </angular2-multiselect>
+                        </div>
+                </div>
+            </div>
+            <hr />
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label>Effective From</label>
+                                <input type="text" formControlName="StartDate" class="form-control datepicker"
+                                       placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'"
+                                       (onDateChange)="setStartDate($event);" [minDate]="MinStartDate"
+                                       [maxDate]="MaxStartDate" />
+                                <div *ngIf="rcForm.get('StartDate').invalid && rcForm.get('StartDate').touched" class="color-maroon">
+                                    <div *ngIf="rcForm.get('StartDate').errors.required">
+                                        Required.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label>End Date (Optional) </label>
+                                <!--<input type="text" class="form-control" formControlName="EndDate" />-->
+                                <input type="text" formControlName="EndDate" class="form-control datepicker"
+                                       placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'"
+                                       (onDateChange)="setEndDate($event);" [minDate]="MinToDate" [maxDate]="MaxStartDate" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" formControlName="FuelGroupType" id="occurance-standard" [name]="'FuelGroupType'" [value]="1"
+                                   (change)="FuelGroupTypeChange(1)">
+                            <label class="form-check-label" for="occurance-standard">Standard</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" formControlName="FuelGroupType" id="occurance-custom" [name]="'FuelGroupType'" [value]="2"
+                                   (change)="FuelGroupTypeChange(2)"
+                                   [attr.disabled]="IsMasterSelected || rcForm.get('Customers').value.length>1 || rcForm.get('Carriers').value.length>1 || (rcForm.get('Customers').value.length>0 && rcForm.get('Carriers').value.length>0) ?true:null">
+                            <label class="form-check-label" for="occurance-custom">Custom</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-3 form-group">
+                    <label class="form-check-label" for="selectfuelGroups">Fuel Groups</label>
+                    <ng-multiselect-dropdown formControlName="FuelGroups"
+                                             id="selectfuelGroups"
+                                             [placeholder]="'Select Fuel Group'"
+                                             [settings]="MultiSelectSettingsById"
+                                             [data]="FuelGroupsList">
+                    </ng-multiselect-dropdown>
+                    <div *ngIf="rcForm.get('FuelGroups').invalid && rcForm.get('FuelGroups').touched" class="color-maroon">
+                        <div *ngIf="rcForm.get('FuelGroups').errors.required">
+                            Required.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row" *ngIf="PricingRuleType==2">
+                <div class="col-sm-4">
+                    <table class="table table-bordered table-hover mt-3">
+                        <thead>
+                            <tr>
+                                <th colspan="4">Range Value</th>
+                            </tr>
+                            <tr>
+                                <th>Start Value</th>
+                                <th>End Value</th>
+                                <th>Interval</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <input type="text" formControlName="RangeStartValue" class="form-control" />
+                                    <div *ngIf="rcForm.get('RangeStartValue').invalid && rcForm.get('RangeStartValue').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.get('RangeStartValue').errors.required">
+                                            Required.
+                                        </div>
+                                        <div *ngIf="rcForm.get('RangeStartValue').errors.pattern">
+                                            Invalid, must be greater than zero.
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" formControlName="RangeEndValue" class="form-control" />
+                                    <div *ngIf="rcForm.get('RangeEndValue').invalid && rcForm.get('RangeEndValue').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.get('RangeEndValue').errors.required">
+                                            Required.
+                                        </div>
+                                        <div *ngIf="rcForm.get('RangeEndValue').errors.pattern">
+                                            Invalid, must be greater than zero.
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" formControlName="RangeInterval" class="form-control" />
+                                    <div *ngIf="rcForm.get('RangeInterval').invalid && rcForm.get('RangeInterval').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.get('RangeInterval').errors.required">
+                                            Required.
+                                        </div>
+                                        <div *ngIf="rcForm.get('RangeInterval').errors.pattern">
+                                            Invalid, must be greater than zero.
+                                        </div>
+                                    </div>
+
+                                    <div *ngIf="rcForm.get('RangeStartValue').valid && rcForm.get('RangeEndValue').valid && +(rcForm.get('RangeStartValue').value)>+(rcForm.get('RangeEndValue').value)" class="color-maroon">
+                                        Invalid range.
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-3 form-group">
+                    <input type="button" class="btn btn-primary ml-0"
+                           (click)="generateTable()" value="Generate Table" />
+                    <div *ngIf="ShowMessage" class="color-maroon">
+                        Please click to generate table.
+                    </div>
+                </div>
+
+                <div class="col-sm-3" *ngIf="PricingRuleType!=3">
+                    <button type="button" class="btn btn-primary float-right mb5 valid"
+                            [disabled]="!IsRangePopupOpen"
+                            (click)="importClick()" data-toggle="modal" data-target="#RangeFreightRateModalPopup">
+                        Import
+                        <span *ngIf="PricingRuleType==1">P2P</span>
+                        <span *ngIf="PricingRuleType==2">Range</span>
+                        Table
+                    </button>
+                </div>
+            </div>
+        </div>
+    </fieldset>
+</form>
+
+<div id="RangeFreightRateModalPopup" class="modal fade" role="dialog" *ngIf="IsShowBulkUploadPopup && IsRangePopupOpen">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header pt0 pb5">
+                <h4 class="modal-title">Upload Range Table</h4>
+                <button type="button" #btnCloseBulkUploadPopup class="close color-grey" data-dismiss="modal"
+                        aria-label="Close" (click)="closePopup()">
+                    <i class="fa fa-close fs21 mt15"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb10">
+                    <span class="fa fa-download mr10 mt10"></span>
+                    <a role="button" (click)="downloadCsvTemplate()" class="mb5 btn-download">Download Dynamic Template</a>
+                    <br />
+                    <span>Note: Generate Dynamic template based on selected fule group order.</span>
+                </div>
+                <div class="mb5 mt5">
+                    <input type="file" id="bulkUploadFile" (change)="selectFiles($event.target.files)" accept=".csv">
+                </div>
+                <div *ngIf="(isLoadingSubject | async)" class='pa bg-white top0 left0 z-index5 loading-wrapper'>
+                    <span class='spinner-dashboard pa'></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default"
+                        (click)="uploadRangeTableFile()">
+                    Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

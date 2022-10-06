@@ -1,0 +1,106 @@
+﻿@model DashboardInvoicesViewModel
+<h2 class="fs16 f-normal mb15 mt0">
+    <span class="fa fa-money mr5"></span> @Html.ActionLink(Resource.lblDropTickets, "DropTicketsView", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, groupIds = Model.GroupIds }, new { @class = "mt2" })
+</h2>
+<canvas id="ddtPieChart" class="mt10 mb20" height="120"></canvas>
+<script>
+            var dashboardFilter = getDashboardFilter();
+            var groupIds = getCompanyGroup().groupIds;
+            var dbTotalDDT = 0;
+            var url = '@Url.Action("GetDropTicketsCount", "Dashboard",new { area= "Buyer", jobId = Model.SelectedJobId })';
+            $.get(url, { 'countryId': dashboardFilter.countryId, 'currency': dashboardFilter.currencyType, 'groupIds': groupIds }, function (response) {
+                dbTotalDDT = response.TotalInvoiceCount;
+
+                var ctx = document.getElementById('ddtPieChart').getContext('2d');
+                var ddtChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Drop Tickets: ' + response.ReceivedInvoiceCount, 'Invoices Created: ' + response.InvoicesFromDropTicketCount,
+                            'Waiting For Approval: ' + response.DropTicketCount, 'Approval Rejected: ' + response.RejectedDropTicketCount,
+                            'WaitingFor Price: ' + response.WaitingForPriceCount
+                        ],
+                        datasets: [{
+                            position: 'bottom',
+                            label: '# of Votes',
+                            data: [response.ReceivedInvoiceCount, response.InvoicesFromDropTicketCount, response.DropTicketCount, response.RejectedDropTicketCount, response.WaitingForPriceCount],
+                            backgroundColor: [
+                                '#aadb8d',
+                                '#91b6e8',
+                                '#eb826a',
+                                '#c7705b',
+                                '#d9ca76'
+                            ],
+                            borderColor: [
+                                '#fff',
+                                '#fff',
+                                '#fff',
+                                '#fff',
+                                '#f2edd2'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 2,
+                                fontSize: 11
+                            }
+                        },
+                        labels: {
+                            fontColor: "white",
+                        },
+                        hover: {
+                            onHover: function (e) {
+                                $("#ddtPieChart").css("cursor", e[0] ? "pointer" : "default");
+                            }
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function (tooltipItem, data) {
+                                    return data['labels'][tooltipItem['index']];
+                                }
+                            }
+                        }
+                    }
+                });
+
+                document.getElementById("ddtPieChart").onclick = function (evt) {
+                    var activePoints = ddtChart.getElementsAtEvent(evt);
+                    var firstPoint = activePoints[0];
+                    var label = ddtChart.data.labels[firstPoint._index];
+
+                    var spaceChar = label.indexOf(" ");
+                    var labelStr = label.substring(0, spaceChar);
+
+                    switch (labelStr) {
+                        case 'Drop':
+                            window.open('@Html.Raw(@Url.Action("DropTicketsView", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, filter = InvoiceFilterType.Received, groupIds = Model.GroupIds }))', "_self");
+                            break;
+                        case 'Invoices':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, filter = InvoiceFilterType.InvoicesFromDropTicket, groupIds = Model.GroupIds }))', "_self");
+                            break;
+                        case 'Waiting':
+                            window.open('@Html.Raw(@Url.Action("Approvals", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, filter = InvoiceFilterType.DropTicketWaitingApproval, groupIds = Model.GroupIds }))', "_self");
+                            break;
+                        case 'Approval':
+                            window.open('@Html.Raw(@Url.Action("Approvals", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, filter = InvoiceFilterType.DropTicketWaitingForApprovalRejected, groupIds = Model.GroupIds }))', "_self");
+                            break;
+                        case 'WaitingFor':
+                            window.open('@Html.Raw(@Url.Action("DropTicketsView", "Invoice", new { area = "Buyer", jobId = Model.SelectedJobId, filter = InvoiceFilterType.DropTicketWaitingForPrice, groupIds = Model.GroupIds }))', "_self");
+                            break;
+                    }
+                }
+                $("#ddtPieChart").closest(".chart-ddt").find('.loading-wrapper').remove();
+            }).done(function () {
+                if (dbTotalDDT == 0) {
+                    hideElementById("bd-ddt-tile");
+                }
+                if (dbTotalInvoices == 0 && dbTotalDDT == 0) {
+                    hideElementById("bd-invoice-ddt-tile");
+                }
+            });
+</script>

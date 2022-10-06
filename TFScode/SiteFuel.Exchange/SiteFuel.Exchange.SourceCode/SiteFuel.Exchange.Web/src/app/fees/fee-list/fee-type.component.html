@@ -1,0 +1,109 @@
+<div class="row" [formGroup]="FeeGroup">
+    <div class="col-sm-3">
+        <input type="hidden" formControlName="OrderId" />
+        <input type="hidden" formControlName="CommonFee" />
+        <input type="hidden" formControlName="TruckLoadType" />
+        <input type="hidden" formControlName="TruckLoadCategoryId" />
+        <input type="hidden" formControlName="CommonFee" />
+        <input type="hidden" formControlName="IncludeInPPG" />
+        <select formControlName="FeeTypeId" class="form-control"
+                [style.display]="FeeGroup.get('CommonFee').value ? 'block' : 'none'"
+                #feeTypeId (change)="updateSubType(FeeGroup.get('FeeTypeId').value)">
+            <option *ngIf="!FeeGroup.get('FeeTypeId').value" [value]="null">Select Fee</option>
+            <option *ngFor="let ft of FeeTypes" [ngValue]="ft.Code" [selected]="ft.Code==FeeGroup.get('FeeTypeId').value">{{ft.Name}}</option>
+        </select>
+        <div class="mb15 form-group">
+            <input type="text" formControlName="OtherFeeDescription" [style.display]="FeeGroup.get('CommonFee').value ? 'none' : 'block'" class="form-control" placeholder="Fee Name" />
+            <span *ngIf="isInvalid(FeeGroup, 'FeeTypeId') || isInvalid(FeeGroup, 'OtherFeeDescription')" class="color-maroon">
+                <span *ngIf="isRequired(FeeGroup, 'FeeTypeId') || isFeeNameRequired(FeeGroup, 'OtherFeeDescription')">
+                    Required.
+                </span>
+            </span>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="form-group">
+            <select formControlName="FeeSubTypeId" class="form-control" (focus)="updateSubType(FeeGroup.get('FeeTypeId').value)"
+                    (change)="handleByQuantity(FeeGroup, FeeGroup.get('FeeSubTypeId').value)">
+                <option *ngIf="!FeeGroup.get('FeeSubTypeId').value" [value]="null">Select Fee Type</option>
+                <option *ngFor="let fst of DisplayFeeTypes" [value]="fst.FeeSubTypeId"
+                        [selected]="fst.FeeSubTypeId==FeeGroup.get('FeeSubTypeId').value">
+                    {{fst.SubTypeName}}
+                </option>
+            </select>
+            <span *ngIf="isInvalid(FeeGroup, 'FeeSubTypeId')" class="color-maroon pa">
+                <span *ngIf="isRequired(FeeGroup, 'FeeSubTypeId')">
+                    Required.
+                </span>
+            </span>
+        </div>
+    </div>
+    <div class="col-sm-3" *ngIf="FeeGroup.get('FeeConstraintTypeId').value!=null">
+        <div class="form-group">
+            <select formControlName="FeeConstraintTypeId" *ngIf="FeeGroup.get('FeeConstraintTypeId').value" class="form-control">
+                <option *ngFor="let fc of FeeConstraintTypes" [value]="fc.Id"
+                        [selected]="fc.Id==FeeGroup.get('FeeConstraintTypeId').value">
+                    {{fc.Name}}
+                </option>
+            </select>
+        </div>
+    </div>
+    <div class="col-sm-3" *ngIf="FeeGroup.get('FeeConstraintTypeId').value==2">
+        <div class="form-group">
+            <input type="text" formControlName="SpecialDate" class="form-control datepicker" placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'" (onDateChange)="FeeGroup.get('SpecialDate').setValue($event)" />
+        </div>
+    </div>
+    <div class="col-sm-3" *ngIf="FeeGroup.get('FeeTypeId').value == '8'">
+        <input type="text" formControlName="MinimumGallons" class="form-control" placeholder="Min Quantity" />
+    </div>
+    <div class="col-sm-3">
+        <div class="form-group">
+            <div class="input-group">
+                <input type="text" formControlName="Fee" class="form-control" *ngIf="FeeGroup.get('FeeSubTypeId').value != 3" placeholder="Fee" />
+                <div class="input-group-addon fs12" *ngIf="FeeGroup.get('FeeSubTypeId').value != 3">{{DisplayCurrency}}</div>
+            </div>
+            <span *ngIf="isInvalid(FeeGroup, 'Fee')" class="color-maroon">
+                <span *ngIf="isRequired(FeeGroup, 'Fee')">
+                    Required.
+                </span>
+            </span>
+        </div>
+    </div>
+    <div class="col-sm-9" *ngIf="FeeGroup.get('FeeSubTypeId').value == 3">
+        <div formArrayName="DeliveryFeeByQuantity">
+            <div *ngFor="let byQty of FeeGroup.get('DeliveryFeeByQuantity')['controls'];  let i = index;">
+                <div class="row" [formGroupName]="i">
+                    <div class="col-sm-3 pr0 mb5">
+                        <input type="hidden" formControlName="Currency" />
+                        <input type="text" formControlName="MinQuantity" class="form-control" readonly="readonly" placeholder="Min Quantity" />
+                    </div>
+                    <div class="col-sm-3 pr0 mb5">
+                        <input type="text" formControlName="MaxQuantity" class="form-control" placeholder="Max Quantity" />
+                        <span *ngIf="isInvalid(byQty, 'MaxQuantity')" class="color-maroon">
+                            <span *ngIf="isRequired(byQty, 'MaxQuantity')">
+                                Required.
+                            </span>
+                        </span>
+                    </div>
+                    <div class="col-sm-3 pr0 mb5">
+                        <input type="text" formControlName="Fee" class="form-control" placeholder="Fee" />
+                        <span *ngIf="isInvalid(byQty, 'Fee')" class="color-maroon">
+                            <span *ngIf="isRequired(byQty, 'Fee')">
+                                Required.
+                            </span>
+                        </span>
+                    </div>
+                    <div class="col-sm-1">
+                        <a (click)="removeByQtyFee(FeeGroup, i)"><i class="fa fa-trash-alt color-maroon mt10"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb10">
+                <div class="col-sm-12">
+                    <a (click)="addByQtyFee(FeeGroup, null)"><i class="fa fa-plus-circle"></i> Add Quantity Range</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

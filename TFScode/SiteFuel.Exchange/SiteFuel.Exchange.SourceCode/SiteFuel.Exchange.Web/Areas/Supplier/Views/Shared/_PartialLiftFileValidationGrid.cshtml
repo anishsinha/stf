@@ -1,0 +1,355 @@
+﻿
+<div class="row flex-row-reverse">
+    <div  class="col-8 text-right">
+        <button id="btnSearch" class="btn btn-default btn btn-sm mt0"><i class="fas fa-search mr5"></i> @Resource.lblSearchRecord</button>
+        <div id="searchParams-div" class="form-row align-items-center flex-row-reverse hide-element">
+            <div class="col-auto">
+                <input type="button" class="btn ml5" value="Cancel" onclick="HideSearchParamInputs();">
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-default btn btn-sm" data-toggle="modal"  aria-expanded="false" onclick="searchLiftFileRecords()">Search</button>
+            </div>
+            <div class="col-auto">
+                <input type="text" class="form-control" id="fileNameSearchQuery" placeholder="Search FileName" />
+            </div>
+            <div class="col-auto">
+                <input type="text" class="form-control" id="bolSearchQuery" placeholder="Search BOL#" />
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="well bg-white shadow-b pr mt5">
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div id="supplier-LFgrid-div" class="table-responsive">
+                <table id="tbl-liftfile-grid" class="table table-striped table-bordered table-hover lfvValrecordgrid">
+                    <thead>
+                        <tr>
+                            <th>@Resource.lblLiftCallId</th>
+                            <th>@Resource.lblRecordDate</th>
+                            <th>@Resource.lblNoOfRecords</th>
+                            <th>@Resource.lblMatchedCount</th>
+                            <th>@Resource.lblActiveException</th>
+                            <th>@Resource.lblNoMatchCount</th>
+                            <th>@Html.Raw(@Resource.lblIgnoreMatchrecord)</th>
+                            <th>@Resource.lblUnmatchedRecord</th>
+                            <th>@Html.Raw(@Resource.lblGridColumnPendingMatch)</th>
+                            <th>@Resource.lblGridColumnDuplicate</th>
+                            <th>@Html.Raw(@Resource.lblPartialMatchedCount)</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        exportGridColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10] };
+        // exportGrid();
+        LFGrid = $('#tbl-liftfile-grid').DataTable({
+            "ajax": {
+                "url": "@Url.Action("LFValidationGrid", "Exception", new { area ="Supplier" })",
+                "type": "GET",
+                "datatype": "json",
+                "data": function () {
+                    $('#supplier-LFgrid-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#supplier-LFgrid-div").find('.loading-wrapper').remove();
+                    return json;
+                }
+            },
+            "columns": [
+                { "data": "CallId", "autoWidth": true },
+                { "data": "RecordDate", "autoWidth": true },
+                { "data": "TotalRecordCount", "autoWidth": true },
+                {
+                    "data": function (data) {
+                        if (data.MatchedRecordCount != undefined && data.MatchedRecordCount != null && data.MatchedRecordCount > 0) {
+                            return '<a data-toggle="modal" data-target="#liftfilecountdetailsgrid-modal" class="matchrecord">' + data.MatchedRecordCount + '</a>'
+                        }
+                        else {
+                            return data.MatchedRecordCount
+                        }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.ActiveExceptionRecordCount != undefined && data.ActiveExceptionRecordCount != null && data.ActiveExceptionRecordCount > 0) {
+                            return '<a data-toggle="modal" data-target="#liftfilecountdetailsgrid-modal" class="activeexceptions">' + data.ActiveExceptionRecordCount + '</a>'
+                        }
+                        else {
+                            return data.ActiveExceptionRecordCount
+                        }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.NoMatchRecordCount != undefined && data.NoMatchRecordCount != null && data.NoMatchRecordCount > 0) {
+                            return '<a data-toggle="modal" data-target="#liftfilecountdetailsgrid-modal" class="nomatchrecord">' + data.NoMatchRecordCount + '</a>'
+                        }
+                        else {
+                            return data.NoMatchRecordCount
+                        }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.IgnoredMatchRecordCount != undefined && data.IgnoredMatchRecordCount != null && data.IgnoredMatchRecordCount > 0) {
+                            return '<a data-toggle="modal" data-target="#liftfilecountdetailsgrid-modal" class="ignorematchrecord">' + data.IgnoredMatchRecordCount + '</a>'
+                        }
+                        else {
+                            return data.IgnoredMatchRecordCount
+                        }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.UnmatchedRecordCount != undefined && data.UnmatchedRecordCount != null && data.UnmatchedRecordCount > 0) {
+                            return '<a data-toggle="modal" data-target="#liftfilecountdetailsgrid-modal" class="unmatchrecord">' + data.UnmatchedRecordCount + '</a>'
+                        }
+                        else {
+                            return data.UnmatchedRecordCount
+                        }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.PendingMatchCount != undefined && data.PendingMatchCount != null && data.PendingMatchCount > 0) {
+                            return '<a data-toggle="modal" data-target="#liftfilecountdetailsgrid-modal" class="pendingmatchrecord">' + data.PendingMatchCount + '</a>'
+                        }
+                        else {
+                            return data.PendingMatchCount
+                        }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.DuplicateRecordCount != undefined && data.DuplicateRecordCount != null && data.DuplicateRecordCount > 0) {
+                            return '<a data-toggle="modal" data-target="#liftfilecountdetailsgrid-modal" class="duplicateRecordCount">' + data.DuplicateRecordCount + '</a>'
+                        }
+                        else {
+                            return data.DuplicateRecordCount
+                        }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data) {
+                        if (data.PartialMatchRecordCount != undefined && data.PartialMatchRecordCount != null && data.PartialMatchRecordCount > 0) {
+                            return '<a data-toggle="modal" data-target="#liftfilecountdetailsgrid-modal" class="partialMatchRecordCount">' + data.PartialMatchRecordCount + '</a>'
+                        }
+                        else {
+                            return data.PartialMatchRecordCount
+                        }
+                    }, "autoWidth": true
+                }
+            ],
+            pageLength: 10,
+            fixedHeader: true,
+            responsive: true,
+            //"order": [0,'desc'],
+            aaSorting: [[0, 'desc']],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "columnDefs": [
+                { "name": "CallID", "targets": 0 },
+                { "name": "RecordDate", "targets": 1 },
+                { "name": "TotalRecordCount", "targets": 2 },
+                { "name": "MatchedRecordCount", "targets": 3 },
+                { "name": "ActiveExceptionRecordCount", "targets": 4 },
+                { "name": "NoMatchRecordCount", "targets": 5 },
+                { "name": "IgnoredMatchRecordCount", "targets": 6 },
+                { "name": "UnmatchedRecordCount", "targets": 7 },
+                { "name": "PendingMatchCount", "targets": 8 },
+                { "name": "DuplicateRecordCount", "targets": 9 },
+                { "name": "PartialMatchRecordCount", "targets": 10}
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                //{ extend: 'copy' },
+                { extend: 'csv', title: '@Resource.lblLiftFileGrid', exportOptions: exportGridColumns },
+                { extend: 'excel', title: '@Resource.lblLiftFileGrid', exportOptions: exportGridColumns },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('lfvValrecordgrid')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                },
+                { extend: 'pdf', orientation: 'landscape', pageSize: 'LETTER' }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+
+        });
+
+        
+        $('#tbl-liftfile-grid tbody').on('click', '.matchrecord', function (e) {
+            GetRecords(e, @((int)LFVRecordStatus.Clean), 'Matched Records');
+            $('.msg-clearrecord').text("The highlighted record(s) are held back due to other record(s) not validated");
+        });
+
+        $('#tbl-liftfile-grid tbody').on('click', '.activeexceptions', function (e) {
+            GetRecords(e, @((int)LFVRecordStatus.ActiveExceptions), 'Active Exception Records');
+        });
+
+        $('#tbl-liftfile-grid tbody').on('click', '.nomatchrecord', function (e) {
+            GetRecords(e, @((int)LFVRecordStatus.NoMatch), 'No Matched Records');
+        });
+        $('#tbl-liftfile-grid tbody').on('click', '.ignorematchrecord', function (e) {
+            GetRecords(e, @((int)LFVRecordStatus.IgnoreMatch), 'Ignore Matched Records');
+        });
+
+        $('#tbl-liftfile-grid tbody').on('click', '.unmatchrecord', function (e) {
+            GetRecords(e, @((int)LFVRecordStatus.UnMatched), 'Unmatched Records');
+        });
+
+        $('#tbl-liftfile-grid tbody').on('click', '.pendingmatchrecord', function (e) {
+            GetRecords(e, @((int)LFVRecordStatus.PendingMatch), 'Pending Match Records');
+        });
+
+        $('#tbl-liftfile-grid tbody').on('click', '.duplicateRecordCount', function (e) {
+            GetRecords(e, @((int)LFVRecordStatus.Duplicate), 'Duplicate Match Records');
+        });
+
+        $('#tbl-liftfile-grid tbody').on('click', '.partialMatchRecordCount', function (e) {
+            GetRecords(e, @((int)LFVRecordStatus.PartialMatch), 'Partial Match Records');
+        });
+    });
+
+    function GetRecords(e, recordStatus, headerText) {
+        $('.msg-clearrecord').text("");
+        var $row = $(e.target).closest('tr');
+        var data = $('#tbl-liftfile-grid').DataTable().row($row).data();
+        if (data != null && data != undefined) {
+            var callId = data.CallId;
+            $('#callIDheader').text(callId);
+        }
+        $('#counttypeheader').text(headerText);
+        if (data.CallId != null && data.CallId != undefined) {
+            var recordId = parseInt(data.CallId);
+            if (recordId > 0) {
+                GetMatchingRecordsCount(recordStatus, recordId);
+            }
+        }
+    }
+
+    function GetMatchingRecordsCount(recordStatus, lfCallId) {
+        var url = '@Url.Action("GetLiftFileRecordsGrid", "Exception", new { area = "Supplier" })';
+        url += '?lfCallId=' + lfCallId + '&recordStatus=' + recordStatus;
+        $(".grid-loader").show();
+        $.get(url, function (response) {
+            if (response) {
+                $("#liftfilecountdetailsgrid-form").html(response);
+                parseForm();
+            }
+        }).always(
+            function () {
+                $(".grid-loader").hide();
+            }
+        );
+    }
+
+    //Start :Code block for search LF Records by bol and/or filename
+    $("#btnSearch").click(function (element) {
+        $("#searchParams-div").removeClass("hide-element");
+        $("#btnSearch").hide();
+    });
+    function HideSearchParamInputs() {
+        $("#btnSearch").show();
+        $('#bolSearchQuery').val('');
+        $('#fileNameSearchQuery').val('');
+        $("#searchParams-div").addClass("hide-element");
+    }
+
+    function searchLiftFileRecords() {
+        var bol = $('#bolSearchQuery').val();
+        var fileName = $('#fileNameSearchQuery').val();
+        if ((bol == null || bol == '' || bol == undefined) &&
+            (fileName == null || fileName == '' || fileName == undefined)) {
+            msgerror("Please provide either Bol# or filename");
+        }
+        else
+        {
+            $('#searchoutputdetailsgrid-modal').modal('show')
+          var url = '@Url.Action("GetLiftFileRecordsByBolFileName", "LiftFile", new { area = "Supplier" })';
+          url += '?bol=' + bol + '&fileName=' + fileName;
+        $(".searchoutputdetailsgrid-loader").show();
+        $.get(url, function (response) {
+            if (response) {
+                $("#searchoutputdetailsgrid-form").html(response);
+                parseForm();
+            }
+        }).always(
+            function () {
+                $(".searchoutputdetailsgrid-loader").hide();
+            }
+        );
+        }
+
+    }
+    //End :Code block for search LF Records by bol and/or filename
+
+</script>
+ <!-- LFRecords grid modal-->
+<div id="liftfilecountdetailsgrid-modal" class="modal fade" role="dialog" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="counttypeheader"></h3>
+                <button type="button" class="close lfgridmodal" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col"><h3 class="mb-0 pt-1">@Resource.lblLiftCallId:<span id="callIDheader"></span></h3></div>
+                    <div class="col">
+                        <div class="alert text-danger text-right mb-0 pt-1 pb-1 msg-clearrecord"></div>
+                    </div>
+                </div>
+                <div>
+                    
+                </div>
+                <p style="word-wrap: break-word;">
+                    <div class="pa bg-white z-index5 loading-wrapper grid-loader"><span class='spinner-dashboard pa'></span></div>
+                    <div id="liftfilecountdetailsgrid-form" class="pr"></div>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--Searched LF records grid modal-->
+<div id="searchoutputdetailsgrid-modal" class="modal fade" role="dialog" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                @*<h3 class="modal-title" id="counttypeheader"></h3>*@
+                <button type="button" class="close searchoutputdetailsgrid" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                @*<div>
+                        <h3>@Resource.lblLiftCallId:<span id="callIDheader"></span></h3>
+                    </div>*@
+                <p style="word-wrap: break-word;">
+                    <div class="pa bg-white z-index5 loading-wrapper searchoutputdetailsgrid-loader"><span class='spinner-dashboard pa'></span></div>
+                    <div id="searchoutputdetailsgrid-form" class="pr"></div>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+

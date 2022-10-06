@@ -1,0 +1,122 @@
+﻿<div class="row" id="progress-report">
+        <div class="float-left col-md-12">
+            <h2><span class="fa fa-line-chart mr10 fs21"></span>@Resource.lblProgressReport (@Resource.lblPST)</h2>
+        </div>
+        <div class="mb10 col-md-6 mt10">
+            <div id="country-list"></div>
+            @Html.Hidden("hdnProgressReportCountryId")
+        </div>
+</div>
+<div class="row mt10 color-darkgrey">
+    <div class="col-xs-6 col-md-6 mt10">
+        <input type="text" id="txtProgressReportStartDate" placeholder="@Resource.lblFrom" class="form-control datepicker" />
+        <div id="startDateValidation" class="fs12 color-white"></div>
+    </div>
+    <div class="col-xs-6 col-md-6 mt10">
+        <input type="text" id="txtProgressReportStartTime" placeholder="@Resource.lblStartTime" class="form-control timepicker starttime" />
+        <div id="startTimeValidation" class="fs12 color-white"></div>
+    </div>
+</div>
+<div class="row mt10 color-darkgrey">
+    <div class="col-xs-6 col-md-6 mt10">
+        <input type="text" id="txtProgressReportEndDate" placeholder="@Resource.lblTo" class="form-control datepicker" />
+        <div id="endDateValidation" class="fs12 color-white"></div>
+    </div>
+    <div class="col-xs-6 col-md-6 mt10">
+        <input type="text" id="txtProgressReportEndTime" placeholder="@Resource.lblEndTime" class="form-control timepicker endtime" />
+        <div id="endTimeValidation" class="fs12 color-white"></div>
+    </div>
+</div>
+<div class="row mt20">
+    <div class="col-sm-10">@Html.DropDownList("accountOwnerList", new SelectList(CommonHelperMethods.GetAccountSpecialistUsers(CurrentUser.IsAccountSpecialist,true,CurrentUser.Id), "Id", "Name", -1), string.Format(Resource.valMessageSelect, Resource.gridColumnAccountOwner), new { @class = "form-control mb10" })</div>
+    <div id="accountOwnerValidation" class="fs12 color-white col-sm-12"></div>
+</div>
+<div class="row mt15">
+    <div class="col-12 col-sm-12 text-right">
+        <input id="create-progress-report" type="button" class="btn btn-primary" value="@Resource.btnLabelSendEmail" />
+    </div>
+</div>
+<div id="custom-message"></div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#hdnProgressReportCountryId').val('@((int)Country.USA)');
+            loadCountries();
+
+            $("#txtProgressReportStartDate").on('dp.change', function (e) {
+                $('#txtProgressReportEndDate').data("DateTimePicker").minDate(moment(e.date).startOf('d'));
+            });
+
+            $("#create-progress-report").on("click", function () {
+                var filter = {
+                    StartDate: $('#txtProgressReportStartDate').val(),
+                    StartTime: $('#txtProgressReportStartTime').val(),
+                    EndDate: $('#txtProgressReportEndDate').val(),
+                    EndTime: $('#txtProgressReportEndTime').val(),
+                    AccountOwnerId: $('#accountOwnerList').val(),
+                    CountryId: $('#hdnProgressReportCountryId').val()
+                };
+
+                $('#startDateValidation').empty();
+                $('#startTimeValidation').empty();
+                $('#endDateValidation').empty();
+                $('#endTimeValidation').empty();
+                $('#accountOwnerValidation').empty();
+
+                if (!$('#txtProgressReportStartDate').val()) {
+                    $('#startDateValidation').html('@Resource.msgStartDateValidation').show();
+                }
+
+                if (!$('#txtProgressReportStartTime').val()) {
+                    $('#startTimeValidation').html('@Resource.msgStartTimeValidation').show();
+                }
+
+                if (!$('#txtProgressReportEndDate').val()) {
+                    $('#endDateValidation').html('@Resource.msgEndDateValidation').show();
+                }
+
+                if (!$('#txtProgressReportEndTime').val()) {
+                    $('#endTimeValidation').html('@Resource.msgEndTimeValidation').show();
+                }
+
+                if ($('#txtProgressReportStartDate').val() && $('#txtProgressReportStartTime').val()
+                    && $('#txtProgressReportEndDate').val() && $('#txtProgressReportEndTime').val()) {
+                    $("#progress-report").closest('.progress-report').find('.loading-wrapper').show();
+                    var url = '@Url.Action("SendProgressReportNotification", "SuperAdmin", new { area = "SuperAdmin" })';
+                    $.post(url, filter).done(function (response) {
+                        if (response) {
+                            msgsuccess('@Resource.msgProgressReportSuccess');
+                        }
+                        else {
+                            msgerror('@Resource.msgProgressReportFailed');
+                        }
+                        $("#progress-report").closest('.progress-report').find('.loading-wrapper').hide();
+
+                    });
+                }
+                else {
+                    $("#progress-report").closest('.progress-report').find('.loading-wrapper').hide();
+                }
+            });
+        });
+
+        function loadCountries() {
+            $('#country-list').flagStrap({
+                countries: {
+                    "1": "USA",
+                    "2": "Canada"
+                },
+                selectedCountry: 1,
+                placeholder: false,
+                labelMargin: "10px",
+                scrollable: false,
+                scrollableHeight: "350px",
+                onSelect: function (value, element) {
+                    $('#hdnProgressReportCountryId').val(value);
+                }
+            });
+        }
+    </script>
+}

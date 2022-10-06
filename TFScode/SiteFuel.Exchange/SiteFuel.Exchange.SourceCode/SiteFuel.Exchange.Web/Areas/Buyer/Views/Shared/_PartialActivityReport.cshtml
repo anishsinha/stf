@@ -1,0 +1,148 @@
+﻿@model int
+<div class="well bg-white shadow-b">
+	<div class="ibox mb0">
+		<div class="ibox-content no-padding no-border">
+			<div class="table-responsive">
+				<table id="assetactivityreport-datatable" class="table table-striped table-bordered table-hover" >
+					<thead>
+                        <tr>
+                            <th>@Resource.gridColumnJob</th>
+                            <th>@Resource.gridColumnJobID</th>
+                            <th>@Resource.gridColumnPoNumber</th>
+                            <th>@Resource.gridColumnInvoiceNumber</th>
+                            <th>@Resource.gridColumnFuelType</th>
+                            <th>@Resource.gridColumnDropDate</th>
+                            <th>@Resource.lblDropStartTime</th>
+                            <th>@Resource.lblDropEndTime</th>
+                            <th>@Resource.gridColumnAssetName</th>
+                            <th>@Resource.lblAssetId</th>
+                            <th>@Resource.gridColumnAssetContractNumber</th>
+                            <th>@Resource.gridColumnSubcontractor</th>
+                            <th>@Resource.gridColumnService</th>
+                            <th class="uom-by-country"><span class="uom-lbl"></span> @Resource.lblDelivered</th>
+                            <th>@Resource.gridColumnPricingFormat</th>
+                            <th>@Resource.gridColumnQuantity</th>
+                            <th>@Resource.gridColumnUnitCost</th>
+                            <th>@Resource.lblTotal @Resource.gridColumnCost</th>
+                            <th>@Resource.gridColumnResaleUnitCost</th>
+                            <th>@Resource.lblTotal @Resource.gridColumnResaleCost</th>
+                            <th>@Resource.gridColumnResaleContractNumber</th>
+                        </tr>
+					</thead>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        var isBuyer = '@CurrentUser.IsBuyer';
+        var isBuyerAdmin = '@CurrentUser.IsBuyerAdmin';
+        SetUoMCurrencyAndRacklables();
+			assetActivityReport = $('#assetactivityreport-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("ActivityReportGrid", "Job", new { area = "Buyer", jobId = Model })",
+                    "type": "GET",
+					"datatype": "json",
+					"data": function (d) {
+						d.fromDate = $('#txtActivityFromDate').val();
+						d.toDate = $('#txtActivityToDate').val();
+					},
+                    "dataSrc": ""
+                },
+                "columns": [
+                    {
+                        "data": function (data, type, row, meta) {
+                            return '<a href="@Url.Action("Details", "Job", new { area = "Buyer" })/' + data.JobId + '">' + data.JobName + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "DisplayJobID", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.OrderId == 0) {
+                                return data.PoNumber;
+                            }
+                            else {
+								return '<a href="@Url.Action("Details", "Order", new { area = "Buyer" })/' + data.OrderId + '">' + data.PoNumber + '</a>';
+                            }
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+							return '<a href="@Url.Action("Details", "Invoice", new { area = "Buyer" })/' + data.InvoiceId + '">' + data.InvoiceNumber + '</a>';
+                        }, "autoWidth": true
+                    },
+                    { "data": "FuelType", "autoWidth": true },
+                    { "data": "Date", "autoWidth": true, "sType": "date" },
+                    { "data": "StartTime", "autoWidth": true },
+                    { "data": "EndTime", "autoWidth": true },
+                    {
+                        "data": function (data, type, row, meta) {
+                            if (data.IsActive) {
+                                if (isBuyer == 'True' || isBuyerAdmin == 'True')
+                                    return data.AssetName == '@Resource.lblHyphen' ? data.AssetName : '<a href="@Url.Action("Create", "Asset", new { area = "Buyer" })/' + data.AssetId + '">' + data.AssetName + '</a>';
+                                else
+                                    return data.AssetName == '@Resource.lblHyphen' ? data.AssetName : '<a href="@Url.Action("Details", "Asset", new { area = "Buyer" })/' + data.AssetId + '">' + data.AssetName + '</a>';
+                            }
+                            else
+                                return data.AssetName;
+                        }, "autoWidth": true
+                    },
+                    { "data": "VehicleId", "autoWidth": true },
+                    {
+                        "data": "AssetContractNo", "autoWidth": true
+                    },
+                    { "data": "Company", "autoWidth": true },
+                    { "data": "Service", "autoWidth": true },
+                    { "data": "GallonsDelivered", "autoWidth": true },
+                    { "data": "PricingFormat", "autoWidth": true },
+                    { "data": "Quantity", "autoWidth": true },
+                    { "data": "UnitCost", "autoWidth": true },
+                    { "data": "Cost", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+                    { "data": "ResaleUnitCost", "autoWidth": true },
+                    { "data": "ResaleCost", "autoWidth": true },
+                    { "data": "ResaleContractNo", "autoWidth": true }
+				],
+				columnDefs: [
+					{ type: 'time-uni', targets: 5 },
+					{ type: 'time-uni', targets: 6 }
+				],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                    tabGridHeader(this);
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingActivityReport' },
+                    { extend: 'excel', title: '@Resource.headingActivityReport'},
+                    { extend: 'pdf', title: '@Resource.headingActivityReport', orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        });
+	$('.datepicker').datetimepicker({
+		format: 'L'
+	});
+</script>
+

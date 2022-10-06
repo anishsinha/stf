@@ -1,0 +1,58 @@
+<div class="pt10 pb10 border-b">
+    <a class="ml15 close-panel" onclick="closeSlidePanel();" (click)="closeSlider()"><i class="fa fa-close fs18"></i></a>
+    <div class="dib ml15 mr15"><input type="text" class="form-control datepicker" [(ngModel)]="SelectedDate" myDatePicker [format]="'MM/DD/YYYY'" [minDate]="MinInputDate" [maxDate]="MaxInputDate" (onDateChange)="filterScheduleDetails($event);" /></div>
+    <div class="dib">
+        <select [(ngModel)]="SelectedShiftId" class="form-control" (change)="filterByShift()">
+            <option [ngValue]="null" selected>Select Shift</option>
+            <option *ngFor="let shift of Shifts" [ngValue]="shift.Id">
+                {{'Shift - ' + shift.StartTime + ' - ' + shift.EndTime}}
+            </option>
+        </select>
+        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingShifts">
+            <span class='spinner-dashboard pa'></span>
+        </div>
+    </div>
+</div>
+<div class="col-sm-12">
+    <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingOttoDRs">
+        <span class='spinner-dashboard pa'></span>
+    </div>
+    <div class="text-center mt10" *ngIf="Loads.length==0">
+        <i class="fa fas fa-exclamation-triangle opacity8 fs12"></i>
+        <label class="color-grey fs12 mb0 ml10">No delivery request exists</label>
+    </div>
+        <div class="row mt10 otto-drpanel mb10">
+            <div class="col-sm-2" *ngFor="let load of Loads; let i = index">
+                <label>{{load.StartTime}} - {{load.EndTime}}</label>
+                <ng-container *ngIf="load.DeliveryRequests.length > 0">
+                    <div class="drwrapper pr5" *ngFor="let dr of load.DeliveryRequests; let j = index">
+                        <!--add selected-dr class if div is selected-->
+                        <div id="ottoschedule_{{i}}_{{j}}" (click)="selectDR(i,j)" class="radius-5 mb2 pr pa5 handpointer" [ngClass]="{'mustgo_bg':dr.Priority == 1,'shouldgo_bg':dr.Priority == 2,'couldgo_bg':dr.Priority == 3}">
+                            <i class="fas fa-check-circle pa fs16 checkbox animated bounceIn"></i>
+                            <label class="f-bold fs11 mb0">{{dr.DeliveryWindow}}</label>
+                            <div>
+                                {{dr.CustomerCompany}} | {{dr.JobName}}<br />
+                                <span class="mr5">{{dr.ProductType}}</span>
+                                <span class="mr5" *ngIf="dr.ScheduleQuantityType==1 || dr.ScheduleQuantityType==0">{{dr.RequiredQuantity | number:'1.0-2'}}</span>
+                                <span class="mr5" *ngIf="dr.ScheduleQuantityType==1 || dr.ScheduleQuantityType==0">
+                                    <span *ngIf="dr.UoM==1; else litres">G</span>
+                                    <ng-template #litres>L</ng-template>
+                                </span>
+                                <!--{dr.TankName}, {dr.LocationName}<br />-->
+                                <!--<span class="pull-left mr5">{dr.TankMaxFill}</span>
+        <span class="pull-left mr5" *ngIf="dr.ScheduleQuantityType==1 || dr.ScheduleQuantityType==0">
+            <span *ngIf="dr.UoM==1; else litres">G</span>
+            <ng-template #litres>L</ng-template>
+        </span>-->
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
+            </div>
+        </div>
+    <div class="row">
+        <div class="col-sm-12 text-right">
+            <button type="button" class="btn btn-primary btn-lg" [disabled]="!_EnableScheduleDR" (click)="ScheduleDRs()">Schedule DRs</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,576 @@
+
+<div>
+
+    <form [formGroup]="rcForm" (ngSubmit)="onSubmit(2)">
+        <div *ngIf="fuelsurchargeMode=='VIEW' || fuelsurchargeMode=='COPY' || fuelsurchargeMode=='EDIT'">
+            <button type="button" class="btn btn-link" (click)="clearForm()"><i class="fa fa-plus-circle"></i> Create New</button>
+        </div>
+        <fieldset [ngClass]="{'pntr-none': disableInputControls}" [disabled]="disableInputControls ? true : null">
+            <div class="well bg-white">
+                <div class="row">
+                    <!--<div *ngIf="(isLoadingSubject | async)" class='pa bg-white top0 left0 z-index5 loading-wrapper'>
+                    <span class='spinner-dashboard pa'></span>
+                </div>-->
+                    <div class="col-sm-3 form-group">
+                        <label>Table Name</label>
+                        <span class="color-maroon">*</span>
+                        <input type="text" [readonly]="fuelsurchargeMode=='EDIT' && !AllowTableName ?true:null" formControlName="TableName" class="form-control" />
+                        <div *ngIf="rcForm.get('TableName').invalid && rcForm.get('TableName').touched" class="color-maroon">
+                            <div *ngIf="rcForm.get('TableName').errors.required">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            <label for="TableTypes">Table Type</label>
+                            <span class="color-maroon">*</span>
+                            <ng-multiselect-dropdown formControlName="TableTypes"
+                                                     class="single-select"
+                                                     id="TableTypes"
+                                                     [placeholder]="'Select Table Type'"
+                                                     [settings]="SingleSelectSettingsById"
+                                                     [data]="TableTypeList"
+                                                     (onSelect)="onTableTypeSelect($event)"
+                                                     (onDeSelect)="onTableTypeDeSelect($event)">
+                            </ng-multiselect-dropdown>
+                            <div *ngIf="rcForm.get('TableTypes').invalid && rcForm.get('TableTypes').touched" class="color-maroon">
+                                <div *ngIf="rcForm.get('TableTypes').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+
+                            <div [ngClass]="{'pntr-none subSectionOpacity': IsMasterSelected}">
+                                <label for="Customers">Customer(s)</label>
+                                <ng-multiselect-dropdown formControlName="Customers"
+                                                         id="Customers"
+                                                         [placeholder]="'Select Customers(s)'"
+                                                         [settings]="MultiSelectSettingsById" [data]="CustomerList">
+                                </ng-multiselect-dropdown>
+
+                                <div *ngIf="IsCustomerSelected && rcForm.get('Customers').invalid && rcForm.get('Customers').touched" class="color-maroon">
+                                    <div *ngIf="rcForm.get('Customers').errors.required">
+                                        Required.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            <div [ngClass]="{'pntr-none subSectionOpacity': IsMasterSelected}">
+                                <label for="Carriers">Carrier(s)</label>
+                                <ng-multiselect-dropdown formControlName="Carriers"
+                                                         id="Carriers"
+                                                         [placeholder]="'Select Carriers(s)'"
+                                                         [settings]="MultiSelectSettingsById" [data]="CarrierList">
+                                </ng-multiselect-dropdown>
+                                <div *ngIf="IsCarrierSelected && rcForm.get('Carriers').invalid && rcForm.get('Carriers').touched" class="color-maroon">
+                                    <div *ngIf="rcForm.get('Carriers').errors.required">
+                                        Required.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+
+                            <label for="SourceRegions">Source Region(s)</label>
+                            <span class="color-maroon">*</span>
+                            <ng-multiselect-dropdown formControlName="SourceRegions"
+                                                     id="SourceRegions"
+                                                     [placeholder]="'Select Source Regions(s)'"
+                                                     [settings]="MultiSelectSettingsById" [data]="SourceRegionList">
+                            </ng-multiselect-dropdown>
+                            <div *ngIf="rcForm.get('SourceRegions').invalid && rcForm.get('SourceRegions').touched" class="color-maroon">
+                                <div *ngIf="rcForm.get('SourceRegions').errors.required">
+                                    Required.
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="col-sm-6">
+                        <div class="form-group">
+
+                            <div [ngClass]="{'pntr-none subSectionOpacity': !IsSourceRegionSelected}">
+                                <label for="TerminalsAndBulkPlants">Terminal(s)/BulkPlant(s)</label>
+                                <angular2-multiselect id="TerminalsAndBulkPlants"
+                                                      [data]="TerminalsAndBulkPlantList"
+                                                      formControlName="TerminalsAndBulkPlants"
+                                                      [settings]="MultiSelectSettingsByGroup">
+                                </angular2-multiselect>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr class="my-3" />
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="dib border pa5 radius-capsule shadow-b float-left mb10">
+                            <div class="btn-group btn-filter">
+                                <input class="hide-element" type="radio" [name]="'eia-period'" [value]="1" [checked]="viewType==1" *ngIf="SelectedCountryId!=2">
+                                <label class="btn ml0" (click)="changeViewType(1)" *ngIf="SelectedCountryId!=2">API Update</label>
+                                <input class="hide-element" type="radio" [name]="'eia-period'" [value]="2" [checked]="viewType==2">
+                                <label class="btn ml0" (click)="changeViewType(2)">Manual Update</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div *ngIf="viewType==1 && SelectedCountryId!=2">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label for="FuelSurchargeProducts">{{SelectedCountryId==1?"EIA Product":"NRC Product"}}</label>
+                                        <span class="color-maroon" *ngIf="SelectedCountryId==1">*</span>
+                                        <ng-multiselect-dropdown formControlName="FuelSurchargeProducts"
+                                                                 class="single-select"
+                                                                 id="FuelSurchargeProducts"
+                                                                 [placeholder]="'Select EIA Product'"
+                                                                 [settings]="SingleSelectSettingsById" [data]="FuelSurchargeProductList">
+                                        </ng-multiselect-dropdown>
+                                        <div *ngIf="rcForm.get('FuelSurchargeProducts').invalid && rcForm.get('FuelSurchargeProducts').touched" class="color-maroon">
+                                            <div *ngIf="rcForm.get('FuelSurchargeProducts').errors.required">
+                                                Required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label>{{SelectedCountryId==1?"EIA Period":"NRC Period"}}</label>
+                                        <span class="color-maroon" *ngIf="SelectedCountryId==1">*</span>
+                                        <ng-multiselect-dropdown formControlName="FuelSurchargePeriods"
+                                                                 class="single-select"
+                                                                 id="FuelSurchargePeriods"
+                                                                 (onSelect)="onFuelSurchargePeriodsSelect($event)"
+                                                                 [placeholder]="'Select EIA Period'"
+                                                                 [settings]="SingleSelectSettingsById" [data]="FuelSurchargePeriodList">
+                                        </ng-multiselect-dropdown>
+
+                                        <div *ngIf="rcForm.get('FuelSurchargePeriods').invalid && rcForm.get('FuelSurchargePeriods').touched" class="color-maroon">
+                                            <div *ngIf="rcForm.get('FuelSurchargePeriods').errors.required">
+                                                Required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label>{{SelectedCountryId==1?"EIA Area":"NRC Area"}}</label>
+                                        <span class="color-maroon" *ngIf="SelectedCountryId==1">*</span>
+                                        <ng-multiselect-dropdown formControlName="FuelSurchargeAreas"
+                                                                 class="single-select"
+                                                                 id="FuelSurchargeAreas"
+                                                                 [placeholder]="'Select Area'"
+                                                                 [settings]="SingleSelectSettingsById" [data]="FuelSurchargeAreaList">
+                                        </ng-multiselect-dropdown>
+                                        <div *ngIf="rcForm.get('FuelSurchargeAreas').invalid && rcForm.get('FuelSurchargeAreas').touched" class="color-maroon">
+                                            <div *ngIf="rcForm.get('FuelSurchargeAreas').errors.required">
+                                                Required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <!--weekly-->
+                                <div class="col-sm-3">
+                                    <label>&nbsp;</label>
+                                    <div class="form-row">
+                                        <div class="col-7">
+                                            <a (click)="onFetchLastIndexPrice();" class="btn btn-default ml-0">Fetch Latest Index Price</a>
+                                        </div>
+                                        <div class="col">
+                                            <input type="text" class="form-control" readonly="readonly" formControlName="APILatestIndexPrice" />
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            <p class="text-black-50">
+                                                {{SelectedCountryId==1?"U.S. Dollars per Gallon":"Canada Cents per Litre "}}   (Including Taxes) on  {{rcForm.get('IndexPriceDate').value}}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <label>Start of the Index Price</label>
+
+                                    <input *ngIf="IsWeeklyVisible" type="text" formControlName="ApiAdjustIndexPriceDate" class="form-control datepicker"
+                                           placeholder="Date" CustomDatePicker [format]="'MM/DD/YYYY'"
+                                           (onDateChange)="setApiAdjustIndexPriceDate($event);" [minDate]="MinFromDate"
+                                           [maxDate]="MaxStartDate"
+                                           [mode]="'WEEKLY'"
+                                           [daysOfWeekEnable]="'MON'" />
+                                    <div *ngIf="IsWeeklyVisible && rcForm.get('ApiAdjustIndexPriceDate').invalid && rcForm.get('ApiAdjustIndexPriceDate').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.get('ApiAdjustIndexPriceDate').errors.required">
+                                            Required.
+                                        </div>
+                                    </div>
+
+                                    <ng-multiselect-dropdown *ngIf="IsMonthlyVisible" formControlName="SourceMonths"
+                                                             class="single-select"
+                                                             id="SourceMonthList"
+                                                             [placeholder]="'Select month'"
+                                                             [settings]="SingleSelectSettingsById" [data]="SourceMonthList">
+                                    </ng-multiselect-dropdown>
+                                    <div *ngIf="IsMonthlyVisible && rcForm.get('SourceMonths').invalid && rcForm.get('SourceMonths').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.get('SourceMonths').errors.required">
+                                            Required.
+                                        </div>
+                                    </div>
+
+                                    <ng-multiselect-dropdown *ngIf="IsAnnualyVisible" formControlName="SourceAnnualy"
+                                                             class="single-select"
+                                                             id="idSourceAnnualy"
+                                                             [placeholder]="'Select Annually'"
+                                                             [settings]="SingleSelectSettingsById" [data]="SourceAnnualyList">
+                                    </ng-multiselect-dropdown>
+                                    <div *ngIf="IsAnnualyVisible && rcForm.get('SourceAnnualy').invalid && rcForm.get('SourceAnnualy').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.get('SourceAnnualy').errors.required">
+                                            Required.
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                                <div class="col-sm-6" *ngIf="IsWeeklyVisible">
+                                    <!--weekly-->
+                                    <label class="d-block">Effective From</label>
+
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" formControlName="WeekDay" id="occurance-mon" value="Mon">
+                                        <label class="form-check-label" for="occurance-mon">Mon</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" formControlName="WeekDay" id="occurance-tue" value="Tue">
+                                        <label class="form-check-label" for="occurance-tue">Tue</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" formControlName="WeekDay" id="occurance-wed" value="Wed">
+                                        <label class="form-check-label" for="occurance-wed">Wed</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" formControlName="WeekDay" id="occurance-thu" value="Thu">
+                                        <label class="form-check-label" for="occurance-thu">Thu</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" formControlName="WeekDay" id="occurance-fri" value="Fri">
+                                        <label class="form-check-label" for="occurance-fri">Fri</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" formControlName="WeekDay" id="occurance-sat" value="Sat">
+                                        <label class="form-check-label" for="occurance-sat">Sat</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" formControlName="WeekDay" id="occurance-sun" value="Sun">
+                                        <label class="form-check-label" for="occurance-sun">Sun</label>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-sm-6">
+                                            <ng-multiselect-dropdown formControlName="Weeks"
+                                                                     class="single-select"
+                                                                     id="idWeeks"
+                                                                     [placeholder]="'Select week'"
+                                                                     [settings]="SingleSelectSettingsById" [data]="WeekList">
+                                            </ng-multiselect-dropdown>
+                                            <div *ngIf="rcForm.get('Weeks').invalid && rcForm.get('Weeks').touched" class="color-maroon">
+                                                <div *ngIf="rcForm.get('Weeks').errors.required">
+                                                    Required.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6" *ngIf="IsMonthlyVisible">
+                                    <!--// monthly-->
+                                    <label class="d-block">Effective From</label>
+                                    <div class="row mt-2">
+                                        <div class="col-sm-6">
+                                            <ng-multiselect-dropdown formControlName="Months"
+                                                                     class="single-select"
+                                                                     id="idMonths"
+                                                                     [placeholder]="'Select month'"
+                                                                     [settings]="SingleSelectSettingsById" [data]="MonthList">
+                                            </ng-multiselect-dropdown>
+                                            <div *ngIf="rcForm.get('Months').invalid && rcForm.get('Months').touched" class="color-maroon">
+                                                <div *ngIf="rcForm.get('Months').errors.required">
+                                                    Required.
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6" *ngIf="IsAnnualyVisible">
+                                    <!--// Annualy-->
+                                    <label class="d-block">Effective From</label>
+                                    <div class="row mt-2">
+                                        <div class="col-sm-6">
+                                            <ng-multiselect-dropdown formControlName="Annualy"
+                                                                     class="single-select"
+                                                                     id="idAnnualy"
+                                                                     [placeholder]="'Select Annually'"
+                                                                     [settings]="SingleSelectSettingsById" [data]="AnnualyList">
+                                            </ng-multiselect-dropdown>
+                                            <div *ngIf="rcForm.get('Annualy').invalid && rcForm.get('Annualy').touched" class="color-maroon">
+                                                <div *ngIf="rcForm.get('Annualy').errors.required">
+                                                    Required.
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div *ngIf="viewType==2 || SelectedCountryId==2">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <label>&nbsp;</label>
+                                    <div class="form-row">
+                                        <div class="col">
+                                            <input type="text" class="form-control" formControlName="ManualLatestIndexPrice" />
+                                            <div *ngIf="rcForm.get('ManualLatestIndexPrice').invalid && rcForm.get('ManualLatestIndexPrice').touched" class="color-maroon">
+                                                <div *ngIf="rcForm.get('ManualLatestIndexPrice').errors.required">
+                                                    Required.
+                                                </div>
+                                                <div *ngIf="rcForm.get('ManualLatestIndexPrice').errors.pattern">
+                                                    Invalid.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            <p class="text-black-50">
+                                                {{SelectedCountryId==1?"U.S. Dollars per Gallon":"Canada Cents per Litre "}}  (Including Taxes) on   {{rcForm.get('IndexPriceDate').value}}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label>Effective date (from midnight UTC)</label>
+                                        <input type="text" formControlName="ManualEffectiveDate"
+                                               class="form-control datepicker"
+                                               placeholder="Date"
+                                               myDatePicker [format]="'MM/DD/YYYY'"
+                                               (onDateChange)="setManualEffectiveDate($event);"
+                                               [minDate]="MinStartDate" [maxDate]="MaxStartDate" />
+                                        <div *ngIf="rcForm.get('ManualEffectiveDate').invalid && rcForm.get('ManualEffectiveDate').touched" class="color-maroon">
+                                            <div *ngIf="rcForm.get('ManualEffectiveDate').errors.required">
+                                                Required.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label>Notes</label>
+                                        <textarea class="form-control" formControlName="Notes"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr class="my-3" />
+                <h3>Fuel Surcharge Table</h3>
+                <div class="row" formGroupName="FuelSurchargeTable">
+                    <div class="col-sm-4">
+                        <h5 class="font-weight-bold fs14">Valid</h5>
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>From</label>
+                                    <input type="text" formControlName="StartDate" class="form-control datepicker" readonly="readonly"
+                                           placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'"
+                                           (onDateChange)="setStartDate($event);" [minDate]="MinStartDate"
+                                           [maxDate]="MaxStartDate" />
+                                    <div *ngIf="rcForm.controls.FuelSurchargeTable.get('StartDate').invalid && rcForm.controls.FuelSurchargeTable.get('StartDate').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.controls.FuelSurchargeTable.get('StartDate').errors.required">
+                                            Required.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>To</label>
+                                    <!--<input type="text" class="form-control" formControlName="EndDate" />-->
+                                    <input type="text" formControlName="EndDate" class="form-control datepicker"
+                                           placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'"
+                                           (onDateChange)="setEndDate($event);" [minDate]="MinToDate" [maxDate]="MaxStartDate" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <h5 class="font-weight-bold fs14">Price Range</h5>
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Start Value</label>
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control" formControlName="PriceRangeStartValue">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text fs11">{{SelectedCountryId==1?"USD":"CAD"}}</span>
+                                        </div>
+                                        <div *ngIf="!rcForm.valid && rcForm.controls.FuelSurchargeTable.get('PriceRangeStartValue').value>rcForm.controls.FuelSurchargeTable.get('PriceRangeEndValue').value && rcForm.controls.FuelSurchargeTable.get('PriceRangeStartValue').touched && rcForm.controls.FuelSurchargeTable.get('PriceRangeEndValue').touched" class="color-maroon">
+                                            Invalid range.
+                                        </div>
+                                        <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeStartValue').invalid && rcForm.controls.FuelSurchargeTable.get('PriceRangeStartValue').touched" class="color-maroon">
+                                            <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeStartValue').errors.required">
+                                                Required.
+                                            </div>
+                                            <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeStartValue').errors.pattern">
+                                                Invalid.
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>End Value</label>
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control" formControlName="PriceRangeEndValue">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text fs11">{{SelectedCountryId==1?"USD":"CAD"}}</span>
+                                        </div>
+                                    </div>
+                                    <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeEndValue').invalid && rcForm.controls.FuelSurchargeTable.get('PriceRangeEndValue').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeEndValue').errors.required">
+                                            Required.
+                                        </div>
+                                        <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeEndValue').errors.pattern">
+                                            Invalid.
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <label>Interval</label>
+                                <input type="text" class="form-control" formControlName="PriceRangeInterval">
+                                <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeInterval').invalid && rcForm.controls.FuelSurchargeTable.get('PriceRangeInterval').touched" class="color-maroon">
+                                    <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeInterval').errors.required">
+                                        Required.
+                                    </div>
+                                    <div *ngIf="rcForm.controls.FuelSurchargeTable.get('PriceRangeInterval').errors.pattern">
+                                        Invalid.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" formGroupName="FuelSurchargeTable">
+                    <div class="col-sm-4">
+                        <h5 class="font-weight-bold fs14">Surcharge</h5>
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Start %</label>
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control" formControlName="FuelSurchargeStartPercentage">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text fs11">%</span>
+                                        </div>
+                                    </div>
+                                    <div *ngIf="rcForm.controls.FuelSurchargeTable.get('FuelSurchargeStartPercentage').invalid && rcForm.controls.FuelSurchargeTable.get('FuelSurchargeStartPercentage').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.controls.FuelSurchargeTable.get('FuelSurchargeStartPercentage').errors.required">
+                                            Required.
+                                        </div>
+                                        <div *ngIf="rcForm.controls.FuelSurchargeTable.get('FuelSurchargeStartPercentage').errors.pattern">
+                                            Invalid.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Interval</label>
+                                    <input type="text" class="form-control" formControlName="SurchargeInterval">
+                                    <div *ngIf="rcForm.controls.FuelSurchargeTable.get('SurchargeInterval').invalid && rcForm.controls.FuelSurchargeTable.get('SurchargeInterval').touched" class="color-maroon">
+                                        <div *ngIf="rcForm.controls.FuelSurchargeTable.get('SurchargeInterval').errors.required">
+                                            Required.
+                                        </div>
+                                        <div *ngIf="rcForm.controls.FuelSurchargeTable.get('SurchargeInterval').errors.pattern">
+                                            Invalid.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <input type="button" class="btn btn-primary ml-0"
+                               (click)="onGenerateSurchargeTable();" value="Generate Surcharge Table" />
+                        <div *ngIf="ShowMessage" class="color-maroon">
+                            Please click to generate surcharge table.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-4" [formArrayName]="'GeneratedSurchargeTable'">
+                        <div *ngIf="IsGeneratedSurchargeTable">
+                            <table class="table table-bordered table-hover mt-3">
+                                <thead>
+                                    <tr>
+                                        <td class="text-center vmiddle" width="50%">Price Between</td>
+                                        <td width="50%">Fuel Surcharge %</td>
+                                    </tr>
+                                </thead>
+                                <ng-container *ngFor="let fst of rcForm.controls['GeneratedSurchargeTable'].value; index as idx">
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-center vmiddle"> ${{fst.PriceRangeStartValue}} - ${{fst.PriceRangeEndValue}}</td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <span class="p-2 border px-4">{{fst.FuelSurchargeStartPercentage}}</span>
+                                                    <div class="input-group-append">
+                                                        <span class="input-group-text">%</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                    </tbody>
+                                </ng-container>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+        <div class="text-right">
+            <input type="button" class="btn btn-lg btn-light" value="Cancel" (click)="onCancel()" />
+            <button class="btn btn-lg btn-outline-primary" [disabled]="disableInputControls ? true : null" type="button" (click)="onSubmit(1)">Save Draft</button>
+            <button class="btn btn-lg btn-primary" [disabled]="disableInputControls ? true : null" type="submit">Submit</button>
+        </div>
+    </form>
+    <div class="loader" *ngIf="IsLoading">
+        <div class="loading-content text-center">
+            <div class="spinner"></div>
+            <div class="font-bold">Loading</div>
+        </div>
+    </div>
+</div>
+
+
+

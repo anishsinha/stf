@@ -1,0 +1,129 @@
+﻿@model dynamic
+
+<!-- This is the div that will contain the Google Map -->
+@{ var mapId = "map_" + DateTime.Now.ToString("yyyyMMddHHmmss"); }
+<div class="col-md-8">
+    <div class="map_canvas mapheight" id="@mapId"></div>
+</div>
+<div class="col-md-4">
+    <div class="row">
+        <div class="col-sm-2 col-md-12 col-xs-8">
+            <div class="company-name">
+                <h5 class="f-bold mb5">@Resource.lblCompanyName</h5>
+                <p id="mapDefaultCompanyName" class="title"></p>
+            </div>
+        </div>
+        <div class="col-sm-2 col-md-12 col-xs-6">
+            <div class="company-address">
+                <h5 class="f-bold mb5">@Resource.headingCompanyAddress</h5>
+                <p id="mapDefaultAddress1" class="address1 mb0"></p>
+                <p id="mapDefaultAddress2" class="address2 mb0"></p>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)" type="text/javascript"></script>
+<script type="text/javascript">
+        var centerlat = "";
+        var centerlon = "";
+        google.maps.visualRefresh = true;
+
+        var data = @Html.Raw(Json.Encode(@Model));
+
+        var statelist="";
+        if (data.length > 0) {
+            $.each(data, function (i, stateitem) {
+                if(statelist=="") {
+                    statelist = stateitem.StateName;
+                }
+                else {
+                    statelist = statelist + "," + stateitem.StateName;
+                }
+            });
+        }
+
+        var states=statelist.split(',');
+        states = states.filter(function (elem, index, self) { return index == self.indexOf(elem); });
+
+        var zoomarea = 3;
+        if (states.length == 1)
+        {
+            if (data.length == 1) {
+                zoomarea = 12;
+            }
+            else if (data.length >= 2 && data.length <= 4) {
+                zoomarea = 9;
+            }
+            else if (data.length >= 5 && data.length <= 9) {
+                zoomarea = 6;
+            }
+            else if (data.length >= 10) {
+                zoomarea = 5;
+            }
+        }
+        else if (states.length >= 2) {
+            zoomarea = 4;
+            centerlat = "38";
+            centerlon = "-98.35";
+        }
+
+        if (data.length == 0) {
+            zoomarea = 4;
+            centerlat = "38";
+            centerlon = "-98.35";
+        }
+
+        if (states.length == 1) {
+            $.each(data, function (i, pickitem) {
+                centerlat = pickitem.Latitude;
+                centerlon = pickitem.Longitude;
+                return false;
+            });
+        }
+
+        if (data.length > 0) {
+            $(".company-name .title").html(data[0].CompanyName);
+            $(".company-address .address1").html(data[0].Address);
+            $(".company-address .address2").html(data[0].City+", " + data[0].StateCode + " " + data[0].ZipCode);
+        }
+
+        var centerpoint = new google.maps.LatLng(centerlat, centerlon);
+
+        // These are options that set initial zoom level, where the map is centered globally to start, and the type of map to show
+        var mapOptions = {
+            zoom: zoomarea,
+            center: centerpoint,
+            mapTypeId: google.maps.MapTypeId.G_NORMAL_MAP
+        };
+
+        // This makes the div with id "map_canvas" a google map
+        var map = new google.maps.Map(document.getElementById("@mapId"), mapOptions);
+
+        $.each(data, function (i, item) {
+            var companyAddress = item.CompanyName + "\n" + item.Address +
+                "\n" + item.City + ", " + item.StateCode + " " + item.ZipCode;
+            var marker = new google.maps.Marker({
+                'position': new google.maps.LatLng(item.Latitude, item.Longitude),
+                'map': map,
+                'title': companyAddress
+            });
+
+            // Make the marker-pin blue!
+            marker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png')
+
+            // finally hook up an "OnClick" listener to the map so it pops up out info-window when the marker-pin is clicked!
+            google.maps.event.addListener(marker, 'click', function () {
+                var redirectUrl = document.location.origin + '@Url.Action("CompanyDetails", "SuperAdmin", new { area = "SuperAdmin" })';
+                if (item.SupplierType == 2)
+                    redirectUrl = document.location.origin + '@Url.Action("ExternalSupplierDetails", "SuperAdmin", new { area = "SuperAdmin" })';
+
+                window.location.href = redirectUrl + "?id=" + item.CompanyId;
+            });
+
+            google.maps.event.addListener(marker, 'mouseover', function () {
+                $(".company-name .title").html(item.CompanyName);
+                $(".company-address .address1").html(item.Address);
+                $(".company-address .address2").html(item.City + ", " + item.StateCode + " " + item.ZipCode);
+            });
+        })
+</script>

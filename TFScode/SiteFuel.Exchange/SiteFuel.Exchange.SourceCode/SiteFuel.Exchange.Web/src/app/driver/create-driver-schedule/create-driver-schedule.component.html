@@ -1,0 +1,156 @@
+<button id="driverSchedule" type="button" class="btn btn-default float-right" (click)="_toggleOpened(false)">Add Schedule   <span> <i class="fa fa-plus" aria-hidden="true"></i></span></button>
+<!--side bar menu-->
+
+<ng-sidebar-container style="z-index: 99999;">
+    <ng-sidebar [(opened)]="_opened"
+                [animate]="_animate"
+                [position]="_POSITIONS[_positionNum]"
+                style="height: 100vh">
+        <a (click)="_toggleOpened(false)"><i class="fa fa-close fs18"></i></a>
+        <h3 class="dib ml10 mt10 mb10">Schedule Driver </h3>
+
+        <content class="pr30" [formGroup]="DriverScheduleForm" name="DriverScheduleForm" autocomplete="off" (keydown.enter)="$event.preventDefault()">
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label for="Region">Region:</label>
+                        <ng-multiselect-dropdown [placeholder]="'Select Region(s)'"
+                                                 [settings]="multiselectDriverSettingsById" [data]="regionList" (onSelect)="onRegionSelect($event)" (onDeSelect)="onRegionDeSelect($event)"
+                                                 formControlName="regionId">
+                        </ng-multiselect-dropdown>
+                        <div *ngIf="isInvalid('regionId')" class="color-maroon">
+                            <div *ngIf="isRequired('regionId')">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label for="Drivers">Driver:</label>
+                        <ng-multiselect-dropdown [placeholder]="'Select Driver(s)'"
+                                                 [settings]="multiselectDriverSettingsById" [data]="DriverList" (onSelect)="onDriverSelect($event)" (onDeSelect)="onDriverDeSelect($event)"
+                                                 formControlName="driverId">
+                        </ng-multiselect-dropdown>
+                        <div *ngIf="isInvalid('driverId')" class="color-maroon">
+                            <div *ngIf="isRequired('driverId')">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label for="Shift">Shift:</label>
+                        <ng-multiselect-dropdown [placeholder]="'Select Shift(s)'"
+                                                 [settings]="multiselectDriverSettingsById" [data]="ShiftList" (onSelect)="validateShiftForDriver(false)"
+                                                 formControlName="shiftId">
+                        </ng-multiselect-dropdown>
+                        <div *ngIf="isInvalid('shiftId')" class="color-maroon">
+                            <div *ngIf="isRequired('shiftId')">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label for="fromDate">From Date:</label>
+                        <input type="text" formControlName="fromDate" #fromDate class="form-control datepicker" placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'" (onDateChange)="setFromDate($event);" [minDate]="MinStartDate" [maxDate]="MaxStartDate" />
+                        <div *ngIf="isInvalid('fromDate')" class="color-maroon">
+                            <div *ngIf="isRequired('fromDate')">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label for="fromDate">To Date:</label>
+                        <input type="text" formControlName="toDate" #EndDate class="form-control datepicker" placeholder="Date" myDatePicker [format]="'MM/DD/YYYY'" (onDateChange)="setToDate($event);" [minDate]="MinStartDate" [maxDate]="MaxStartDate" />
+                        <div *ngIf="isInvalid('toDate')" class="color-maroon">
+                            <div *ngIf="isRequired('toDate')">
+                                Required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="type" formControlName="type" value="1" id="inlineRadioDaily">
+                            <label class="form-check-label" for="inlineRadioDaily">Daily</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="type" formControlName="type" value="2" id="inlineRadioWdays">
+                            <label class="form-check-label" for="inlineRadioWdays">WeekDays (Mon to Fri)</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="type" formControlName="type" value="3" id="inlineRadioEvery">
+                            <label class="form-check-label" for="inlineRadioEvery">Repeat Every</label>
+                        </div>
+                        <div class="form-check form-check-inline"  *ngIf="DriverScheduleForm.get('fromDate').value && DriverScheduleForm.get('toDate').value">
+                            <input class="form-check-input" type="radio" name="type" formControlName="type" (change)="InitializeDates()" value="4" id="inlineRadioCustom">
+                            <label class="form-check-label" for="inlineRadioCustom">Custom</label>
+                        </div>
+
+                        <!--<div class="radio-inline">
+                            <label><input type="radio" name="type" formControlName="type" value="1">Daily</label>
+                        </div>
+                        <div class="radio-inline">
+                            <label><input type="radio" name="type" formControlName="type" value="2">WeekDays (Mon to Fri)</label>
+                        </div>
+                        <div class="radio-inline">
+                            <label><input type="radio" name="type" formControlName="type" value="3">Repeat Every</label>
+                        </div>
+                        <div class="radio-inline" *ngIf="DriverScheduleForm.get('fromDate').value && DriverScheduleForm.get('toDate').value">
+                            <label><input type="radio" name="type" formControlName="type" (change)="InitializeDates()" value="4">Custom</label>
+                        </div>
+                        <div *ngIf="isInvalid('type')" class="color-maroon">
+                            <div *ngIf="isRequired('type')">
+                                Required.
+                            </div>
+                        </div>-->
+                    </div>
+
+                </div>
+             
+
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group" *ngIf="DriverScheduleForm.get('type').value=='4'">
+                        <label for="Dates"> Dates:</label>
+                        <ng-multiselect-dropdown [placeholder]="'Date (s)'"
+                                                 [settings]="multiselectDateSettingsById" [data]="DateList"
+                                                 (onSelect)="validateShiftForDriver(false)"
+                                                 formControlName="customDates">
+                        </ng-multiselect-dropdown>
+                    </div>
+
+                    <div class="form-group"  *ngIf="DriverScheduleForm.get('type').value=='3'">
+                        <label for="Days">Days:</label>
+                        <input type="number" placeholder="days"  min="1" class="form-control" formControlName="repeat" />
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 text-right form-buttons">
+                <input type="button" value="Cancel" class="btn" (click)="closedSideBar()">
+                <button id="Submit" type="submit" (click)="onSubmit()" class="btn btn-lg btn-primary valid" aria-invalid="false">Submit</button>
+            </div>
+        </content>
+    </ng-sidebar>
+</ng-sidebar-container>
+<!--end side bar menu-->
+
+
+
+<!--<div *ngIf="(regionService.onLoadingChanged | async)" class="pa top0 bg-white left0 z-index5 loading-wrapper"><span class="spinner-dashboard pa"></span></div>-->

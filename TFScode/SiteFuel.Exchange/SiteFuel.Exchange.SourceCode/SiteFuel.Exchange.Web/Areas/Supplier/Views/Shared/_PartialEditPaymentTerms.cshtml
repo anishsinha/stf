@@ -1,0 +1,84 @@
+﻿@model OrderDetailsViewModel
+<div class="row">
+    <div class="col-sm-6">
+        <label>@Resource.lblTerm</label>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-check form-check-inline radio">
+                    @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.NetDays, new { @id = "radio-termnet", onclick = "radioChange(this,'netdays',null);", onchange = "focusOnFirst(this, 'netdays');", @class = "revalidate form-check-input" })
+                    <label class="form-check-label" for="radio-termnet">
+                        @Resource.lblNet
+                    </label>
+                </div>
+                <div class="form-check form-check-inline radio">
+                    @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.DueOnReceipt, new { @id = "radio-termduereceipt", onclick = "radioChange(this,null,'netdays')", @class = "revalidate form-check-input" })
+                    <label class="form-check-label" for="radio-termduereceipt">
+                        @Resource.lblDueOnReceipt
+                    </label>
+                </div>
+                <div class="form-check form-check-inline radio">
+                    @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.PrePaidInFull, new { @id = "radio-termprepaid", onclick = "radioChange(this,null,'netdays')", @class = "revalidate form-check-input" })
+                    <label class="form-check-label" for="radio-termprepaid">
+                        @Resource.lblPrePaidInFull
+                    </label>
+                </div>
+                <div class="form-check form-check-inline radio">
+                    @Html.RadioButtonFor(m => m.PaymentTermId, (int)PaymentTerms.Net30, new { @id = "radio-termnet30", onclick = "radioChange(this,null,'netdays')", @class = "revalidate form-check-input" })
+                    <label class="form-check-label" for="radio-termnet30">
+                        @Resource.lblNet30Days
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-3 netdays defaultDisabled">
+                <div class="form-group">
+                    @Html.TextBoxFor(m => m.NetDays, new { @oninput = "AllowOnlyIntegers(this);", @class = "form-control always datatype-decimal" })
+                    @Html.ValidationMessageFor(m => m.NetDays)
+                </div>
+            </div>
+            <div class="col-sm-9 fs12 pt8">
+                @Resource.lblDaysOfReceipt
+            </div>
+        </div>
+
+    </div>
+    <div class="col-sm-3">
+        <label>@Resource.lblPaymentMethod</label>
+        <div>
+            @Html.EnumDropDownListFor(m => m.PaymentMethod, new { @class="form-control"})
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    function ResetPaymentTermControls() {
+        $('input:radio[name="@Html.NameFor(m => m.PaymentTermId)"][value=' +@(Model.PaymentTermId)+']').prop("checked", true).trigger('click');
+        $('#@Html.IdFor(m => m.NetDays)').val(@Model.NetDays);
+    }
+
+    function showUpdatePaymentTermsSuccessMessage(result) {
+        if (result.StatusCode == '@((int)Status.Failed)') {
+            msgerror(result.StatusMessage);
+            $(".loading-wrapper").hide();
+            EnableInteractiveButtons();
+            return false;
+        }
+        else {
+            msgsuccess('@Resource.errMessageUpdateOrderPaymentTermsSuccess');
+            window.location.reload();
+        }
+    }
+
+    function showUpdatePaymentTermsFailedMessage() {
+        msgerror('@Resource.errMessageUpdateOrderPaymentTermsFailed');
+        $(".loading-wrapper").hide();
+        EnableInteractiveButtons();
+        return false;
+    }
+
+    function EnableInteractiveButtons() {
+        $(".actions").attr("disabled", false).prop("disabled", false);
+        $("#Submit").attr("disabled", false).prop("disabled", false);
+    }
+</script>

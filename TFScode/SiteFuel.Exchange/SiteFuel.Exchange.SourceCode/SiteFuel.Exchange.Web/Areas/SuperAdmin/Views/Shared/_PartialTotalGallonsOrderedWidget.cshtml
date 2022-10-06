@@ -1,0 +1,64 @@
+﻿<div class="row" id="gallons-ordered">
+    <div class="col-sm-12">
+        <h2>
+            @Resource.lblTotalGallonsOrdered - <span id="totalGallonsOrdered" class="fs21">0</span>
+        </h2>
+    </div>
+</div>
+<div class="row mt10 color-darkgrey">
+    <div class="col-xs-6 col-md-6">
+        <input type="text" id="txtOrderedStartDate" onchange="GetTotalGallonsOrdered()" placeholder="@Resource.lblStartDate" class="form-control datepicker" />
+    </div>
+    <div class="col-xs-6 col-md-6">
+        <input type="text" id="txtOrderedEndDate" onchange="GetTotalGallonsOrdered()" placeholder="@Resource.lblEndDate" class="form-control datepicker" />
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-6 col-sm-12 mt10">
+        <h2 class="no-margins">
+            <span id="totalGallonsOrderedSort" class="fs21">0</span>
+        </h2>
+        @Resource.lblGallonsOrderedDates
+    </div>
+</div>
+
+<script>
+    $('#txtOrderedStartDate, #txtOrderedEndDate').datetimepicker({
+        useCurrent: false,
+        format: 'MM/DD/YYYY'
+    });
+    $(document).ready(function () {
+        GetTotalGallonsOrdered();
+    });
+
+    function GetTotalGallonsOrdered() {
+        var startDate = $('#txtOrderedStartDate').val();
+        var endDate = $('#txtOrderedEndDate').val();
+        var selectedCompany = $("#SelectedCompanyId").val();
+
+        var url = '@Url.Action("GetTotalGallonsOrdered", "Dashboard", new { area = "SuperAdmin"})';
+        var params = {};
+        params.startDate = startDate;
+        params.endDate = endDate;
+        params.selectedCompany = selectedCompany;
+
+        $("#gallons-ordered").closest('.gallons-ordered').find('.loading-wrapper').show();
+        $.get(url, params, function (data) {
+            if (data != null) {
+                $("#totalGallonsOrdered").html(data.TotalCount.toLocaleString("en-US", { maximumFractionDigits: 0 }));
+                $("#totalGallonsOrderedSort").html(data.TotalOrderedDeliveredCount.toLocaleString("en-US", { maximumFractionDigits: 0 }));
+                $("#gallons-ordered").closest('.gallons-ordered').find('.loading-wrapper').hide();
+            }
+        });
+    }
+
+    $("#txtOrderedStartDate, #txtOrderedEndDate").on('dp.change', function (e) {
+        GetTotalGallonsOrdered();
+    });
+
+    $("#txtOrderedStartDate").on('dp.change', function (e) {
+        $('#txtOrderedEndDate').data("DateTimePicker").minDate(moment(e.date).startOf('d'));
+    });
+</script>
+
+

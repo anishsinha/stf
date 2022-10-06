@@ -1,0 +1,68 @@
+﻿@model PrivateSupplierListsViewModel
+
+@{
+    ViewBag.Title = Model.DisplayMode == PageDisplayMode.Create ? "Add Private Supplier Lists" : "Private Supplier List Details";
+}
+
+@using (Html.BeginForm(Model.DisplayMode == PageDisplayMode.Create ? "AddPrivateSupplierLists" : "EditPrivateSupplierList", "Profile", new { area = "Settings" }, FormMethod.Post, new { role = "form" }))
+{
+    @Html.AntiForgeryToken()
+<div class="col-sm-12">
+    <div class="row well mb15">
+        <div class="col-sm-12">
+            <h4>@Resource.lblPrivateSupplierList</h4>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div id="invite-user-section" class="@(CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer || CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier ? "row partial-section" :"row partial-section disable-controls")">
+                        <div class="partial-block-collection-section col-sm-7">
+                            @if (Model.PrivateSupplierLists != null && Model.PrivateSupplierLists.Count() > 0)
+                            {
+                                foreach (var privateSupplierList in Model.PrivateSupplierLists)
+                                {
+                                    Html.RenderPartial("_PartialPrivateSupplierList", privateSupplierList);
+                                }
+                            }
+                            else
+                            {
+                                Html.RenderPartial("_PartialPrivateSupplierList", new PrivateSupplierListViewModel() { IsNewSupplierList = true });
+                            }
+                        </div>
+                        @if (Model.DisplayMode == PageDisplayMode.Create)
+                        {
+                            <div class="form-group col-sm-7">
+                                <a href="javascript:void(0)" class="fs18 add-partial-block" data-url="@Url.Action("AddPrivateSupplierList", "Profile" , new { area = "Settings"})">
+                                    <i class="fa fa-plus-circle fs18 mt2 mr5 float-left mb10"></i><span class="fs14 float-left">@Resource.btnLabelAddAnother</span>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                    <div class="row text-right">
+                        <div class="col-sm-12">
+                            <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("PrivateSupplierListGrid", "Profile", new { area = "Settings" })'" />
+                            @if (Model.DisplayMode == PageDisplayMode.Edit && Model.IsAllowDelete == true)
+                            {
+                                <input type="button"
+                                       class="btn btn-default label-danger"
+                                       value="@Resource.btnLabelDelete"
+                                       data-toggle="confirmation"
+                                       data-placement="bottom"
+                                       data-popout="true"
+                                       data-singleton="true"
+                                       href="@Url.Action("Delete", "Profile", new { area = "Settings", id = Request.QueryString["id"] })" />
+                            }
+                            @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer || CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)
+                            {
+                                <input type="submit" class="btn btn-lg btn-primary disable-when-no-partialblock" value="@Resource.btnLabelSave" @(Model.PrivateSupplierLists.Count() == 0 ? "disabled" : "" ) />
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+
+
+

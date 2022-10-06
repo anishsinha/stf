@@ -1,0 +1,90 @@
+﻿@model SupplierProductViewModel
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div id="product-mapping-div" class="table-responsive">
+                        <table id="product-mapping-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnAssignedName</th>
+                                    <th>@Resource.gridColumnTerminalName</th>
+                                    <th>@Resource.gridColumnFuelTypes</th>
+                                    <th>@Resource.gridColumnBackOfficeCode</th>
+                                    <th>@Resource.gridColumnSeaBoardProductCode</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var productMappingGrid, exportColumns = { columns: [0, 1, 2, 3, 4] };
+    var dataGridRq;
+    $(document).ready(function () {
+        productMappingGrid = $('#product-mapping-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("ProductMappingGrid", "ProductMapping", new { area = "Supplier" })",
+                "type": "GET",
+                "datatype": "json",
+                "data": function (data) {
+                    dataGridRq = data;
+                    $('#product-mapping-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#product-mapping-div").find('.loading-wrapper').remove();
+                    return json;
+                }
+            },
+            "columns": [
+                {
+                    "data": function (data, type, row, meta) {
+                        return `<a onclick="slideSupplierProductMapping(`+ data.Id +`)">` + data.AssignedName + `</a>`;
+                        @*return '<a href="@Url.Action("Details", "ProductMapping", new { area = "Supplier" })?id=' + data.Id + '">'+ data.AssignedName +'</a>';*@
+                    }, "autoWidth": true, className: "break-word"
+                },
+                { "data": "TerminalName", "autoWidth": true, className: "break-word" },
+                { "data": "FuelTypes", "autoWidth": true, className: "break-word" },
+                { "data": "BackOfficeProductCode", "autoWidth": true, className: "break-word" },
+                { "data": "SeaBoardProductCode", "autoWidth": true, className: "break-word" },
+            ],
+            pageLength: 10,
+            responsive: true,            
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'copy' },
+                { extend: 'csv', title: '@Resource.headingProductMapping', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.headingProductMapping', exportOptions: exportColumns },
+                { extend: 'pdf', title: '@Resource.headingProductMapping', orientation: 'landscape', pageSize: 'LETTER' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+
+    function ReloadDataTable() {
+        productMappingGrid.ajax.reload();
+    }
+</script>
+
+

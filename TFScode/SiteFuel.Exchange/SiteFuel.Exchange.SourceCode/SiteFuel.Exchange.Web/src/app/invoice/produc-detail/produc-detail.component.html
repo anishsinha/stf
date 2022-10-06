@@ -1,0 +1,246 @@
+<div class="well shadow-b pr" [formGroup]="invoiceForm">
+    <div class="pa bg-white z-index5 loading-wrapper left0 top0" *ngIf="IsLoading">
+        <span class='spinner-dashboard pa'></span>
+    </div>
+
+    <div formArrayName="Drops">
+        <ng-container *ngFor="let drop of invoiceForm.get('Drops')['controls']; let i = index; let isLast = last">
+            <div [formGroupName]="i">
+                <div class="row mb10">
+                    <div class="col-sm-8">
+                        <div class="dib pull-left ordernumber text-center pt5 f-bold mt3">{{i + 1}}</div>
+                        <div class="pull-left ml10" id="orderDetails">
+                            <i class="fas fa-tint mr5"></i>
+                            <strong>{{drop.get('FuelTypeName').value}}</strong>
+                            <div class="mt3">
+                                <i class="far fa-file-alt mr5"></i>
+                                <span class="fs10">{{drop.get('PoNumber').value}}</span>
+                                <input type="hidden" #OrderId formControlName="OrderId" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt15" id="dropDetails">
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            <label>Delivered</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" #actualDropQty formControlName="ActualDropQuantity" (input)="ValidateGravityAndConvertForMFN(drop,Drops[i]);"
+                                       [readonly]="drop && drop.get('ActualQuantityUOM').value != 'MT' && IsBolOrTicketExistForProduct(drop.get('FuelTypeId').value)" />
+                                <div class="input-group-addon fs12" *ngIf="!IsDisplayGravity(Drops[i])"> {{UoM}}</div>
+                                <div *ngIf="IsDisplayGravity(Drops[i])">
+                                    <select name="UoM" formControlName="ActualQuantityUOM" class="input-group-addon fs12" (change)="OnUomChange($event.target.value,drop)">
+                                        <option [value]="UoM">{{UoM}}</option>
+                                        <option [value]="'MT'">MT</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <span *ngIf="isInvalid(drop, 'ActualDropQuantity')" class="color-maroon">
+                                <span *ngIf="isRequired(drop, 'ActualDropQuantity') || isMin(drop, 'ActualDropQuantity')">
+                                    Required.
+                                </span>
+                                <span *ngIf="!isRequired(drop, 'ActualDropQuantity') && isInvalid(drop, 'ActualDropQuantity')">
+                                    Invalid.
+                                </span>
+                            </span>
+                            <span *ngIf="drop.get('ConvertedQuantity').value != '' && drop.get('ConvertedQuantity').value != null">
+                                <b> {{drop.get('ConvertedQuantity').value}} <span *ngIf="Drops !=null && Drops[i].UoM == '4'">MT</span> <span *ngIf="Drops !=null && Drops[i].UoM == '3'">B</span></b>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <label>Drop Date</label>
+                            <input type="text" class="form-control datepicker" formControlName="DropDate" myDatePicker [format]="'MM/DD/YYYY'" [minDate]="MinDropDate" (onDateChange)="drop.get('DropDate').setValue($event);setPrice(drop, $event);setEndDate(drop, $event);" />
+                            <!--<p-calendar formControlName="DropDate" dateFormat="mm/dd/yy" [defaultDate]="DefaultDate" [minDate]="MinDropDate"></p-calendar>-->
+                            <span *ngIf="isInvalid(drop, 'DropDate')" class="color-maroon">
+                                <span *ngIf="isRequired(drop, 'DropDate')">
+                                    Required.
+                                </span>
+                                <!--<span *ngIf="isPattern(drop, 'DropDate')">
+                    Invalid.
+                </span>-->
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <label>Start Time</label>
+                            <input [timeSmallerThanOrEqualTo]="drop.get('EndTime')" [startDate]="drop.get('DropDate')" [endDate]="drop.get('DropEndDate')" type="text" class="form-control timepicker" formControlName="StartTime" myTimePicker [format]="'hh:mm:ss A'" (onTimeChange)="drop.get('StartTime').setValue($event)" (blur)="ValidateTime(drop.get('StartTime').value,i,'StartTime');ValidateAssetTime(drop)" />
+                            <!--<p-calendar formControlName="StartTime" [timeOnly]="true" hourFormat="12"></p-calendar>-->
+                            <span *ngIf="isInvalid(drop, 'StartTime')" class="color-maroon">
+                                <span *ngIf="isRequired(drop, 'StartTime')">
+                                    Required.
+                                </span>
+                                <span *ngIf="drop.get('StartTime').errors.timeSmallerThanOrEqualTo">
+                                    Invalid.
+                                </span>
+                                <span *ngIf="drop.get('StartTime').errors.pattern">
+                                    Invalid Time Format
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <label>Drop End Date</label>
+                            <input type="text" class="form-control datepicker" formControlName="DropEndDate" myDatePicker [format]="'MM/DD/YYYY'" (onDateChange)="setDropEndDate(drop,$event)" />
+                            <span *ngIf="isInvalid(drop, 'DropEndDate')" class="color-maroon">
+                                Invalid.
+                            </span>
+                        </div>
+                    </div>
+
+
+                    <div class="col-sm-2">
+                        <label>End Time</label>
+                        <input [timeGreaterThanOrEqualTo]="drop.get('StartTime')" [startDate]="drop.get('DropDate')" [endDate]="drop.get('DropEndDate')" type="text" class="form-control timepicker" formControlName="EndTime" myTimePicker [format]="'hh:mm:ss A'" (onTimeChange)="drop.get('EndTime').setValue($event)" (blur)="ValidateTime(drop.get('EndTime').value,i,'EndTime'); ValidateAssetTime(drop)" />
+                        <!--<p-calendar formControlName="EndTime" [timeOnly]="true" hourFormat="12"></p-calendar>-->
+                        <span *ngIf="isInvalid(drop, 'EndTime')" class="color-maroon">
+                            <span *ngIf="isRequired(drop, 'EndTime')">
+                                Required.
+                            </span>
+                            <span *ngIf="drop.get('EndTime').errors.timeGreaterThanOrEqualTo">
+                                Invalid.
+                            </span>
+                            <span *ngIf="drop.get('EndTime').errors.pattern">
+                                Invalid Time Format
+                            </span>
+                        </span>
+                    </div>
+                    <div class="col-sm-3 form-group">
+                        <label>Delivery Schedule</label>
+                        <select formControlName="TrackableScheduleId" class="form-control" [attr.readonly]="drop.get('BlendedScheduleId').value && drop.get('BlendedScheduleId').value != ''"
+                                (change)="onScheduleChange($event, drop.get('OrderId').value, drop.get('FuelTypeId').value, drop.get('FuelTypeName').value,drop)">
+                            <option [value]="null">Select Schedule</option>
+                            <option *ngFor="let ft of Schedules[drop.get('OrderId').value] || []" [value]="ft.Id">{{ft.Name}}</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-2 form-group" *ngIf=" drop.get('TrackableScheduleId').value>0">
+                        <label>Delivery-Level PO#</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" formControlName="DeliveryLevelPO" />
+                        </div>
+                    </div>
+                    <div class="col-sm-2 form-group" *ngIf="!Drops[i]?.IsFreightOnlyOrder && !Drops[i]?.IsSupressOrderPricing">
+                        <label>Supplier Allowance</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" formControlName="Allowance" />
+                            <div class="input-group-addon fs12">{{Currency}}</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-2 form-group" *ngIf="IsMarineLocation && invoiceForm.get('IsRebillInvoice').value">
+                        <label>Rebill Price</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" formControlName="UserPriceToOverride" />
+                            <div class="input-group-addon fs12">{{IsDisplayGravity(Drops[i]) ? "/MT" : "/Gallons"}}</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-2 form-group" *ngIf="IsDisplayGravity(Drops[i])" [ngClass]="{'hidden': drop.controls.Gravity.disabled}">
+                        <label>API Gravity</label>
+                        <div *ngIf="IsConvertingGravity" class="pa bg-white z-index5 loading-wrapper"><span class="spinner-dashboard pa"></span></div>
+                        <input type="text" class="form-control" formControlName="Gravity" (input)="ValidateGravityAndConvertForMFN(drop,Drops[i])" />
+                        <span class="color-maroon" *ngIf="drop.get('Gravity').errors && (drop.get('Gravity').touched ||
+                                  drop.get('Gravity').dirty)">
+                            <span *ngIf="drop.get('Gravity').errors.invalidGravity">
+                                Invalid API Gravity
+                            </span>
+                        </span>
+                        <span class="color-maroon" *ngIf="drop.get('Gravity').errors && (drop.get('Gravity').touched ||
+                                  drop.get('Gravity').dirty)">
+                            <span *ngIf="drop.get('Gravity').errors.required">
+                                Required.
+                            </span>
+                            <span *ngIf="drop.get('Gravity').errors.pattern">
+                                Invalid.
+                            </span>
+                        </span>
+                    </div>
+                    <div class="col-sm-3 form-group" *ngIf="IsDisplayGravity(Drops[i])" [ngClass]="{'hidden': drop.controls.ConversionFactor.disabled}">
+                        <label>Conversion Factor <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="#gals which 1M/T" data-original-title="#gals which 1M/T"></i></label>
+                        <div *ngIf="IsConvertingGravity" class="pa bg-white z-index5 loading-wrapper"><span class="spinner-dashboard pa"></span></div>
+                        <input type="text" class="form-control" formControlName="ConversionFactor" />
+                        <span class="color-maroon" *ngIf="drop.get('ConversionFactor').errors && (drop.get('ConversionFactor').touched ||
+                                  drop.get('ConversionFactor').dirty)">
+                            <!-- <span *ngIf="drop.get('Gravity').errors.invalidGravity">
+                Invalid API Gravity
+            </span> -->
+                        </span>
+                        <span class="color-maroon" *ngIf="drop.get('ConversionFactor').errors && (drop.get('ConversionFactor').touched ||
+                                  drop.get('ConversionFactor').dirty)">
+                            <span *ngIf="drop.get('ConversionFactor').errors.required">
+                                Required.
+                            </span>
+                            <span *ngIf="drop.get('ConversionFactor').errors.pattern">
+                                Invalid.
+                            </span>
+                        </span>
+                    </div>
+                    <div class="col-sm-3" *ngIf="IsMarineLocation">
+                        <label>&nbsp;</label>
+                        <div>
+                            <button type="button" id="btnBdrDetailPopup" class="btn btn-default" (click)="bdrDetail.toggleOpen(true, null);" [disabled]="Drops[i]?.IsBdrDetailsAdded"><i class="fas fa-plus mr5"></i>Add BDN Details</button>
+                        </div>
+                    </div>
+                </div>
+
+                <app-fuel-surcharge [Parent]="drop" [Model]="Drops[i]?.FuelSurchargeFreightFee" [PickUpAddress]="Drops[i]?.PickUpAddress"
+                                    [SurchargeEnabled]="Drops[i].FuelSurchargeFreightFee?.IsSurchargeApplicable"></app-fuel-surcharge>
+
+                <!--(OnBdrDeleted)="" (onBdrEdit)=""-->
+                <app-show-bdr-detail #showBdrDetail [Parent]="drop" [BdrDetails]="drop.get('BdrDetails')" [BdrModel]="Drops[i]?.BdrDetails" (OnBDREdit)="bdrDetail.toggleOpen(true,$event)" (OnBDRDelete)="toggleAddBdrButton(i,false)"></app-show-bdr-detail>
+                <app-bdr-detail #bdrDetail
+                                (onBdrDetailsAdded)="showBdrDetail.bdrDetailAdded($event);toggleAddBdrButton(i,true)"
+                                (onBdrDetailsUpdated)="showBdrDetail.bdrDetailUpdated($event);toggleAddBdrButton(i,true)"></app-bdr-detail>
+
+                <input type="hidden" #IsAssetTracked formControlName="IsAssetTracked" />
+                <div *ngIf="IsAssetTracked.value" id="assetOrTank">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <label for="Asset">Asset/Tank</label>
+                            <ng-multiselect-dropdown formControlName="SelectedAssets" [(ngModel)]="SelectedAssets[OrderId.value]" [placeholder]="'Select Assets/Tanks'" [settings]="settings" [data]="Drops[i].Assets"
+                                                     (onSelect)="assetList.showSelectedAsset($event)" (onDeSelect)="assetList.removeUnselected($event)"
+                                                     (onSelectAll)="assetList.showSelectedAssets(Drops[i].Assets)" (onDeSelectAll)="assetList.removeAllUnselected($event)">
+                            </ng-multiselect-dropdown>
+                        </div>
+                        <div class="col-sm-4" *ngIf="invoiceForm.get('BolDetails')?.length==0 && drop.get('TerminalId').value>0 && drop.get('JobCountryId').value != 4">
+                            <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingTerminals">
+                                <span class='spinner-dashboard pa'></span>
+                            </div>
+                            <label for="Terminal">Terminal</label>
+                            <input type="hidden" formControlName="TerminalId" />
+                            <input type="text" formControlName="TerminalName" class="form-control" (input)="onTerminalSearched($event,OrderId.value)" (blur)="validateTerminal(drop,$event,OrderId.value)" placeholder="Terminal Name" />
+                            <ul class="auto-select border-dash">
+                                <li class="form-text" *ngIf="minCharRequired"><small>Enter minimum 3 characters to search.</small></li>
+                                <li class="form-text" *ngIf="searchError"><small>Something went wrong.</small></li>
+                                <li class="form-text" *ngIf="_loadingTerminals"><small>Loading...</small></li>
+                                <li class="form-text" *ngIf="noTerminalFound && !minCharRequired && !searchError && !_loadingTerminals "><small>No terminal found.</small></li>
+                                <li *ngFor="let terminal of Terminals;" (click)="setTerminalName(drop, terminal)"
+                                    [attr.selected]="terminal.Name==drop.get('TerminalName').value">{{terminal.Name}}</li>
+
+                            </ul>
+                        </div>
+                        <div class="col-sm-4" *ngIf="invoiceForm.get('BolDetails')?.length==0 && drop.get('TerminalId').value>0 && drop.get('JobCountryId').value != 4">
+                            <label for="TerminalPrice">Terminal Price</label>
+                            <label class="db mt5">{{drop.get('TerminalPrice').value}} {{Currency}}</label>
+                        </div>
+                    </div>
+                    <app-asset-list #assetList [Parent]="drop" [Drops]="Drops" [UoM]="UoM" [IsSelectedMT]="drop.controls.ConversionFactor.enabled && drop.controls.Gravity.disabled" [SelectedAssets]="SelectedAssets[OrderId.value]" (assetDropGallonsChanged)="assetDropGallonsChanged(drop)"></app-asset-list>
+
+                    <div class="row form-group">
+                        <div class="col-sm-12 text-right">
+                            <span *ngIf="drop.get('IsDipDataRequired').value==true && drop.get('Assets')['controls'].length >0">
+                                <button type="button" class="btn btn-default mt10" (click)="assetList.CalculateDropQuantitiesFromPrePostDip();"> Calculate </button>
+                            </span>
+                            <button type="button" class="btn btn-default mt10" (click)="assetList.addNewAsset();"><i class="fas fa-truck mr5"></i> New Asset</button>
+                        </div>
+                    </div>
+                    <div class="border-b mt15 mb15" *ngIf="!isLast"></div>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+</div>
+
+
+

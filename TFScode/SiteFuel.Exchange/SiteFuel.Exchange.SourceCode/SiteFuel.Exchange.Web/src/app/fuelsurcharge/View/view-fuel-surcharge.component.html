@@ -1,0 +1,236 @@
+<form [formGroup]="viewFuelSurchargeForm">
+    <div class="row">
+        <div class="col-sm-12 text-left">
+            <a class="fs16 mr10 filter-link pa" [ngbPopover]="popContent" placement="bottom" [autoClose]="'outside'" container="body" triggers="manual" #p="ngbPopover" (click)="p.open()"
+               popoverClass="master-filter"><i class="fas fa-filter mr5 ml20 pr"></i>Filters</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="well bg-white shadowb-b">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-border">
+                        <div class="row">
+                            <div id="div-fuel-surcharge-grid" class="table-responsive">
+                                <table id="fuel-surcharge-grid-datatable" data-gridname="14" datatable [dtOptions]="dtOptions" [dtTrigger]="dtTrigger" class="table table-striped table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th class="hide-element" data-key="Id">Id</th>
+                                            <th data-key="DateRange">Date Range</th>
+                                            <th data-key="TableTypeNew">Table Type</th>
+                                            <th data-key="TableName">Table Name</th>
+                                            <th data-key="StatusName">Status</th>
+                                            <th data-key="Customer">Customer(s)</th>
+                                            <th data-key="Carrier">Carrier(s)</th>
+                                            <th data-key="SourceRegion">Source Region(s)</th>
+                                            <th data-key="Terminal">Terminal(s)</th>
+                                            <th data-key="BulkPlant">Bulk Plant(s)</th>
+                                            <th data-key="IndexProduct">Index Product</th>
+                                            <th data-key="IndexArea">Index Area</th>
+                                            <th data-key="IndexPeriod">Index Period</th>
+                                            <th data-key="IndexUpdate">Index Update</th>
+                                            <th data-key="HistoricalPrice">Historical Price</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr *ngFor="let surcharge of FuelSurchargeList ,let i = index">
+                                            <td class="hide-element">{{surcharge.Id}}</td>
+
+                                            <td class="text-center">
+                                                <a (click)="getFuelSurchargePricingDetails(surcharge.Id);" class="btn btn-link" onclick="slidePanel('#pricing-panel','30%')">
+                                                    {{surcharge.DateRange}}
+                                                </a>
+                                            </td>
+                                            <td>{{surcharge.TableTypeNew}}</td>
+                                            <td>{{surcharge.TableName}}</td>
+                                            <td>{{surcharge.StatusName}}</td>
+                                            <td>{{surcharge.Customer}}</td>
+                                            <td>{{surcharge.Carrier}}</td>
+                                            <td>{{surcharge.SourceRegion}}</td>
+                                            <td *ngIf="surcharge.Terminal.length>40">
+                                                <div class="d-none" [ngClass]="{'d-block': surcharge.IsShowMore}">{{surcharge.Terminal}}</div>
+                                                <div class="d-none" [ngClass]="{'d-block': !surcharge.IsShowMore}" *ngIf="(surcharge.Terminal.length>40)">{{surcharge.Terminal | slice :0:40}}...</div>
+                                                <a (click)="surcharge.IsShowMore = !surcharge.IsShowMore">View More/Less</a>
+                                            </td>
+                                            <td *ngIf="surcharge.Terminal.length<=40">{{surcharge.Terminal}}</td>
+                                            <td>{{surcharge.BulkPlant}}</td>
+                                            <td>{{surcharge.IndexProduct}}</td>
+                                            <td>{{surcharge.IndexArea}}</td>
+                                            <td>{{surcharge.IndexPeriod}}</td>
+                                            <td>{{surcharge.IndexType}}</td>
+                                            <td class="text-center">
+                                                <a (click)="getHistoricalPriceDetails(surcharge.Id);" class="btn btn-link fs16" onclick="slidePanel('#historical-price-panel','30%')" placement="bottom" ngbTooltip="Historical Price">
+                                                    <i class="fas fa-history"></i>
+                                                </a>
+                                            </td>
+                                            <td class="text-center text-nowrap">
+<!--                                                <a *ngIf="!surcharge.IsArchived" class="btn btn-link fs16 mr-1" mwlConfirmationPopover
+                                                   [popoverTitle]="popoverTitle" [popoverMessage]="popoverMessage" placement="left"
+                                                   (cancel)="cancelClicked = true" (confirm)="archiveFuelSurchargeTable(surcharge.Id)"><i class="fa fa-trash-alt color-maroon " placement="bottom" ngbTooltip="Archive"></i></a>-->
+
+                                                <a *ngIf="!surcharge.IsArchived" class="btn btn-link fs16 ml-0"
+                                                   (click)="viewFuelSurcharge(surcharge.Id,'EDIT');" placement="bottom" ngbTooltip="Edit"><i class="fas fa-edit"></i></a>
+
+                                                <a  class="btn btn-link fs16 ml-0"
+                                                   (click)="viewFuelSurcharge(surcharge.Id,'VIEW');" placement="bottom" ngbTooltip="View">  <i class="fas fa-street-view"></i></a>
+                                           
+                                                <a *ngIf="!surcharge.IsArchived" class="btn btn-link fs16 ml-0"
+                                                   (click)="viewFuelSurcharge(surcharge.Id,'COPY');" placement="bottom" ngbTooltip="Copy"><i class="fas fa-copy"></i></a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+ 
+    <div id="historical-price-panel" class="side-panel pl5 pr5">
+        <div class="side-panel-wrapper">
+            <div class="pt15 pb0 mb10">
+                <a class="ml15 close-panel" onclick="closeSlidePanel();"><i class="fa fa-close fs18"></i></a>
+                <h3 class="dib mt0 mb0 ml15">Historical Price Details</h3>
+            </div>
+            <div>
+                <app-view-historical-price></app-view-historical-price>
+            </div>
+        </div>
+    </div>
+
+    <div id="pricing-panel" class="side-panel pl5 pr5">
+        <div class="side-panel-wrapper">
+            <div class="pt15 pb0 mb10">
+                <a class="ml15 close-panel" onclick="closeSlidePanel();"><i class="fa fa-close fs18"></i></a>
+                <h3 class="dib mt0 mb0 ml15">Fuel Surcharge Table</h3>
+            </div>
+            <div>
+                <app-view-fuel-surcharge-pricingdetails></app-view-fuel-surcharge-pricingdetails>
+            </div>
+        </div>
+    </div>
+
+    <div class="loader" *ngIf="IsLoading">
+        <div class="loading-content text-center">
+            <div class="spinner"></div>
+            <div class="font-bold">Loading...</div>
+        </div>
+    </div>
+
+        <ng-template #popContent>
+            <div class="popover-details">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label for="TableTypes">Table Type</label>
+                            <ng-multiselect-dropdown formControlName="TableTypes"
+                                                     id="TableTypes"
+                                                     [placeholder]="'Select Type (Required)'"
+                                                     [settings]="SinlgeselectSettingsById"
+                                                     [data]="TableTypeList"
+                                                     (onSelect)="onTableTypeSelect($event)">
+                            </ng-multiselect-dropdown>
+                            <div *ngIf="viewFuelSurchargeForm.get('TableTypes').invalid && viewFuelSurchargeForm.get('TableTypes').touched" class="color-maroon">
+                                <div *ngIf="viewFuelSurchargeForm.get('TableTypes').errors.required">
+                                    Table Type is required.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <div [ngClass]="{'pntr-none subSectionOpacity': IsMasterSelected}">
+                                <label for="Customers">Customer(s)</label>
+                                <ng-multiselect-dropdown formControlName="Customers"
+                                                         id="Customers"
+                                                         [placeholder]="'Select Customers'"
+                                                         (onSelect)="onCustomersSelect($event)"
+                                                         (onDeSelect)="onCustomersDeSelect($event)"
+                                                         (onDeSelectAll)="onCustomersDeSelect($event)"
+                                                         [settings]="MultiselectSettingsById" [data]="CustomerList">
+                                </ng-multiselect-dropdown>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <div [ngClass]="{'pntr-none subSectionOpacity': IsMasterSelected}">
+                                <label for="Carriers">Carrier(s)</label>
+                                <ng-multiselect-dropdown formControlName="Carriers"
+                                                         id="Carriers"
+                                                         [placeholder]="'Select Carriers'"
+                                                         (onSelect)="onCarriersSelect($event)"
+                                                         (onDeSelect)="onCarriersDeSelect($event)"
+                                                         (onDeSelectAll)="onCarriersDeSelect($event)"
+                                                         [settings]="MultiselectSettingsById" [data]="CarrierList">
+                                </ng-multiselect-dropdown>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label for="SourceRegions">Source Region(s)</label>
+                            <ng-multiselect-dropdown formControlName="SourceRegions"
+                                                     id="SourceRegions"
+                                                     [placeholder]="'Select Source Regions'"
+                                                     (onSelect)="onSourceRegionsSelect($event)"
+                                                     (onDeSelect)="onSourceRegionsDeSelect($event)"
+                                                     (onDeSelectAll)="onSourceRegionsDeSelectAll($event)"
+                                                     [settings]="MultiselectSettingsById" [data]="SourceRegionList">
+                            </ng-multiselect-dropdown>
+
+                        </div>
+                    </div>
+
+                    <div class="col-sm-12">
+                        <div class="form-group">
+                            <label for="TerminalsAndBulkPlants">Terminal(s)/BulkPlant(s)</label>
+                            <angular2-multiselect id="TerminalsAndBulkPlants"
+                                                  [data]="TerminalsAndBulkPlantList"
+                                                  formControlName="TerminalsAndBulkPlants"
+                                                  [settings]="MultiSelectSettingsByGroup">
+                            </angular2-multiselect>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label>From</label>
+                            <input type="text" placeholder="Select Date" formControlName="fromDate"
+                                   (onDateChange)="setfromDate($event);" class="form-control datepicker" myDatePicker
+                                   [format]="'MM/DD/YYYY'" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label>To</label>
+                            <input type="text" placeholder="Select Date" formControlName="toDate" [minDate]="minDate"
+                                   [maxDate]="maxDate" (onDateChange)="settoDate($event);" class="form-control datepicker"
+                                   myDatePicker [format]="'MM/DD/YYYY'" autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+
+                    <div class="row">
+                        <div class="col-6 form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" formControlName="isArchived" type="checkbox" value="" id="ckb-isArchived">
+                                <label class="form-check-label" for="ckb-isArchived">
+                                    Show Archived
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 text-right form-buttons mt20">
+                            <button id="clear-filter" type="button" class="btn mt3 valid" (click)="clearFilter()">Clear Filter</button>
+                            <button id="filter-fuel-surcharge-grid" type="button" class="btn btn-lg btn-primary mt3 valid" [ngClass]="{'pntr-none subSectionOpacity': IsLoading}" (click)="filterGrid();p.close()">Apply</button>
+                        </div>
+                    </div>
+
+            </div>
+
+        </ng-template>
+</form>

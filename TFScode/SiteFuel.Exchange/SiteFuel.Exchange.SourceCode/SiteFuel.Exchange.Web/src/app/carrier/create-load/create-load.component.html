@@ -1,0 +1,239 @@
+<div #createloadpanel class="side-panel" id="create-load-panel">
+    <div class="side-panel-wrapper">
+        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingProducts">
+            <span class='spinner-dashboard pa'></span>
+        </div>
+        <div [formGroup]="LoadForm">
+            <div class="pt15 pb0">
+                <a id="close-panel" class="ml20 close-panel" (click)="closeCreateLoad();cancelLoadCreation();showHidePanelDr=true;">
+                    <i class="fa fa-close fs18"></i>
+                </a>
+                <h3 class="dib mt0 mb0 ml15">Create Load / Update DRs</h3>
+            </div>
+            <div class="pt10 pb10 pl20 pr20">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <i class="fa fa-user mr5"></i>{{LoadInfo.Customer}}
+                        <i class="fa fa-map-marker mr5 ml10"></i>{{LoadInfo.JobName}}
+                        <i class="pull-right" *ngIf="IsTankExists">
+                            Total Ullage: {{TotalUllage | number:'1.0-3'}} <span *ngIf="TotalUllageUoM=='Gallons'; else litres">G</span>
+                            <ng-template #litres>L</ng-template>
+                        </i>
+                        <div class="mt5" *ngIf="!IsTankExists">
+                            <ng-multiselect-dropdown formControlName="OrderList" [placeholder]="'Select order'" [(ngModel)]="SelectedOrders" [settings]="multiDropdownSettings" [data]="OrderList" 
+                                                     (onSelect)="OnOrderChange($event,true,true)" (onDeSelect)="OnOrderChange($event,true,false)" (onSelectAll)="OnOrderChange($event,false,false)" (onDeSelectAll)="OnOrderChange($event,false,false)">
+                            </ng-multiselect-dropdown>
+                        </div>
+                    </div>
+                </div>
+                <div class="loads-wrapper" formArrayName="Demands">
+                    <ng-container *ngFor="let demand of LoadForm.controls['Demands']['controls']; let i = index">
+                        <ng-container [formGroupName]="i">
+                            <div class="border radius-5 pl15 pr15 pt10 pb10 mt10 tank-panel" [style.display]="(!showHidePanelDr) || (i == 0) || (selectedProduct == '-1') ? 'block' : 'none'">
+                                <div class="row">
+                                    <div class="col-sm-6 pl5 pr0">
+                                        <div class="pull-left">
+                                            <span class="dot mr5" [ngClass]="{'mustgo': demand.controls['Priority'].value==1,'shouldgo': demand.controls['Priority'].value==2,'couldgo': demand.controls['Priority'].value==2}"></span>
+                                        </div>
+                                        <div class="pull-left">
+                                            <h5 class="mt0 mb0 fs14 f-normal">
+                                                {{demand.controls['ProductName'].value}}
+                                            </h5>
+                                            <div *ngIf="!IsTankExists" class="fs10 opacity8 mt3">
+                                                Product Type: {{demand.controls['ProductType'].value}}
+                                            </div>
+                                            <div *ngIf="demand.controls['ScheduleQuantityType'].value>1 && demand.controls['ScheduleQuantityType'].value!=null" class="fs10 opacity8 mt3">
+                                                Qty Type: {{demand.controls['ScheduleQuantityTypeText'].value}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-5 pr0">
+                                        <div class="form-group mb0">
+                                            <div class="input-group input-group-sm">
+                                                <select formControlName="ScheduleQuantityType" [ngClass]="{'pntr-none subSectionOpacity class-disabled':demand.controls['IsEndSupplier'].value ==false && demand.controls['IsDispatchRetained'].value == true}" class="form-control" (change)="setRequiredQuantityValidators($event.target.value, demand)">
+                                                    <option *ngFor="let sqType of ScheduleQuantityTypes" [value]="sqType.Id">
+                                                        {{sqType.Name}}
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <div class="input-group input-group-sm mt5" *ngIf="demand.controls['ScheduleQuantityType'].value==1;">
+                                                <input type="text" class="form-control " [ngClass]="{'pntr-none subSectionOpacity class-disabled':demand.controls['IsEndSupplier'].value ==false && demand.controls['IsDispatchRetained'].value == true}" formControlName="RequiredQuantity" placeholder="Quantity" [readonly]="(demand.controls['ScheduleQuantityType'].value>1 && demand.controls['ScheduleQuantityType'].value!=null)" />
+                                                <div class="input-group-addon fs11 line-height_18">
+                                                    <span *ngIf="demand.controls['UoM'].value=='Gallons'; else litres">G</span>
+                                                    <ng-template #litres>L</ng-template>
+                                                </div>
+                                            </div>
+                                            <span *ngIf="(demand.controls['RequiredQuantity'].errors) || (demand.controls['ScheduleQuantityType'].value==1)">
+                                                <span class="color-maroon" *ngIf="demand.controls['RequiredQuantity'].errors?.required">Required</span>
+                                                <span class="color-maroon" *ngIf="demand.controls['RequiredQuantity'].errors?.min">Required</span>
+                                                <span class="color-maroon" *ngIf="demand.controls['RequiredQuantity'].errors?.max">Should not exceed max fill</span>
+                                                <span class="color-maroon" *ngIf="demand.controls['RequiredQuantity'].errors?.pattern">Invalid</span>
+                                            </span>
+                                        </div>
+                                        <div class="color-orange text-right fs11 bold" *ngIf="demand.controls['IsDRExists'].value && demand.controls['IsDRMissed'].value!=true">Existing DR</div>
+                                        <div class="color-maroon text-right fs11 bold" *ngIf="demand.controls['IsDRExists'].value && demand.controls['IsDRMissed'].value==true">Missed DR</div>
+                                        <div class="color-green text-right fs11 bold" *ngIf="demand.controls['isRecurringSchedule'].value && demand.controls['isRecurringSchedule'].value==true">Recurring</div>
+                                        <div class="color-green text-right fs11 bold" *ngIf="demand.controls['GroupParentDRId'].value && demand.controls['GroupParentDRId'].value!=''">Sub DR</div>
+                                    </div>
+                                    <div class="col-sm-1 text-right">
+                                        <a class="fa fa-trash-alt fs18 color-maroon mt7" (click)="removeProduct(i,demand)"></a>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-8">
+                                        <table width="100%" class="fs12 mt5" *ngIf="demand.controls['TankMaxFill'].value>0 || demand.controls['Ullage'].value>0">
+                                            <tr>
+                                                <td valign="top">Aggregated:</td>
+                                                <td>
+                                                    <strong>Max Fill</strong><br />{{demand.controls['TankMaxFill'].value | number:'1.0-3'}}
+                                                    <span *ngIf="demand.controls['UoM'].value=='Gallons'; else litres">G</span>
+                                                    <ng-template #litres>L</ng-template>
+                                                </td>
+                                                <td>
+                                                    <strong>Ullage</strong><br />{{demand.controls['Ullage'].value | number:'1.0-3'}}
+                                                    <span *ngIf="demand.controls['UoM'].value=='Gallons'; else litres"> G</span>
+                                                    <ng-template #litres>L</ng-template>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="row" *ngIf="demand.controls['IsDispatchRetained'].value==true && demand.controls['IsEndSupplier'].value==false">
+                                    <div class="col-sm-8 text-warning">You can't schedule this order as it is brokered.</div>
+                                </div>
+                            </div>
+                            <input type="hidden" formControlName="Id" />
+                            <input type="hidden" formControlName="SiteId" />
+                            <input type="hidden" formControlName="JobId" />
+                            <input type="hidden" formControlName="JobName" />
+                            <input type="hidden" formControlName="OrderId" />
+                            <input type="hidden" formControlName="TankId" />
+                            <input type="hidden" formControlName="StorageId" />
+                            <input type="hidden" formControlName="Priority" />
+                            <input type="hidden" formControlName="CreatedByRegionId" />
+                            <input type="hidden" formControlName="TankMaxFill" />
+                            <input type="hidden" formControlName="TankMinFill" />
+                            <input type="hidden" formControlName="TankCapacity" />
+                            <input type="hidden" formControlName="TankName" />
+                            <input type="hidden" formControlName="ProductName" />
+                            <input type="hidden" formControlName="Level" />
+                            <input type="hidden" formControlName="NetVolume" />
+                            <input type="hidden" formControlName="Ullage" />
+                            <input type="hidden" formControlName="UoM" />
+                            <input type="hidden" formControlName="IsDRExists" />
+                            <input type="hidden" formControlName="IsDRMissed" />
+                            <input type="hidden" formControlName="DeliveryReqId" />
+                            <input type="hidden" formControlName="isRecurringSchedule" />
+                            <input type="hidden" formControlName="ProductSequence" />
+                        </ng-container>
+                    </ng-container>
+
+                    <button *ngIf="selectedProduct != '-1' && LoadForm.controls['Demands']['controls'].length>1"
+                            [style.display]="showHidePanelDr ? 'block' : 'none'"
+                            type="button" class="btn btn-link"
+                            (click)="showHidePanelDr = !showHidePanelDr">
+                        <i class="fa fa-chevron-circle-down"></i>
+                        Show all
+                    </button>
+                    <button *ngIf="selectedProduct != '-1' && LoadForm.controls['Demands']['controls'].length>1"
+                            [style.display]="!showHidePanelDr ? 'block' : 'none'"
+                            type="button" class="btn btn-link"
+                            (click)="showHidePanelDr = !showHidePanelDr">
+                        <i class="fa fa-chevron-circle-up"></i>
+                        Hide
+                    </button>
+
+                </div>
+                <div class="row mt10">
+                    <div class="col-sm-6"><a href="javascrpt:void(0)" class="btn btn-link" *ngIf="IsTankExists" data-toggle="modal" data-target="#load-tanks">View Tank</a></div>
+                    <div class="col-sm-6 text-right">
+                        <button type="button" class="btn btn-lg" (click)="closeCreateLoad();cancelLoadCreation();showHidePanelDr=true;">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-lg" (click)="onSubmit()" [disabled]="disabledSaveButton">Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- Button trigger modal -->
+<!-- Modal -->
+<div class="modal fade" id="load-tanks" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content pt10 pr10">
+            <div class="modal-body">
+                <!-- show tanks start -->
+                <ng-container *ngFor="let dipTest of tankListForLocation; let i = index">
+                    <div class="border shadow-b radius-5 pa10 tank-panel mb10">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <div class="tank_dip_chart text-center mt30">
+                                    <div *ngIf="dipTest.NetVolume > -1">
+                                        <div id="ShouldBeFilledPercent" class="color-green" [ngStyle]="{'height.px':((dipTest.CurrentThreshold>16)?((100 - +dipTest.CurrentThreshold)*1.25):84*1.25)}"> </div>
+                                        <div id="CurrentInventoryPercent" class="red-bg" [ngStyle]="{'height.px':((dipTest.CurrentThreshold>16)?(dipTest.CurrentThreshold*1.25):(16*1.25))}">{{dipTest.CurrentThreshold | number:'1.0-2'}}% </div>
+                                    </div>
+                                    <div *ngIf="dipTest.NetVolume == -1" class="fs18 mt40">
+                                        NA
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-9">
+                                <h5 class="fs14 f-normal mt0">{{dipTest.TankName}}</h5>
+                                <table class="table table-condensed table-bordered table-hover small-table mb0 mt10 fs12" width="100%">
+                                    <tbody>
+                                        <tr>
+                                            <td class="f-bold" width="50%">Storage ID </td>
+                                            <td><span>{{dipTest.StorageId}}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">Product Type</td>
+                                            <td><span>{{dipTest.ProductName}}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">Tank Capacity</td>
+                                            <td><span>{{dipTest.TankCapacity | number:'1.0-2'}} <span>{{dipTest.UoM}}</span></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">
+                                                <span>Min Fill</span>
+                                                <span>&nbsp;({{dipTest.TankMinFill | number:'1.0-2'}}%)</span>
+                                            </td>
+                                            <td>
+                                                <span>{{((dipTest.TankCapacity) * (dipTest.TankMinFill/100)) | number:'1.0-2'}}  <span>{{dipTest.UoM}}</span></span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">
+                                                <span>Max Fill</span>
+                                                <span>&nbsp;({{((dipTest.TankMaxFill/dipTest.TankCapacity)*100) | number:'1.0-2'}}%)</span>
+                                            </td>
+                                            <td>
+                                                <span>{{dipTest.TankMaxFill | number:'1.0-2'}}  <span>{{dipTest.UoM}}</span></span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">
+                                                <span>Current Inventory</span>
+                                                <span *ngIf="dipTest.NetVolume == -1">&nbsp;(NA)</span>
+                                                <span *ngIf="dipTest.NetVolume != -1">&nbsp;({{dipTest.CurrentThreshold | number:'1.0-2'}}%)</span>
+                                            </td>
+                                            <td>
+                                                <span *ngIf="dipTest.NetVolume == -1">NA</span>
+                                                <span *ngIf="dipTest.NetVolume != -1">{{dipTest.NetVolume | number:'1.0-2'}} <span>{{dipTest.UoM}}</span></span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
+                <!-- show tanks end -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="load-overlay" *ngIf="showLoadOverlay"></div>

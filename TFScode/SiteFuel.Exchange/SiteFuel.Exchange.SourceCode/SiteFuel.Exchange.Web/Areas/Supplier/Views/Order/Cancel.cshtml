@@ -1,0 +1,73 @@
+﻿@model CancelOrderViewModel
+
+@{
+    ViewBag.Title = "Cancel Order";
+}
+
+
+@using (Html.BeginForm("Cancel", "Order", new { area = "Supplier" }, FormMethod.Post, new { role = "form", Id = "cancelorder-form" }))
+{
+    @Html.AntiForgeryToken()
+    <div class="col-sm-12 col-lg-10  col-centered">
+        <!-- job details starts -->
+        <div class="row">
+            <div class="col-sm-12 col-md-2 pr0"><h4 class="f-light text-right  fs18">@Resource.headingCancelOrder</h4></div>
+            <div class="col-sm-12 col-md-10">
+                <div class="col-md-12 border-b pb30 mb20 no-sm-padding"></div>
+                <div class="row">
+                    <div class="col-sm-12 ">
+                        <div class="row">
+                            <div class="col-md-6">
+                                @Html.HiddenFor(m => m.OrderId)
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.ReasonId)
+                                    @Html.DropDownListFor(m => m.ReasonId, new SelectList(CommonHelperMethods.GetOrderCancelationReasons((int)CompanyType.Supplier), "Id", "Name"),
+                                                             string.Format(Resource.valMessageSelect, Resource.lblReason), new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.ReasonId)
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.Reason)
+                                    @Html.TextAreaFor(m => m.Reason, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.Reason)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row text-right  mb25">
+                            <div class="col-12">
+                                <input type="button" class="btn btn-default btn-md" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("Details", "Order", new { area = "Supplier", id = Model.OrderId })'" />
+                                <input type="button" class="btn btn-primary btn-md" id="btnSave" value="@Resource.btnLabelSubmit" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- job details ends -->
+    </div>
+}
+
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            $('#btnSave').click(function () {
+
+                if ($('#@Html.IdFor(m => m.ReasonId) option:selected').text() == "Other"
+                                            && $('#@Html.IdFor(m => m.Reason)').val().replace(/\s/g, "") == '')
+                {
+                    validationMessageFor("@Html.NameFor(m => m.Reason)", '@ResourceMessages.GetMessage(Resource.valMessageInvalid, new object[] { Resource.lblReason })');
+                    return false;
+                }
+                $('#cancelorder-form').submit();
+            });
+
+            $("#@Html.IdFor(m=>m.ReasonId)").change(function () {
+                validationMessageFor("@Html.NameFor(m => m.Reason)", '');
+            });
+        });
+    </script>
+}

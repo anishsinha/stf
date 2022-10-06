@@ -1,0 +1,176 @@
+﻿<style>
+    .modal-body {
+        height: 300px;
+        overflow: auto;
+    }
+
+</style>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb5">
+            <div class="row">
+                <div class="col-xs-12 col-sm-1 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5">
+                    <input type="text" id="quickBooksReportFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" />
+                </div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="quickBooksReportToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" id="ApplyReportDateTime" />
+                    <input type="button" class="btn ml5" value="@Resource.btnLabelClearFilter" id="ClearReportFilterId" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div id="90DaysDataWarning" class="col-md-12">
+        <div class="alert alert-info fs12 mb15"><strong>@Resource.lblInfo</strong>@Resource.lbl90DaysDataWarning</div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive" id="quickBooksReportTable-div">
+                        <table id="quickBooksReportTable" class="table table-striped table-bordered table-hover ">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.lblEntityType</th>
+                                    <th>@Resource.gridColumnCreatedDate</th>
+                                    <th>@Resource.gridColumnWorkflowType</th>
+                                    <th>@Resource.gridColumnSyncDate</th>
+                                    <th>@Resource.gridColumnPoNumber</th>
+                                    <th>@Resource.gridColumnInvoiceNumber</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var qbReportDataTable, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6] };
+    $(document).ready(function () {
+
+        $('.datepicker').datetimepicker({
+            format: 'MM/DD/YYYY'
+        });
+
+        qbReportDataTable = $("#quickBooksReportTable").DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetQuickBooksReport", "QuickBooks")",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data.fromDateTime = $("#quickBooksReportFromDate").val() == '' ? '' : $("#quickBooksReportFromDate").val();
+                    data.toDateTime = $("#quickBooksReportToDate").val() == '' ? '' : $("#quickBooksReportToDate").val();
+                    data.companyId = $("#CompanyId").val();
+                    $('#quickBooksReportTable-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#quickBooksReportTable-div").find('.loading-wrapper').remove();
+                    return json.data;
+                }
+            },
+            "columns": [
+                { "data": "EntityType", "autoWidth": true },
+                { "data": "CreatedDate", "autoWidth": true },
+                { "data": "WorkFlowType", "autoWidth": true },
+                { "data": "SyncDate", "autoWidth": true },
+                {
+                    "data": function (data) {
+                        if ('@CurrentUser.IsSupplierCompany' == 'True' && data.OrderId > 0) { return '<a target="_blank" href="@Url.Action("Details","Order")/' + data.OrderId + '">' + data.PoNumber + '</a>'; }
+                        else { return data.PoNumber; }
+                    }, "autoWidth": true },
+                {
+                    "data": function (data) {
+                        if ('@CurrentUser.IsSupplierCompany' == 'True' && data.InvoiceId > 0) { return '<a target="_blank" href="@Url.Action("Details","Invoice")/' + data.InvoiceId + '">' + data.InvoiceNumber + '</a>'; }
+                        else { return data.InvoiceNumber; }
+                    }, "autoWidth": true
+                },
+                {
+                    "data": function (data)
+                    {
+                        return '<a onclick=GetQuickBooksLogs(' + data.AccountingWorkflowId + ')>' + data.Status + '</a>';
+                    }
+                    , "autoWidth": true
+                }
+            ],
+            "columnDefs": [
+                { "name": "EntityType", "targets": 0 },
+                { "name": "CreatedDate", "targets": 1 },
+                { "name": "WorkFlowType", "targets": 2, "regex": false, "orderable": false },
+                { "name": "SyncDate", "targets": 3, "regex": false, "orderable": false },
+                { "name": "PoNumber", "targets": 4, "searchable": true, "orderable": false },
+                { "name": "InvoiceNumber", "targets": 5, "searchable": true, "orderable": false },
+                { "name": "Status", "targets": 6, "searchable": false, "orderable": false }
+            ],
+            "serverSide": true,
+            "searchDelay": 500,
+            aaSorting: [[1, 'desc']],
+            "pageLength": 10,
+            "lengthMenu": [[10, 25, 50], [10, 25, 50]],
+            "responsive": true,
+            "searching": { "regex": true },
+            lengthChange: true,
+            "order": [[1, 'desc']],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'copy' },
+                { extend: 'csv', title: 'QuickBooks_Report' },
+                { extend: 'excel', title: 'QuickBooks_Report' },
+                { extend: 'pdf', title: 'QuickBooks_Report', orientation: 'landscape' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>loading</div>",
+                search: "<button class='btn btn-primary' id='btnsearch21'> <i class='fa fa-search'></i></button>"
+            },
+            initComplete: function (settings, json) {
+                var api = this.api();
+                var textBox = $('#quickBooksReportTable_filter .input-sm');
+                textBox.unbind();
+                textBox.bind('keyup input', function (e) {
+                    if (e.keyCode == 8 && !textBox.val() || e.keyCode == 46 && !textBox.val()) {
+                    } else if (e.keyCode == 13 || !textBox.val()) {
+                        api.search(this.value).draw();
+                    }
+                });
+
+                $("#btnsearch21").click(function () {
+                    api.search(textBox[0].value).draw();
+                });
+            }
+        });
+
+        $("[name='quickBooksReportTable_length']").on("change", function () {
+            qbReportDataTable.ajax.reload();
+        });
+        $("#ApplyReportDateTime").on("click", function () {
+            qbReportDataTable.ajax.reload();
+        });
+        $("#ClearReportFilterId").on("click", function () {
+            $("#quickBooksReportFromDate").val("");
+            $("#quickBooksReportToDate").val("");
+            qbReportDataTable.ajax.reload();
+        });
+
+    });
+
+</script>

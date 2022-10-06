@@ -1,0 +1,303 @@
+﻿@model SiteFuel.Exchange.ViewModels.Offer.OfferPricingDetailsViewModel
+@using SiteFuel.Exchange.ViewModels.Offer
+
+@{
+    ViewBag.Title = "Offer Details";
+}
+
+<div class="row">
+    @Html.HiddenFor(m => m.PricingCodeId)
+    <div class="col-sm-12">
+        @if (Model.OfferPricingId > 0)
+        {
+            <div class="row">
+                <div class="col-sm-4 mb10 tab-headers dib">
+                    <a id="tab-offer-details" href="javascript:void(0)" onclick="showsection('offer-details'), activelink(this)" class="active mr20">
+                        <div class="step-inprogress fs18">
+                            <span class="f-light step-text float-left">@Resource.headingDetails</span>
+                        </div>
+                    </a>
+                    <a id="tab-baseball-card-details" href="javascript:void(0)" onclick="GetPartialViewData('baseball-card'), activelink(this)" class="mr20">
+                        <div class="step-inprogress fs18">
+                            <span class="f-light step-text float-left">@Resource.lblSupplierProfile</span>
+                        </div>
+                    </a>
+                </div>
+                <div id="auto-divfraction" class="col-sm-8 pull-right text-right xs-left col-xs-12">
+                    @if ((CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer))
+                    {
+                        if (Model.IsActive)
+                        {
+                            <span class="dib mt5 label label-warning mr10">@(CommonHelperMethods.GetName<FuelRequestStatus>(Model.OfferViewModel.StatusId))</span>
+
+                            <div class="btn-group">
+                                <button data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle" aria-expanded="false">@Resource.btnLabelAction <span class="caret"></span></button>
+                                <ul class="dropdown-menu dropdown-menu-right">
+                                    <li class="dropdown-item">
+                                        <a onclick="showAcceptOfferModal()">@Resource.btnLabelBuy <i class="fa fa-tint float-left mt7 mr5"></i></a>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                    }
+                </div>
+                @if (!Model.IsActive)
+                {
+                    <div class="col-sm-12">
+                        <div class="alert alert-danger mt15 mb10">
+                            This offer has been updated. <a class="font-bold" data-toggle="modal" data-target="#modal-multi-orders" href="@Url.Action("View", "Offer", new { area = "Buyer" })">@Resource.btnLabelClickHere</a> to search latest offers.
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="tab-container readOnlyModeFR">
+            <div id="offer-details" data-parent-tab="tab-offer-details" class="subTabs">
+                <!-- fuel request starts -->
+                <div class="col-sm-12">
+                    <div class="row well mb15">
+                        <div class="col-sm-12 pb15">
+                            <h4>@Resource.lblOffer</h4>
+                            <div class="row">
+                                <div class="col-md-2 col-xs-4 col-sm-3 mb10">
+                                    <label class="f-normal">@Resource.lblOfferName</label>
+                                    <div>@Model.OfferViewModel.Name</div>
+                                </div>
+                                <div class="col-md-2 col-xs-4 col-sm-3 mb10">
+                                    <label class="f-normal">@Resource.lblFuelType</label>
+                                    @if (Model.FuelType == null || Model.FuelType.Count() == 0)
+                                    {
+                                        <div>@Resource.lblAll</div>
+                                    }
+                                    else
+                                    {
+                                        foreach (var item in Model.FuelType)
+                                        {
+                                            <div>@item</div>
+                                        }
+                                    }
+                                </div>
+                                <div class="col-md-2 col-xs-4 col-sm-3 mb10">
+                                    <label class="f-normal">@Resource.lblOrderType</label>
+                                    <div>@(Model.OfferViewModel.FuelPricing.FuelPricingDetails.TruckLoadTypes.GetDisplayName())</div>
+                                </div>
+                                <div class="col-md-2 col-xs-4 col-sm-3 mb10">
+                                    <label class="f-normal">@Resource.lblPricingSource</label>
+                                    <div>@(((PricingSource)Model.OfferViewModel.FuelPricing.FuelPricingDetails.PricingSourceId).GetDisplayName())</div>
+                                </div>
+                                <div class="col-md-2 col-xs-4 col-sm-3 mb10">
+                                    <label class="f-normal">@Resource.lblLocation</label>
+                                    <div>
+                                        @if (Model.OfferViewModel.OfferLocationTypeId == (int)OfferLocationType.State)
+                                        {
+                                            if (Model.DisplayStates == null || Model.DisplayStates.Count() == 0)
+                                            {
+                                                <div>@Resource.lblAll</div>
+                                            }
+                                            else
+                                            {
+                                                foreach (var item in Model.DisplayStates)
+                                                {
+                                                    <div>
+                                                        @item.ToString()
+                                                    </div>
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            foreach (var item in Model.OfferViewModel.LocationViewModel)
+                                            {
+                                                <div>
+                                                    @item.ToString()
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-b-dash ma15 clearboth"></div>
+                        <div class="col-sm-12 pb15">
+                            <h4>@Resource.headingPricing</h4>
+                            <div class="row">
+                                <div class="col-sm-6 mb10">
+                                    @if (Model.OfferViewModel.FuelPricing.PricingTypeId == (int)PricingType.Tier)
+                                    {
+                                        @Html.Partial("~/Views/Shared/_PartialOfferPricingDetails.cshtml", Model.OfferViewModel.FuelPricing)
+                                    }
+                                    else
+                                    {
+                                        <div>
+                                            @CommonHelperMethods.GetQuotationPricePerGallon(Model.OfferOrderViewModel.FuelDetails.FuelPricing.PricingTypeId ==   (int)PricingType.PricePerGallon ? Model.OfferOrderViewModel.FuelDetails.FuelPricing.PricePerGallon : Model.OfferOrderViewModel.FuelDetails.FuelPricing.RackPrice, Model.OfferOrderViewModel.FuelDetails.FuelPricing.PricingTypeId, Model.OfferOrderViewModel.FuelDetails.FuelPricing.RackAvgTypeId) @Model.OfferViewModel.FuelPricing.Currency
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 pr0">
+                                    <div class="checkbox mt0 fs12 terminal-price">
+                                        <label>
+                                            @Html.CheckBoxFor(m => m.OfferOrderViewModel.FuelDetails.FuelPricing.IncludeTaxes)
+                                            @Resource.lblIncludeTaxes
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row terminal-price defaultDisabled">
+                                <div class="show-in-fr">
+                                    <div class="col-sm-12">
+                                        <div class="dib pr float-left pr0">
+                                            <div class="pa bg-white subSectionOpacity top0 left0 z-index5 loading-wrapper calculate-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                                            <input type="button" class="btn btn-info btn-sm" id="btnCalculate" value="@Resource.lblCalculate @(Resource.lblLoadedPrice)" data-url="@Url.Action("CalculateLoadedPrice", "Offer" )" />
+                                        </div>
+                                        <div class="float-left mt5">
+                                            <span id="LoadedPrice" class="mt5 ml10 fs18 animated bounce f-normal"></span>
+                                            <a href="javascript:void(0)" id="lnkShowBreakup" onclick="showLoadedPriceBreakup()" class="mt5 ml10 hide-element">@Resource.lblShowBreakup</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @if (Model.OfferViewModel.FuelDeliveryDetails.FuelFees.FuelRequestFees.Any())
+                        {
+                            <div class="border-b-dash ma15 clearboth"></div>
+                            <div class="col-sm-12">
+                                <h4>@Resource.headingFees</h4>
+                                <div class="row">
+                                    @Html.Partial("_PartialFuelFeeDetails", Model.OfferViewModel.FuelDeliveryDetails)
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <!-- fuel request ends -->
+            </div>
+            <div id="baseball-card" data-parent-tab="tab-baseball-card-details" class="subTabs hide-element "></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal animated" id="modal-view-offer" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-acceptoffer" role="document">
+        @using (Ajax.BeginForm("Accept", "Offer", null, new AjaxOptions
+        {
+            HttpMethod = "POST",
+            OnSuccess = "showAcceptSuccessMessage",
+            OnFailure = "showAcceptFailedMessage"
+        }, new { id = "accept-offer-form" }))
+        {
+            <div class="modal-content">
+                <div class="modal-header no-border text-center">
+                    <div class="col-sm-11">
+                        <h2 class="text-left mt0 mb0 fs21">@Resource.lblAcceptOffer</h2>
+                    </div>
+                    <div class="col-sm-1">
+                        <button type="button" class="close actions" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                </div>
+                <div class="modal-body pt0 pb0 " id="accept-offer">
+                    @{Html.RenderPartial("_PartialAcceptOffer", Model.OfferOrderViewModel);}
+                </div>
+                <div class="modal-footer no-border">
+                    <a href="#." data-dismiss="modal" class="btn btn-default actions">@Resource.btnLabelCancel</a>
+                    <input id="Submit" type="button" value="@Resource.btnLabelBuy" class="btn btn-primary" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal" id="modal-loaded-price-breakup" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header no-border text-center">
+                <div class="col-sm-11"><h2 class="text-left mt0 mb0 fs21">@Resource.lblEstimatedPriceBreakup</h2></div>
+                <div class="col-sm-1"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+            </div>
+            <div class="modal-body pt0 pb0" id="loaded-price-breakup">
+                @{Html.RenderPartial("_PartialLoadedPriceBreakup", new OfferLoadedPriceViewModel());}
+            </div>
+            <div class="modal-footer no-border">
+                <a href="#." data-dismiss="modal" class="btn btn-default">@Resource.btnLabelClose</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            setNewJobDetails();
+            $('.datepicker').data("DateTimePicker").minDate(moment());
+            if (@Model.JobId > 0) {
+                $(".new-job").addClass('hide-element');
+                $("#AddressDetails_IsNewJob").prop("disabled", true);
+            }
+            showHideElements(null, 'resetleftspace');
+            GetJobsForOffer(@Model.OfferPricingId, 0);
+
+            $("#btnCalculate").on("click", function () {
+            $(".wrapper-ppg").removeClass("hide-element");
+            var pricingCodeId = $("#@Html.IdFor(m => m.PricingCodeId)").val();
+            var sourceId = $('.ddl-pricing-source').length > 0 ? $('.ddl-pricing-source').val() : @((int)PricingSource.Axxis);
+                var data = {
+                    jobId: @Model.JobId,
+                    offerPricingId: @Model.OfferPricingId,
+                    productId: @Model.OfferOrderViewModel.FuelDetails.FuelTypeId,
+                    quantity: @Model.Quantity,
+                    zipcode: '@Model.ZipCode',
+                    pricingType: @Model.OfferOrderViewModel.FuelDetails.FuelPricing.PricingTypeId,
+                    rackType: @Model.OfferOrderViewModel.FuelDetails.FuelPricing.RackAvgTypeId,
+                    price: @Model.OfferOrderViewModel.FuelDetails.FuelPricing.RackPrice,
+                    includeTaxes: $("#@Html.IdFor(m => m.OfferOrderViewModel.FuelDetails.FuelPricing.IncludeTaxes)").is(":checked"),
+                    marketBasedType: @Model.OfferOrderViewModel.FuelDetails.FuelPricing.MarkertBasedPricingTypeId,
+                    supplierCost: @Model.OfferOrderViewModel.FuelDetails.FuelPricing.SupplierCost.Value,
+                    pricingSourceId: @Model.OfferViewModel.FuelPricing.FuelPricingDetails.PricingSourceId,
+                    pricingCodeId: pricingCodeId,
+                    sourceId: sourceId,
+                };
+            
+            var url = $(this).attr("data-url");
+            $(".calculate-wrapper").removeClass("hide-element");
+                $.get(url, data, function (response) {
+                    if (response != null) {
+                        $("#loaded-price-breakup").html(response);
+                        $("#lnkShowBreakup").show();
+                        $("#LoadedPrice").text($(".total-amount").text().trim());
+                    }
+                    else {
+                        $("#LoadedPrice").text("Pricing not available").addClass('color-red').removeClass('fs18');
+                    }
+                }).always(function () { $(".calculate-wrapper").addClass("hide-element"); });
+            });
+        });
+
+        function showAcceptOfferModal() {
+            $("#modal-view-offer").modal("show");
+        }
+
+        function setNewJobDetails() {
+            $(".state").val('@Model.StateId');
+            $(".city").val('@Model.City');
+            $(".zip").val('@Model.ZipCode');
+        }
+
+        function showLoadedPriceBreakup() {
+            $("#modal-loaded-price-breakup").modal("show");
+        }
+
+        function GetPartialViewData(key) {
+            var params = '?supplierCompanyId=' + @Model.SupplierCompanyId;
+            switch (key) {
+                case 'baseball-card': url = '@Url.Action("BaseballCardDetails", "", new { area = "" })' + params; break;
+            }
+            $(".tab-container > div").hide();
+            $(".tab-container #" + key).show();
+            $('#' + key).load(url);
+        }
+
+    </script>
+}

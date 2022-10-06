@@ -1,0 +1,73 @@
+﻿@model  int
+
+<div class="row">
+    <div class="col-sm-12">
+        <h4 class="mt0 f-light pb5 mb5 float-left pt0">@Resource.headingActivityReport</h4>
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb5">
+            <div class="row">
+                <div class="col-12 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-6 col-md-2 mb5"><input type="text" id="txtActivityFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-6 col-md-2"><input type="text" id="txtActivityToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-12 col-md-4">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                    <input type="button" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        @Html.PartialFor("_PartialActivityReport", m => m)
+    </div>
+</div>
+<script type="text/javascript">
+    var assetActivityReport;
+    var ClearFilter;
+    $(document).ready(function () {
+		$('#txtActivityFromDate').val(GetLocalStorage('txtActivityFromDate'));
+		$('#txtActivityToDate').val(GetLocalStorage('txtActivityToDate'));
+
+        ClearFilter = function () {
+			$('#txtActivityFromDate').val('');
+			$('#txtActivityToDate').val('');
+			$('#txtActivityToDate').data("DateTimePicker").minDate($("#txtActivityFromDate").datetimepicker("minDate"));
+            ReloadDataTable();
+        }
+
+		if ($('#txtActivityFromDate').length > 0 && $('#txtActivityToDate').length > 0) {
+			$("#txtActivityFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+					$('#txtActivityToDate').data("DateTimePicker").minDate($("#txtActivityFromDate").datetimepicker("minDate"));
+                else
+					$('#txtActivityToDate').data("DateTimePicker").minDate(moment($('#txtActivityFromDate').val()));
+            });
+        }
+
+    });
+
+	function GetFilterData() {
+		var filter = {
+			fromDate: $('#txtActivityFromDate').val(),
+			toDate: $('#txtActivityToDate').val()
+		};
+		return filter;
+	}
+
+	function ReloadDataTable() {
+		SetLocalStorage('txtActivityFromDate', $('#txtActivityFromDate').val());
+		SetLocalStorage('txtActivityToDate', $('#txtActivityToDate').val());
+		var url = "@Url.Action("ActivityReportGrid", "Job", new { area = "Buyer", jobId = Model })";
+		assetActivityReport.ajax.url(url);
+		assetActivityReport.ajax.reload();
+	}
+</script>
+<style>
+    .dataTables_wrapper {
+        overflow: auto !important
+    }
+</style>

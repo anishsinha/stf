@@ -1,0 +1,751 @@
+﻿@model OrderDetailsViewModel
+@{
+    ViewBag.Title = "Order Details";
+}
+<div class="row">
+    <div class="col-sm-12">
+        <div class="row">
+            @Resource.lblActionRequired
+        </div>
+        <div class="row mt10">
+            @string.Format(Resource.lblMessageUserCanceledOrder, Model.BuyerUserFirstName, Model.BuyerUserLastName, Model.BuyerCompanyName)
+        </div>
+        <div class="row mt10 mb20">
+            @string.Format(Resource.lblMessageSelectNewOrderTerms, Model.BuyerCompanyName, Model.ParentOrderDetails.BuyerCompanyName)
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="row">
+            <div class="col-md-3"></div>
+            <div class="col-md-3 mlm10 pl0 pr0 mb25 tab-headers">
+                <a href="javascript:void(0)" onclick="showsection('order-details'), activelink(this), inputBoxShowHide(null, 'download')" class="active mr20">
+                    <div class="step-inprogress fs18">
+                        <span class="f-light step-text float-left">@Resource.tabheadingDetails</span>
+                    </div>
+                </a>
+                @if (Model.IsOriginalOrder)
+                {
+                    <a href="javascript:void(0)" onclick="showsection('order-po'), activelink(this), inputBoxShowHide('download', null)">
+                        <div class="step-inprogress fs18">
+                            <span class="f-light step-text float-left">
+                                @Resource.tabHeadingPO
+                            </span>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="tab-container">
+            <div id="order-details" class="mb20">
+                <div class="col-md-10 col-centered">
+                    <div class="row mb10">
+                        <div class="col-sm-6 text-right">
+                            <input type="button" id="btnOriginalOrder" value="@Resource.btnLabelChooseOriginal" onclick="location.href='@Url.Action("ChooseOrder", "Order", new { area = "Supplier", id= ViewContext.RouteData.Values["id"], selectedId = Model.Id })'" class="btn btn-primary btn-sm" />
+                        </div>
+                        <div class="col-sm-6 text-right">
+                            <input type="button" id="btnAnotherOrder" value="@Resource.btnLabelChose" onclick="location.href='@Url.Action("ChooseOrder", "Order", new { area = "Supplier", id= ViewContext.RouteData.Values["id"], selectedId = Model.ParentOrderDetails.Id })'" class="btn btn-primary btn-sm" />
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content">
+                                    <h5 class="f-bold">@Resource.headingOrder</h5>
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblPoNumber</label>
+                                        <p class="no-margins pt0"><span>@Model.PoNumber</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content">
+                                    <h5 class="f-bold">@Resource.headingOrder</h5>
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblPoNumber</label>
+                                        <p class="no-margins pt0"><span>@Model.ParentOrderDetails.PoNumber</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.gridColumnCustomer</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @Model.Supplier.Name<br />
+                                                @Model.Supplier.Email<br />
+                                                @Model.Supplier.PhoneNumber
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.gridColumnCustomer</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @Model.ParentOrderDetails.Supplier.Name<br />
+                                                @Model.ParentOrderDetails.Supplier.Email<br />
+                                                @Model.ParentOrderDetails.Supplier.PhoneNumber
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblDBE <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDBE"></i></label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @if (Model.Qualifications.Count > 0)
+                                                {
+                                                    @Html.Raw(string.Join("<br />", Model.Qualifications))
+                                                }
+                                                else
+                                                {
+                                                    @Resource.lblHyphen
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblDBE <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDBE"></i></label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @if (Model.ParentOrderDetails.Qualifications.Count > 0)
+                                                {
+                                                    @Html.Raw(string.Join("<br />", Model.ParentOrderDetails.Qualifications))
+                                                }
+                                                else
+                                                {
+                                                    @Resource.lblHyphen
+                                                }
+
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblPaymentTerms</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @Model.PaymentTermName
+                                                @if (Model.PaymentTermId == (int)PaymentTerms.NetDays)
+                                                {
+                                                    <span>@Model.NetDays</span>
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblPaymentTerms</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @Model.ParentOrderDetails.PaymentTermName
+                                                @if (Model.ParentOrderDetails.PaymentTermId == (int)PaymentTerms.NetDays)
+                                                {
+                                                    <span>@Model.NetDays</span>
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container mt20">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content">
+                                    <h5 class="f-bold">@Resource.headingPricing</h5>
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblPricePerGallon</label>
+                                        <p class="no-margins pt0"><span>@Model.PricePerGallon</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content">
+                                    <h5 class="f-bold">@Resource.headingPricing</h5>
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblPricePerGallon</label>
+                                        <p class="no-margins pt0"><span>@Model.ParentOrderDetails.PricePerGallon</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblWetHoseFee</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @if (Model.FuelRequestFees.WetHoseFeeSubTypeId == (int)FeeSubType.NoFee)
+                                                {
+                                                    @Resource.lblNoFee
+                                                }
+                                                else if (Model.FuelRequestFees.WetHoseFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                                                {
+                                                    @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.FuelRequestFees.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                                                }
+                                                else if (Model.FuelRequestFees.WetHoseFee > 0)
+                                                {
+                                                    @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.FuelRequestFees.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblHourlyRate.ToLower()}")
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblWetHoseFee</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @if (Model.ParentOrderDetails.FuelRequestFees.WetHoseFeeSubTypeId == (int)FeeSubType.NoFee)
+                                                {
+                                                    @Resource.lblNoFee
+                                                }
+                                                else if (Model.ParentOrderDetails.FuelRequestFees.WetHoseFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                                                {
+                                                    @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                                                }
+                                                else if (Model.ParentOrderDetails.FuelRequestFees.WetHoseFee > 0)
+                                                {
+                                                    @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblHourlyRate.ToLower()}")
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblOverWaterFee</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @if (Model.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.NoFee)
+                                                {
+                                                    @Resource.lblNoFee
+                                                }
+                                                else if (Model.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                                                {
+                                                    @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.FuelRequestFees.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                                                }
+                                                else if (Model.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.HourlyRate)
+                                                {
+                                                    @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.FuelRequestFees.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblHourlyRate.ToLower()}")
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblOverWaterFee</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @if (Model.ParentOrderDetails.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.NoFee)
+                                                {
+                                                    @Resource.lblNoFee
+                                                }
+                                                else if (Model.ParentOrderDetails.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                                                {
+                                                    @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                                                }
+                                                else if (Model.ParentOrderDetails.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.HourlyRate)
+                                                {
+                                                    @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblHourlyRate.ToLower()}")
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblDryRunFee</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @if (Model.FuelRequestFees.DryRunFeeSubTypeId == (int)FeeSubType.NoFee)
+                                                {
+                                                    @Resource.lblNoFee
+                                                }
+                                                else if (Model.FuelRequestFees.DryRunFeeSubTypeId == (int)FeeSubType.FlatFee)
+                                                {
+                                                    @($"{Resource.lblFlatFee} {Resource.constSymbolCurrency}{Model.FuelRequestFees.DryRunFee.ToString(ApplicationConstants.DecimalFormat2)}")
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblDryRunFee</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @if (Model.ParentOrderDetails.FuelRequestFees.DryRunFeeSubTypeId == (int)FeeSubType.NoFee)
+                                                {
+                                                    @Resource.lblNoFee
+                                                }
+                                                else if (Model.ParentOrderDetails.FuelRequestFees.DryRunFeeSubTypeId == (int)FeeSubType.FlatFee)
+                                                {
+                                                    @($"{Resource.lblFlatFee} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.DryRunFee.ToString(ApplicationConstants.DecimalFormat2)}")
+                                                }
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblSalesTaxExempt</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @((Model.IsTaxExempted).ToYesNo())
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblSalesTaxExempt</label>
+                                        <p class="no-margins pt0">
+                                            <span>
+                                                @((Model.ParentOrderDetails.IsTaxExempted).ToYesNo())
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblTier</label>
+                                        <p class="no-margins pt0">
+                                            @if (Model.DifferentFuelPrices.Count > 0)
+                                            {
+                                                foreach (var item in Model.DifferentFuelPrices)
+                                                {
+                                                    <span>
+                                                        @item.MinQuantity.GetCommaSeperatedValue()-@(item.MaxQuantity.HasValue ? item.MaxQuantity.Value.GetCommaSeperatedValue() : " ")  @Resource.lblQuantity :
+                                                        @if (item.PricingTypeId == (int)PricingType.PricePerGallon)
+                                                        {
+                                                            <span>
+                                                                @string.Format("{0} : {1}{2}",
+                                                                 Resource.lblPricePerGallon,
+                                                                 Resource.constSymbolCurrency,
+                                                                 item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                            </span>
+                                                        }
+                                                        else if (item.PricingTypeId == (int)PricingType.RackAverage
+                                                                || item.PricingTypeId == (int)PricingType.RackLow
+                                                                || item.PricingTypeId == (int)PricingType.RackHigh)
+                                                        {
+                                                            if (item.RackAvgTypeId == (int)RackPricingType.PlusPercent)
+                                                            {
+                                                                <span>
+                                                                    @string.Format("{0} {1}{2}",
+                                                                     Resource.lblRackPlus,
+                                                                     item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2),
+                                                                     Resource.constSymbolPercent)
+                                                                </span>
+                                                            }
+                                                            else if (item.RackAvgTypeId == (int)RackPricingType.MinusPercent)
+                                                            {
+                                                                <span>
+                                                                    @string.Format("{0} {1}{2}",
+                                                                     Resource.lblRackMinus,
+                                                                     item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2),
+                                                                     Resource.constSymbolPercent)
+                                                                </span>
+                                                            }
+                                                            else if (item.RackAvgTypeId == (int)RackPricingType.PlusDollar)
+                                                            {
+                                                                <span>
+                                                                    @string.Format("{0} {1}{2}",
+                                                                    Resource.lblRackPlus,
+                                                                    Resource.constSymbolCurrency,
+                                                                    item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                                </span>
+                                                            }
+                                                            else if (item.RackAvgTypeId == (int)RackPricingType.MinusDollar)
+                                                            {
+                                                                <span>
+                                                                    @string.Format("{0} {1}{2}",
+                                                                     Resource.lblRackMinus,
+                                                                     Resource.constSymbolCurrency,
+                                                                     item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                                </span>
+                                                            }
+                                                        }
+                                                    </span><br />
+                                                }
+                                            }
+                                            else
+                                            {
+                                                @Resource.lblHyphen
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblTier</label>
+                                        <p class="no-margins pt0">
+                                            @if (Model.ParentOrderDetails.DifferentFuelPrices.Count > 0)
+                                            {
+                                                foreach (var item in Model.ParentOrderDetails.DifferentFuelPrices)
+                                                {
+                                                    <span>
+                                                        @item.MinQuantity.GetCommaSeperatedValue()-@(item.MaxQuantity.HasValue ? item.MaxQuantity.Value.GetCommaSeperatedValue() : " ")  @Resource.lblQuantity :
+                                                        @if (item.PricingTypeId == (int)PricingType.PricePerGallon)
+                                                        {
+                                                            <span>
+                                                                @string.Format("{0} : {1}{2}",
+                                                                Resource.lblPricePerGallon,
+                                                                Resource.constSymbolCurrency,
+                                                                item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                            </span>
+                                                        }
+                                                        else if (item.PricingTypeId == (int)PricingType.RackAverage
+                                                                || item.PricingTypeId == (int)PricingType.RackLow
+                                                                || item.PricingTypeId == (int)PricingType.RackHigh)
+                                                        {
+                                                            if (item.RackAvgTypeId == (int)RackPricingType.PlusPercent)
+                                                            {
+                                                                <span>
+                                                                    @string.Format("{0} {1}{2}",
+                                                                     Resource.lblRackPlus,
+                                                                     item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2),
+                                                                     Resource.constSymbolPercent)
+                                                                </span>
+                                                            }
+                                                            else if (item.RackAvgTypeId == (int)RackPricingType.MinusPercent)
+                                                            {
+                                                                <span>
+                                                                    @string.Format("{0} {1}{2}",
+                                                                     Resource.lblRackMinus,
+                                                                     item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2),
+                                                                     Resource.constSymbolPercent)
+                                                                </span>
+                                                            }
+                                                            else if (item.RackAvgTypeId == (int)RackPricingType.PlusDollar)
+                                                            {
+                                                                <span>
+                                                                    @string.Format("{0} {1}{2}",
+                                                                    Resource.lblRackPlus,
+                                                                    Resource.constSymbolCurrency,
+                                                                    item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                                </span>
+                                                            }
+                                                            else if (item.RackAvgTypeId == (int)RackPricingType.MinusDollar)
+                                                            {
+                                                                <span>
+                                                                    @string.Format("{0} {1}{2}",
+                                                                     Resource.lblRackMinus,
+                                                                     Resource.constSymbolCurrency,
+                                                                     item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                                                </span>
+                                                            }
+                                                        }
+                                                    </span><br />
+                                                }
+                                            }
+                                            else
+                                            {
+                                                @Resource.lblHyphen
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row offer-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblAdditionalFee</label>
+                                        <p class="no-margins pt0">
+                                            @if (Model.AdditionalFees.Count > 0)
+                                            {
+                                                foreach (var fee in Model.AdditionalFees)
+                                                {
+                                                    if (@fee.FeeDetails != null)
+                                                    {
+                                                        <span>
+                                                            @string.Format("{0} {1}{2}{3}",
+                                                            fee.FeeSubTypeName,
+                                                            " : ",
+                                                            @Resource.constSymbolCurrency,
+                                                            fee.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                                            @string.Format(" : {0}", @fee.FeeDetails)
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>
+                                                            @string.Format("{0} {1}{2}{3}",
+                                                            fee.FeeSubTypeName,
+                                                            " : ",
+                                                            @Resource.constSymbolCurrency,
+                                                            fee.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                                        </span>
+                                                    }
+                                                    <br />
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span>
+                                                    @Resource.lblHyphen
+                                                </span>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblAdditionalFee</label>
+                                        <p class="no-margins pt0">
+                                            @if (Model.ParentOrderDetails.AdditionalFees.Count > 0)
+                                            {
+                                                foreach (var fee in Model.ParentOrderDetails.AdditionalFees)
+                                                {
+                                                    if (@fee.FeeDetails != null)
+                                                    {
+                                                        <span>
+                                                            @string.Format("{0} {1}{2}{3}",
+                                                            fee.FeeSubTypeName,
+                                                            " : ",
+                                                            @Resource.constSymbolCurrency,
+                                                            fee.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                                            @string.Format(" : {0}", @fee.FeeDetails)
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>
+                                                            @string.Format("{0} {1}{2}{3}",
+                                                            fee.FeeSubTypeName,
+                                                            " : ",
+                                                            @Resource.constSymbolCurrency,
+                                                            fee.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                                        </span>
+                                                    }
+                                                    <br />
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span>
+                                                    @Resource.lblHyphen
+                                                </span>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row order-container">
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblDeliveryFee</label>
+                                        <p class="no-margins pt0">
+                                            @if (Model.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.NoFee)
+                                            {
+                                                <span>
+                                                    @Resource.lblNoFee
+                                                </span>
+                                            }
+                                            else if (Model.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.FlatFee)
+                                            {
+                                                <span>
+                                                    @($"{Resource.lblFlatFee} {Resource.constSymbolCurrency}{Model.FuelRequestFees.DeliveryFee.ToString(ApplicationConstants.DecimalFormat2)}")
+                                                </span>
+                                            }
+                                            else if (Model.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.ByQuantity)
+                                            {
+                                                @Resource.lblByQuantity <br />
+                                                foreach (var item in Model.DeliveryFeeByQuantity)
+                                                {
+                                                    <span>
+                                                        @string.Format("{0} {1} {2} {3}{4}{5}{6}",
+                                            item.MinQuantity.GetCommaSeperatedValue(),
+                                            Resource.lblSingleHyphen,
+                                            (item.MaxQuantity.HasValue ? item.MaxQuantity.Value.GetCommaSeperatedValue() : " "),
+                                            Resource.lblQuantity,
+                                            " : ",
+                                            Resource.constSymbolCurrency,
+                                            item.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                                    </span>
+                                                            <br />
+                                                }
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ibox mb0">
+                                <div class="ibox-content pb5 pt5 no-border">
+                                    <div>
+                                        <label class="no-margins f-normal mb0 fs16">@Resource.lblDeliveryFee</label>
+                                        <p class="no-margins pt0">
+                                            @if (Model.ParentOrderDetails.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.NoFee)
+                                            {
+                                                <span>
+                                                    @Resource.lblNoFee
+                                                </span>
+                                            }
+                                            else if (Model.ParentOrderDetails.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.FlatFee)
+                                            {
+                                                <span>
+                                                    @($"{Resource.lblFlatFee} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.DeliveryFee.ToString(ApplicationConstants.DecimalFormat2)}")
+                                                </span>
+                                            }
+                                            else if (Model.ParentOrderDetails.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.ByQuantity)
+                                            {
+                                                @Resource.lblByQuantity <br />
+                                                foreach (var item in Model.ParentOrderDetails.DeliveryFeeByQuantity)
+                                                {
+                                                    <span>
+                                                        @string.Format("{0} {1} {2} {3}{4}{5}{6}",
+                                                        item.MinQuantity.GetCommaSeperatedValue(),
+                                                        Resource.lblSingleHyphen,
+                                                        (item.MaxQuantity.HasValue ? item.MaxQuantity.Value.GetCommaSeperatedValue() : " "),
+                                                        Resource.lblQuantity,
+                                                        " : ",
+                                                        Resource.constSymbolCurrency,
+                                                        item.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                                    </span>
+                                                            <br />
+                                                }
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="order-po" class="hide-element">
+                <div class="col-md-12">
+                    @if (Model.IsOriginalOrder)
+                    {
+                        <div id="order-po" class="hide-element">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    @Html.Action("OrderPoView", "Order", new { area = "Supplier", id = Model.Id })
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        var columns = $(".order-container");
+        $(columns).each(function () {
+            var columnNumber = $(this).find("> div").length;
+            var latestOffer = $(this).find("> div:nth-child(" + columnNumber + ") p span, > div:nth-child(" + columnNumber + ") ol li span").text().trim().replace(/\s+/g, '');
+            var prevOffer = $(this).find("> div:nth-child(" + (columnNumber - 1) + ") p span, > div:nth-child(" + (columnNumber - 1) + ") ol li span").text().trim().replace(/\s+/g, '');
+            if (latestOffer != prevOffer) {
+                $(this).find("> div:nth-child(" + columnNumber + ") p span, > div:nth-child(" + columnNumber + ") ol li span").addClass("bg-danger color-white");
+            }
+        });
+    });
+</script>

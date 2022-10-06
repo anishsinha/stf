@@ -1,0 +1,77 @@
+﻿
+@model SiteFuel.Exchange.ViewModels.InvoiceExceptions.ManageCustomerExceptionModel
+@{
+    ViewBag.Title = "Manage";
+}
+
+@using (Ajax.BeginForm("CustomerExceptions", "Exception", new { area = "Buyer" },
+    new AjaxOptions
+    {
+        HttpMethod = "Post",
+        LoadingElementId = "ajax-loading",
+        OnSuccess = "customerExceptionSeccess",
+        OnFailure = "customerExceptionFailure"
+    },
+    new { role = "form", id = "customer-exceptions" }))
+{
+    <div class="col-sm-12 well">
+        @Html.HiddenFor(m => m.EnabledForCompanyId)
+        <div id="customer-exception-section" class="partial-section">
+            <div id="customer-exception" class="partial-block-collection-section">
+                @if (Model.Exceptions != null)
+                {
+                    foreach (var item in Model.Exceptions)
+                    {
+                        if (item.ExceptionTypeId == 1)
+                        {
+                            @Html.PartialFor("_PartialCustomerException", m => item)
+                            if (item != Model.Exceptions.Last())
+                            {
+                                <div class="border-b-dash mt15 mb10"></div>
+                            }
+                        }
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <div class="row text-right">
+        <div class="col-sm-2"></div>
+        <div class="col-sm-10 text-right form-buttons">
+            <input class="btn" type="button" value="@Resource.btnLabelCancel" onclick="window.history.back()" />
+            <input class="btn btn-lg btn-primary form-submit" type="submit" value="@Resource.btnLabelSubmit" disabled="disabled" />
+        </div>
+    </div>
+}
+<script type="text/javascript">
+    var formJsonReady = "";
+    $(document).ready(function () {
+        if ($("#customer-exceptions").length > 0) {
+            formJsonReady = JSON.stringify($("#customer-exceptions").serializeArray());
+        }
+        $(document).on("change keyup", "#customer-exceptions :input", function () {
+            formJsonCurrent = JSON.stringify($("#customer-exceptions").serializeArray());
+            if (formJsonReady !== "" && formJsonReady != formJsonCurrent) {
+                $(".form-submit").removeAttr("disabled");
+            }
+            else {
+                $(".form-submit").attr("disabled", "disabled");
+            }
+        });
+    });
+    function updateFormJson() {
+        formJsonReady = JSON.stringify($("#customer-exceptions").serializeArray());
+        $(".form-submit").attr("disabled", "disabled");
+    }
+    function customerExceptionSeccess(data) {
+        if (data.StatusCode == 0) {
+            msgsuccess(data.StatusMessage)
+        }
+        else {
+            msgerror(data.StatusMessage)
+        }
+    }
+    function customerExceptionFailure(data) {
+        msgerror(data.StatusMessage)
+    }
+</script>

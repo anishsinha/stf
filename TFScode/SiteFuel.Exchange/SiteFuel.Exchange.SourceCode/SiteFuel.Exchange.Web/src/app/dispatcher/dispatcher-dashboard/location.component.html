@@ -1,0 +1,559 @@
+<div class="col-sm-9 sticky-header-loc">
+    <div class="row">
+        <div class="col">
+            <div class="form-check form-check-inline fs14 mt5">
+                <input class="form-check-input" type="checkbox" id="inlineCarrierManaged" name="IsShowCarrierManaged"
+                    [(ngModel)]="isShowCarrierManaged" (change)="ShowCarrierMangedData()">
+                <label class="form-check-label" for="inlineCarrierManaged"> Carrier Managed Locations</label>
+            </div>
+            <div class="form-check form-check-inline fs14 mt5">
+                <input class="form-check-input" type="checkbox" id="inlineShowAsset" name="IsShowAssetJobs"
+                    [(ngModel)]="isShowNonRetailJobs">
+                <label class="form-check-label" for="inlineShowAsset"> Show Locations with Assets</label>
+            </div>
+
+            <div class="mtm10" *ngIf="isShowCarrierManaged">
+                <a class="fs14 ml20" [ngbPopover]="popContent" placement="bottom" popoverClass="carrier-popover"
+                    [autoClose]="'outside'">Select Carrier</a>
+                <ng-template #popContent>
+                    <div class="col-sm-12 p-0">
+                        <ng-multiselect-dropdown [(ngModel)]="SelectedCarrierList" [placeholder]="'Select Carrier'"
+                            [settings]="multiselectSettingsById" [data]="carrierList" (onSelect)="carrierChanged()"
+                            (onDeSelect)="carrierChanged()" #selectedCarrier class="fs14">
+                        </ng-multiselect-dropdown>
+                    </div>
+                </ng-template>
+            </div>
+
+        </div>
+        <div class="col-3 pt5">
+            <!-- <ng-multiselect-dropdown [(ngModel)]="SelectedRegions" [settings]="multiselectSettingsById"
+                [placeholder]="'Select Region'" [data]="Regions" (onSelect)="onRegionChanged()"
+                (onDeSelect)="onRegionChanged()" (onSelectAll)="onRegionChanged()" (onDeSelectAll)="onRegionChanged()">
+            </ng-multiselect-dropdown> -->
+        </div>
+        <div class="col-3 pl0 text-right pt8">
+            <a class="fs14 mr10" [ngbPopover]="popContent" placement="auto" [autoClose]="'outside'" container="body"  triggers="manual" #p="ngbPopover" (click)="p.open()"
+                popoverClass="master-filter"><i class="fas fa-filter mr5 ml20 pr" ><span *ngIf="count>0" class="circle-badge">{{count}}</span></i>Filters</a>
+            <a class="hide_show_map fs14 dib mr10" (click)="toggleMapView()"><i class="fas fa-eye mr5"></i>{{ toogleMap
+                == true ? 'Hide Map View' : 'Show Map View'}}</a>
+
+            
+            <!--<span *ngIf="isFilterOn()>0" class="circle-badge">{{isFilterOn()}}</span>-->
+
+            <!-- <div class="pull-right mr15" (clickOutside)="clickOutsideDropdown()">
+                <a class="fs14" (click)="toggleFilterView()"><i class="fas fa-filter mr5 ml20"></i> Filters</a>
+                <div class="locationfilter border mt5 bg-gray shadow-b z-index5 pa10" *ngIf="toogleFilter">
+                    <div class="row">
+                        <div class="col-sm-12 mb10">
+                            <ng-multiselect-dropdown [(ngModel)]="SelectedCustomerList" (onSelect)="onCustomerChanged()"
+                                (onDeSelect)="onCustomerChanged()"
+                                [settings]="CustomerDdlSettings" [placeholder]="'Select Customer'"
+                                [data]="customerList">
+                            </ng-multiselect-dropdown>
+                        </div>
+                        <div class="col-sm-12 mb10">
+                            <ng-multiselect-dropdown  [(ngModel)]="SelectedlocationList" 
+                            [settings]="multiselectSettingsById" [placeholder]="'Select Location'" 
+                            [data]="locationList" >
+                            </ng-multiselect-dropdown>
+                        </div>
+                        <div class="col-sm-12 mb10">
+                            <ng-multiselect-dropdown [(ngModel)]="SelectedPriorityList" [placeholder]="'Priority'" [data]="priorityList"
+                                [settings]="PriorityDdlSettings" #selectedPriority>
+                            </ng-multiselect-dropdown>
+                        </div>
+                        <div class="col-sm-12 mb10">
+                            <ng-multiselect-dropdown [(ngModel)]="SelectedStatusList" [placeholder]="'Status'" [data]="statusList"
+                                [settings]="multiselectSettingsById"  #selectedPriority>
+                            </ng-multiselect-dropdown>
+                        </div>
+                        <div class="col-sm-12 ">
+                            <ng-multiselect-dropdown [(ngModel)]="selectedLocAttributeList" [placeholder]="'Inventory Capture Method'" [data]="LocationAttributeList"
+                            [settings]="multiselectSettingsById">
+                        </ng-multiselect-dropdown>
+                        </div>
+                    </div>
+                </div>
+            </div> -->
+
+
+
+        </div>
+    </div>
+</div>
+<div class="pr">
+    <div *ngIf="isLoading" class="pa top0 bg-white left0 z-index5 loading-wrapper"><span
+            class="spinner-dashboard pa"></span></div>
+    <div class="animated clearboth mt60 row" *ngIf="toogleMap"
+        [ngClass]="{'fadeIn': toogleMap, 'display_hide': !toogleMap}">
+        <div [ngClass]="clickViewActive  ? 'col-sm-8 mb15' : 'col-sm-12 mb15'">
+
+            <div class="pr">
+                <div id="mapLegend" style="z-index: 1; position: absolute; bottom:0; left: 10px; font-size: 11px;">
+                    <div id="status-legends" class="well pa0">
+                        <div class="border-b">
+                            <div class="db pl5 pr5 pt8 pb5 radius-10 no-b-radius">
+                                <img [src]="mustGoUrl" data-statusid="11">
+                                Must Go
+                            </div>
+                        </div>
+                        <div class="border-b">
+                            <div class="db pa5">
+                                <img [src]="shouldGoUrl" data-statusid="12">
+                                Should Go
+                            </div>
+                        </div>
+                        <div class="border-b">
+                            <div class="db pa5">
+                                <img [src]="couldGoUrl" data-statusid="1">
+                                Could Go
+                            </div>
+                        </div>
+                        <div class="border-b">
+                            <div class="db pa5">
+                                <img [src]="noDlrUrl" data-statusid="1">
+                                Unplanned
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- <div *ngIf="isLoading" class="pa top0 bg-white left0 z-index5 loading-wrapper"><span class="spinner-dashboard pa"></span></div> -->
+                <agm-map [zoom]="zoomLevel" [maxZoom]="16" [minZoom]="2" [mapTypeControl]="true" [fullscreenControl]="true"
+                    [fullscreenControlOptions]="screenOptions" (mapReady)="mapReady($event)"
+                >
+                    <ng-container *ngFor="let jobLocation of jobLocationData">
+                        <agm-marker [latitude]="jobLocation.Latitude" [longitude]="jobLocation.Longitude"
+                            [iconUrl]='{ "url": jobLocation.iconUrl, "scaledSize": { "height": 24, "width": 24 } }'
+                            (mouseOver)="mouseHoverMarker(infoWindow,$event)"
+                            (mouseOut)="mouseHoveOutMarker(infoWindow,$event)"
+                            (markerClick)="onInfoViewClick(jobLocation)">
+                            <agm-info-window [disableAutoPan]="false" #infoWindow>
+                                <div>
+                                    <p><strong>{{ jobLocation.JobName}}</strong></p>
+                                    <p>{{jobLocation.CustomerName}}</p>
+                                </div>
+                            </agm-info-window>
+                        </agm-marker>
+                    </ng-container>
+                </agm-map>
+            </div>
+
+        </div>
+        <div class="col-sm-4 pl0 right_side_panel" *ngIf="clickViewActive">
+            <div class="dib full-width pr well pa15 pt10">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div *ngIf="!this.opendedJobDetails.SiteImageFilePath" class="color-maroon pull-left"><i
+                                class="fas fa-image mr5"></i> No image available</div>
+                        <a (click)="closeViewClicked()" class="pull-right"><i class="far fa-times-circle fa-lg"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <!--<img [src]="this.opendedJobDetails.SiteImageFilePath ? this.opendedJobDetails.SiteImageFilePath:noImageUrl" alt="" class="img-responsive">-->
+                        <img *ngIf="this.opendedJobDetails.SiteImageFilePath"
+                            [src]="this.opendedJobDetails.SiteImageFilePath" class="img-responsive" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class=" col-sm-12 driver_details">
+                        <div class="job-location">
+                            <p class="mb0">
+                                <span class="address1">
+                                    <i class="fas fa-briefcase"></i> {{this.opendedJobDetails.JobName}}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="job-location">
+                            <p class="mb0">
+                                <span class="address1">
+                                    <i class="far fa-building"></i> {{this.opendedJobDetails.CustomerName}}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="job-location">
+                            <p class="mb0">
+                                <span class="address1">
+                                    <i class="fas fa-map-marker-alt"></i> {{this.opendedJobDetails.Address}},
+                                    {{this.opendedJobDetails.City}}, {{this.opendedJobDetails.State}},
+                                    {{this.opendedJobDetails.ZipCode}}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="site-status fs12 mt5">
+                            <div class="panel-group">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <a data-toggle="collapse" href="#collapse1">
+                                            <span class="f-bold">Site Availability:</span>
+                                            <span *ngIf="this.opendedJobDetails.SiteAvailabilityTotalDays"
+                                                class="status  ml10">OPEN</span>
+                                            <span
+                                                class="timing  ml10">{{this.opendedJobDetails.SiteAvailabilityTiming}}</span>
+                                        </a>
+                                        <a data-toggle="collapse" href="#collapse1" class="pull-right">
+                                            <i class="fas collapse1_icon fa-2x line-height_18 fa-angle-down"></i>
+                                        </a>
+                                    </div>
+                                    <div id="collapse1" class="panel-collapse collapse">
+                                        <div class="panel-body">
+                                            <div class="date_time"
+                                                *ngFor="let day of this.opendedJobDetails.SiteAvailabilityArray">
+                                                <span class="day ml10">{{day}} </span>
+                                                <span class="status ml10 text-success">OPEN</span>
+                                                <span
+                                                    class="timing ml10">{{this.opendedJobDetails.SiteAvailabilityTiming}}</span>
+                                            </div>
+                                            <div *ngIf="!this.opendedJobDetails.SiteAvailabilityArray.length">No Days
+                                                Available</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="site-instruction fs12 mb5">
+                            <label class="f-bold db mb0">Site Instruction: </label>
+                            <span class="instruction opacity8">
+                                {{this.opendedJobDetails.SiteInstructions}}
+                            </span>
+                        </div>
+                        <div class="site-contacts fs12 row mb5">
+                            <div class="col-sm-3">
+                                <label class="f-bold">Contact(s):</label>
+                            </div>
+                            <div class="col-sm-9">
+                                <p class="mb0 opacity8">{{this.opendedJobDetails.ContactPersonName}}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 site-assets">
+                                <a class="btn btn-default pull-left ml0 fs12"
+                                    (click)="onAssetsViewClick(this.opendedJobDetails.jobAssetDetails)">{{this.opendedJobDetails.TotalCount}}
+                                    Tank(s)</a>
+                                <a (click)="onChartsViewClick(this.opendedJobDetails.jobAssetDetails)"
+                                    class="btn btn-default pull-left fs12">Demand Capture Trend </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="assets-panel dib full-width pr well pa15 pt10" *ngIf="clickAssetsPanel">
+                <div class="assets-header">
+                    <div class="row mb5">
+                        <div class="col-sm-12">
+                            <a class="pull-left" (click)="closeAssetsClicked()"> <i class="fas fa-arrow-left"></i>
+                                Back</a>
+                            <a class="pull-right" (click)="closeViewClicked()"><i
+                                    class="far fa-times-circle fa-lg"></i></a>
+                        </div>
+                    </div>
+                    <ng-container *ngTemplateOutlet="assetsContentTemplate;context:assetDetails">
+                    </ng-container>
+                </div>
+            </div>
+
+            <div class="charts-panel dib full-width pr well pa15 pt10 z-index10" *ngIf="clickChartsPanel">
+                <div *ngIf="isLoading" class="pa top0 bg-white left0 z-index5 loading-wrapper"><span
+                        class="spinner-dashboard pa"></span></div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <a class="pull-left" (click)="closeChartsClicked()"> <i class="fas fa-arrow-left"></i> Back</a>
+                        <a class="pull-right" (click)="closeViewClicked()"><i class="far fa-times-circle fa-lg"></i></a>
+                    </div>
+                </div>
+                <div class="charts-body">
+                    <div style="width: 100%;height:50vh">
+                        <div style="width: 100%;Tor-ulsd#2 tank">
+                            <app-demand-capture-chart *ngIf="(isChartDataExistSubject | async)"
+                                [data]="demandChartData"></app-demand-capture-chart>
+                        </div>
+                        <!--<ng-template #noDtaAvailable>
+                            <div class="alert alert-danger">
+                                No Data Available
+                            </div>
+                        </ng-template>-->
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    <div class="row" [ngClass]="toogleMap ? 'mt20' : 'mt60'">
+        <div class="col-sm-12">
+            <app-location-view [SelectedRegions]="SelectedRegions" [SelectedCustomers]="SelectedCustomerList"
+                [IsFilterLoaded]="IsFilterLoaded" [SelectedLocations]="SelectedlocationList"
+                [SelectedPriorities]="SelectedPriorityList" [SelectedCarriers]="SelectedCarrierList"
+                [IsShowCarrierManaged]="isShowCarrierManaged" [SelectedStatus]="SelectedStatusList"
+                [IsShowRetailJobs]="!isShowNonRetailJobs" [selectedLocAttributeList]="selectedLocAttributeList"
+                (getJobIdsForMap)="getJobIdsForMapEventHandler($event)">Loading...
+            </app-location-view>
+        </div>
+    </div>
+</div>
+
+
+<ng-template #assetDetailsModal let-modalDetails="modalDetails">
+    <div [ngClass]="{'modal':true,'fade':true,'show': modalDetails.display==='block'}"
+        [ngStyle]="{'display':modalDetails.display}" id="assetDetailsModal" tabindex="-1" role="dialog"
+        aria-labelledby="assetDetailsModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="assetDetailsModal">
+                        Tank Details
+                    </h4>
+                    <a data-dismiss="modal" class="float-right mt10" (click)="modalClose()" aria-label="Close"> <i
+                            class="fa fa-close fa-lg"></i></a>
+                </div>
+                <div class="modal-body" style="max-height:80vh;overflow-y:scroll">
+                    <div class="assets-header" *ngIf="modalDetails.display==='block'">
+                        <ng-container *ngTemplateOutlet="assetsContentTemplate;context:assetDetails">
+                        </ng-container>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</ng-template>
+<ng-container *ngTemplateOutlet="assetDetailsModal;context:assetsModal">
+</ng-container>
+<ng-template #assetsContentTemplate let-assetNumber="assetIndex">
+    <div class="aseets-body assets_modal">
+        <div *ngIf="isLoading" class="pa top0 bg-white left0 z-index5 loading-wrapper"><span
+                class="spinner-dashboard pa"></span></div>
+        <ul class="nav nav-tabs">
+            <ng-container *ngFor="let asset of clickedAssetsDetails let indx=index">
+                <li [ngClass]="{'active':assetDetails.assetIndex===indx}"><a (click)="assetTabClicked(indx)">Tank
+                        ({{indx+1}})</a></li>
+            </ng-container>
+        </ul>
+        <div class="tab-content pa0">
+            <div id="assets1" class="tab-pane fade in active animated fadeIn">
+                <div class="row mb10 mt10">
+                    <div class="col-sm-12">
+                        <div>
+                            <h2 class="mt0 mb0 pull-left fs16">{{clickedAssetsDetails[assetNumber].AssetName}}</h2>
+                            <h2 class="mt0 mb0 pull-left fs16"
+                                *ngIf="clickedAssetsDetails[assetNumber].jobTankAdditionalDetails[0]?.TankName && clickedAssetsDetails[assetNumber].jobTankAdditionalDetails[0]?.TankNumber ">
+                                &nbsp;(
+                                {{clickedAssetsDetails[assetNumber].jobTankAdditionalDetails[0]?.TankName}}-{{clickedAssetsDetails[assetNumber].jobTankAdditionalDetails[0]?.TankNumber}}
+                                )</h2>
+                        </div>
+                        <a href="{{clickedAssetsDetails[assetNumber].jobTankAdditionalDetails[0]?.TankChartPath}}"
+                            target="_blank" download
+                            *ngIf="clickedAssetsDetails[assetNumber].jobTankAdditionalDetails[0]?.TankChartPath"
+                            class="pull-right">
+                            <i class="fa fa-download mr5" aria-hidden="true"></i>Download Dip Chart
+                        </a>
+                    </div>
+                </div>
+                <div class="border radius-5 pa15 mb20" *ngIf="clickedAssetsDetails[assetNumber].AssetType === 1">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <table class="table table-condensed table-bordered table-hover small-table mb0 mt10 fs12"
+                                width="100%">
+                                <tbody>
+                                    <tr>
+                                        <td class="f-bold">Product Type</td>
+                                        <td><span>{{clickedAssetsDetails[assetNumber].ProductType}}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="f-bold">Tank Capacity</td>
+                                        <td><span>{{clickedAssetsDetails[assetNumber].FuelCapacity| number}} <span
+                                                    *ngIf="clickedAssetsDetails[assetNumber].FuelCapacity">{{FuelUnit}}</span></span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div *ngIf="clickedAssetsDetails[assetNumber].AssetType===2">
+                    <div class="border radius-5 pa15 tank-panel mb20">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <div class="tank_dip_chart text-center mt10">
+                                    <div>
+                                        <div id="ShouldBeEmptyPercent" class="color-green"
+                                            [ngStyle]="{'height.px':selectedTankHeight.ShouldBeEmptyPercent || 0}">
+                                        </div>
+                                        <div id="ShouldBeFilledPercent" class="color-green"
+                                            [ngStyle]="{'height.px':selectedTankHeight.ShouldBeFilledPercent || 0}">
+                                            {{selectedTankHeight.sbf_percent| number:'1.0-2'}}%</div>
+                                        <div id="CurrentInventoryPercent" class="red-bg"
+                                            [ngStyle]="{'height.px':selectedTankHeight.CurrentInventoryPercent || 0}">
+                                            {{selectedTankHeight.ci_percent| number:'1.0-2'}}% </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-9">
+                                <table
+                                    class="table table-condensed table-bordered table-hover small-table mb0 mt10 fs12"
+                                    width="100%">
+                                    <tbody>
+                                        <tr>
+                                            <td class="f-bold" width="50%">Storage ID </td>
+                                            <td><span>{{clickedAssetsDetails[assetNumber].jobTankAdditionalDetails[0]?.StorageId}}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">Tank Type</td>
+                                            <td><span>{{clickedAssetsDetails[assetNumber].TankTypeName}}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">Product Type</td>
+                                            <td><span>{{clickedAssetsDetails[assetNumber].jobTankAdditionalDetails[0]?.TfxProductTypeName}}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">Tank Capacity</td>
+                                            <td><span>{{clickedAssetsDetails[assetNumber].FuelCapacity| number}} <span
+                                                        *ngIf="clickedAssetsDetails[assetNumber].FuelCapacity">{{FuelUnit}}</span></span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">
+                                                <span>Min Fill</span>
+                                                <span>&nbsp;({{selectedTankMinMax.MinFillPercent}}%)</span>
+                                            </td>
+                                            <td>
+                                                <span>{{selectedTankMinMax.MinFill| number}} <span
+                                                        *ngIf="clickedAssetsDetails[assetNumber].MinFill">{{FuelUnit}}</span></span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="f-bold">
+                                                <span>Max Fill</span>
+                                                <span>&nbsp;({{selectedTankMinMax.MaxFillPercent}}%)</span>
+                                            </td>
+                                            <td><span>{{selectedTankMinMax.MaxFill | number}} <span
+                                                        *ngIf="clickedAssetsDetails[assetNumber].MaxFill">{{FuelUnit}}</span></span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <table class="table table-condensed table-hover table-bordered small-table">
+                                <thead>
+                                    <tr>
+                                        <th>Last Reading</th>
+                                        <th>Ullage</th>
+                                        <th>Last Reading Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div
+                                                *ngIf="(latestReading?.NetVolume==-1 || latestReading?.NetVolume===undefined) else reading">
+                                                NA</div>
+                                            <ng-template #reading>
+                                                {{(latestReading?.NetVolume | number)}} <span>{{FuelUnit}}</span>
+                                            </ng-template>
+                                        </td>
+                                        <td><span>{{(latestReading?.Ullage| number) || 'NA'}}</span></td>
+                                        <td><span>{{(latestReading?.CaptureTimeString| date:'MM/dd/yyyy, hh:mm a':'UTC')
+                                                || 'NA'}}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="assets-id" *ngIf="clickedAssetsDetails[assetNumber].AssetType===2">
+
+                    <p class="mb0">
+                        <label class="f-bold">Dip test value trend : </label>
+                    </p>
+                    <div style="width: 100%;max-height:320px" *ngIf="chartData.length">
+                        <canvas baseChart height="300" style="margin:auto;" [chartType]="'line'" [datasets]="chartData"
+                            [options]="chartOptions" [labels]="chartLabels" [legend]="true"></canvas>
+                    </div>
+                    <div *ngIf="!chartData.length && !isLoading" class="alert alert-danger">
+                        No Data Available
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #popContent>
+    <div class="popover-details">
+        <div class="row border-bottom-2">
+            <div class="col-6 pr-0">
+                <div class="form-group">
+                    <label class="font-bold" for="exampleFormControlInput1">Region</label>
+                    <ng-multiselect-dropdown [(ngModel)]="SelectedRegions" [settings]="multiselectSettingsById"
+                        [placeholder]="'Select Region'" [data]="Regions"  (onSelect)="onRegionChanged()"
+                        (onDeSelect)="onRegionChanged()" (onSelectAll)="onRegionChanged()" (onDeSelectAll)="onRegionChanged()">
+                    </ng-multiselect-dropdown>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="form-group">
+                    <label class="font-bold" for="exampleFormControlInput1">Customer</label>
+                    <ng-multiselect-dropdown [(ngModel)]="SelectedCustomerList" [settings]="CustomerDdlSettings"
+                        [placeholder]="'Select Customer'" [data]="customerList" (onSelect)="onCustomerChanged()"
+                        (onDeSelect)="onCustomerChanged()">
+                    </ng-multiselect-dropdown>
+                </div>
+            </div>
+        </div>
+        <div class="row border-bottom-2 mt10">
+            <div class="col-6 pr-0">
+                <div class="form-group">
+                    <label class="font-bold" for="exampleFormControlInput1">Location</label>
+                    <ng-multiselect-dropdown [(ngModel)]="SelectedlocationList" [settings]="multiselectSettingsById"
+                        [placeholder]="'Select Location'" [data]="locationList">
+                    </ng-multiselect-dropdown>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="form-group">
+                    <label class="font-bold" for="exampleFormControlInput1">Prority</label>
+                    <ng-multiselect-dropdown [(ngModel)]="SelectedPriorityList" [placeholder]="'Priority'"
+                        [settings]="PriorityDdlSettings" [data]="priorityList"  #selectedPriority>
+                    </ng-multiselect-dropdown>
+                </div>
+            </div>
+        </div>
+        <div class="row border-bottom-2 mt10">
+            <div class="col-6 pr-0">
+                <div class="form-group">
+                    <label class="font-bold" for="exampleFormControlInput1">Status</label>
+                    <ng-multiselect-dropdown [(ngModel)]="SelectedStatusList" [placeholder]="'Status'"
+                        [settings]="multiselectSettingsById" [data]="statusList" #selectedPriority>
+                    </ng-multiselect-dropdown>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="form-group">
+                    <label class="font-bold" for="exampleFormControlInput1">Inventory Capture Method</label>
+                    <ng-multiselect-dropdown [(ngModel)]="selectedLocAttributeList"
+                        [placeholder]="'Inventory Capture Method'" 
+                        [settings]="multiselectSettingsById" [data]="LocationAttributeList">
+                    </ng-multiselect-dropdown>
+                </div>
+            </div>
+        </div>
+        <div class="row mt10">
+            <div class="col-12 text-right">
+                <button type="button"  (click)="ResetFilters();" class="btn btn-default">
+                    Reset
+                </button>
+                <button type="button" (click)="ApplyFilters('set'); p.close();"  class="btn btn-primary">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+</ng-template>

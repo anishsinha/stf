@@ -1,0 +1,54 @@
+﻿@model SupplierProductsViewModel
+@using (Html.BeginForm(Model.DisplayMode == PageDisplayMode.Create ? "Create" : "Edit", "ProductMapping", new { area = "Supplier" }, FormMethod.Post, new { enctype = "multipart/form-data", id = "createeditsupplierproduct" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+    @Html.HiddenFor(m => m.DisplayMode)
+    if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsSupplierCompany)
+    {
+        <!-- product mapping starts -->
+        <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div id="create-supplierproduct-section" class="row partial-section">
+                                @Html.HiddenFor(m => m.Id)
+                                <div class="partial-block-collection-section col-sm-12">
+                                    @if (Model.SupplierProducts != null && Model.SupplierProducts.Any())
+                                    {
+                                        foreach (var supplierProduct in Model.SupplierProducts)
+                                        {
+                                            Html.RenderPartial("_PartialSupplierProduct", supplierProduct);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Html.RenderPartial("_PartialSupplierProduct", new SupplierProductViewModel { AssignCompanyId = CurrentUser.CompanyId });
+                                    }
+                                </div>
+                                @if (Model.DisplayMode == PageDisplayMode.Create)
+                                {
+                                    <div class="form-group col-sm-12">
+                                        <a href="javascript:void(0)" class="fs18 add-partial-block mb10" id="addanotherproduct" data-url="@Url.Action("AnotherSupplierProduct", "ProductMapping", new { area = "Supplier" })">
+                                            <i class="fa fa-plus-circle pull-left mt1"></i><span class="fs14 pull-left">@Resource.btnLabelAddAnother</span>
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                
+            <div class="row text-right mb25">
+                <div class="col-sm-12">
+                    <div class="text-right">
+                        <button type="button" id="create-modal-cancel" class="btn btn-secondary close-panel">@Resource.btnLabelCancel</button>
+                        @if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsSupplierCompany)
+                        {
+                            <input type="submit" class="btn btn-lg btn-primary disable-when-no-partialblock" id="btnSave" value="@Resource.btnLabelSave" />
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- product mapping ends -->
+    }
+}

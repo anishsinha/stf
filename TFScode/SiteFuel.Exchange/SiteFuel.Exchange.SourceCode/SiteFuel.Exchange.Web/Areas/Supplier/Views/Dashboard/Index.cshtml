@@ -1,0 +1,742 @@
+﻿@model DashboardViewModel
+@{
+    ViewBag.Title = "Dashboard";
+}
+@if (!Model.IsCalendarTileClosed)
+{
+    <div class="group-element">
+        <div class="mb10 calendar-icon">
+            <a href="javascript:void(0)" class="radius-5" onclick="loadCalendar()">
+                @Resource.lblCalendar
+            </a>
+        </div>
+    </div>
+    <div class="tile-head hide-element bg-white radius-5 calendar-section animated slideInLeft" id="Calendar-tile">
+        <div class="col-sm-12 grid-loader">
+            <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+            <div class="pa20 mb15">
+                @*<div class="row">
+                        <div class="col-lg-12">
+                            <h2 class="mt0 mb0 f-normal float-left fs16">
+                                <span class="fa fa-calendar-alt mr5"></span>
+                                @Resource.headingCalender
+                            </h2>
+                            <div class="pull-right dib">
+                                <a href="#." class="color-grey fs18 ml5 toggle-tiledata" onclick="toggleData(this,'@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Calendar.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsCalendarTileCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up" )"></i></a>
+                                <a href="#." class="color-grey fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Calendar.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+                            </div>
+                        </div>
+                    </div>*@
+                <div class="tile-content">
+                    <a href="javascript:void(0)" class="close-calendar pa fs25 right0 top0 color-darkgrey mr15 mt5 z-index5">×</a>
+                    <div class="row">
+                        <div class="col-lg-4 col-xs-12 mtm3">
+                            <label>@Resource.lblDriver</label>
+                            @Html.DropDownListFor(m => m.SelectedDriver, new SelectList(Model.Drivers, "Id", "Name", Model.SelectedDriver), new { @class = "select2_customers" })
+                        </div>
+                        <div class="col-lg-4 col-xs-12 mtm3">
+                            <label>@Resource.lblCustomer</label>
+                            @Html.DropDownListFor(m => m.CustomerCompanyId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", Model.CustomerCompanyId), "", new { @class = "select2_customers" })
+                        </div>
+                        <div class="col-lg-4 col-xs-12 mtm3">
+                            <label class="db">@Resource.lblOrder</label>
+                            @Html.ListBoxFor(m => m.CustomerOrders, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", 0), new { @class = "form-control mlm20", @style = "display:none" })
+                        </div>
+                    </div>
+                    <div id='calendar' class="mt10"></div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5 class="color-red f-normal"><span class="fa fa-circle mr_5 fs10 pr10"></span>@Resource.lblMissedDeliveries</h5>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="color-orange f-normal"><span class="fa fa-circle mr_5 fs10 pr10"></span>@Resource.lblUpcomingDeliveries</h5>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="f-normal"><span class="fa fa-circle mr_5 fs10 pr10"></span>@Resource.lblInvoiceDueDate</h5>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5 class="color-green f-normal"><span class="fa fa-circle mr_5 fs10 pr10"></span>@Resource.lblCompletedDeliveries</h5>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="color-black f-normal"><span class="fa fa-check mr_5 fs10 pr10"></span>@Resource.lblMissedDeliveryActionTaken</h5>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="color-black f-normal"><span class="fa fa-flag mr_5 fs10 pr10"></span>@Resource.lblOrderStartDate</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<div class="group-element">
+    <div class="mb10 inventory-icon">
+        <a href="javascript:void(0)" class="radius-5" onclick="loadSidePanel(); filterInventoryData();">
+            @Resource.lblInventory
+        </a>
+    </div>
+</div>
+<div>
+    @Html.PartialFor("_PartialInventoryDataSlider", m => m)
+</div>
+<div class="row dashboard">
+    <div class="col-sm-12">
+        @if (CurrentUser.IsSupplierAdmin)
+        {
+            <div class="pull-right mrl5">
+                @Html.PartialFor("_PartialCompanyGroupFilter", m => m.CompanyGroup)
+            </div>
+        }
+        <div class="pull-right mr15">@Html.PartialFor("_PartialCurrencyFilter", m => m.Country)</div>
+    </div>
+    @if (Model.CompanyGroup.GroupIds.Count > 0)
+    {
+        <div id="dashboard-company-group-section">
+            @Html.Partial("_PartialDashboardCompanyGroupView", Model)
+        </div>
+    }
+    <div class="group-element col-sm-12">
+        <div class="row">
+            <div class="col-lg-6 col-sm-12">
+                @if (!Model.IsFRTileClosed)
+                {
+                    <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.FuelRequests.ToString())">
+                        <div class="col-md-12">
+                            <div class="col-sm-12 grid-loader mb15">
+                                <div class="row">
+                                    <div class="pa top0 bg-white left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                    @Html.Partial("_PartialDashboardFuelRequestGrid", new DashboardSupplierFuelRequestGridViewModel() { IsFRTileCollapsed = Model.IsFRTileCollapsed })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (Model.CompanyGroup.GroupIds.Count == 0 && !Model.IsInvoiceTileClosed)
+                {
+                    <div class="tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Invoices.ToString())">
+                        <div class="row">
+                            <div class="col-sm-12" id="sd-invoice-ddt-tile">
+                                <div class="well bg-white shadow-b overflow-h pt0 pb0 pl20 pr20 overflow-h mb15">
+                                    <div class="row">
+                                        <div class="col-sm-12 pt15 pb15">
+                                            <span class="fs16 f-normal dib toggle-header @(Model.IsInvoiceTileCollapsed ? "" : "hide-element")">
+                                                <span class="fas fa-dollar mr5"></span> @Resource.headingInvoicesDropTicket
+                                            </span>
+                                            <div class="pull-right">
+                                                <a href="javascript:void(0);" class="color-grey fs18 ml5 toggle-tiledata" onclick="toggleData(this, '@CommonHelperMethods.GenerateTileId(SupplierDashboardTiles.Invoices.ToString())'); ToggleTileHeader('@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Invoices.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsInvoiceTileCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+                                                <a href="#." class="color-grey fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(SupplierDashboardTiles.Invoices.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tile-content @(Model.IsInvoiceTileCollapsed ? "hide-element" : "")">
+                                        <div class="row">
+                                            <div class="col-sm-7 border-right" id="sd-ddt-tile">
+                                                <div class="chart-ddt mb10">
+                                                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                                    @Html.Partial("_PartialDashboardDropTickets", new DashboardSupplierInvoicesViewModel())
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-5" id="sd-invoice-tile">
+                                                <div class="chart-invoice">
+                                                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                                    @Html.Partial("_PartialDashboardInvoices", new DashboardSupplierInvoicesViewModel())
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsOrderTileClosed)
+                {
+                    <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Orders.ToString())">
+                        <div class="col-md-12">
+                            <div class="col-sm-12 grid-loader">
+                                <div class="row">
+                                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                    @Html.Partial("_PartialDashboardOrders", new DashboardSupplierOrdersViewModel() { IsOrderTileCollapsed = Model.IsOrderTileCollapsed })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsYourBusinessTileClosed)
+                {
+                    <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.YourBusiness.ToString())">
+                        <div class="col-sm-12 mb5">
+                            <div class="well blue-bg mt0 mb15 grid-loader">
+                                @Html.Partial("_PartialDashboardBusinessStat", new DashboardSupplierBusinessStatViewModel() { IsBusinessStatTileCollapsed = Model.IsYourBusinessTileCollapsed })
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsDropAvgTileClosed)
+                {
+                    <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.DropAverages.ToString())">
+                        <div class="col-sm-12 mb5">
+                            <div class="well blue-bg mt0 mb15 grid-loader">
+                                @*<div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>*@
+                                @Html.Partial("_PartialDashboardDropAverages", new DashboardSupplierGallonsStatViewModel() { IsDropAvgTileCollapsed = Model.IsDropAvgTileCollapsed })
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="col-lg-6 col-sm-12">
+                @if (!Model.IsDispatchTileClosed)
+                {
+                    <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Dispatch.ToString())">
+                        <div class="col-sm-12">
+                            <div class="well bg-white shadow-b mb15 pb15 grid-loader">
+                                @Html.Partial("_PartialDashboardDispatch", new DispatchViewModel() { IsDispatchTileCollapsed = Model.IsDispatchTileCollapsed })
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsFRQuoteTileClosed)
+                {
+                    <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.FuelRequestQuote.ToString())">
+                        <div class="col-md-12">
+                            <div class="col-sm-12 grid-loader mb15">
+                                <div class="row">
+                                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper "><span class='spinner-dashboard pa'></span></div>
+                                    @Html.Partial("_PartialDashboardQuoteRequest", new DashboardQuoteRequestViewModel() { IsFRQuoteTileCollapsed = Model.IsFRQuoteTileCollapsed })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsGFCTileClosed)
+                {
+                    <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.GlobalFuelCost.ToString())">
+                        <div class="col-md-12 mb15">
+                            <div class="row">
+                                <div class="grid-loader col-sm-12">
+                                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                    <div class="border well pa0 mb0">
+                                        <span id="dashboard-gfc"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.IsGallonStatTileClosed)
+                {
+                    <div class="row tile-head" id="@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.GallonStats.ToString())">
+                        <div class="col-sm-12 mb5">
+                            <div class="widget radius-10 well blue-bg mt0 mb15 grid-loader">
+                                <div class="pa bg-white top0 left0 z-index5 loading-wrapper"><span class='spinner-dashboard pa'></span></div>
+                                @Html.Partial("_PartialDashboardGallonsStat", new DashboardSupplierGallonsStatViewModel() { IsGallonStatTileCollapsed = Model.IsGallonStatTileCollapsed })
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade tile-preferences" id="tile-preferences" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body ">
+                <div class="overflow-h mb10">
+                    <h4 class="float-left mb5 pt0 pb0">@Resource.headingMstDashboardTiles</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="font-size:35px">&times;</span>@*<span class="fs12 db">Esc</span>*@</button>
+                </div>
+                <div class="row mb-2">
+                    @foreach (var item in Model.TileSetting.TileDetails)
+                    {
+                        <div class="checkbox col-sm-4">
+                            <label>
+                                <input type="checkbox" class="add-remove-tile" tileName="@item.TileName" id="chk@(item.TileName)" @(!item.IsClosed ? "checked" : "") />
+                                @item.TileDisplayName
+                            </label>
+                        </div>
+                    }
+                </div>
+
+                <div class="text-right">
+                    <button type="button" class="btn" data-dismiss="modal">@Resource.btnLabelCancel</button>
+                    <button type="button" class="btn btn-lg btn-primary" onclick="showHideTiles();">@Resource.btnLabelApply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (CommonHelperMethods.IsTaxExemptionEnabled())
+{
+    <!-- Modal -->
+    <div class="modal animated bounceIn" id="modal-tax-exemption" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog modal-tax" role="document">
+            <div class="modal-content">
+                <div class="modal-header no-border">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body text-center pt0 pb0">
+                    <div class="text-center"><img src="~/Content/images/tax-exemption.png" height="80" /></div>
+                    <h2 class="fs25">@Resource.headingTaxExemptions</h2>
+                    <p class="fs14">@Html.Raw(@Resource.txtTaxExemptions)</p>
+                </div>
+                <div class="modal-footer no-border">
+                    <a href="#." data-dismiss="modal" class="mr20">@Resource.btnLabelLater</a>
+                    <button type="button" class="btn btn-primary" onclick="RedirectToCreateLicense()">@Resource.btnLabelYes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@section tilePreferences
+{
+    @if (CurrentUser.IsSupplierCompany || CurrentUser.IsBuyerCompany || CurrentUser.IsBuyerAndSupplierCompany)
+    {
+        <div class="right0 z-index5 mb10 btn-db-preferences mt-2">
+            <span data-toggle="modal" data-target="#tile-preferences">
+                <a href="javascript:void(0)" class="btn yellow-bg btn-circle btn-sm color-white" data-toggle="tooltip" data-placement="bottom" title="@Resource.lblDBPreferences">
+                    <i class="fa fa-th fs16"></i>
+                </a>
+            </span>
+        </div>
+    }
+}
+<style>
+    .main-wrapper, .bg-footer {
+        background: #f2f2f2;
+    }
+</style>
+@using (Html.BeginScripts())
+{
+    @Styles.RenderFormat(SiteKeys.StyleVersion, "~/Content/css/fullcalendar")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/fullcalendar")
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Dashboard")
+    <script type="text/javascript">
+        var missed = '@Resource.lblMissed';
+        var completed = '@Resource.lblCompleted';
+        var discontinued = '@Resource.lblDiscontinued';
+        var rescheduled = '@Resource.lblRescheduled';
+        var canceled = '@Resource.lblCancelled';
+
+        var getCustomersAndOrdersUrl = '@Url.Action("GetAllCustomersAndOrders", "Dashboard", new { area = "Supplier" })';
+        var getCustomersUrl = '@Url.Action("GetAllCustomers", "Dashboard", new { area = "Supplier" })';
+        var getOrdersForCustomer = '@Url.Action("GetCustomerOrders", "Dashboard", new { area = "Supplier" })';
+        var getCustomersForDriver = '@Url.Action("GetAllCustomers", "Dashboard", new { area = "Supplier" })';
+
+        var driversDropDown = $("#@Html.IdFor(m => m.SelectedDriver)");
+        var customersDropDown = $("#@Html.IdFor(m => m.CustomerCompanyId)");
+        var ordersDropDown = $("#@Html.IdFor(m => m.CustomerOrders)");
+        var groupIds = getCompanyGroup().groupIds;
+        var tileDetails =  @Html.Raw(Json.Encode(Model.TileSetting.TileDetails));
+        var saveTileSettingUrl = '@Url.Action("SaveDBTileSettings", "Dashboard")';
+        var pageId = '@ApplicationConstants.SupplierDashboard';
+        var dashboardFilter = getDashboardFilter();
+        var gallonStatUrl = '@Url.Action("GetGallonsStat", "Dashboard", new { area = "Supplier" })';
+        var dropAvgdivId = '@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.DropAverages.ToString())';
+        var gallonStatdivId = '@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.GallonStats.ToString())';
+    var fuelTypeDropDown;
+
+
+        $(document).ready(function () {
+            $(".btn-db-preferences").show();
+            $('#@Html.IdFor(m => m.SelectedDriver) option[value="-1"]').attr('selected', 'selected').trigger("change");
+            radioChange(null, null, 'disabled-while-counteroffer');
+            if ('@Model.IsTaxExemptDisplayed' == 'False' && '@CurrentUser.IsSupplierAdmin' == 'True' && '@CommonHelperMethods.IsTaxExemptionEnabled()' == 'True') {
+                $("#modal-tax-exemption").modal("show");
+            }
+
+            var isGFCTileClosed = '@Model.IsGFCTileClosed';
+            if (isGFCTileClosed == 'False') {
+                var gfcUrl = '@Url.Action("GetGlobalFuelCostTile", "Dashboard", new { area = "Supplier"})/';
+                $.get(gfcUrl, { countryId: dashboardFilter.countryId, isCollapsed: '@Model.IsGFCTileCollapsed' }, function (response) {
+                    $("#dashboard-gfc").empty().append(response);
+                });
+            }
+
+            var isCalendarTileRemoved = '@Model.IsCalendarTileClosed';
+            //if (isCalendarTileRemoved == 'False') {
+            //    loadCalendar();
+            //}
+
+            @*var isCalendarCollapsed = '@Model.IsCalendarTileCollapsed';
+            if (isCalendarCollapsed == 'True') {
+                var calendarTile = $('#@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Calendar.ToString())');
+                calendarTile.find('.tile-content').hide();
+            }*@
+
+            setCompanyGroupDefaultSetting();
+
+            GetInvoicesAndDropTicketsCount();
+        });
+
+        $(".close-calendar").click(function () {
+            $(".calendar-icon").toggleClass("calendar-active");
+            $("#Calendar-tile").toggleClass("hide-element");
+        })
+
+        function GetInvoicesAndDropTicketsCount() {
+
+            var dashboardFilter = getDashboardFilter();
+            var groupIds = getCompanyGroup().groupIds;
+
+            var url = '@Url.Action("GetInvoicesAndDropTicketsCount", "Dashboard", new { area = "Supplier" })';
+            $.get(url, { 'countryId': dashboardFilter.countryId, 'currency': dashboardFilter.currencyType, 'groupIds': groupIds }, function (response) {
+                var dbTotalDDT = 0;
+                dbTotalDDT = response.TotalDDTCount;
+                var ctx = document.getElementById('ddtPieChart').getContext('2d');
+                var ddtChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Drop Tickets: ' + response.CreatedDDTCount, 'Inv Generated: ' + response.InvoicesFromDropTicketCount,
+                        'Waiting For Approval: ' + response.DropTicketCount, 'Approval Rejected: ' + response.DropTicketRejectedCount, 'WaitingFor Price: ' + response.WaitingForPriceDDTCount],
+                        datasets: [{
+                            position: 'bottom',
+                            label: '# of Votes',
+                            data: [response.CreatedInvoiceCount, response.InvoicesFromDropTicketCount, response.DropTicketCount, response.DropTicketRejectedCount, response.WaitingForPriceDDTCount],
+                            backgroundColor: [
+                                '#aadb8d',
+                                '#91b6e8',
+                                '#eb826a',
+                                '#c7705b',
+                                '#d9ca76'
+                            ],
+                            borderColor: [
+                                '#fff',
+                                '#fff',
+                                '#fff',
+                                '#fff',
+                                '#f2edd2'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 2
+                            }
+                        },
+                        labels: {
+                            fontColor: "white",
+                        },
+                        hover: {
+                            onHover: function (e) {
+                                $("#ddtPieChart").css("cursor", e[0] ? "pointer" : "default");
+                            }
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function (tooltipItem, data) {
+                                    return data['labels'][tooltipItem['index']];
+                                }
+                            }
+                        }
+                    }
+                });
+                $("#ddtPieChart").closest(".chart-ddt").find('.loading-wrapper').remove();
+
+                document.getElementById("ddtPieChart").onclick = function (evt) {
+                    var activePoints = ddtChart.getElementsAtEvent(evt);
+                    var firstPoint = activePoints[0];
+                    var label = ddtChart.data.labels[firstPoint._index];
+
+                    var spaceChar = label.indexOf(" ");
+                    var labelStr = label.substring(0, spaceChar);
+
+                    switch (labelStr) {
+                        case 'Drop':
+                            window.open('@Html.Raw(@Url.Action("DropTicketsView", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.SupplierInvoices, groupIds = "-1" }))'.replace("-1", groupIds), "_self");
+                            break;
+                        case 'Inv':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.InvoicesFromDropTicket, groupIds = "-1" }))'.replace("-1", groupIds), "_self");
+                            break;
+                        case 'Waiting':
+                            window.open('@Html.Raw(@Url.Action("DropTicketsView", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.WaitingForApproval }))', "_self");
+                            break;
+                        case 'Approval':
+                            window.open('@Html.Raw(@Url.Action("DropTicketsView", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.DropTicketWaitingForApprovalRejected }))', "_self");
+                            break;
+                        case 'WaitingFor':
+                            window.open('@Html.Raw(@Url.Action("DropTicketsView", "Invoice", new { area = "Supplier",  filter = InvoiceFilterType.DropTicketWaitingForPrice, groupIds = "-1" }))'.replace("-1", groupIds), "_self");
+                            break;
+                    }
+                };
+                //  }
+                $("#totalDropTickets").closest(".chart-ddt").find('.loading-wrapper').remove();
+
+                if (dbTotalDDT == 0) {
+                    hideElementById("sd-ddt-tile");
+                }
+
+                var dbTotalInvoices = 0;
+                dbTotalInvoices = response.TotalInvoiceCount;
+
+                var ctx = document.getElementById('invoicePieChart').getContext('2d');
+                var invoiceChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Created: ' + response.CreatedInvoiceCount, 'Rejected: ' + response.NotApprovedInvoiceCount],
+                        datasets: [{
+                            position: 'bottom',
+                            label: '# of Votes',
+                            data: [response.CreatedInvoiceCount, response.NotApprovedInvoiceCount],
+                            backgroundColor: [
+                                '#aadb8d',
+                                '#eb826a'
+                            ],
+                            borderColor: [
+                                'rgba(255, 255, 255, 1)',
+                                'rgba(255, 255, 255, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 2
+                            }
+                        },
+                        hover: {
+                            onHover: function (e) {
+                                $("#invoicePieChart").css("cursor", e[0] ? "pointer" : "default");
+                            }
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function (tooltipItem, data) {
+                                    return data['labels'][tooltipItem['index']];
+                                }
+                            }
+                        }
+                    }
+                });
+
+                document.getElementById("invoicePieChart").onclick = function (evt) {
+                    var activePoints = invoiceChart.getElementsAtEvent(evt);
+                    var firstPoint = activePoints[0];
+                    var label = invoiceChart.data.labels[firstPoint._index];
+
+                    var spaceChar = label.indexOf(" ");
+                    var labelStr = label.substring(0, spaceChar);
+
+                    switch (labelStr) {
+                        case 'Created:':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.SupplierInvoices, groupIds = "-1" }))'.replace("-1", groupIds), "_self");
+                            break;
+                        case 'Rejected:':
+                            window.open('@Html.Raw(@Url.Action("View", "Invoice", new { area = "Supplier", filter = InvoiceFilterType.Rejected, groupIds = "-1" }))'.replace("-1", groupIds), "_self");
+                            break;
+                    }
+                };
+
+                $("#invoicePieChart").closest(".chart-invoice").find('.loading-wrapper').remove();
+
+                if (dbTotalInvoices == 0) {
+                    hideElementById("sd-invoice-tile");
+                }
+                if (dbTotalInvoices == 0 && dbTotalDDT == 0) {
+                    hideElementById("sd-invoice-ddt-tile");
+                }
+            });
+
+        }
+        function loadCalendar() {
+            $(".calendar-icon").toggleClass("calendar-active");
+            $("#Calendar-tile").toggleClass("hide-element");
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,basicWeek,basicDay'
+                },
+                loading: function (isLoading, view) {
+                    $("#calendar").closest(".grid-loader").find('.loading-wrapper').show();
+                    if (!isLoading) {
+                        $("#calendar").closest(".grid-loader").find('.loading-wrapper').hide();
+                    }
+                },
+                fixedWeekCount: false,
+                navLinks: true,
+                eventLimit: true,
+                eventLimitText: function (numEvents) {
+                    return "Invoices...";
+                },
+                views: {
+                    month: {
+                        eventLimit: 1
+                    },
+                    day: {
+                        eventLimit: false
+                    }
+                },
+                eventOrder: 'calendarEventType',
+                events: {
+                    url: '@Url.Action("GetCalenderData", "Dashboard", new { area = "Supplier" })',
+                    traditional: true,
+                    data: function () {
+                        var fecha = $('#calendar').fullCalendar('getDate')._d;
+                        return {
+                            month: fecha.getMonth() + 1,
+                            year: fecha.getFullYear(),
+                            driverId: $("#@Html.IdFor(m => m.SelectedDriver)").val(),
+                            customerCompanyId: $("#@Html.IdFor(m => m.CustomerCompanyId)").val(),
+                            orders: $("#@Html.IdFor(m => m.CustomerOrders)").val(),
+                            countryId: dashboardFilter.countryId,
+                            currency: dashboardFilter.currencyType
+                        }
+                    },
+                    textColor: "#000",
+                    backgroundColor: "transparent"
+                },
+                dayRender: function (date, cell) {
+                    var today = new Date();
+                    var yesterday = new Date();
+                    yesterday.setDate(today.getDate() - 1);
+
+                    if (date <= yesterday) {
+                        cell.css("background-color", "#f4f4f4");
+                    }
+                },
+                selectable: true,
+                eventRender: function (event, element, view) {
+                    if ($.inArray(view.type, event.viewableIn) == -1) {
+                        element.length = 0;			// to "remove" the element from the view.
+                    }
+
+                    if (event.calendarEventType == @((int)CalendarEventType.DeliverySchedule)) {
+                        element.find(".fc-title").remove();
+                        var deliverySchedule = new CalendarEvents.DeliverySchedule(event.eventStatus, event.title, event.subtitle);
+                        var eventHtml = deliverySchedule.getEventHtml();
+                        element.find('.fc-content').addClass('daily-view').append(eventHtml);
+                    }
+
+                    var dateString = event.start.format("YYYY-MM-DD");
+                    if (event.calendarEventType == @((int)CalendarEventType.Order)) {
+                        var order = new CalendarEvents.Order(event.title, event.subtitle, event.orderStatus);
+                        var eventHtml = order.getEventHtml();
+                        element.find('.fc-content').addClass('daily-view').html(eventHtml);
+
+                        var dateElement = $(view.el[0]).find('.fc-day-top[data-date=' + dateString + '] a');
+                        if (dateElement.length > 0 && !dateElement.hasClass('orderStartDate')) {
+                            dateElement.addClass('orderStartDate');
+                        }
+                    }
+
+                    if (event.calendarEventType == @((int)CalendarEventType.Invoice)) {
+                        changeColor(element); increaseInvoiceNumber(view, dateString);
+                    }
+
+                    if (event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Missed)) {
+                        changeHeader(view, dateString, 'bg-red', 'missedSchedule');
+                    }
+                    else if (event.parentStatus == @((int)TrackableDeliveryScheduleStatus.MissedAndRescheduled) || event.parentStatus == @((int)TrackableDeliveryScheduleStatus.MissedAndCanceled)) {
+                        changeHeader(view, dateString, 'bg-red', 'missedActionTakenSchedule');
+                    }
+                    else if (event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Pending) || event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Rescheduled) || event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Canceled)) {
+                        changeHeader(view, dateString, 'bg-orange', 'pendingSchedule');
+                    }
+                    else if (event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Completed) || event.parentStatus == @((int)TrackableDeliveryScheduleStatus.Discontinued)) {
+                        changeHeader(view, dateString, 'bg-green', 'completedSchedule');
+                    }
+                },
+                eventAfterAllRender: function (view) {
+                    var fclimited = $(view.el[0]).find('.fc-content-skeleton');
+                    $.each(fclimited, function (index, table) {
+                        var thead_td = $(table).find('thead tr td');
+                        var tbody_td = $(table).find('tbody tr:eq(0) td[rowspan]');
+                        for (var i = 0; i < thead_td.length; i++) {
+                            var attr = $(thead_td[i]).attr('data-invoices');
+                            var otherMonth = $(thead_td[i]).hasClass('fc-other-month');
+                            if (otherMonth === true || typeof attr === typeof undefined || attr === false) {
+                                $(tbody_td[i]).html('');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function setCompanyGroupDefaultSetting() {
+            var selectedGroupId = getCompanyGroup().groupIds;
+            if (selectedGroupId != "" && selectedGroupId != "0" && selectedGroupId != "-1") {
+                $(".group-element").each(function () {
+                    $(this).addClass("hide-element");
+                });
+            }
+            else {
+                $(".group-element").each(function () {
+                    $(this).removeClass("hide-element");
+                });
+            }
+
+            var isCompanyGroupAvailable = '@Html.Raw(Model.IsCompanyGroupAvailable)';
+            if (isCompanyGroupAvailable.toLowerCase() == 'false') {
+                $("#@Html.IdFor(m => m.CompanyGroup.GroupIds)").closest('#company-group-filter').addClass('hide-element');
+            }
+
+            setDefaultGroupUrl();
+        }
+
+        $(document).ajaxStop(function () {
+            if (window.location.href.indexOf("IsFuelCost") >= 0) { $("#GlobalCostFuelType").focus(); }
+        });
+
+        $('#modal-tax-exemption').on('hidden.bs.modal', function () {
+            UpdateIsTaxExemptDisplayed(false);
+        });
+
+        function RedirectToCreateLicense() {
+            UpdateIsTaxExemptDisplayed(true);
+        }
+
+        function UpdateIsTaxExemptDisplayed(isRedirect) {
+            var url = "@Url.Action("UpdateIsTaxExemptDisplayed", "Dashboard")";
+            $.ajax({
+                type: "GET",
+                url: url,
+                dataType: "json",
+                success: function (data) {
+                    if (isRedirect == true) {
+                        window.location.href = '@Url.Action("Create", "TaxExemption", new { area = "Settings"})';
+                    }
+                }
+            });
+        }
+
+        function changeHeader(view, dateString, headerclass, dateclass) {
+            $(view.el[0]).find('.fc-day-top[data-date=' + dateString + '] a').addClass(dateclass);
+            if (view.name === 'basicDay') {
+                $('.fc-widget-header').addClass(headerclass);
+                $('.fc-widget-header span').css('color', 'white');
+            }
+        }
+
+        function changeColor(element) {
+            element.css('background-color', "#3a87ad");
+        }
+
+        function increaseInvoiceNumber(view, dateString) {
+            var invoiceNumber = 0;
+            var element = $(view.el[0]).find('.fc-day-top[data-date=' + dateString + ']');
+            var attrNumber = element.attr('data-invoices');
+            if (attrNumber != undefined && attrNumber != '') {
+                invoiceNumber = parseInt(attrNumber);
+            }
+            element.attr('data-invoices', ++invoiceNumber);
+        }
+    </script>
+}

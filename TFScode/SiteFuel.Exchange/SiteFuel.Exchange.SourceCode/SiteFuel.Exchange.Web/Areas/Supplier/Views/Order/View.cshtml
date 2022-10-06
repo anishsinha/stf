@@ -1,0 +1,197 @@
+﻿@model OrderFilterViewModel
+
+@{
+    ViewBag.Title = "Order Summary";
+}
+@Html.HiddenFor(m => m.GroupIds)
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="modal fade" id="orderfilterassignment-modal" role="dialog" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            @Html.Partial("_PartialSupplierOrderFilter", Model.InputFilterDataViewModel)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-7 col-md-7">
+        <h4 class="mt0 pt7 float-left"><span id="spnGroupName"></span>@Resource.headingOrders</h4>
+        @if (Model.GroupIds == "")
+        {
+            if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+            {
+                <a href="@Url.Action("Create", "Order", new { area = "Supplier" })" class="fs18 float-left ml20 mt10">
+                    <i class="fa fa-plus-circle fs18 mt4 float-left"></i><span class="fs14 mt2 ml5 float-left">@Resource.btnLabelCreateNew</span>
+                </a>
+            }
+            <a href="@Url.Action("View", "Order", new { area = "Supplier" })" class="float-left ml20 mt10 pt3">@Resource.btnLabelViewAll</a>
+        }
+    </div>
+    <div class="col-sm-5 col-md-5 text-right">
+        <button id="hide-view-map" type="button" class="btn bg-white color-blue" onclick="toggleMap()"><i class="fa fa-eye"></i> <span>Show Map View</span></button>
+        @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+    </div>
+</div>
+<div class="row mb15 hide-element" id="order-map">
+    <div class="col-md-12">
+        @Html.Partial("_PartialMapViewForOrder", Model)
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb0">
+            <div class="row">
+                <div class="col-sm-8">
+                    <div class="row">
+                        <div class="col-6 col-sm-3"><input type="text" id="txtSupplierOrdersFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                        <div class="col-6 col-sm-3"><input type="text" id="txtSupplierOrdersToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                        <div class="col-12 col-sm-4 mt5-xs">
+                            <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                            <input type="button" class="btn ml5 color-blue" value="Clear" onclick="ClearFilter();" />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4 text-right pt-1">
+                    <a href="#." id="hide-view-filter" data-toggle="modal" data-target="#orderfilterassignment-modal" class="color-blue mr-2 fs14">
+                    <span class="filter-circle-badge" id="order-filter-count"   style="display:none"></span>
+                    <i class="fa fa-filter mr5 fs14"></i>
+                    <span class="f-normal mb-0 fs14">Filters</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt10">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            @Html.Partial("_PartialOrdersGrid", Model)
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    $('#txtSupplierOrdersFromDate').val(GetLocalStorage('txtSupplierOrdersFromDate'));
+    $('#txtSupplierOrdersToDate').val(GetLocalStorage('txtSupplierOrdersToDate'));
+    
+    var filterType = 'order-filterType';
+    var customersFilter = 'order-customers';
+    var locationsFilter = 'order-locations';
+    var assetsFilter = 'order-assets';
+    var tanksFilter = 'order-tanks';
+    var vesselsFilter = 'order-vessels';
+    
+    var ClearFilter;
+    $(document).ready(function () {
+        
+        loadDropdownData(true);
+        ToggleFilterCount();
+        
+        var companyGroup = getCompanyGroup();
+        if (companyGroup.groupIds != "") {
+            $('#spnGroupName').text(companyGroup.groupName + ' ');
+        }
+        else {
+            $('#spnGroupName').text();
+        }
+
+        ClearFilter = function () {
+            //$('#txtSupplierOrdersFromDate').val('');
+            //$('#txtSupplierOrdersToDate').val('');
+            //$('#txtSupplierOrdersToDate').data("DateTimePicker").minDate($("#txtSupplierOrdersFromDate").datetimepicker("minDate"));
+            setDefaultFilterDatesForOrder();
+            ReloadDataTable();
+        }
+
+        if ($('#txtSupplierOrdersFromDate').length > 0 && $('#txtSupplierOrdersToDate').length > 0) {
+            $("#txtSupplierOrdersFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtSupplierOrdersToDate').data("DateTimePicker").minDate($("#txtSupplierOrdersFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtSupplierOrdersToDate').data("DateTimePicker").minDate(moment($('#txtSupplierOrdersFromDate').val()));
+            });
+        }
+
+        if (@Model.OrderId > 0) {
+            var url = '@Url.Action("IsTerminalAvailable", "Order", new { area = "Supplier" })';
+            var model = {
+                orderId: '@Model.OrderId'
+            };
+            $.post(url, model, function (response) {
+                if (response.StatusCode == 0) {
+                    msgsuccess(response.Message);
+                }
+                else {
+                    msgerror(response.Message);
+                }
+            });
+        }
+
+    });
+
+    var supplierOrderGrid;
+    function ReloadDataTable() {
+        if ($('#txtSupplierOrdersFromDate').val() && $('#txtSupplierOrdersToDate').val()) {
+            var fromDate = $('#txtSupplierOrdersFromDate').val();
+            var toDate = $('#txtSupplierOrdersToDate').val();
+            //Set Start Date, End Date in LocalStorage
+            SetLocalStorage('txtSupplierOrdersFromDate', fromDate);
+            SetLocalStorage('txtSupplierOrdersToDate', toDate);
+
+            //Get Milliseconds from the Date
+            var startDate = convertDateToUTCMilliseconds(fromDate);
+            var endDate = convertDateToUTCMilliseconds(toDate);
+
+            $('#txtSupplierOrdersFromDate').val(startDate);
+            $('#txtSupplierOrdersToDate').val(endDate);
+        }
+        supplierOrderGrid.ajax.reload();
+        refreshMap();
+        ReloadSupplierOrderMap();
+
+        //Reset the original date to show in UI
+        $('#txtSupplierOrdersFromDate').val(fromDate);
+        $('#txtSupplierOrdersToDate').val(toDate);
+    }
+    function toggleMap() {
+        if ($('#hide-view-map i').hasClass("fa-eye")) {
+            $('#hide-view-map').find('span').text("Hide Map View");
+            $('#hide-view-map').find('i').removeClass("fa-eye").addClass("fa-eye-slash");
+            $('#order-map').removeClass("hide-element");
+        } else {
+            $('#hide-view-map').find('span').text("Show Map View");
+            $('#hide-view-map').find('i').removeClass("fa-eye-slash").addClass("fa-eye");
+            $('#order-map').addClass("hide-element");
+        }
+
+    }
+    function ApplyCustomerFilter() {
+        SetFilterIntoLocalStorage();
+        ToggleFilterCount();
+        supplierOrderGrid.ajax.reload();
+        $("#orderfilterassignment-modal").modal('hide');
+    }
+    function ToggleFilterCount() {
+        var filterCount = getFilterCount();
+        if (filterCount == 0) {
+            $("#order-filter-count").attr("style", "display: none !important");
+        }
+        else {
+            $("#order-filter-count").html(filterCount).show();
+        }
+    }
+    function ResetFilter() {
+        ResetOrderFilter();
+        supplierOrderGrid.ajax.reload();
+        $("#orderfilterassignment-modal").modal('hide');
+        ToggleFilterCount();
+    }
+</script>
+

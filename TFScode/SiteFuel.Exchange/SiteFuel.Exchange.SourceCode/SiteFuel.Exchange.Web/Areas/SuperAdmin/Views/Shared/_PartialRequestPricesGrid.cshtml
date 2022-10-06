@@ -1,0 +1,82 @@
+﻿<div class="well bg-white shadow-b">
+    <div class="ibox mb0">
+        <div class="ibox-content no-padding no-border">
+            <div class="table-responsive">
+                <table id="requestprice-datatable" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>@Resource.gridColumnId</th>
+                            <th>@Resource.gridColumnZipcode</th>
+                            <th>@Resource.gridColumnQuantity</th>
+                            <th>@Resource.gridColumnFuelType</th>
+                            <th>@Resource.gridColumnDateAdded</th>
+                            <th>@Resource.gridColumnTerminal</th>
+                            <th>@Resource.lblRackPPG</th>
+                            <th>@Resource.gridColumnPricingDate</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+        $(document).ready(function () {
+
+            requestpriceDataTable = $('#requestprice-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetRequestedPrices", "Advertisement", new { area = "SuperAdmin" })",
+                    "type": "GET",
+					"datatype": "json",
+					"data": function (d) {
+						d.fromDate = $('#txtFromDate').val();
+                        d.toDate = $('#txtToDate').val();
+					},
+                    "dataSrc": ""
+                },
+                "columns": [
+                            { "data": "Id", "autoWidth": true },
+                            { "data": "ZipCode", "autoWidth": true },
+                            { "data": "Quantity", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 0, '') },
+                            { "data": "ProductName", "autoWidth": true },
+                            { "data": "RequestDateTime", "autoWidth": true },
+                            { "data": "TerminalName", "autoWidth": true },
+                            { "data": "PricePerGallon", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+                            { "data": "PricingDate", "autoWidth": true, "sType":"date" }
+						  ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingRequestedPrices' },
+                    { extend: 'excel', title: '@Resource.headingRequestedPrices'},
+                    { extend: 'pdf', title: '@Resource.headingRequestedPrices' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+            $('.datepicker').datetimepicker({
+                format: 'L'
+            });
+        });
+</script>
+

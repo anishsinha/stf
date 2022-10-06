@@ -1,0 +1,308 @@
+﻿@model ThirdPartyOrderViewModel
+
+<div class="row mt10">
+    <div class="pa bg-white top0 left0 z-index5 loading-wrapper source-region-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+    <div id="divSourceRegionSection" class="col-sm-12">
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-sm-3">
+                    <div class="form-group mtm1 source-region-ddl">
+                        @Html.LabelFor(m => m.SourceRegion.SelectedSourceRegions)
+                        @Html.ListBoxFor(m => m.SourceRegion.SelectedSourceRegions, new MultiSelectList(CommonHelperMethods.GetSourceRegions(CurrentUser.CompanyId), "Id", "Name", Model.SourceRegion.SelectedSourceRegions), new { @placeholder = "Select Source Regions", @class = "form-control multi-select mlm20 SourceRegion-select " })
+                        @Html.ValidationMessageFor(m => m.SourceRegion.SelectedSourceRegions)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group mtm1 source-terminals-ddl">
+                        @Html.LabelFor(m => m.SourceRegion.SelectedTerminals)
+                        @Html.ListBoxFor(m => m.SourceRegion.SelectedTerminals, new MultiSelectList(new List<DropdownDisplayExtendedItem>(), "Id", "Name", Model.SourceRegion.SelectedTerminals), new { @placeholder = "Select Terminals", @class = "form-control multi-select terminallist mlm20 terminal-select" })
+                        <div class="checkbox mt5">
+                            <label>
+                                <input id="auto-chkselectallterminals" type="checkbox" class="select-all terminal-check" onclick="selectall('terminal-check', 'terminallist')" /> @Resource.lblSelectAll
+                            </label>
+                        </div>
+                        @Html.ValidationMessageFor(m => m.SourceRegion.SelectedTerminals)
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group mtm1 source-approved-terminal-ddl">
+                        @Html.HiddenFor(m => m.SourceRegion.ApprovedTerminal)
+                        @Html.LabelFor(m => m.SourceRegion.ApprovedTerminalId)
+                        @Html.DropDownListFor(m => m.SourceRegion.ApprovedTerminalId, new SelectList(new List<DropdownDisplayExtendedItem>(), "Id", "Name", Model.SourceRegion.ApprovedTerminalId), new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.SourceRegion.ApprovedTerminalId)
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-sm-3">
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group mtm1 source-bulkplants-ddl">
+                        @Html.LabelFor(m => m.SourceRegion.SelectedBulkPlants)
+                        @Html.ListBoxFor(m => m.SourceRegion.SelectedBulkPlants, new MultiSelectList(new List<DropdownDisplayExtendedItem>(), "Id", "Name", Model.SourceRegion.SelectedBulkPlants), new { @placeholder = "Select Bulk Plants", @class = "form-control multi-select bulkplantlist mlm20 bulk-plant-select"})
+                        <div class="checkbox mt5">
+                            <label>
+                                <input id="auto-chkselectallbulkplants" type="checkbox" class="select-all bulkplant-check" onclick="selectall('bulkplant-check', 'bulkplantlist')" /> @Resource.lblSelectAll
+                            </label>
+                        </div>
+                        @Html.ValidationMessageFor(m => m.SourceRegion.SelectedBulkPlants)
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group mtm1 source-approved-bulkplant-ddl">
+                        @Html.HiddenFor(m => m.SourceRegion.ApprovedBulkPlant)
+                        @Html.LabelFor(m => m.SourceRegion.ApprovedBulkPlantId)
+                        @Html.DropDownListFor(m => m.SourceRegion.ApprovedBulkPlantId, new SelectList(new List<DropdownDisplayExtendedItem>(), "Id", "Name", Model.SourceRegion.ApprovedBulkPlantId), new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.SourceRegion.ApprovedBulkPlantId)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+<script type="text/javascript">
+
+        $(document).ready(function () {
+
+            $('.terminal-select').next().children().children().children().css({"max-height":"135px","overflow-y":"auto"})
+            $('.bulk-plant-select').next().children().children().children().css({"max-height":"135px","overflow-y":"auto"})
+
+            var regionIds = $('#@Html.IdFor(m => m.SourceRegion.SelectedSourceRegions) option:selected')
+                .toArray().map(item => parseInt(item.value));
+            getTerminalsAndBulkPlants(regionIds);
+
+            $("#@Html.IdFor(m => m.SourceRegion.SelectedSourceRegions)").change(function () {
+                var selectedRegionIds = $('#@Html.IdFor(m => m.SourceRegion.SelectedSourceRegions) option:selected')
+                                            .toArray().map(item => parseInt(item.value));
+                getTerminalsAndBulkPlants(selectedRegionIds);
+            });
+
+            $("#@Html.IdFor(m => m.SourceRegion.SelectedTerminals)").change(function () {
+                resetFreightDropDownValues();
+                bindApprovedTerminals();
+            });
+
+            $("#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants)").change(function () {
+                resetFreightDropDownValues();
+                bindApprovedBulkPlants();
+            });
+
+            $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminalId)").change(function () {
+                $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminal)").val($(this).find(":selected").text());
+                $("#@Html.IdFor(m => m.PricingDetails.TerminalId)").val($(this).val());
+            });
+
+            $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlantId)").change(function () {
+                $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlant)").val($(this).find(":selected").text());
+            });
+        });
+
+        function bindBadgeDetailsTerminals() {
+            let arr = [];
+            $("#@Html.IdFor(m => m.SourceRegion.SelectedTerminals) :selected").map(function (i, el) {
+                arr.push($(el).val());
+            });
+            return arr;
+        }
+
+        function bindBadgeDetailsBulkPlants() {
+                let arr = [];
+                $("#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants) :selected").map(function (i, el) {
+                    arr.push($(el).val());
+                });
+                return arr;
+        }
+
+        function bindApprovedTerminals() {
+            var target = $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminalId)");
+            target.empty();
+            target.append($("<option></option>").attr("value", 0).text('Select Terminal'));
+            $("#@Html.IdFor(m => m.SourceRegion.SelectedTerminals) :selected").map(function (i, el) {
+                target.append($("<option></option>").attr("value", $(el).val()).text($(el).text()));
+            });
+        }
+
+        function bindApprovedBulkPlants() {
+            var target = $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlantId)");
+            target.empty();
+            target.append($("<option></option>").attr("value", 0).text('Select Bulk Plant'));
+            $("#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants) :selected").map(function (i, el) {
+                target.append($("<option></option>").attr("value", $(el).val()).text($(el).text()));
+            });
+        }
+
+    function resetFreightDropDownValues()
+    {
+        $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FuelSurchargeTableType)").prop("selectedIndex", 0);
+        $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FreightRateTableType)").prop("selectedIndex", 0);
+        $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.AccessorialFeeTableType)").prop("selectedIndex", 0);
+
+        var target = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FuelSurchargeTableId)");
+        target.empty();
+        target.append($("<option></option>").attr("value", 0).text('Select'));
+
+        var target = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.FreightRateRuleId)");
+        target.empty();
+        target.append($("<option></option>").attr("value", 0).text('Select'));
+    }
+
+    function getTerminalsAndBulkPlants(selectedRegionIds) {
+
+        resetFreightDropDownValues();
+
+        var target = $("#@Html.IdFor(m => m.OrderAdditionalDetailsViewModel.AccessorialFeeId)");
+        target.empty();
+        target.append($("<option></option>").attr("value", 0).text('Select'));
+
+        if (selectedRegionIds != null && selectedRegionIds != undefined && selectedRegionIds.length > 0) {
+            var tempTerminals = [];
+            var tempBulkplants = [];
+            var fuelTypeId = parseInt($("#@Html.IdFor(m => m.FuelDetails.FuelTypeId)").val());
+            if (isNaN(fuelTypeId) || fuelTypeId == undefined || fuelTypeId == null)
+                fuelTypeId = 0;
+            var jobId = 0;
+                @*var jobId = parseInt($("#@Html.IdFor(m => m.AddressDetails.JobId)").val());
+                if (isNaN(jobId) || jobId == undefined || jobId == null)
+                    jobId = 0;*@
+            var latitude = parseFloat($("#@Html.IdFor(m => m.AddressDetails.Latitude)").val());
+            if (isNaN(latitude) || latitude == undefined || latitude == null)
+                latitude = 0;
+            var longitude = parseFloat($("#@Html.IdFor(m => m.AddressDetails.Longitude)").val());
+            if (isNaN(longitude) || longitude == undefined || longitude == null)
+                longitude = 0;
+            var pricingCodeId = parseInt($("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingCode.Id)").val());
+            if (isNaN(pricingCodeId) || pricingCodeId == undefined || pricingCodeId == null)
+                pricingCodeId = 0;
+            var pricingTypeId = parseInt($('input[name="@Html.NameFor(m => m.PricingDetails.PricingTypeId)"]:checked').val());
+
+            if (latitude == 0 || longitude == 0) {
+                let options = [];
+                $(".SourceRegion-select option").each(function () {
+                    let option = $(this).prop('outerHTML');
+                    options.push(option.replace('select2-results__option--highlighted', ''));
+                });
+                $('.SourceRegion-select').empty();
+                for (var i = 0; i < options.length; i++) {
+                    $('.SourceRegion-select').append(options[i]);
+                }
+                msgerror('@Resource.errorMessageSelectLocationForFreight');
+                return;
+            }
+            else if (fuelTypeId == 0) {
+                msgerror('@Resource.errorMessageSelectFuelTypeForFreight');
+                return;
+            }
+            else if (pricingCodeId == 0 && (pricingTypeId == 1 || pricingTypeId == 5 || pricingTypeId == 6)) {
+                msgerror('@Resource.errorMessageSelectPricingCodeForFreight');
+                return;
+            }
+
+            $('.source-region-loader').removeClass("hide-element");
+            var url = '@Url.Action("GetTerminalsAndBulkPlantsByRegion", "Region", new { area = "Supplier" })';
+            var inputModel = {
+                FuelTypeId: fuelTypeId,
+                JobId: jobId,
+                Latitude: latitude,
+                Longitude: longitude,
+                CountryId: $("#@Html.IdFor(m => m.AddressDetails.Country.Id)").val(),
+                PricingCodeId: pricingCodeId,
+                PricingTypeId: pricingTypeId,
+                PricingSourceId: $("#@Html.IdFor(m => m.PricingDetails.FuelPricingDetails.PricingSourceId)").val(),
+                SourceRegionIds: selectedRegionIds,
+            };
+
+            $.ajax({
+                type: 'POST',
+                url: url,
+                dataType: "json",
+                contentType: 'application/json; charset=utf-8',
+                data: '{inputModel: ' + JSON.stringify(inputModel) + '}',
+                success: function (response) {
+                    if (response != null && response != undefined && response.StatusCode == '@((int)Status.Success)') {
+                        if (response.Terminals != null && response.Terminals != undefined && response.Terminals.length > 0) {
+                            var target = $("#@Html.IdFor(m => m.SourceRegion.SelectedTerminals)");
+                            var approvedTerminalDDL = $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminalId)");
+
+                            tempTerminals = $('#@Html.IdFor(m => m.SourceRegion.SelectedTerminals) option:selected')
+                                .toArray().map(item => parseInt(item.value));
+                            target.empty();
+                            approvedTerminalDDL.empty();
+                            approvedTerminalDDL.append($("<option></option>").attr("value", 0).text('Select Terminal'));
+                            $.each(response.Terminals, function (i, element) {
+                                target.append($("<option></option>").attr("value", element.Id).text(element.Name));
+                            });
+                            $.each(tempTerminals, function (key, value) {
+                                $('#@Html.IdFor(m => m.SourceRegion.SelectedTerminals) option[value=' + value + ']').attr('selected', true);
+                            });
+                            document.getElementById("auto-chkselectallterminals").checked = true;
+                            selectall('terminal-check', 'terminallist');
+                            bindApprovedTerminals();
+                        }
+                        else {
+                            $("#@Html.IdFor(m => m.SourceRegion.SelectedTerminals)").empty();
+                            $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminalId)").empty();
+                            $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminal)").val();
+                            tempTerminals = [];
+                        }
+
+                        if (response.BulkPlants != null && response.BulkPlants != undefined && response.BulkPlants.length > 0) {
+                            var target = $("#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants)");
+                            var approvedBulkPlantDDL = $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlantId)");
+
+                            tempBulkplants = $('#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants) option:selected')
+                                .toArray().map(item => parseInt(item.value));
+
+                            target.empty();
+                            approvedBulkPlantDDL.empty();
+                            approvedBulkPlantDDL.append($("<option></option>").attr("value", 0).text('Select Bulk Plant'));
+                            $.each(response.BulkPlants, function (i, element) {
+                                target.append($("<option></option>").attr("value", element.Id).text(element.Name));
+                            });
+
+                            $.each(tempBulkplants, function (key, value) {
+                                $('#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants) option[value=' + value + ']').attr('selected', true);
+                            });
+
+                            bindApprovedBulkPlants();
+                        }
+                        else {
+                            $("#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants)").empty();
+                            $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlantId)").empty();
+                            $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlant)").val();
+                            tempBulkplants = [];
+                        }
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(jqXHR, textStatus, errorThrown);
+                }
+            }).always(function () {
+                $('.source-region-loader').addClass("hide-element");
+            });
+        }
+        else {
+            $("#@Html.IdFor(m => m.SourceRegion.SelectedTerminals)").empty();
+            $("#@Html.IdFor(m => m.SourceRegion.SelectedBulkPlants)").empty();
+            $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminal)").val('');
+            $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlant)").val('');
+
+            var target = $("#@Html.IdFor(m => m.SourceRegion.ApprovedTerminalId)");
+            target.empty();
+            target.append($("<option></option>").attr("value", 0).text('Select Terminal'));
+
+            var target = $("#@Html.IdFor(m => m.SourceRegion.ApprovedBulkPlantId)");
+            target.empty();
+            target.append($("<option></option>").attr("value", 0).text('Select Bulk Plant'));
+
+            tempTerminals = [];
+            tempBulkplants = [];
+            document.getElementById("auto-chkselectallterminals").checked = false;
+        }
+    }
+</script>
+}

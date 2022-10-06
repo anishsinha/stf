@@ -1,0 +1,130 @@
+﻿@model StatementSummaryFilterViewModel
+<div class="row">
+	<div class="col-sm-12">
+		<div class="well bg-white shadow-b">
+			<div class="ibox mb0">
+				<div class="ibox-content no-padding no-border">
+					<div id="supplierbillingstmt-div" class="table-responsive">
+						<table id="supplierbillingstmt-datatable" class="table table-striped table-bordered table-hover">
+							<thead>
+								<tr>
+									<th>@Resource.gridColumnStatementNumber</th>
+									<th>@Resource.gridColumnCustomer</th>
+									<th>@Resource.gridColumnStatementId</th>
+									<th>@Resource.gridColumnCreatedDate</th>
+									<th>@Resource.gridColumnBillingPeriod</th>
+									<th>@Resource.gridColumnDueDate</th>
+									<th>@Resource.gridColumnStatementValue</th>
+									<th>@Resource.gridColumnQuantityDropped</th>
+									<th>@Resource.gridColumnInvoiceCount</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+    var supplierStatement, ClearFilter, exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] };
+    $(document).ready(function () {
+
+		supplierStatement = $('#supplierbillingstmt-datatable').DataTable({
+            "ajax": {
+                "url": "@Url.Action("StatementGrid", "BillingStatement", new { area = "Supplier" })",
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+					data.CustomerId = $('#CustomerId').val();
+					data.StatementId = $("#StatementId option:selected").text();
+					data.StartDate = $('#txtStatementFromDate').val();
+					data.EndDate = $('#txtStatementToDate').val();
+					data.Currency = getSelectedCountryAndCurrency().currencyType;
+					data.CountryId = getSelectedCountryAndCurrency().countryId;
+					$('#supplierbillingstmt-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+					$("#supplierbillingstmt-div").find('.loading-wrapper').remove();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": true,
+            "searchDelay": 500,
+            processing: true,
+            "searching": { "regex": false },
+            "bProcessing": true,
+			lengthChange: true,
+            "columns": [
+                {
+                    "data": function (data, type, row, meta) {
+						return '<a href="@Url.Action("Details", "BillingStatement", new { area = "Supplier" })/' + data.Id + '">' + data.StatementNumber + '</a>';
+                    }, "autoWidth": true
+                },
+				{ "data": "CustomerCompany", "autoWidth": true, className: "break-word" },
+				{
+                    "data": function (data, type, row, meta) {
+						return '<a href="@Url.Action("Create", "BillingSchedule", new { area = "Supplier" })?id=' + data.ScheduleId + '">' + data.BillingStatementId + '</a>';
+                    }, "autoWidth": true
+                },
+				{ "data": "StatementDate", "autoWidth": true },
+				{ "data": "BillingPeriod", "autoWidth": true },
+				{ "data": "DueDate", "autoWidth": true },
+				{ "data": "TotalStatementValue", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency') },
+				{ "data": "TotalQuantityDropped", "autoWidth": true },
+				{ "data": "InvoiceCount", "autoWidth": true }
+            ],
+            pageLength: 10,
+            responsive: true,
+            fixedHeader: false,
+            "order": [],
+			"initComplete": function (settings, json) {
+				$('#supplierbillingstmt-datatable th').addClass('filtering-disabled');
+                wrapperHeight();
+                tabGridHeader(this);
+            },
+            "drawCallback": function (settings, json) {
+                hideLinksForCompanyGroup(this);
+            },
+			"columnDefs": [
+				{ "name": "StatementNumber", "targets": 0, "regex": false, searchable : false },
+				{ "name": "CustomerCompany", "targets": 1, searchable: false },
+				{ "name": "BillingStatementId", "targets": 2, searchable: false},
+				{ "name": "StatementDate", "targets": 3, searchable: false },
+				{ "name": "BillingPeriod", "targets": 4, searchable: false },
+				{ "name": "DueDate", "targets": 5, searchable: false },
+				{ "name": "TotalStatementValue", "targets": 6, searchable: false },
+				{ "name": "TotalQuantityDropped", "targets": 7, searchable: false},
+				{ "name": "InvoiceCount", "targets": 8, searchable: false }
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                { extend: 'csv', title: '@Resource.headingStatementSummary' },
+                { extend: 'excel', title: '@Resource.headingStatementSummary'  },
+                { extend: 'pdf', title: '@Resource.headingStatementSummary', orientation: 'landscape' },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+	});
+
+	function ReloadDataTable() {
+		supplierStatement.ajax.reload();
+	}
+
+</script>
+

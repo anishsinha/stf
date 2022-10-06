@@ -1,0 +1,376 @@
+﻿@model IEnumerable<DemandModel>
+
+@if (Model != null && Model.Any())
+{
+    <div class="row">
+        @{int i = -1;}
+        @foreach (var dipTest in Model)
+        {
+            string recurringId = "dvRecurringDetails" + dipTest.IndexRecurring.ToString();
+            string addScheduleId = "dvaddSchedule" + dipTest.IndexRecurring.ToString();
+
+            <div class="col-sm-6">
+                <div class="hidden">@(i++)</div>
+                <div class="border radius-5 pa15 tank-panel mb20">
+                    <div class="row">
+                        <div class="col-sm-9">
+                            <div class="row mt0 mb0 fs14 f-normal">
+                                <div class="col-sm-12">
+                                    <strong>Fuel: </strong>@dipTest.ProductName
+                                </div>
+                            </div>
+                            <div class="mt0 mb0 fs14 f-normal">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div><strong>Customer: </strong>@dipTest.BuyerCompanyName</div>
+                                        <div><small class="fs12">@dipTest.JobName</small></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="mt10 mb5" />
+                    <ng-container>
+                        <ng-container>
+                            <div class="row mt10">
+                                <div class="col-sm-3">
+                                    <div class="form-group mb0">
+                                        <div class="input-group">
+                                            @Html.DropDownList("ddlScheduleQuantityType", new SelectList(CommonHelperMethods.GetScheduleQtyType(), "Id", "Name"), new { @class = "form-control", @onchange = "onChnageScheduleQuantityTypeForOrder('" + @i + "', this)", @id = "ddlScheduleQuantityType_" + @i.ToString() })
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3" id="drQuantityOrderDiv_@i.ToString()">
+                                    <div class="form-group mb0">
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(modelItem => dipTest.ReorderQuantity, new { @Value = "", @required = "required", @class = "form-control", @id = "RequiredQuantity_" + @i })
+                                            <div class="input-group-addon">@dipTest.UoM</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 mt5">
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(modelItem => dipTest.Priority, (int)DeliveryReqPriority.MustGo, new { @checked = true, @class = "form-check-input", @id = "mustgo_" + @i, @Name = "Priority" + @i })
+                                        @Html.LabelFor(modelItem => dipTest.Priority, DeliveryReqPriority.MustGo.GetDisplayName(), new { @for = "mustgo_" + @i, @class = "form-check-label" })
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(modelItem => dipTest.Priority, (int)DeliveryReqPriority.ShouldGo, new { @class = "form-check-input", @id = "shouldgo_" + @i, @Name = "Priority" + @i })
+                                        @Html.LabelFor(modelItem => dipTest.Priority, DeliveryReqPriority.ShouldGo.GetDisplayName(), new { @for = "shouldgo_" + @i, @class = "form-check-label" })
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(modelItem => dipTest.Priority, (int)DeliveryReqPriority.CouldGo, new { @class = "form-check-input", @id = "couldgo_" + @i, @Name = "Priority" + @i })
+                                        @Html.LabelFor(modelItem => dipTest.Priority, DeliveryReqPriority.CouldGo.GetDisplayName(), new { @for = "couldgo_" + @i, @class = "form-check-label" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-12 mt5 form-group mb0">
+                                    <div class="form-check form-check-inline mt5">
+                                        @Html.CheckBoxFor(modelItem => dipTest.isRecurringSchedule, new { @class = "form-check-input", @id = "isRecurringSchedule_" + @i, @onclick = "getRecurringSchedule('" + i + "','" + dipTest.JobId + "','" + dipTest.PoNumber + "','" + dipTest.SiteId + "','" + dipTest.OrderId + "','" + @dipTest.IndexRecurring + "',this)" })
+                                        @Html.LabelFor(modelItem => dipTest.isRecurringSchedule, new { @for = "isRecurringSchedule_" + @i, @class = "form-check-label" })
+                                    </div>
+                                </div>
+                                @Html.HiddenFor(modelItem => dipTest.IndexRecurring, new { @id = "IndexRecurring" + @i, Value = @dipTest.IndexRecurring.ToString() })
+                                <div id="@recurringId" class="col-sm-12 mt5">
+                                </div>
+                                <div class="col-sm-12 mt5" style="display:none;" id="@addScheduleId">
+                                    <a onclick="addSchedule(@dipTest.IndexRecurring);"><i class="fas fa-plus-circle"></i>&nbsp;Schedule</a>
+                                </div>
+                            </div>
+                        </ng-container>
+                    </ng-container>
+
+
+
+                </div>
+            </div>
+        }
+    </div>
+    <div class="row">
+        <div class="col-sm-12 text-right">
+            <div class="mt20">
+                <button type="button" id="btnSave" onclick="createBuyerDrForNonRetailJob()" class="btn btn-lg btn-primary">
+                    @Resource.btnLabelSave
+                </button>
+            </div>
+        </div>
+    </div>
+
+}
+else
+{
+    <div class="alert alert-danger d-inline-block"><i class="fas fa-exclamation-circle fs14 mr5"></i> @Resource.warningNoTanksForSelectedJob</div>
+}
+<script>
+
+    function onChnageScheduleQuantityTypeForOrder(index, ctrValue) {
+        var strId = $(ctrValue).val();
+        if (strId == 1) {
+            $("#drQuantityOrderDiv_" + index).show();
+        }
+        else {
+            $("#drQuantityOrderDiv_" + index).hide();
+        }
+    }
+
+    function createBuyerDrForNonRetailJob() {
+        let orders = @Html.Raw(Json.Encode(@Model));
+        var DrRequests = new Array();
+        var errorCount = 0;
+        var capacityError = 0;
+        newOrders = orders.map(function (order, index) {
+            var recurringSchedule = [];
+            let quantity = $('#RequiredQuantity_' + index).val();
+
+            let drScheduleQuantityType = $("#ddlScheduleQuantityType_" + index).val();
+            if (drScheduleQuantityType != 1) { quantity = 0; }
+
+            let id = "Priority" + index;
+            var _priority = $('input[name=' + id + ']:checked').val();
+            var dvRecurringSchedule = $(".rId_" + order.IndexRecurring);
+            if (document.getElementById('isRecurringSchedule_' + index).checked) {
+                if (dvRecurringSchedule.length > 0) {
+                    dvRecurringSchedule.each(function (index) {
+                        var recurringObj = new Object();
+                        recurringObj.Id = $("#RCId_recurring_" + order.IndexRecurring + "_" + index + "").val();
+                        recurringObj.ScheduleType = $("#ScheduleType_recurring_" + order.IndexRecurring + "_" + index + "").val();
+                        if (recurringObj.ScheduleType == 1 || recurringObj.ScheduleType == 2) {
+                            if ($("#WeekDayType_recurring_" + order.IndexRecurring + "_" + index + "").select2('val').length > 0) {
+                                recurringObj.WeekDayId = $("#WeekDayType_recurring_" + order.IndexRecurring + "_" + index + "").select2('val');
+                                
+                            }
+                            else {
+                                errorCount++;
+                                msgerror("Please select week days.");
+                                return;
+                            }
+                        }
+                        else {
+                            recurringObj.WeekDayId = [];
+                        }
+
+                        if (recurringObj.ScheduleType == 3) {
+                            recurringObj.Date = $("#DatePicker_recurring_" + order.IndexRecurring + "_" + index + "").val();
+                            recurringObj.MonthDayId = $("#MonthDayId_recurring_" + order.IndexRecurring + "_" + index + "").val();
+                            if (recurringObj.Date == '') {
+                                errorCount++;
+                                msgerror("Please enter valid date.");
+                                return;
+                            }
+                        }
+                        else {
+                            recurringObj.Date = '';
+                            recurringObj.MonthDayId = 0;
+                        }
+                        recurringObj.ScheduleQuantityType = $("#SCQtyType_recurring_" + order.IndexRecurring + "_" + index + "").val();
+
+                        if (recurringObj.ScheduleQuantityType == 1) {
+                            recurringObj.RequiredQuantity = $("#RequiredQty_recurring_" + order.IndexRecurring + "_" + index + "").val();
+                            if (parseInt(recurringObj.RequiredQuantity) == 0 || recurringObj.RequiredQuantity=='') {
+                                errorCount++;
+                                msgerror("Please enter valid required quantity.");
+                                return;
+                            }
+                        }
+                        else {
+                            recurringObj.RequiredQuantity = 0;
+                        }
+                        recurringObj.TankName = '';
+                        recurringObj.AssetId = 0;
+                        recurringSchedule.push(recurringObj);
+                    });
+                }
+                if (recurringSchedule.length == 0) {
+                    errorCount++;
+                    msgerror("Please add at least one recurring schedule for [" + order.ProductName + "]");
+                }
+            }
+            if (quantity > 0 || drScheduleQuantityType > 1 || recurringSchedule.length > 0) {
+                DrRequests.push({
+                    'AssetId': order.AssetId,
+                    'SiteId': order.JobDisplayId,
+                    'OrderId': order.OrderId,
+                    'OrderId': order.OrderId,
+                    'JobId': order.JobId,
+                    'StorageId': orders.StorageId,
+                    "RequiredQuantity": quantity == '' ? 0 : quantity,
+                    "FuelTypeId": order.FuelTypeId,
+                    "Priority": _priority == null ? 0 : recurringSchedule.length > 0 ? _priority == null ? 1 : _priority : _priority,
+                    "TankMaxFill": order.MaxFill,
+                    "PoNumber": order.PoNumber,
+                    "SiteId": order.SiteId,
+                    "StorageId": order.StorageId,
+                    "CurrentThreshold": order.CurrentThreshold,
+                    "BuyerCompanyId": order.BuyerCompanyId,
+                    "TankMaxFill": order.TankMaxFill,
+                    "FuelTypeId": 0,
+                    "CustomerCompany": order.BuyerCompanyName,
+                    "RecurringSchdule": recurringSchedule,
+                    "ScheduleQuantityType": drScheduleQuantityType
+                });
+
+            }
+        });
+        if (DrRequests.length > 0 && errorCount==0) {
+            var nonRecurringDr = DrRequests.filter(top => top.RecurringSchdule.length == 0);
+            if (nonRecurringDr.length > 0) {
+                nonRecurringDr.forEach(x => {
+                    if ((x.RequiredQuantity == 0 && x.ScheduleQuantityType == 1) || x.Priority == 0) {
+                        msgerror("Please enter Quantity and Priority for at least one Order to create Delivery Request.");
+                        capacityError++;
+                        return;
+                    }
+                });
+            }
+        }
+        if (DrRequests.length == 0 && errorCount == 0 && capacityError == 0) {
+            msgerror("Please enter Quantity and Priority for at least one Order to create Delivery Request.");
+        }
+        if (DrRequests.length > 0 && capacityError == 0 && errorCount==0) {
+            $("#slider-loader").show();
+            var createdeliveryRequestUrl = '@Url.Action("createBuyerDeliveryRequest", "Freight", new { area = "Carrier" })';
+            $.post(createdeliveryRequestUrl, { inputData: DrRequests }, function (response) {
+                $("#slider-loader").hide();
+
+                if (response.StatusCode == 0) {
+                    displayMessage(response);
+                }
+                else {
+                    displayMessage(response);
+                }
+            });
+        }
+    }
+    function getRecurringSchedule(i, JobId, PoNumber, JobSiteId, OrderId, IndexId, ctrValue) {
+        if ($(ctrValue).prop('checked') == true) {
+            //Disable quantity type ddl
+            $("#ddlScheduleQuantityType_" + i).prop('disabled', true);
+            //Disable required quantity input
+            $("#RequiredQuantity_" + i).prop('disabled', true);
+            $("#RequiredQuantity_" + i).val(null);
+
+            $("#slider-loader").show();
+            var RecurringFilter = { 'JobId': JobId, 'PoNumber': PoNumber, 'JobSiteId': JobSiteId, 'AssetId': IndexId };
+            var createdeliveryRequestUrl = '@Url.Action("GetBuyerRecurringScheduleDetails", "Freight", new { area = "Carrier" })';
+            $.post(createdeliveryRequestUrl, { buyerRecurringSchedule: RecurringFilter }, function (response) {
+                if (response != null) {
+                    $("#dvRecurringDetails" + IndexId).html('');
+                    $("#dvRecurringDetails" + IndexId).html(response);
+                    $("#dvaddSchedule" + IndexId).show();
+                    $('.user-weekDetails').select2({
+                        multiple: true,
+                        closeOnSelect: false,
+                        tags: true
+                    });
+                    $('.datepicker').datetimepicker({
+                        format: 'MM/DD/YYYY'
+                    });
+                    $("#slider-loader").hide();
+                }
+            });
+        }
+        else {
+            $("#dvRecurringDetails" + IndexId).html('');
+            $("#dvaddSchedule" + IndexId).hide();
+
+            //Disable quantity type ddl
+            $("#ddlScheduleQuantityType_" + i).prop('disabled', false);
+            //Disable required quantity input
+            $("#RequiredQuantity_" + i).prop('disabled', false);
+        }
+    }
+     function addSchedule(index) {
+        $("#slider-loader").show();
+        var createdeliveryRequestUrl = '@Url.Action("AddDefaultScheduleDetails", "Freight", new { area = "Carrier" })';
+        var totalRecords = $(".rId_" + index).length;
+        $.post(createdeliveryRequestUrl, { Index: index, Records: totalRecords }, function (response) {
+            if (response != null) {
+                $("#dvRecurringDetails" + index).append(response);
+                $('.user-weekDetails').select2({
+                    multiple: true,
+                    closeOnSelect: false,
+                    tags: true
+                });
+                $('.datepicker').datetimepicker({
+                    format: 'MM/DD/YYYY'
+                });
+                $("#slider-loader").hide();
+            }
+        });
+    }
+     function enableControl(index, ctrValue) {
+        var strId = $(ctrValue).val();
+        if (strId == 1 || strId == 2) {
+
+            $("#dvWeekDay_" + index).show();
+            $("#dvDate_" + index).hide();
+        }
+        else {
+            $("#dvWeekDay_" + index).hide();
+            $("#dvDate_" + index).show();
+        }
+    }
+    function enableReqQtyControl(index, ctrValue) {
+        var strId = $(ctrValue).val();
+        if (strId == 1) {
+            $("#dvRqOty_" + index).show();
+        }
+        else {
+            $("#dvRqOty_" + index).hide();
+        }
+    }
+    function DeleteSchedule(index, Id) {
+        $("#slider-loader").show();
+        if (Id != '' && Id != null) {
+            var deleteRecurringScheduleURL = '@Url.Action("DeleteRecurringSchedule", "Freight", new { area = "Carrier" })';
+            $.post(deleteRecurringScheduleURL, { Id: Id }, function (data) {
+                if (data.StatusCode == 0) {
+                    msgsuccess(data.StatusMessage);
+                    $("#" + index).remove();
+                    $("#slider-loader").hide();
+                }
+            });
+
+        }
+        else {
+            $("#" + index).remove();
+            $("#slider-loader").hide();
+        }
+    }
+    function validateQty(controlVal) {
+        var $this = $(controlVal);
+        $this.val($this.val().replace(/[^\d.]/g, ''));
+    }
+    function displayMessage(data) {
+
+          var failedMessageIdentification = "<failed>";
+         var messageSplitTag = "<split>";
+        if (data.StatusMessage.indexOf(messageSplitTag) != -1) {
+            var dataMessage = data.StatusMessage.split(messageSplitTag);
+            // Iterate through each value
+            for (var i = 0; i < dataMessage.length; i++) {
+                // Alert each number
+                if (dataMessage[i].indexOf(failedMessageIdentification) != -1) {
+                    let message = dataMessage[i].replace(failedMessageIdentification, '');
+                    msgerror(message);
+                }
+                else {
+                    msgsuccess(dataMessage[i]);
+                }
+            }
+        }
+        else {
+            if (data.StatusCode == 0) {
+                if (data.StatusMessage.indexOf(failedMessageIdentification) != -1) {
+                    let message = data.StatusMessage.replace(failedMessageIdentification, '');
+                    msgerror(message);
+                }
+                else {
+                    msgsuccess(data.StatusMessage);
+                }
+            }
+            else if (data.StatusCode == 1) {
+                msgerror(data.StatusMessage);
+            }
+        }
+    }
+</script>

@@ -1,0 +1,88 @@
+﻿@model DashboardSuperAdminCountViewModel
+
+<div class="row">
+    <div class="col-sm-5 col-md-12">
+        <h2>
+            <span class="fa fa-users fs21"></span> @Resource.lblCompanyUsers - <span id="totalCompanyUsersCount">0</span>
+        </h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-5 col-md-10 mt10">
+        @Html.DropDownListFor(m => m.SelectedCompanyId, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name"), "", new { @class = "select2_demo_3 form-control", @onchange = "ReloadCompanyUsersGrid();" })
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-6 col-sm-6 mt5">
+        <a onclick="GetCompanyUsersGrid('@CompanyUsersFilterType.Active');" class="text-white">
+            <h1 class="no-margins"><span id="totalActiveCompanyUsersCount">@Resource.lblPlaceholderText</span></h1>
+            @Resource.lblActive
+        </a>
+    </div>
+    <div class="col-xs-6 col-sm-6 mt5">
+        <a onclick="GetCompanyUsersGrid('@CompanyUsersFilterType.InActive');" class="text-white">
+            <h1 class="no-margins"><span id="totalInactiveCompanyUsersCount">@Resource.lblPlaceholderText</span></h1>
+            @Resource.lblInActive
+        </a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 text-right mt5">
+        <a onclick="GetCompanyUsersGrid('@CompanyUsersFilterType.All');" class="text-white">
+            @Resource.btnLabelViewAll
+        </a>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+<script>
+        var url = '@Url.Action("GetCompanyUsersCount", "Dashboard",new { area= "SuperAdmin"})';
+        GetCompanyUsersCount(url);
+
+        function GetCompanyUsersCount(url) {
+            $.get(url, function (response) {
+                $("#totalCompanyUsersCount").text(response.TotalCompanyUsersCount);
+                $("#totalActiveCompanyUsersCount").text(response.TotalActiveCompanyUsersCount);
+                $("#totalInactiveCompanyUsersCount").text(response.TotalInactiveCompanyUsersCount);
+                $("#totalCompanyUsersCount").closest(".widget").find('.loading-wrapper').hide();
+            });
+        }
+
+        function ReloadCompanyUsersGrid(){
+            var companyId = $('#@Html.IdFor(m => m.SelectedCompanyId) option:selected').val();
+            var url = '@Url.Action("GetCompanyUsersCount", "Dashboard",new { area = "SuperAdmin" })?SelectedCompanyId=' + companyId;
+            GetCompanyUsersCount(url);
+            GetTotalGallonsOrdered();
+            GetTotalGallonsDelivered();
+        }
+
+        function GetCompanyUsersGrid(filter) {
+            var companyId = $('#@Html.IdFor(m => m.SelectedCompanyId) option:selected').val();
+            window.location.href = '@Url.Action("CompanyUsers", "SuperAdmin", new { area = "SuperAdmin" })?id=' + companyId + '&filter=' + filter;
+        }
+        $(".select2_demo_3").select2({
+                placeholder: "Company",
+                allowClear: true
+        });
+        $('select').on('change', function (evt) {
+            $("#totalCompanyUsersCount").closest(".widget").find('.loading-wrapper').show();
+        });
+        $('select').on('select2:unselect', function (evt) {
+            var url = '@Url.Action("GetCompanyUsersCount", "Dashboard",new { area = "SuperAdmin" })';
+            GetCompanyUsersCount(url);
+        });
+
+        function getCompanies(){
+            let url = '@Url.Action("GetCompanies", "Dashboard", new { area = "SuperAdmin" })';
+            $.get(url, function (response) {
+                $.each(response, function (i, comp) {
+                    $("#@Html.IdFor(m => m.SelectedCompanyId)").append($("<option></option>").val(comp.Id).html(comp.Name));
+                });
+            });
+        }
+        $(document).ready(function () {
+            getCompanies();
+        });
+</script>
+}

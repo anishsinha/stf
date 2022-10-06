@@ -1,0 +1,157 @@
+﻿@model FeesViewModel
+@{ var randomNum099 = (new Random()).Next(0, 99);}
+@Html.HiddenFor(m => m.Currency)
+@Html.HiddenFor(m => m.UoM)
+<div class="col-sm-12 fee-type-row">
+    <div class="fee-types row">
+        <div class="hidden-value-common-fee">
+            @Html.HiddenFor(t => t.CommonFee)
+        </div>
+        @if (string.IsNullOrWhiteSpace(Model.FeeTypeId))
+        {
+            <div class="col-sm-2 fee-type pntr-none subSectionOpacity defaultDisabled">
+                @Html.DropDownListFor(m => m.MarginTypeId, new SelectList(CommonHelperMethods.GetAllMarginTypes(), "Code", "Name", 4), new { @class = "form-control margintype-ddl" })
+            </div>
+        }
+        else
+        {
+            <div class="col-sm-2 fee-type">
+                @Html.DropDownListFor(m => m.MarginTypeId, new SelectList(CommonHelperMethods.GetAllMarginTypes(), "Code", "Name", 1), new { @class = "form-control margintype-ddl" })
+            </div>
+        }
+        <div class="col-sm-1 margin hide-element">
+            <div class="input-group">
+                @Html.TextBoxFor(m => m.Margin, new { @class = "form-control datatype-decimal" })
+                <span class="input-group-addon">@Resource.constSymbolPercent</span>
+            </div>
+        </div>
+        <div class="all-fees col-sm-8">
+            <div class="row">
+                @if (Model.FeeConstraintTypeId.HasValue)
+                {
+                    <div class="col-sm-3 mb10">
+                        @Html.DropDownListFor(m => m.FeeConstraintTypeId, new SelectList(CommonHelperMethods.GetAllFeeConstraintTypes(), "Id", "Name"), new { @class = "form-control special-date-feetype-ddl", @onchange = "showHideSpecialDate(this); SetSpecialMinDate(this);" })
+                        @Html.ValidationMessageFor(m => m.FeeConstraintTypeId)
+                    </div>
+                    <div class="col-sm-3 mb10 special-date-div @(Model.FeeConstraintTypeId.Value == (int)FeeConstraintType.Weekend ? "hide-element" : "")">
+                        <div class="form-group mb5">
+                            @Html.TextBoxFor(m => m.SpecialDate, new { @class = "form-control datepicker special-date", placeholder = "Special Date" })
+                            @Html.ValidationMessageFor(m => m.SpecialDate)
+                        </div>
+                    </div>
+                }
+                @if (Model.CommonFee)
+                {
+                    <div class="col-sm-2 fee-type-ddl">
+                        <div class="form-group mb5">
+                            @Html.DropDownListFor(m => m.FeeTypeId, new SelectList(CommonHelperMethods.GetAllFeeTypes(CurrentUser.CompanyId, Model.Currency, Model.TruckLoadType), "Code", "Name"), "Select Fee",
+                            Model.FeeConstraintTypeId.HasValue ? new { @class = "form-control special-feetype-ddl mb5 feetype-ddl", @onchange = "showHideQuantity(this);" } as object :
+                            new { @class = "form-control feetype-ddl", @onchange = "showHideQuantity(this);" } as object)
+                            @Html.ValidationMessageFor(m => m.FeeTypeId)
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="col-sm-2 fee-type-name">
+                        <div class="form-group">
+                            @Html.HiddenFor(m => m.FeeTypeId)
+                            @Html.TextBoxFor(m => m.OtherFeeDescription, new { @class = "form-control otherFeeDesc", placeholder = "Fee Name" })
+                            @Html.ValidationMessageFor(m => m.OtherFeeDescription)
+                        </div>
+                    </div>
+                }
+                <div class="col-sm-3 fee-sub-type-ddl fee-options">
+                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper mtm10 hide-element"><span class="spinner-dashboard pa"></span></div>
+                    <div class="form-group mb5">
+                        @Html.DropDownListFor(m => m.FeeSubTypeId, new SelectList(CommonHelperMethods.GetAllFeeSubTypes(Model.FeeTypeId, Model.Currency), "Id", "Name"), "Select Fee Type", new { @class = "form-control feesubtype-ddl mb5", @onchange = "showHideQuantity(this)" })
+                        @Html.ValidationMessageFor(m => m.FeeSubTypeId)
+                    </div>
+                </div>
+                <div class="col-sm-2 under-gallon-fee hide-element">
+                    <div class="form-group mb5">
+                        <div class="mb5 undergallonfee defaultDisabled">
+                            @Html.TextBoxFor(m => m.MinimumGallons, new { @class = "form-control datatype-decimal", placeholder = Model.Currency == Currency.CAD ? Resource.lblMinLitres : Resource.lblMinGallons, data_toggle = "tooltip", data_placement = "top", title = @Resource.lblMinGallons })
+                        </div>
+                        @Html.ValidationMessageFor(m => m.MinimumGallons)
+                    </div>
+                </div>
+                <div class="regular-fee col-sm-5">
+                    <div id="common-delivery-fee-section-@randomNum099" class="partial-section row quantity-range byquantity-fee @(Model.FeeSubTypeId == (int)FeeSubType.ByQuantity ? "" : "hide-element")">
+                        @{
+                            var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+                        }
+                        <div class="partial-block-collection-section col-sm-12">
+                            @if (Model.DeliveryFeeByQuantity != null && Model.DeliveryFeeByQuantity.Count() > 0)
+                            {
+                                foreach (var deliveryFeeByQuantity in Model.DeliveryFeeByQuantity)
+                                {
+                                    deliveryFeeByQuantity.CollectionHtmlPrefix = prefix;
+                                    deliveryFeeByQuantity.Currency = Model.Currency;
+                                    deliveryFeeByQuantity.UoM = Model.UoM;
+                                    Html.RenderPartial("~/Areas/Supplier/Views/Shared/_PartialDeliveryFeeByQuantity.cshtml", deliveryFeeByQuantity);
+                                }
+                            }
+                        </div>
+                        @Html.ValidationMessageFor(m => m.DeliveryFeeByQuantity)
+                        @*<span data-valmsg-for="DeliveryFeeByQuantity" data-valmsg-replace="true"></span>*@
+                        <div class="form-group mt7">
+                            <a href="javascript:void(0)" onclick="AjaxStart(this)" class="add-partial-block" data-url="@Url.Action("DeliveryFeeByQuantity", new { prefix = prefix, currency = Model.Currency, uoM = Model.UoM })"><span class="fa fa-plus-circle"></span> @Resource.btnLabelAddDeliveryFee</a>
+                        </div>
+                    </div>
+                    <div class="fee">
+                        <div class="form-group mb5">
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text fs11">@Model.Currency</span>
+                                </div>
+                                @Html.TextBoxFor(m => m.Fee, new { @class = "form-control datatype-decimal" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.Fee)
+                        </div>
+                    </div>
+                    <div class="col-sm-12 mb10 waiver @(Model.TruckLoadCategoryId == (int)TruckLoadFeeCategories.FTLWaiver ? "" : "hide-element")">
+                        <div class="form-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text fs11">@Resource.lblEmbeddedTime</span>
+                            </div>
+                            @Html.TextBoxFor(m => m.WaiveOffTime, new { @class = "form-control" })
+                            <div class="input-group-append">
+                                <span class="input-group-text">@Resource.lblMin</span>
+                            </div>
+                        </div>
+                        @Html.ValidationMessageFor(m => m.WaiveOffTime)
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-2 mb5 defaultDisabled hide-element show-in-tpo">
+                <div class="checkbox">
+                    <label>
+                        @Html.CheckBoxFor(m => m.IncludeInPPG)
+                        @Resource.lblIncludeInPPG
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="fs18 col-1">
+            <a href="javascript:void(0)" name="auto-removebrokerfee" class="fa fa-trash-alt mt10 color-maroon" title="@Resource.btnLabelRemove" onclick="refreshFeeTypeDdl(this);removePartial(this);"></a>
+        </div>
+    </div>
+</div>
+<script>
+    function showHideSpecialDate(elem) {
+        $(elem).closest('.fee-types').find('.special-date-div').toggle();
+    }
+
+    $(document).ready(function () {
+        $.each($(document).find('.fee-types'), function (idx, elem) {
+            var commonFee = $(elem).find('.hidden-value-common-fee').find('input[type=hidden]').val();
+            if (commonFee == 'True') {
+                showHideControlsByElement(elem, 'fee-type-ddl,fee', 'fee-type-name,fee-type-addtocommon'); showHideQuantity(elem);
+            }
+            else {
+                showHideControlsByElement(elem, 'fee-type-name,fee-type-addtocommon,fee', 'fee-type-ddl,under-gallon-fee,byquantity-fee');
+            }
+        });
+    });
+</script>

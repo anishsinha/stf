@@ -1,0 +1,137 @@
+﻿@model ProductSequenceViewModel
+<div class="row prod-seq-section mt10">
+    <div class="col-sm-12 sequence-product-div">
+        @Html.ListBoxFor(m => m.ProductIds, new SelectList(CommonHelperMethods.GetProductSequenceTypes(CurrentUser.CompanyId, Model.SequenceMethod, Model.SequenceType, Model.JobId), "Id", "Name", 0), new { @class = "form-control sequence-product-list" })
+        <div class="load-products">
+            <div class="pa bg-white z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+        </div>
+    </div>
+    <div class="col-sm-12 mt20">
+        <ul id="prod-seq-sortable" class="cl-prod-seq-sortable col-sm-6">
+            @foreach (var item in Model.ProductSequence)
+            {
+                if (item.OrderId.HasValue)
+                {
+                    <li id='@item.OrderId'> <span class='float-left'> @item.DisplayName </span> <a class='float-right' onclick='deselectProduct(@item.OrderId)'> <i class='fa fa-trash text-danger' data-toggle='tooltip' data-placement='right' title='Remove'></i> </a></li>
+                }
+                else
+                {
+                    <li id='@item.ProductTypeId'><span class='float-left'>  @item.DisplayName </span> <a class='float-right' onclick='deselectProduct(@item.ProductTypeId)'> <i class='fa fa-trash text-danger' data-toggle='tooltip' data-placement='right' title='Remove'></i> </a> </li>
+                }
+            }
+        </ul>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        var $sequence_product_list_eventSelect = $('#@Html.IdFor(m =>m.ProductIds)').multiselect({
+            includeSelectAllOption: true,
+            enableFiltering: true,
+            buttonWidth: '50%',
+            onChange: function (element, checked) {
+                if (checked) {
+                    var temp_val = $("#prod-seq-sortable").find("#" + $(element).val());
+                    if (temp_val.length == 0) {
+                        $('#prod-seq-sortable').append("<li  id='" + $(element).val() + "'> <span class='float-left'>" + $(element).html() + "</span> <a class='float-right' onclick='deselectProduct(" + '"' + $(element).val() + '"' + ")' > <i class='fa fa-trash text-danger' data-toggle='tooltip' data-placement='right' title='Remove' ></i> </a> </li>");
+                    }
+                } else {
+                    var temp_val = $("#prod-seq-sortable").find("#" + $(element).val());
+                    if (temp_val.length == 1) {
+                        $('#prod-seq-sortable').find("#" + $(element).val()).remove();
+                    }
+                }
+            },
+            onSelectAll: function () {
+                $('#@Html.IdFor(m =>m.ProductIds) option:selected').each(function () {
+                    var temp_val = $("#prod-seq-sortable").find("#" + $(this).val());
+                    if (temp_val.length == 0) {
+                        $('#prod-seq-sortable').append("<li  id='" + $(this).val() + "'> <span class='float-left'>" + $(this).text() + "</span> <a class='float-right' onclick='deselectProduct(" + '"' + $(this).val() + '"' + ")' > <i class='fa fa-trash text-danger' data-toggle='tooltip' data-placement='right' title='Remove' ></i> </a> </li>");
+                    }
+                });
+            },
+            onDeselectAll: function () {
+                $('#prod-seq-sortable li').remove()
+            }
+        });
+        $("#prod-seq-sortable").sortable({ placeholder: "ui-state-highlight" });
+        $("#prod-seq-sortable").disableSelection();
+    });
+    function deselectProduct(value) {
+        $('#@Html.IdFor(m =>m.ProductIds)').multiselect('deselect', value);
+        $('#prod-seq-sortable').find("#" + value).remove();
+    }
+
+
+    //$(function () {
+       
+    //});
+     ///MultiSelect drag-drop funtionality ends////
+
+
+    function GetProductSequence(SequenceType) {
+        var ProductSequence = new Array();
+        $("#prod-seq-sortable li").each(function (index) {
+            var productSequenceItem = new Object();
+            //productSequenceItem.ProductTypeId = $(this).attr("id");
+            if (SequenceType == '@ProductSequenceType.Order') {
+                productSequenceItem.OrderId = $(this).attr("id");
+            } else {
+                productSequenceItem.ProductTypeId = $(this).attr("id");
+            }
+            productSequenceItem.Sequence = index + 1;
+            productSequenceItem.DisplayName = $(this).text().trim();
+            ProductSequence.push(productSequenceItem);
+        });
+
+        return ProductSequence;
+    }
+
+    function loadProductypes(element) {
+        var sequenceType = $(element).val();
+        loadListView(sequenceType);
+
+        // load list
+        var url = "@Url.Action("GetProductSequenceTypes", "Job")?sequenceMethod=@Model.SequenceMethod&sequenceType=" + sequenceType + "&jobId=@Model.JobId";
+        $(".load-products .loading-wrapper").show();
+        $.get(url).done(function (response) {
+            if (response != null) {
+                var target = $("#@Html.IdFor(m => m.ProductIds)");
+                $("#prod-seq-sortable").html("");
+                target.empty();
+                var productIds = new Array();
+                if (response.SelectedSeq != null && response.SelectedSeq.length > 0) {
+                    productIds = response.SelectedSeq.map(function(t) { return t.Id; });
+                    $.each(response.SelectedSeq, function (i, element) {
+                        var temp_val = $("#prod-seq-sortable").find("#" + element.Id);
+                        if (temp_val.length == 0) {
+                            $('#prod-seq-sortable').append("<li  id='" + element.Id + "'> <span class='float-left'>" + element.Name + "</span> <a class='float-right' onclick='deselectProduct(" + '"' + element.Id + '"' + ")' > <i class='fa fa-trash text-danger' data-toggle='tooltip' data-placement='right' title='Remove' ></i> </a> </li>");
+                        }
+                    });
+                }
+                if (response.DisplayListSeq != null) {
+                    $.each(response.DisplayListSeq, function (i, element) {
+                        var elementText = '<option></option>';
+                        if (productIds.indexOf(element.Id) > -1) {
+                            elementText = '<option selected="selected"></option>';
+                        }
+                        target.append($(elementText).val(element.Id).html(element.Name));
+                    });
+                }
+                target.multiselect('rebuild');
+            }
+        }).always(function () {
+            $(".load-products .loading-wrapper").hide();
+        });
+    }
+
+    function loadListView(element) {
+        if (element == "Order") {
+            $(".prod-seq-section").removeClass("Sequence-Product").addClass("Sequence-" + element);
+            $("#prod-seq-sortable").removeClass("col-sm-6").addClass("col-sm-12");
+        } else {
+            $(".prod-seq-section").removeClass("Sequence-Order").addClass("Sequence-" + element);
+            $("#prod-seq-sortable").removeClass("col-sm-12").addClass("col-sm-6");
+        }
+    }
+</script>

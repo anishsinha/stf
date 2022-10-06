@@ -1,0 +1,68 @@
+﻿@model DispalyMessageViewModel
+@{
+    ViewBag.Title = @Resource.headingViewMessage;
+}
+
+<div class="mail-box-header print-area">
+    <div class="pull-right tooltip-demo no-print">
+        @* <a id="btnTopReply" href="@Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Reply, messageId = Model.Id })" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Reply"><i class="fa fa-reply"></i></a>
+        <a id="btnTopForward" href="@Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Forward, messageId = Model.Id })" class="btn btn-sm btn-white" data-toggle="tooltip" data-placement="top" title="Forward"><i class="fa fa-arrow-right"></i></a>*@
+        <button id="btnTopPrint" type="button" class="btn btn-white btn-sm btn-print" data-toggle="tooltip" data-placement="top" title="Print email"><i class="fa fa-print"></i></button>
+        <button id="btnTopDelete" type="button" class="btn btn-white btn-sm btn-detele" data-toggle="tooltip" data-placement="top" title="Move to trash"><i class="fa fa-trash-alt"></i></button>
+    </div>
+    <h2>
+        @ViewBag.Title
+    </h2>
+    <hr />
+    <div class="mail-tools tooltip-demo m-t-md">
+        <h3>
+            <span class="font-normal">@Html.LabelFor(m => m.Subject):&nbsp;</span>
+            <span id="viewmsg-subject">@Model.Subject</span>
+        </h3>
+        <h5>
+            <span class="pull-right font-normal">@Model.TimeStamp.ToString(Resource.constFormatDateTime)</span>
+            <span class="font-normal">@Html.LabelFor(m => m.From):&nbsp;</span>
+            <span id="viewmsg-from">@Model.From</span>
+        </h5>
+        <h5>
+            <span class="font-normal">@Html.LabelFor(m => m.To):&nbsp;</span>
+            <span id="viewmsg-to">@string.Join("; ", Model.To)</span>
+        </h5>
+    </div>
+</div>
+<div class="mail-box print-area">
+    <div id="body-content" class="mail-body mail-body-content">
+    </div>
+    <div class="mail-body text-right tooltip-demo no-print">
+        @*<a id="btnBottomReply" href="@Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Reply, messageId = Model.Id })" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Reply"><i class="fa fa-reply"></i></a>
+        <a id="btnBottomForward" href="@Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Forward, messageId = Model.Id })" class="btn btn-sm btn-white" data-toggle="tooltip" data-placement="top" title="Forward"><i class="fa fa-arrow-right"></i></a>*@
+        <button id="btnBottomPrint" type="button" class="btn btn-white btn-sm btn-print" data-toggle="tooltip" data-placement="top" title="Print email"><i class="fa fa-print"></i></button>
+        <button id="btnBottomDelete" type="button" class="btn btn-white btn-sm btn-detele" data-toggle="tooltip" data-placement="top" title="Move to trash"><i class="fa fa-trash-alt"></i></button>
+    </div>
+    <div class="clearfix"></div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/jquery-print")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            //Set message body
+            $(".mail-body-content").html(decodeURIComponent(`@Html.Raw(Model.Message)`));
+
+            $(".btn-detele").on("click", function () {
+                var url = '@Url.Action("MarkMessages", "Mailbox", new { area = "Messages", type = AppMessageMarkingType.Deleted })';
+                $.ajaxSettings.traditional = true;
+                $.get(url, { 'selectedMessages': ['@Model.Id'] }, function (response) {
+                    if (response) {
+                        location.href = '@Url.Action("Messages", "Mailbox", new { area = "Messages", type = AppMessageFilterType.Inbox })';
+                    }
+                });
+            });
+
+            $(".btn-print").on("click", function () {
+                $.print(".print-area");
+            });
+        });
+    </script>
+}

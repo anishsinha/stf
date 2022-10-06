@@ -1,0 +1,197 @@
+﻿@model JobProductTypeDetails
+
+@using (Html.BeginCollectionItem("ProductTypes"))
+{
+    string recurringId = "dvRecurringDetails" + Model.FuelTypeId.ToString();
+    string addScheduleId = "dvaddSchedule" + Model.FuelTypeId.ToString();
+    var fuelUoM = Resource.gridColumnGallons;
+    var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+    if (Model.UoM == (int)UoM.Litres)
+    {
+        fuelUoM = "L";
+    }
+    else if (Model.UoM == (int)UoM.Barrels)
+    {
+        fuelUoM = "B";
+    }
+    else if (Model.UoM == (int)UoM.MetricTons)
+    {
+        fuelUoM = "MT";
+    }
+    else
+    {
+        fuelUoM = "G";
+    }
+    @Html.HiddenFor(m => m.ProductType)
+    @Html.HiddenFor(m => m.FuelTypeId)
+    @Html.HiddenFor(m => m.UoM)
+    //col-sm-4
+
+    <div id="tank" class="align-items-stretch">
+        <div class="border radius-5 shadow-b pt10 pb10 pl15 pr15 height-225">
+            <div class="row align-items-center">
+                <div class="col-sm-6">
+                    @if (Model.ProductType == "Other")
+                    {
+                        <span id="fueltype_@Model.ProductType" class="fs14 font-bold float-left">@Model.ProductType </span>
+                        <i class="fa fa-info-circle float-left mt5 ml5" data-toggle="tooltip" data-placement="bottom" data-html="true" title="@Model.OtherProductsNames"></i>
+                    }
+                    else
+                    {
+                        <span id="fueltype_@Model.ProductType" class="fs14 font-bold">@Model.ProductType</span>
+                    }
+                </div>
+                @if (Model.SupplierCompanyId == 0)
+                {
+                    <div class="col-sm-6">
+                        <div class="form-group mb0">
+                            @Html.DropDownListFor(m => m.SupplierCompanyId, new SelectList(Model.SupplierCompanies, "Id", "Name", Model.SupplierCompanyId), new { @class = "select2_Supplier", @id = "supplier_" + @Model.SupplierCompanyId + "_" + @Model.FuelTypeId })
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @Html.HiddenFor(m => m.SupplierCompanyId)
+                }
+            </div>
+            <div class="dr-panel">
+                <div class="row">
+                    <div class="col-sm-12 ">
+                        <div class="radius-5 pt10">
+                            <div class="row mb5" id="dr_Quantity_@Model.FuelTypeId">
+                                <div class="col-sm-4">
+                                    <div id="dvSCQtyType_@Model.FuelTypeId.ToString()">
+                                        <div class="form-group mb0">
+                                            <div class="input-group">
+                                                @Html.DropDownListFor(m => m.ScheduleQuantityType, new SelectList(CommonHelperMethods.GetScheduleQtyType(), "Id", "Name", Model.ScheduleQuantityType), new { @class = "form-control", @onchange = "onChnageScheduleQuantityType('" + @Model.FuelTypeId + "', this)" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group mb0">
+                                        <div id="drQuantityDiv_@Model.FuelTypeId" class="input-group">
+                                            @Html.TextBoxFor(m => m.RequiredQuantity, "{0:#.#}", new { @class = "form-control requiredQuantity", onkeyup = "validateQty(this)" })
+                                            <div class="input-group-append">
+                                                <span class="input-group-text line-height_18 fs14">@fuelUoM</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div id="dvSCQtyType_@Model.OrderId.ToString()">
+                                        <div class="form-group mb0">
+                                            <div class="input-group">
+                                                @Html.DropDownListFor(m => m.OrderId, new SelectList(Model.Orders, "Id", "Name", Model.OrderId), new { @class = "form-control, select2_Supplier", @id = "order_" + @Model.SupplierCompanyId + "_" + @Model.FuelTypeId })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt10">
+                                <div class="col-sm-12">
+                                    <div class="form-group mb0" id="goDiv_@Model.FuelTypeId">
+                                        <label class="radio-inline cust-radio-chk">
+                                            @Html.RadioButtonFor(m => m.Priority, DeliveryReqPriority.MustGo, new { @class = "priority" })
+                                            @Resource.lblMustGoRequests
+                                        </label>
+                                        <label class="radio-inline cust-radio-chk">
+                                            @Html.RadioButtonFor(m => m.Priority, DeliveryReqPriority.ShouldGo, new { @class = "priority" })
+                                            @Resource.lblShouldGoRequests
+                                        </label>
+                                        <label class="radio-inline cust-radio-chk">
+                                            @Html.RadioButtonFor(m => m.Priority, DeliveryReqPriority.CouldGo, new { @class = "priority" })
+                                            @Resource.lblCouldGoRequests
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.RetainTime))
+                            {
+                                <div class="row mt10">
+                                    <div class="col-sm-12">
+                                        <table width="100%">
+                                            <tr>
+                                                @Html.HiddenFor(m => m.IsRetainButtonClick)
+                                                @Html.HiddenFor(m => m.RetainTime)
+                                                @Html.HiddenFor(m => m.RetainDate)
+
+                                                @Html.HiddenFor(m => m.StartTime)
+                                                @Html.HiddenFor(m => m.StartDate)
+
+                                                @Html.HiddenFor(m => m.EndTime)
+                                                @Html.HiddenFor(m => m.EndDate)
+
+                                                <td class="color-blue opacity8"><strong>Retain Time</strong><br /><span>@Model.RetainTime +' '+ @Model.RetainDate</span></td>
+                                                <td class="color-blue opacity8"><strong>Window Time</strong><br /><span>@Model.StartTime +' '+ @Model.StartDate+' - '+@Model.EndTime+' '+@Model.EndDate</span></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <label class="form-check form-check-inline cust-radio-chk">
+                        @Html.CheckBoxFor(m => m.isRecurringSchedule, new { onclick = string.Format("getRecurringSchedule('{0}','{1}','{2}','{3}',this);", Model.JobId, Model.FuelTypeId, prefix, Model.UoM), @class = "form-check-input is-recurring" })
+                        @Resource.lblRecurringSchedule
+                    </label>
+                </div>
+            </div>
+            <div class="row">
+                <div id="@recurringId" class="col-sm-12 mt5 recurring-dr-scroll">
+                </div>
+            </div>
+            <div class="mt10" style="display:none;" id="@addScheduleId">
+                <a onclick="addSchedule(@Model.FuelTypeId, '@prefix', @Model.UoM);"><i class="fas fa-plus-circle"></i>&nbsp;Schedule</a>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        @Html.TextAreaFor(m => m.Notes, new { @class = "form-control add-note-tarea", @placeholder = "Note (optional)", rows = "2" })
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        <div id="drDeliveryLevelPODiv_@Model.FuelTypeId" class="input-group">
+                            @Html.TextBoxFor(m => m.DeliveryLevelPO, new { @class = "form-control deliveryLevelPO", @placeholder = "Delivery-Level PO#" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+
+    $(document).ready(function () {
+        $('[data-toggle="tooltip"]').tooltip({
+            sanitizeFn: function (content) { return content; }
+        });
+    });
+
+    $(document).on("change", "#supplier_" + @Model.SupplierCompanyId+"_" + @Model.FuelTypeId, function () {
+        var selectedSupplier = $("#supplier_" + @Model.SupplierCompanyId+"_" + @Model.FuelTypeId).val();
+        if (selectedSupplier != undefined) {
+        var data =@Html.Raw(Json.Encode(Model.Orders));
+        var filterOrders = data.filter(f => f.Code == selectedSupplier);
+        $("#order_" + @Model.SupplierCompanyId+"_" + @Model.FuelTypeId).empty();
+        $.each(filterOrders, function (i, val) {
+            $("#order_" + @Model.SupplierCompanyId+"_" + @Model.FuelTypeId).append('<option value="'
+                + val.Id + '">'
+                + val.Name + '</option>');
+        });
+        }
+    })
+
+    $(document).ready(function () {
+        $("#supplier_" + @Model.SupplierCompanyId+"_" + @Model.FuelTypeId).trigger("change");
+    })
+
+</script>

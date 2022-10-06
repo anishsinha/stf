@@ -1,0 +1,192 @@
+<ng-sidebar-container>
+    <ng-sidebar [(opened)]="_opened"
+                [animate]="_animate"
+                [position]="_POSITIONS[_positionNum]"
+                style="height: 100vh">
+
+        <a (click)="toggleOpen(false, null)"><i class="fa fa-close fs18"></i></a>
+        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loading">
+            <span class='spinner-dashboard pa'></span>
+        </div>
+
+        <content class="pr30">
+            <h3 class="dib ml10 mt10 mb10">Add BOL Details</h3>
+            <div class="row" [formGroup]="BolDetailForm" id="bolDetails">
+                <div class="col-sm-4 form-group">
+                    <input type="hidden" placeholder="Id" formControlName="Id" />
+                    <label for="BolNumber">BOL #:<span class="color-maroon">*</span></label>
+                    <input name="BolNumber" formControlName="BolNumber" class="form-control" />
+                    <div *ngIf="isInvalid('BolNumber')" class="color-maroon">
+                        <div *ngIf="isRequired('BolNumber')">
+                            Required.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4 form-group">
+                    <label for="LiftDate">Lift Date:<span class="color-maroon">*</span></label>
+                    <input name="LiftDate" formControlName="LiftDate" id="bolDate" class="form-control" myDatePicker [format]="'MM/DD/YYYY'" (onDateChange)="BolDetailForm.get('LiftDate').setValue($event)" />
+                    <!--<p-calendar formControlName="LiftDate" dateFormat="mm/dd/yy"></p-calendar>-->
+                    <div *ngIf="isInvalid('LiftDate') && isRequired('LiftDate')" class="color-maroon">
+                            Required.
+                    </div>
+                </div>
+                <div class="col-sm-4 form-group">
+                    <label for="BadgeNumber">Badge #:<span *ngIf="isBadgeMandatory" class="color-maroon">*</span></label>
+                    <input name="BadgeNumber" formControlName="BadgeNumber" [required]="isBadgeMandatory" class="form-control"/>
+                    <div *ngIf="isInvalid('BadgeNumber')" class="color-maroon">
+                        <div *ngIf="isRequired('BadgeNumber')">
+                            Required.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-4 form-group">
+                    
+                    <label>Lift Start Time:<span class="color-maroon">*</span></label>
+                    <input class="form-control timepicker" formControlName="LiftStartTime" myTimePicker [format]="'hh:mm:ss A'" (onTimeChange)="BolDetailForm.get('LiftStartTime').setValue($event);ValidateBolTime(BolDetailForm.get('LiftStartTime'), BolDetailForm.get('LiftEndTime'))"/>
+
+
+                    <span class="help-block color-maroon mb0" *ngIf="BolDetailForm.get('LiftStartTime').errors && (BolDetailForm.get('LiftStartTime').touched ||
+                                                                    BolDetailForm.get('LiftStartTime').dirty)">
+                        <span *ngIf="BolDetailForm.get('LiftStartTime').errors.required">
+                            Required.
+                        </span>
+                        <span *ngIf="BolDetailForm.get('LiftStartTime').errors.invalidTime">
+                            Start time should be less than end time.
+                        </span>
+                    </span>
+
+                </div>
+                    <div class="col-sm-4 form-group">
+                        <label>Lift End Time:<span class="color-maroon">*</span></label>
+                        <input class="form-control timepicker" formControlName="LiftEndTime" myTimePicker [format]="'hh:mm:ss A'" (onTimeChange)="BolDetailForm.get('LiftEndTime').setValue($event);ValidateBolTime(BolDetailForm.get('LiftStartTime'), BolDetailForm.get('LiftEndTime'))" />
+
+                        <span class="help-block color-maroon mb0" *ngIf="BolDetailForm.get('LiftEndTime').errors && (BolDetailForm.get('LiftEndTime').touched ||
+                                                BolDetailForm.get('LiftEndTime').dirty)">
+                            <span *ngIf="BolDetailForm.get('LiftEndTime').errors.required">
+                                Required.
+                        </span>
+                       <span *ngIf="BolDetailForm.get('LiftEndTime').errors.invalidTime">
+                            Start time should be less than end time.
+                        </span>
+                    </span>
+
+                </div>
+                <div class="col-sm-4 form-group mb10" *ngIf="BolDetailForm.get('CommonTerminalId').value">
+                    <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingTerminals">
+                        <span class='spinner-dashboard pa'></span>
+                    </div>
+                    <label>Terminal:</label>
+                    <input type="text" formControlName="CommonTerminalName" class="form-control" (input)="onTerminalSearched($event,OrderId);" (blur)="validateCommonTerminal($event,OrderId)" />
+                    <ul class="auto-select border-dash">
+                        <li class="form-text" *ngIf="minCharRequired"><small>Enter minimum 3 characters to search.</small></li>
+                        <li class="form-text" *ngIf="searchError"><small>Something went wrong.</small></li>
+                        <li class="form-text" *ngIf="_loadingTerminals"><small>Loading...</small></li>
+                        <li class="form-text" *ngIf="noTerminalFound && !minCharRequired && !searchError && !_loadingTerminals "><small>No terminal found.</small></li>
+                        <li *ngFor="let terminal of Terminals;" (click)="setCommonTerminalName(OrderId, terminal)"
+                            [attr.selected]="terminal.Name==BolDetailForm.get('CommonTerminalName').value">{{terminal.Name}}</li>
+                    </ul>
+                </div>
+                <div class="col-sm-12"><div class="border-b mb15"></div></div>
+                <div formArrayName="Products" class="col-sm-12">
+                    <ng-container *ngFor="let product of BolDetailForm.get('Products')['controls']; let i = index;">
+                        <div class="row" [formGroupName]="i" id="bolProduct_{{i}}">
+                            <div class="col-sm-12 form-group">
+                                <input type="hidden" formControlName="ProductId" />
+                                <input type="hidden" formControlName="ProductName" />
+                                <input type="hidden" #productOrderId formControlName="OrderId" />
+                                <input type="hidden" formControlName="QuantityIndicatorTypeId" />
+                                <b><span class="fa fa-tint"></span> {{product.get('ProductName').value}}</b>
+                            </div>
+                            <div class="col-sm-4 form-group mb10">
+                                <label for="GrossQuantity">Gross Quantity:</label>
+                                <div class="input-group">
+                                    <input name="GrossQuantity" formControlName="GrossQuantity" class="form-control" numberWithDecimal [requiredIfTrue]="product.get('NetQuantity').value>0 || product.get('DeliveredQuantity').value>0"
+                                           (input)="setDeliveredQuantValidation([$event.target.value, product.get('NetQuantity').value], product.get('DeliveredQuantity'))" 
+                                           (keyup)="setBolDeliveredQuantity(product)"/>
+                                    <div class="input-group-addon fs12"> {{product.get('UOM').value}}</div>
+                                </div>
+                                <span class="help-block color-maroon mb0" *ngIf="product.get('GrossQuantity').errors && (product.get('GrossQuantity').touched ||
+                                  product.get('GrossQuantity').dirty)">
+                                    <span *ngIf="product.get('GrossQuantity').errors.required">
+                                        Required.
+                                    </span>
+                                    <span *ngIf="product.get('GrossQuantity').errors.pattern">
+                                        Invalid.
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="col-sm-4 form-group mb10">
+                                <label for="NetQuantity">Net Quantity:</label>
+                                <div class="input-group">
+                                    <input name="NetQuantity"  formControlName="NetQuantity" class="form-control" numberWithDecimal [requiredIfTrue]="product.get('GrossQuantity').value>0 || product.get('DeliveredQuantity').value>0"
+                                           (input)="setDeliveredQuantValidation([product.get('GrossQuantity').value, $event.target.value], product.get('DeliveredQuantity'))"
+                                           (keyup)="setBolDeliveredQuantity(product)"/>
+                                    <div class="input-group-addon fs12"> {{product.get('UOM').value}}</div>
+                                </div>
+                                <span class="help-block color-maroon" *ngIf="product.get('NetQuantity').errors && (product.get('NetQuantity').touched ||
+                                  product.get('NetQuantity').dirty)">
+                                    <span *ngIf="product.get('NetQuantity').errors.required">
+                                        Required.
+                                    </span>
+                                    <span *ngIf="product.get('NetQuantity').errors.pattern">
+                                        Invalid.
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="col-sm-4 ">
+                                <label for="">Delivered Quantity:</label>
+                                <div class="input-group">
+                                    <!-- delivered Qty data here-->
+                                    <input name="DeliveredQuantity" formControlName="DeliveredQuantity" class="form-control" numberWithDecimal [requiredIfTrue]="product.get('NetQuantity').value>0 || product.get('GrossQuantity').value>0" (input)="setDeliveredQuantValidation([product.get('GrossQuantity').value, product.get('NetQuantity').value], product.get('DeliveredQuantity'))"/>
+                                    <div class="input-group-addon fs12"> {{product.get('UOM').value}}</div>
+                                </div>
+                                <span class="help-block color-maroon" *ngIf="product.get('DeliveredQuantity').errors && (product.get('DeliveredQuantity').touched ||
+                                  product.get('DeliveredQuantity').dirty)">
+                                    <span *ngIf="product.get('DeliveredQuantity').errors.required">
+                                        Required.
+                                    </span>
+                                    <span *ngIf="product.get('DeliveredQuantity').errors.pattern">
+                                        Invalid.
+                                    </span>
+                                    <span *ngIf="product.get('DeliveredQuantity').errors.maxQuantity">
+                                        Quantity should not be greater than net/gross quantity.
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="clearboth col-sm-4 ">
+                                <div class="form-group" *ngIf="product.get('TerminalId').value>0">
+                                    <label>Terminal Price:</label>
+                                    <label class="db">{{product.get('TerminalPrice').value}} {{Currency}}</label>
+                                </div>
+                            </div>
+                            <div hidden class="col-sm-4 form-group mb10" *ngIf="product.get('TerminalId').value>0">
+                                <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingTerminals">
+                                    <span class='spinner-dashboard pa'></span>
+                                </div>
+                                <label for="Terminal">Terminal:</label>
+                                <input type="hidden" formControlName="TerminalId" />
+                                <input type="text" formControlName="TerminalName" class="form-control" (input)="onTerminalSearched($event,productOrderId.value);" (blur)="validateTerminal(product,$event,productOrderId.value)" />
+                                <ul class="auto-select border-dash">
+                                    <li class="form-text" *ngIf="minCharRequired"><small>Enter minimum 3 characters to search.</small></li>
+                                    <li class="form-text" *ngIf="searchError"><small>Something went wrong.</small></li>
+                                    <li class="form-text" *ngIf="_loadingTerminals"><small>Loading...</small></li>
+                                    <li class="form-text" *ngIf="noTerminalFound && !minCharRequired && !searchError && !_loadingTerminals "><small>No terminal found.</small></li>
+                                    <li *ngFor="let terminal of Terminals;" (click)="setTerminalName(product, terminal)"
+                                        [attr.selected]="terminal.Name==product.get('TerminalName').value">{{terminal.Name}}</li>
+                                </ul>
+                            </div>
+                        </div>
+</ng-container>
+                </div>
+                <div class="col-sm-12 text-right" id="bol_inner_button">
+                    <button class="btn btn-lg" (click)="cancelBolDetail()">Cancel</button>
+                    <button class="btn btn-primary btn-lg" *ngIf="EditIndex == -1" [disabled]="BolDetailForm.invalid" (click)="addBolDetail()"><i class="fa fa-plus-circle"></i> Add</button>
+                    <button class="btn btn-primary btn-lg" *ngIf="EditIndex > -1" [disabled]="BolDetailForm.invalid" (click)="updatedBolDetail()"><i class="fa fa-edit"></i> Update</button>
+                </div>
+            </div>
+        </content>
+    </ng-sidebar>
+</ng-sidebar-container>
+
+

@@ -1,0 +1,216 @@
+﻿@model DispatchViewModel
+<script type="text/javascript">
+	var drivers = @Html.Raw(Json.Encode(CommonHelperMethods.GetAllDrivers(CurrentUser.CompanyId)));
+    var isDriversSelected = true;
+    var isFromDashboard = true;
+</script>
+<div class="tile-body">
+    <div class="row">
+        <div class="col-sm-10">
+            <div class="row">
+                <div class="col-sm-4">
+                    <h2 class="mt0 mb0 f-normal fs16 float-left">
+                        <span class="fa fa-truck mr5"></span> @Resource.headingDispatch
+                    </h2>
+                </div>
+                <div class="col-sm-8">
+                    <div class="input-group dd-dispatch float-left mtm5 ml20">
+                        <!-- Initialize the plugin: -->
+                        @Html.ListBoxFor(m => m.SelectedDrivers, new SelectList(CommonHelperMethods.GetAllDrivers(CurrentUser.CompanyId), "Id", "Name", 0), new { @class = "form-control mlm20" })
+                        <div class="input-group-btn btn-dispatch row mlm5 ">
+                            @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin)
+                            {
+                                <a id="compose-message" href="@Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Draft, queryType = AppMessageQueryType.Dispatch })" class="overflow-h nav-link fs21 btn btn-primary" title="@Resource.lblComposeMessage" data-toggle="tooltip" data-placement="bottom" data-html="true">
+                                    <span class="fa fa-envelope fs14 float-left mt6"></span>
+                                </a>
+                            }
+                            @if (CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin)
+                            {
+                                <a href="#." id="btnEnableLocation" class="btn btn-primary mlm5" title="@Resource.lblEnableDriverLocationDesc" rel="tooltip" data-placement="bottom" data-html="true"><i class="fa fa-map-marker-alt fs14 float-left mt6"></i></a>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="text-right">
+                        @Html.ValidationMessageFor(m => m.SelectedDrivers)
+                    </div>
+                </div>
+
+            </div>
+           
+           
+        </div>
+        <div class="col-sm-2">
+            <div class="pull-right dib">
+                <a href="#." class="color-grey fs18 ml5 toggle-tiledata" onclick="toggleData(this,'@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Dispatch.ToString())'); updateTileSetting(this, false);"><i class="fa @(Model.IsDispatchTileCollapsed ? " fa-chevron-circle-down" : "fa-chevron-circle-up")"></i></a>
+                <a href="#." class="color-grey fs18 ml5" onclick="removeTile(this,'@CommonHelperMethods.GenerateTileId(@SupplierDashboardTiles.Dispatch.ToString())'); updateTileSetting(this, true);"><i class="fa fa-times-circle"></i></a>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="wrapper-jobs tile-content @(Model.IsDispatchTileCollapsed ? "hide-element" : "")">
+    <div class="row mt15">
+        <div class="col-sm-12">
+            @Html.Partial("_PartialWhereIsMyDriverMapView")
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+            <h4 class="font-bold mb5 pt0">@Resource.headingCurrentDrop</h4>
+            <div id="currentDriverDrop"></div>
+        </div>
+        <div class="col-sm-6">
+            <h4 class="font-bold mb5 pt0">@Resource.headingNextDrop</h4>
+            <div id="nextDriverDrop"></div>
+        </div>
+    </div>
+    <div class="row mt15">
+        <div class="col-sm-12 text-right">
+            <a id="btnViewSchedule" class="pull-right mt2" href="@Url.Action("Index", "Dispatch", new { area = "Supplier", isScheduleTab = true })">@Resource.btnLabelViewSchedule</a>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=@(SiteFuel.Exchange.Core.Utilities.AppSettings.GoogleMapApiKey)"></script>
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('[rel="tooltip"]').tooltip({
+                trigger: 'hover'
+            });
+			$('#SelectedDrivers').multiselect({
+				maxHeight: 200,
+				includeSelectAllOption: true,
+                nonSelectedText: '@Resource.lblSelectDriver',
+				buttonWidth: '125px'
+			});
+
+            $("#currentDriverDrop").html("@Resource.lblHyphen");
+            $("#nextDriverDrop").html("@Resource.lblHyphen");
+
+			$('#SelectedDrivers').change(function () {
+				UpdateUrl();
+				ReloadDropData();
+			});
+		});
+
+		function UpdateUrl()
+		{
+			var drivers = $('#SelectedDrivers').val();
+			$('#btnViewSchedule').attr('href', encodeURI('@Url.Action("Index", "Dispatch", new { area = "Supplier", isScheduleTab = true })&selectedDrivers=' + drivers.join(",")));
+            $('#compose-message').attr('href', encodeURI('@Url.Action("Compose", "Mailbox", new { area = "Messages", composeType = AppMessageComposeType.Draft })&queryType=@AppMessageQueryType.Dispatch&recipients=' + drivers.join(",")));
+
+            if (drivers.length > 0) {
+                validationMessageFor('@Html.NameFor(m => m.SelectedDrivers)', '');
+            }
+		}
+
+		function ReloadDropData()
+		{
+			var selected = $("#SelectedDrivers").val();
+			if (selected.length == 1)
+			{
+                $.post({
+					url: "@Url.Action("GetCurrentDriverDropDetailsForMap", "Dispatch",new { area = "Supplier" })",
+                    data:
+						{
+                        driverId: selected,
+                        currency: $('#Country_Currency').val(),
+                        countryId: $('#Country_Id').val()
+						},
+                    traditional: true,
+                    success: function(response) {
+						if ($("#SelectedDrivers").val().length == 1) {
+                            $.each(response, function(i, element) {
+								$("#currentDriverDrop").html(element.Customer + " @Resource.lblSingleHyphen " + element.Location + " @Resource.lblSingleHyphen " + element.ScheduleTime);
+							});
+						}
+					}
+				});
+
+				$.post({
+					url: "@Url.Action("GetNextDriverDropDetailsForMap", "Dispatch",new { area = "Supplier" })",
+                    data: {
+                        driverId: selected,
+                        currency: $('#Country_Currency').val(),
+                        countryId: $('#Country_Id').val()
+                    },
+                    traditional: true,
+                    success: function(response) {
+                        if ($("#SelectedDrivers").val().length == 1) {
+                            $.each(response, function(i, element) {
+                                $("#nextDriverDrop").html(element.Customer + " @Resource.lblSingleHyphen " + element.Location + " @Resource.lblSingleHyphen " + element.ScheduleTime);
+                            });
+                            if (response.length == 0)
+                            {
+                                $("#nextDriverDrop").html("@Resource.lblNoScheduleDelivery");
+                            }
+                        }
+                    }
+                });
+            }
+            else
+            {
+                $("#currentDriverDrop").html("@Resource.lblHyphen");
+                $("#nextDriverDrop").html("@Resource.lblHyphen");
+			}
+        };
+
+
+        function ReloadDropDataOnMouseOver(selected)
+        {
+             $("#currentDriverDrop").html("@Resource.lblHyphen");
+             $("#nextDriverDrop").html("@Resource.lblHyphen");
+
+            $.post({
+				url: "@Url.Action("GetCurrentDriverDropDetailsForMap", "Dispatch",new { area = "Supplier" })",
+                data:
+					{
+						driverId: selected
+					},
+                traditional: true,
+                success: function(response) {
+                    $.each(response, function(i, element) {
+						$("#currentDriverDrop").html(element.Customer + " @Resource.lblSingleHyphen " + element.Location + " @Resource.lblSingleHyphen " + element.ScheduleTime);
+					});
+				}
+			});
+
+            $.post({
+                url: "@Url.Action("GetNextDriverDropDetailsForMap", "Dispatch",new { area = "Supplier" })",
+                data: { driverId: selected },
+                traditional: true,
+                success: function (response) {
+                    $.each(response, function (i, element) {
+                        $("#nextDriverDrop").html(element.Customer + " @Resource.lblSingleHyphen " + element.Location + " @Resource.lblSingleHyphen " + element.ScheduleTime);
+                    });
+                    if (response.length == 0) {
+                        $("#nextDriverDrop").html("@Resource.lblNoScheduleDelivery");
+                    }
+                }
+            });
+        };
+
+        $("#btnEnableLocation").on("click", function () {
+
+            var selected = $("#SelectedDrivers").val();
+
+            if (selected.length == 0) {
+                validationMessageFor('@Html.NameFor(m => m.SelectedDrivers)',
+                    '@ResourceMessages.GetMessage(Resource.valMessageSelectDrivers)');
+            }
+            else {
+                var url = '@Url.Action("NotificationToDriver", "Dispatch", new { area="Supplier" })';
+                var data = {
+                    driverIds : selected
+                };
+                $.post(url, data).done(function (response) {
+                    showSuccessErrorMsg(response);
+                });
+            }
+        });
+    </script>
+}

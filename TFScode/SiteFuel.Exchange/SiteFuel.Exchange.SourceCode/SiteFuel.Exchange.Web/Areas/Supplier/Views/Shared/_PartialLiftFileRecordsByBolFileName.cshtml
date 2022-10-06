@@ -1,0 +1,112 @@
+﻿@model LFRecordsGridViewModel
+
+<div class="col-sm-12 pr">
+    <div class="well bg-white shadow-b">
+        <div class="ibox mb0">
+            <div class="ibox-content no-border no-padding">
+                <div id="LFSearchrecord-div" class="table-responsive">
+                    <table id="tbl-LFrecordSearch-grid" class="table table-striped table-bordered table-hover lfvrecodegrid">
+                        <thead>
+                            <tr>
+                                <th>@Resource.lblLiftCallId</th>
+                                <th>@Resource.lblBOL</th>
+                                <th>@Resource.lblTerminals</th>
+                                <th>@Resource.lblTerminalItemCode</th>
+                                <th>@Resource.lblGridLfvFileName</th>
+                                <th>@Resource.lblLoadDate</th>
+                                <th>@Resource.lblRecordDate</th>
+                                <th>@Resource.lblLFVCarrierId</th>
+                                <th>@Resource.lblStatus</th>
+                                <th>@Resource.lblReason</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+       // CallID, BOL#, TerminalCode, TerminalItemCode, CarrierID, LoadDate, Status, Reason
+        var bol = "@Model.bol";
+        var fileName = "@Model.FileName";
+        var url = '@Url.Action("LFRecordsGridByBolFileName", "LiftFile", new { area = "Supplier" })';
+        url += '?bol=' + bol + '&fileName=' + fileName;
+         LFSearchGrid = $('#tbl-LFrecordSearch-grid').DataTable({
+            "ajax": {
+                "url": url,
+                "type": "GET",
+                "datatype": "json",
+                "data": function () {
+                    $('#LFSearchrecord-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "dataSrc": function (json) {
+                    $("#LFSearchrecord-div").find('.loading-wrapper').remove();
+                    return json;
+                }
+            },
+            "columns": [
+                { "data": "CallId", "autoWidth": true },
+                { "data": "bol", "autoWidth": true },
+                { "data": "TerminalName", "autoWidth": true },
+                { "data": "TerminalItemCode", "autoWidth": true },
+                { "data": "FileName", "autoWidth": true },
+                { "data": "LoadDate", "autoWidth": true },
+                { "data": "RecordDate", "autoWidth": true },
+                { "data": "CarrierID", "autoWidth": true },
+                { "data": "recordStatus", "autoWidth": true },
+                { "data": "Reason", "autoWidth": true }
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "fnDrawCallback": function (settings) {
+                $('[data-toggle=confirmation]').confirmation({
+                    rootSelector: '[data-toggle=confirmation]',
+                    html: true
+                });
+            },
+            "columnDefs": [
+                { "name": "CallId", "targets": 0},
+                { "name": "bol", "targets": 1 },
+                { "name": "TerminalName", "targets": 2 },
+                { "name": "TerminalItemCode", "targets": 3 },
+                { "name": "FileName", "targets":4 },
+                { "name": "LoadDate", "targets": 5 },
+                { "name": "RecordDate", "targets": 6 },
+                { "name": "CarrierID", "targets": 7 },
+                { "name": "recordStatus", "targets": 8 },
+                { "name": "Reason", "targets": 9 }
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                //{ extend: 'copy' },
+                { extend: 'csv', title: '@Resource.lblLiftFileGrid', exportOptions: exportGridColumns },
+                { extend: 'excel', title: '@Resource.lblLiftFileGrid', exportOptions: exportGridColumns },
+                {
+                    extend: 'print',
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('lfvrecodegrid')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                },
+                { extend: 'pdf', orientation: 'landscape', pageSize: 'LETTER' }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+
+    });
+</script>
+
+

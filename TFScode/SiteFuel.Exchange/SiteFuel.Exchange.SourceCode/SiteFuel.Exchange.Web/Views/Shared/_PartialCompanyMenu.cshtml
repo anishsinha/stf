@@ -1,0 +1,216 @@
+﻿@using SiteFuel.Exchange.Domain
+@if (CurrentUser.Identity.IsAuthenticated && !(CurrentUser.IsSuperAdmin || CurrentUser.IsAccountSpecialist))
+{
+	<li class="float-left">
+        <div class="dropdown pr-0 ml-3 mt-2">
+            <a href="javascript:void(0)" id="company-menu" data-toggle="dropdown" class="nav-icons user-profile mt-0 pr fs15 d-inline-block text-center border-0">
+                <span class="fas fa-cog d-inline-block fs14 text-white mt-2"></span>    
+            </a>
+            <ul class="dropdown-menu dropdown-menu-right company-dropdown mt15">
+                <li class="dropdown-item">
+                    <img src="~/Content/images/ico-droparrow.png" class="right-droparrow pa" />
+                    <a href="@Url.Action("CompanyInformation", "Profile", new { area = "Settings" })" class="db">
+                        <span><i class="fa fa-briefcase mt-1 fs16"></i></span>
+                        @Resource.headingCompanyProfileAndBillingAddress
+                    </a>
+                </li>
+                <li class="dropdown-item">
+                    <a href="@Url.Action("CompanyAddresses", "Profile", new { area = "Settings" })" class="db">
+                        <span><i class="fa fa-building fs16 "></i></span>
+                        @Resource.btnLabelAddresses
+                    </a>
+                </li>
+                @if (!CurrentUser.IsDriver)
+                {
+                    if (CurrentUser.IsCarrierAdmin || CurrentUser.IsCarrier || CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier || CurrentUser.IsDispatcher || CurrentUser.IsSalesUser)
+                    {
+                        <li class="dropdown-item">
+                            <a href="@Url.Action("View", "Region" , new { area="Supplier" })" class="db">
+                                <span><i class="fa fa-map-marked-alt fs16"></i></span>
+                                @Resource.lblRegions
+                            </a>
+                        </li>
+                    }
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("CompanyUsers", "Profile", new { area = "Settings" })" class="db">
+                            <span><i class="fa fa-users fs16"></i></span>
+                            @Resource.btnLabelUsers
+                        </a>
+                    </li>
+                }
+                @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+                {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("CompanyNotificationSettings", "Profile", new { area = "Settings" })" data-page-code="@FeatureTypes.ManageSMSAlerts.ToString()" class="db feature-setting-@((int)CurrentUser.CompanyId)">
+                            <span><i class="fa fa-sms fs16"></i></span>
+                            @Resource.btnLabelManageAlerts
+                        </a>
+                    </li>
+                }
+                @if (CurrentUser.IsSupplierCompany || CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierCompany)
+                {
+                    if (!CurrentUser.IsSalesUser)
+                    {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("DriverManagement", "Profile", new { area = "Settings" })" class="db">
+                            <span><i class="fas fa-truck fs16"></i></span>
+                            @Resource.headingDrivers
+                        </a>
+                    </li>
+                    }
+                }
+                @if (CurrentUser.IsSupplierCompany || CurrentUser.IsSupplier || CurrentUser.IsSupplierAdmin)
+                {
+                    if (!CurrentUser.IsSalesUser)
+                    {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("PreferencesSetting", "Profile", new { area = "Settings" })" class="db">
+                            <span><i class="fas fa-cogs fs16"></i></span>
+                            @Resource.lblPreferencesAndFeatureSetting
+                        </a>
+                    </li>
+                    }
+                }
+                @*<li class="divider"></li>
+            @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+            {
+                <li>
+                    <a href="@Url.Action("CompanyPaymentDetails", "Profile", new { area = "Settings" })" class="db">
+                        <span><i class="fa fa-credit-card fs16 mt2"></i></span>
+                        @Resource.btnLabelPayments
+                    </a>
+                </li>
+            }*@
+                @*<li>
+                <a href="@Url.Action("BillingAddress", "Profile", new { area = "Settings" })" title="@Resource.lblCompanyBillingAddress" class="db">
+                    <span><i class="fa fa-money fs16"></i></span>
+                    @Resource.lblBillingAddress
+                </a>
+            </li>*@
+                @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+                {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("CompanySubGroup", "Profile", new { area = "Settings" })" data-page-code="@FeatureTypes.AccountGroup.ToString()" class="db feature-setting-@((int)CurrentUser.CompanyId)">
+                            <span><i class="fa fa-chain fs16"></i></span>
+                            @Resource.lblAccountGroup
+                        </a>
+                    </li>
+                }
+                @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin)
+                {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("QuickBooksAccount", "Profile", new { area = "Settings" })" data-page-code="@FeatureTypes.QuickBooks.ToString()" class="db feature-setting-@((int)CurrentUser.CompanyId)">
+                            <span><i class="fas fa-file-invoice-dollar fs18 mt3"></i></span>
+                            @Resource.headingQuickbooksProfile
+                        </a>
+                    </li>
+                }
+                @if (@AvalaraConfigSettings.TaxExemptionEnabled)
+                {
+                    if (!CurrentUser.IsSalesUser)
+                    {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("CompanyTaxes", "TaxExemption", new { area = "Settings" })" class="db">
+                            <span><i class="fa fa-cut fs16"></i></span>
+                            @Resource.lblTaxesandpayments
+                        </a>
+                    </li>
+                    }
+                }
+                <li class="divider"></li>
+                @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer || CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)
+                {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("PrivateSupplierListGrid", "Profile", new { area = "Settings" })" class="db">
+                            <span><i class="fas fa-user-check fs16"></i></span>
+                            @Resource.btnLabelPrivateSupplierLists
+                        </a>
+                    </li>
+                }
+                @*@if (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier)
+            {
+                <li>
+                    <a href="@Url.Action("Manage", "Exception", new { area = "Supplier" })" class="db">
+                        <span><i class="fas fa-exclamation fs16"></i></span>
+                        @Resource.lblManageExceptions
+                    </a>
+                </li>
+            }
+            @if (CurrentUser.IsBuyer || CurrentUser.IsBuyerAdmin)
+            {
+                <li>
+                    <a href="@Url.Action("Manage", "Exception", new { area = "Buyer" })" class="db">
+                        <span><i class="fas fa-exclamation fs16"></i></span>
+                        @Resource.lblManageExceptions
+                    </a>
+                </li>
+            }*@
+                @if (!CurrentUser.IsDriver)
+                {
+                    if (!CurrentUser.IsSalesUser)
+                    {
+
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("InvitedCompanies", "Profile", new { area = "Settings" })" class="db">
+                            <span><i class="fas fa-handshake-o fs16"></i></span>
+                            @Resource.btnLabelInviteCompanies
+                        </a>
+                    </li>
+                    <li class="dropdown-item">
+                        <a id="BlacklistCompany" href="@Url.Action("CompanyBlacklist", "Profile", new { area = "Settings" })" class="db">
+                            <span><i class="fas fa-ban fs16"></i></span>
+                            @Resource.btnLabelCompanyBlackList
+                        </a>
+                    </li>
+                    }
+                }
+                @if (CurrentUser.IsBuyerCompany && !CurrentUser.IsDriver)
+                {
+                    <li class="dropdown-item">
+                        <a id="favoriteFuels" href="@Url.Action("FavoriteFuels", "Profile", new { area = "Settings" })" class="db">
+                            <span><i class="fas fa-star fs16"></i></span>
+                            @Resource.btnLabelFavoriteFuels
+                        </a>
+                    </li>
+                }
+                @if (CurrentUser.IsBuyerCompany && (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer || CurrentUser.IsAccountingPerson))
+                {
+                    <li class="dropdown-item">
+                        <a id="externalIdentity" href="@Url.Action("ExternalIdentity", "Profile", new { area = "Settings" })" data-page-code="@FeatureTypes.BuyerQuestMapping.ToString()" class="pl30 db feature-setting-@((int)CurrentUser.CompanyId)">
+                            <span><i class="far fa-id-badge fs16"></i></span>
+                            @Resource.btnLabeEexternalIdentity
+                        </a>
+                    </li>
+                }
+                @*@if (CurrentUser.IsSupplierCompany)
+            {
+                <li>
+                    <a href="@Url.Action("CreditApp", "Profile", new { area = "Settings" })" class="db">
+                        <span><i class="fas fa-money-check fs16"></i></span>
+                        @Resource.btnLabelCreditApp
+                    </a>
+                </li>
+            }*@
+                @if (CurrentUser.IsSupplierAdmin)
+                {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("TimeCardSetting", "Profile", new { area = "Settings" })" data-page-code="@FeatureTypes.TimeCard.ToString()" class="db feature-setting-@((int)CurrentUser.CompanyId)">
+                            <span><i class="fas fa-user-clock fs16 ml5"></i></span>
+                            @Resource.btnLabelTimeCardSetting
+                        </a>
+                    </li>
+                }
+                @if (CurrentUser.IsBuyerAdmin)
+                {
+                    <li class="dropdown-item">
+                        <a href="@Url.Action("CompanyFeatures", "Profile" , new { area="Settings" })" class="db">
+                            <span><i class="fas fa-cogs fs16"></i></span>
+                            @Resource.lblFeaturesSetting
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+	</li>
+}
+

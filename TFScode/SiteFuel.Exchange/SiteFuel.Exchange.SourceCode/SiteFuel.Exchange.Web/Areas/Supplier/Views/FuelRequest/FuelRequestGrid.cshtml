@@ -1,0 +1,91 @@
+﻿@model FuelRequestFilterViewModel
+@{
+    ViewBag.Title = "Fuel Requests / Nominations";
+}
+<div class="row">
+    <div class="col-sm-3 col-12 pr0">
+        <h3 class="mt0 pt10 f-light pb0 fs18">@Resource.headingFuelRequestNominationSummary</h3>
+    </div>
+    <div class="col-sm-4 col-md-3">
+        <div class="row">
+            <div class="col-sm-4 col-md-4 pr0 text-right">
+                <label class="pt5 mt3">@Resource.lblAddress</label>
+            </div>
+            <div class="col-sm-8 mb10">
+                @Html.DropDownList(Resource.lblAddress, new SelectList(CommonHelperMethods.GetAddresses(CurrentUser.CompanyId), "Id", "Name", 0), new { @class = "form-control" })
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-7 col-md-3 col-12 mb10">
+        <div class="btn-group float-left btn-toggle btn-group-toggle" data-toggle="buttons">
+            <label class="btn broadcast-type active">
+                <input type="radio" name="options" id="@(BroadcastType.All)" checked> @Resource.lblAll
+            </label>
+            <label class="btn">
+                <input type="radio" name="options" id="@(BroadcastType.Public)"> @Resource.lblPublic
+            </label>
+            <label class="btn">
+                <input type="radio" name="options" id="@(BroadcastType.Private)"> @Resource.lblPrivate
+            </label>
+        </div>
+        <span class='spinner-small fr-type float-right ml10 mt5'></span>
+    </div>
+    <div class="col-sm-5 col-md-3">
+        @Html.PartialFor("~/Views/Shared/_PartialCurrencyFilter.cshtml", m => m.Country)
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-sm-12">
+        <div class="well pb10 mb0">
+            <div class="row">
+                <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSupplierFRFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtSupplierFRToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                <div class="col-xs-12 col-sm-4 col-md-3">
+                    <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="ReloadDataTable();" />
+                    <input type="button" class="btn ml5" value="@Resource.btnLabelClearFilter" onclick="ClearFilter();" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            @Html.Partial("_PartialFuelRequestGrid", Model)
+        </div>
+    </div>
+</div>
+<div class="row mt10">
+    <div class="col-sm-12">
+        <h3 class="mt0 pt8 f-light fs18 float-left">@Resource.headingCounterOffers</h3>
+        <a onclick="ReloadCounterOfferGrid(0)" class="float-left ml20 mt8">@Resource.btnLabelViewAll</a>
+    </div>
+</div>
+    <div class="row" id="CounterOfferGrid">
+        @Html.Partial("_PartialCounterOfferGrid", Model)
+    </div>
+<script type="text/javascript">
+    var ClearFilter;
+
+    $(document).ready(function () {
+        $('#txtSupplierFRFromDate').val(GetLocalStorage('txtSupplierFRFromDate'));
+        $('#txtSupplierFRToDate').val(GetLocalStorage('txtSupplierFRToDate'));
+
+        ClearFilter = function () {
+            $('#txtSupplierFRFromDate').val('');
+            $('#txtSupplierFRToDate').val('');
+            $('#txtSupplierFRToDate').data("DateTimePicker").minDate($("#txtSupplierFRFromDate").datetimepicker("minDate"));
+            ReloadDataTable();
+        }
+
+        if ($('#txtSupplierFRFromDate').length > 0 && $('#txtSupplierFRToDate').length > 0) {
+            $("#txtSupplierFRFromDate").on('dp.change dp.show', function (e) {
+                if (e.date == false)
+                    $('#txtSupplierFRToDate').data("DateTimePicker").minDate($("#txtSupplierFRFromDate").datetimepicker("minDate"));
+                else
+                    $('#txtSupplierFRToDate').data("DateTimePicker").minDate(moment($('#txtSupplierFRFromDate').val()));
+            });
+        }
+    });
+</script>

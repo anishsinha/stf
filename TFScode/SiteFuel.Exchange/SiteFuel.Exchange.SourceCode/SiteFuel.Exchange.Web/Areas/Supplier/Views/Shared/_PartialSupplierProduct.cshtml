@@ -1,0 +1,114 @@
+﻿@model SiteFuel.Exchange.ViewModels.SupplierProductViewModel
+@using (Html.BeginCollectionItem("SupplierProducts"))
+{
+    var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+    var randomNum0999 = (new Random()).Next(0, 999);
+    @Html.HiddenFor(m => m.Id)
+    @Html.HiddenFor(m => m.AssignCompanyId)
+    @Html.HiddenFor(m => m.DisplayMode)
+            <div class="partial-block radius-5">
+                <div class="row mb15">
+                    <div class="well col-sm-12 mb0">
+                        <div class="row">
+                            <div class="col-sm-3" id="newMappingProduct">
+                                @Html.LabelFor(m => m.AssignedName)<span class="pl4 color-red">*</span>
+                                @Html.TextBoxFor(m => m.AssignedName, new { @class = "form-control assign-name" , placeholder = Resource.lblAssignName })
+                                @Html.ValidationMessageFor(m => m.AssignedName)
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.TerminalId)<span class="pl4 color-red">*</span>
+                                    @Html.DropDownListFor(m => m.TerminalId, new SelectList(CommonHelperMethods.GetSupplierTerminals(Model.AssignCompanyId), "Id", "Name", Model.TerminalId), Resource.lblSelectTerminal, new { @id = "dllGetAllTerminals", @class = "select2_demo_3 form-control supplier-terminalddl" })
+                                    @Html.ValidationMessageFor(m => m.TerminalId)
+                                    @Html.HiddenFor(m => m.TerminalId)
+                                </div>
+                            </div>
+                            @if (Model.DisplayMode == PageDisplayMode.Create)
+                            {
+                                <div class="col-sm-6 text-right">
+                                    <a href="javascript:void(0)" class="btn btn-default label-danger btn-sm" id="removeProduct" title="@Resource.btnLabelRemove" onclick="removePartial(this);">Remove</a>
+                                </div>
+                            }
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div id="supplier-fuelDetails-section-@randomNum0999" class="partial-section mirror">
+                                    <div class="partial-block-collection-section" id="addAnotherFuelDetails">
+                                        @if (Model.ProductMappingFuelTypeDetailsViewModels != null && Model.ProductMappingFuelTypeDetailsViewModels.Any())
+                                        {                                           
+                                            foreach (var fuelTypeDetails in Model.ProductMappingFuelTypeDetailsViewModels)
+                                            {
+                                                fuelTypeDetails.CollectionHtmlPrefix = prefix;
+                                                Html.RenderPartial("_PartialProductMappingFuelDetails", fuelTypeDetails);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Html.RenderPartial("_PartialProductMappingFuelDetails", new ProductMappingFuelTypeDetailsViewModel { CompanyId = Model.AssignCompanyId, CollectionHtmlPrefix = prefix });
+                                        }
+                                    </div>
+                                    <a href="javascript:void(0)" class="add-partial-block" id="addNewFuelDetails" data-url="@Url.Action("ProductMappingFuelTypeDetails", "ProductMapping", new { area = "Supplier", prefix = prefix })"><span class="fa fa-plus-circle"></span> @Resource.lblAddFuelType</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+ }
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        if (@Html.Raw(Model.DisplayMode == PageDisplayMode.Create)) {
+           // $('.assign-name').prop("readonly", false);
+        }
+        else {
+         //  $('.supplier-terminalddl option:not(:selected)').prop('disabled', true);
+        //    $('.fuelType-ddl option:not(:selected)').prop('disabled', true);
+            $('.supplier-terminalddl').prop("disabled", true);
+           // $('.assign-name').prop("readonly", true);
+        }
+
+        $("#IsExistingAssignedName").on('click', function () {
+            if ($(this).is(":checked")) {
+                $("#existingMappedProduct").show();
+                $("#newMappingProduct").hide();
+                $('.removebutton').hide();
+            }
+            else {
+                $("#newMappingProduct").show();
+                $("#existingMappedProduct").hide();
+                $('.removebutton').show();
+            }
+        });
+
+        $(".select2_demo_3").select2({
+            allowClear: true
+        });
+
+        function getFuelDetailsTypeOption(ctrl) {
+            var target = $(ctrl).closest(".fuelDetails-type-row").find('.fuelType-ddl');
+            var FuelDetailsTypeId = $(ctrl).val(), FuelDetailsTargetTypeId = target.val();
+            if (FuelDetailsTargetTypeId == null) { FuelDetailsTargetTypeId = ""; }
+            if (FuelDetailsTypeId == undefined || FuelDetailsTypeId == '' || FuelDetailsTypeId == null) {
+                target.empty();
+            }
+        }
+
+        function hidePrevFuelDetailsTypeOption(elemt) {
+            var fuelDetailsTypeddls = $('.fuelDetails-type-row .fuelType-ddl');  
+            var currentddl = $(elemt).parents('.fuelDetails-types').find('select.fuelType-ddl');
+            $.each(fuelDetailsTypeddls, function (idx, dropdown) {
+                var selected = $(dropdown).val();
+                if (selected != null && selected != undefined && selected != '' && !$(dropdown).is(currentddl)) {
+                    var elemtToRemove = currentddl.find("option[value='" + selected + "']");
+                    elemtToRemove.remove();
+                }
+            });
+        }
+
+       //$(document).on('select2:open', '.fuelType-ddl', function () { hidePrevFuelDetailsTypeOption(this); });
+       $(document).on('focus', '.fuelType-ddl', function () { hidePrevFuelDetailsTypeOption(this); });
+       $(document).on('change', '.fuelType-ddl', function () { getFuelDetailsTypeOption(this); });
+    });
+
+</script>

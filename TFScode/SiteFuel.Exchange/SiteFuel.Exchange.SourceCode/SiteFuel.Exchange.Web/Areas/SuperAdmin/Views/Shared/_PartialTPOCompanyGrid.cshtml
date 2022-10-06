@@ -1,0 +1,126 @@
+﻿@model CompanyFilterType
+
+<div class="col-sm-12">
+    <div class="well bg-white shadow-b">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-border no-padding">
+                        <div id="superadmin-tpocompanies-div" class="table-responsive">
+                            <table id="superadmintpocompany-datatable" class="table table-striped table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.gridColumnName</th>
+                                        @*<th>@Resource.gridColumnAddress</th>*@
+                                        <th>@Resource.gridColumnAddedBy</th>
+                                        <th>@Resource.gridColumnSupplierName</th>
+                                        <th>@Resource.gridColumnDateAdded</th>
+                                        <th>@Resource.gridColumnDateInvitationSent</th>
+                                        <th class="text-center">@Resource.gridColumnOnboarded</th>
+                                        <th class="text-center">@Resource.lblIsDeleted</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+
+        var superadmintpocompanyDataTable, element, exportcompanyColumns = { columns: [0, 1, 2] };
+
+        $(document).ready(function () {
+
+            superadmintpocompanyDataTable = $('#superadmintpocompany-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetCompaniesCreatedByTPO", "SuperAdmin", new { area ="SuperAdmin" , filter = Model })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "traditional": true,
+                    "data": function (d) {
+                            d.startDate = $('#txtSuperadminTPOCompanyFromDate').val(),
+                            d.endDate = $('#txtSuperadminTPOCompanyToDate').val(),
+                            $('#superadmin-tpocompanies-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                    },
+                    "dataSrc": ""
+                },
+                "columns": [
+                  {
+                        "data": function (data, type, row, meta)
+                        {
+                             var ViewCompanyInfoUrl = '@Url.Action("CompanyDetails", "SuperAdmin", new { area = "SuperAdmin" })';
+                            return '<a href=' + ViewCompanyInfoUrl + '?id=' + data.Id +'&isTPOCompany=true>'+ data.Name +'</a>';
+                        }, "autoWidth": true
+                    },
+                   @*{
+                        "data": function (data, type, row, meta)
+                        {
+                            var ViewCompanyInfoUrl = '@Url.Action("CompanyAddresses", "Profile", new { area = "Settings" })' + '/' + data.Id;
+                             return data.Address != null && data.Address != "" ?  data.Address  : '@Resource.lblHyphen';
+                        }, "autoWidth": true
+                    },*@
+                    { "data": "AddedBy", "autoWidth": true },
+                    { "data": "SupplierName", "autoWidth": true },
+                    { "data": "AddedDate", "autoWidth": true, "sType": "date" },
+                    { "data": "InvitationSentDate", "autoWidth": true, "sType": "date" },
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            var checked = data.IsOnboardingComplete ? "checked=\"checked\"" : "";
+                            var columnCtrl = '<input type = "checkbox" " + disabled = \"disabled\ + " ' + checked + '></input>';
+                            return columnCtrl;
+                        }, "width": "50px", "bSortable": false, className:"text-center"
+                    },
+                    {
+                        "data": function (data, type, row, meta) {
+                            var checked = data.IsDeleted ? "checked=\"checked\"" : "";
+                            var columnCtrl = '<input type = "checkbox" " + disabled = \"disabled\ + " ' + checked + '></input>';
+                            return columnCtrl;
+                        }, "width": "50px", "bSortable": false, className: "text-center"
+                    },
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    $('[data-toggle=confirmation]').confirmation({
+                        rootSelector: '[data-toggle=confirmation]'
+                    });
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingCompanyDetails', exportOptions: exportcompanyColumns },
+                    { extend: 'excel', title: '@Resource.headingCompanyDetails', exportOptions: exportcompanyColumns },
+                    { extend: 'pdf', title: '@Resource.headingCompanyDetails', exportOptions: exportcompanyColumns },
+                    {
+                        extend: 'print', exportOptions: exportcompanyColumns,
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                @*language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }*@
+
+            });
+        });
+
+        $(document).ajaxComplete(function () {
+            $("#superadmin-tpocompanies-div").find('.loading-wrapper').remove();
+        });
+
+        function OnboardCompany(element) {
+            var url = $(element).data('url');
+            window.location.href = url;
+        }
+    </script>
+}
+

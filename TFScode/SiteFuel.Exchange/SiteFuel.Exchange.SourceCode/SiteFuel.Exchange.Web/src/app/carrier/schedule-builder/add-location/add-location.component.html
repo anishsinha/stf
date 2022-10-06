@@ -1,0 +1,1236 @@
+<div class="add-location-container">
+    <a (click)="openPanel()" placement="bottom" ngbTooltip="Add a New TPO Location" class="btn border border-secondary pull-right"><i class="fa fa-map-marker-alt fs18"></i></a>
+
+    <div *ngIf="_initiated">
+        <ng-sidebar-container style="z-index: 99;">
+            <ng-sidebar [(opened)]="_opened" [animate]="true" [position]="'right'" [showBackdrop]="true"
+                        style="height: 100vh">
+                <div class="loader" *ngIf="_loading">
+                    <div class="loading-content text-center">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+                <div class="header-panel">
+                    <div class="heading">
+                        <a (click)="_opened=false"><i class="fa fa-close fs18 float-left mr10 mt3"></i></a>
+                        <h3 *ngIf="!IsTBDRequest" class="dib title">Add Location</h3>
+                        <h3 *ngIf="IsTBDRequest" class="dib title">Add Location (TBD)</h3>
+                    </div>
+
+                    <form [formGroup]="locationForm">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="row" formGroupName="CustomerDetails">
+                                    <div class="col-12">
+                                        <div class="well col-sm-12">
+                                            <h4>Customer Information</h4>
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" formControlName="IsNewCompany"
+                                                               id="radio-newcustomer" type="radio" [value]="true"
+                                                               (change)="newCompanyChecked(true)">
+                                                        <label class="form-check-label"
+                                                               for="radio-newcustomer">New</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" id="radio-existingcustomer"
+                                                               formControlName="IsNewCompany" type="radio" [value]="false"
+                                                               (change)="newCompanyChecked(false)">
+                                                        <label class="form-check-label"
+                                                               for="radio-existingcustomer">Existing</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-sm-4 col-md-3">
+                                                    <div class="form-group mb0">
+                                                        <label for="CustomerDetails_CompanyName">
+                                                            Company Name<span class="required pl4"
+                                                                              aria-required="true">*</span>
+                                                        </label>
+                                                        <div class="mtm1 new-CompanyName"
+                                                             *ngIf="f.CustomerDetails['controls']['IsNewCompany'].value">
+                                                            <input class="form-control" id="CustomerDetails_CompanyName"
+                                                                   formControlName="CompanyName" placeholder="Company"
+                                                                   type="text" value="" (change)="isCompanyExits()">
+                                                            <div *ngIf="formSubmited && f.CustomerDetails.get('CompanyName').errors">
+                                                                <span class="text-danger"
+                                                                      *ngIf="f.CustomerDetails.get('CompanyName').errors?.required">
+                                                                    Company
+                                                                    Name is required
+                                                                </span>
+                                                            </div>
+                                                            <div *ngIf="isCompanyNameExist && !f.CustomerDetails.get('CompanyName').errors">
+                                                                <span class="text-danger">
+                                                                    Company already
+                                                                    exists
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="existing-CompanyName"
+                                                             *ngIf="f.CustomerDetails['controls']['IsNewCompany'].value!=true">
+                                                            <!-- {{f.CustomerDetails.get('CompanyId').value}} -->
+
+
+                                                            <ng-multiselect-dropdown class="single-select"
+                                                                                     style="width: 100%;"
+                                                                                     [settings]="CompDdlSetting"
+                                                                                     [data]="AllTPOCompaniesList"
+                                                                                     (onSelect)="onCompSelect($event, true)"
+                                                                                     (onDeSelect)="onCompSelect($event, false)">
+                                                            </ng-multiselect-dropdown>
+
+                                                            <div *ngIf="formSubmited && f.CustomerDetails.get('CompanyId').errors">
+                                                                <span class="text-danger"
+                                                                      *ngIf="f.CustomerDetails.get('CompanyId').errors?.required">
+                                                                    Company is required
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-8 col-md-9">
+                                                    <div class="row">
+                                                        <div class="col-sm-4 new-company"
+                                                             *ngIf="f.CustomerDetails.get('CompanyId').value==null || f.CustomerDetails.get('IsNewCompany').value || (!f.CustomerDetails.get('IsNewCompany').value && f.CustomerDetails.get('IsNewUser').value)">
+                                                            <div class="form-group">
+                                                                <div id="newContactPersonInput">
+                                                                    <label for="CustomerDetails_Name">
+                                                                        Contact
+                                                                        Person<span class="required pl4"
+                                                                                    aria-required="true">*</span>
+                                                                    </label>
+                                                                    <input class="form-control newContactPerson"
+                                                                           id="CustomerDetails_Name" formControlName="Name"
+                                                                           placeholder="Contact Person" type="text"
+                                                                           value="">
+                                                                    <div *ngIf="formSubmited && f.CustomerDetails.get('Name').errors">
+                                                                        <span class="text-danger"
+                                                                              *ngIf="f.CustomerDetails.get('Name').errors?.required">
+                                                                            Contact Person is required
+                                                                        </span>
+                                                                    </div>
+                                                                    <a id="useExisting" class=""
+                                                                       *ngIf="f.CustomerDetails.get('IsNewCompany').value!=true && f.CustomerDetails.get('IsNewUser').value && f.CustomerDetails.get('CompanyId').value!=null"
+                                                                       (click)="clickNewPerson(false)">
+                                                                        <span class="fa fa-arrow-left mt7"></span> Use
+                                                                        Existing
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4 existing-company"
+                                                             *ngIf="(f.CustomerDetails.get('CompanyId').value!=null && !f.CustomerDetails.get('IsNewCompany').value && !f.CustomerDetails.get('IsNewUser').value)">
+                                                            <div class="pa bg-white top0 left0 z-index5 loading-wrapper customer-contact hide-element">
+                                                                <span class="spinner-dashboard pa"></span>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <div id="existingContactPersonDropdown">
+
+                                                                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper mtm10 loader-fueltype"
+                                                                         *ngIf="_isLoadingPerson">
+                                                                        <span class="spinner-dashboard pa"></span>
+                                                                    </div>
+
+                                                                    <label for="CustomerDetails_Name">
+                                                                        Contact
+                                                                        Person
+                                                                    </label>
+                                                                    <select class="form-control existingContactPerson"
+                                                                            id="CustomerDetails_UserId"
+                                                                            formControlName="UserId"
+                                                                            (change)="getTPOContactPersonDetails($event.target.value)">
+                                                                        <option value="null" disabled>
+                                                                            Select Contact
+                                                                            Person
+                                                                        </option>
+                                                                        <option id="{{item.Id}}" value="{{item.Id}}"
+                                                                                *ngFor="let item of CompanyContactPersonsList"
+                                                                                [selected]="item.Id== f.CustomerDetails.get('UserId').value">
+                                                                            {{item.Name}}
+                                                                        </option>
+                                                                    </select>
+                                                                    <div *ngIf="formSubmited && f.CustomerDetails.get('UserId').errors">
+                                                                        <span class="text-danger"
+                                                                              *ngIf="f.CustomerDetails.get('UserId').errors?.required">
+                                                                            Contact Person is required
+                                                                        </span>
+                                                                    </div>
+                                                                    <a id="createNew"
+                                                                       *ngIf="f.CustomerDetails.get('IsNewCompany').value!=true && f.CustomerDetails.get('IsNewUser').value!=true && f.CustomerDetails.get('CompanyId').value!=null"
+                                                                       (click)="clickNewPerson(true)">
+                                                                        <span class="fa fa-plus-circle mt7"></span>
+                                                                        Create
+                                                                        New
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4">
+                                                            <div class="form-group">
+                                                                <label for="CustomerDetails_PhoneNumber">
+                                                                    Mobile
+                                                                    Number<span class="required pl4"
+                                                                                aria-required="true">*</span>
+                                                                </label>
+                                                                <input [disableControl]="f.CustomerDetails.get('IsNewUser').value!=true"
+                                                                       class="form-control input-phoneformat phoneNumber"
+                                                                       id="CustomerDetails_PhoneNumber" name="PhoneNumber"
+                                                                       formControlName="PhoneNumber" type="text"
+                                                                       (input)="IsPhoneNumberValid()">
+                                                                <div *ngIf="formSubmited && f.CustomerDetails.get('PhoneNumber').errors">
+                                                                    <span class="text-danger"
+                                                                          *ngIf="f.CustomerDetails.get('PhoneNumber').errors?.required">
+                                                                        Mobile Number is required
+                                                                    </span>
+                                                                    <span class="text-danger"
+                                                                          *ngIf="f.CustomerDetails.get('PhoneNumber').errors?.pattern">
+                                                                        Please enter a valid 10 digit Mobile
+                                                                        Number.
+                                                                    </span>
+                                                                </div>
+                                                                <div *ngIf="f.CustomerDetails.get('IsNewUser').value && f.CustomerDetails.get('PhoneNumber').value && !f.CustomerDetails.get('PhoneNumber').errors && !isPhoneNumberValid">
+                                                                    <span class="color-orange fs12">
+                                                                        Unable to verify number! You will miss Text
+                                                                        Alerts.
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4">
+                                                            <div class="form-group custEmail">
+                                                                <label for="CustomerDetails_Email">
+                                                                    Email<span class="required pl4"
+                                                                               aria-required="true">*</span>
+                                                                </label>
+                                                                <input [disableControl]="f.CustomerDetails.get('IsNewUser').value!=true"
+                                                                       class="form-control email"
+                                                                       id="CustomerDetails_Email" name="Email"
+                                                                       formControlName="Email" type="text" value="" />
+                                                                <div *ngIf="formSubmited && f.CustomerDetails.get('Email').errors">
+                                                                    <span class="text-danger"
+                                                                          *ngIf="f.CustomerDetails.get('Email').errors?.required">
+                                                                        Email
+                                                                        is required
+                                                                    </span>
+                                                                    <span class="text-danger"
+                                                                          *ngIf="f.CustomerDetails.get('Email').errors?.pattern">
+                                                                        Invalid email.
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row" formGroupName="AddressDetails">
+                                    <div class="col-12">
+                                        <div class="well">
+                                            <h4 class="job-site-info">Location Information</h4>
+                                            <div class="row mt20">
+                                                <div class="col-sm-12">
+                                                    <div class="row">
+                                                        <div class="col-sm-7">
+                                                            <div class="row">
+                                                                <div class="col-sm-8">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-6">
+                                                                            <div class="new-job">
+                                                                                <label class="job-site-info"
+                                                                                       for="AddressDetails_JobName">
+                                                                                    Location
+                                                                                    Name <span class="required pl4"
+                                                                                               aria-required="true">*</span>
+                                                                                </label>
+                                                                                <input class="form-control"
+                                                                                       id="AddressDetails_JobName"
+                                                                                       formControlName="JobName"
+                                                                                       type="text" (change)="isJobExist()">
+                                                                                <div *ngIf="formSubmited && f.AddressDetails.get('JobName').errors">
+                                                                                    <span class="text-danger"
+                                                                                          *ngIf="f.AddressDetails.get('JobName').errors?.required">
+                                                                                        Location Name is
+                                                                                        required
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div *ngIf="!f.AddressDetails.get('JobName').errors">
+                                                                                    <span class="text-danger"
+                                                                                          *ngIf="isJobNameExist && !f.CustomerDetails.get('IsNewCompany').value && f.CustomerDetails.get('CompanyId').value">
+                                                                                        Location with same name already
+                                                                                        exist.
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-6">
+                                                                            <div class="address-controls">
+                                                                                <div class="form-group combineDiv">
+                                                                                    <label class="job-site-info"
+                                                                                           for="AddressDetails_DisplayJobID">
+                                                                                        Third
+                                                                                        Party Location ID
+                                                                                    </label>
+                                                                                    <input class="form-control"
+                                                                                           id="AddressDetails_DisplayJobID"
+                                                                                           formControlName="DisplayJobID"
+                                                                                           type="text" value="">
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-sm-4">
+                                                                    <div class="row address-controls">
+                                                                        <div class="col-sm-6">
+                                                                            <div class="form-group">
+                                                                                <label for="AddressDetails_Country_Id">Country/Group</label>
+                                                                                <select class="form-control country addressInput"
+                                                                                        id="AddressDetails_Country_Id"
+                                                                                        formControlName="CountryId"
+                                                                                        (change)="countryChanged()">
+                                                                                    <!-- <option [value]="null">Select Country</option> -->
+                                                                                    <option *ngFor="let ct of CountryList"
+                                                                                            [value]="ct.Id"
+                                                                                            [selected]="ct.Id==1">
+                                                                                        {{ct.Code}}
+                                                                                    </option>
+                                                                                </select>
+                                                                                <div *ngIf="formSubmited && f.AddressDetails.get('CountryId').errors">
+                                                                                    <span class="text-danger"
+                                                                                          *ngIf="f.AddressDetails.get('CountryId').errors?.required">
+                                                                                        Country is required
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-6" *ngIf="f.AddressDetails.get('CountryId').value==4">
+                                                                            <div class="form-group">
+                                                                                <label for="AddressDetails_CountryGroup_Id">Country</label>
+                                                                                <select class="form-control country addressInput"
+                                                                                        id="AddressDetails_CountryGroup_Id"
+                                                                                        formControlName="CountryGroupId"
+                                                                                        (change)="countryChanged()">
+                                                                                    <option *ngFor="let ct of CountryGroupList"
+                                                                                            [value]="ct.Id"
+                                                                                            [selected]="ct.Id==1">
+                                                                                        {{ct.Name}}
+                                                                                    </option>
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="wrapper-location">
+                                                                <div class="address-controls">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-8">
+                                                                            <div class="form-group">
+                                                                                <label for="AddressDetails_Address">
+                                                                                    Address<span class="required pl4"
+                                                                                                 aria-required="true" *ngIf="isRequiredField(f.AddressDetails.get('CountryId').value)">*</span>
+                                                                                </label>
+                                                                                <input class="form-control address addressInput"
+                                                                                       id="AddressDetails_Address"
+                                                                                       name="AddressDetails.Address"
+                                                                                       type="text"
+                                                                                       formControlName="Address"
+                                                                                       (change)="getAddress()">
+                                                                                <div *ngIf="formSubmited && f.AddressDetails.get('Address').errors">
+                                                                                    <span class="text-danger"
+                                                                                          *ngIf="f.AddressDetails.get('Address').errors?.required">
+                                                                                        Address is required
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-4">
+                                                                            <div class="form-group">
+                                                                                <label for="AddressDetails_ZipCode">
+                                                                                    Zip<span class="required pl4"
+                                                                                             aria-required="true" *ngIf="isRequiredField(f.AddressDetails.get('CountryId').value)">*</span>
+                                                                                </label>
+                                                                                <input class="form-control zipcode addressInput"
+                                                                                       id="AddressDetails_ZipCode"
+                                                                                       name="AddressDetails.ZipCode"
+                                                                                       formControlName="ZipCode"
+                                                                                       type="text" value=""
+                                                                                       (change)="getAddressByZip()">
+                                                                                <div *ngIf="formSubmited && f.AddressDetails.get('ZipCode').errors">
+                                                                                    <span class="text-danger"
+                                                                                          *ngIf="f.AddressDetails.get('ZipCode').errors?.required">
+                                                                                        Zip is required
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row">
+                                                                        <div class="col-sm-4">
+                                                                            <div class="form-group">
+                                                                                <label for="AddressDetails_City">
+                                                                                    City<span class="required pl4"
+                                                                                              aria-required="true" *ngIf="isRequiredField(f.AddressDetails.get('CountryId').value)">*</span>
+                                                                                </label>
+                                                                                <input class="form-control city addressInput"
+                                                                                       id="AddressDetails_City"
+                                                                                       formControlName="City" type="text"
+                                                                                       (change)="getAddress()">
+                                                                                <div *ngIf="formSubmited && f.AddressDetails.get('City').errors">
+                                                                                    <span class="text-danger"
+                                                                                          *ngIf="f.AddressDetails.get('City').errors?.required">
+                                                                                        City is required
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-4">
+                                                                            <div class="form-group">
+                                                                                <label for="AddressDetails_CountyName">
+                                                                                    County
+                                                                                    Name
+                                                                                </label>
+                                                                                <i class="fa fa-info-circle ml5"
+                                                                                   data-toggle="tooltip"
+                                                                                   data-placement="top"
+                                                                                   title="Correct County name is required by our Tax service to calculate taxes accurately."></i>
+                                                                                <input class="form-control county addressInput"
+                                                                                       id="AddressDetails_CountyName"
+                                                                                       formControlName="CountyName"
+                                                                                       type="text" value=""
+                                                                                       autocomplete="off">
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-4">
+                                                                            <div class="form-group">
+                                                                                <label for="AddressDetails_State_Id">State</label>
+                                                                                <select class="form-control state addressInput triggerTerminalChange"
+                                                                                        id="AddressDetails_State_Id"
+                                                                                        name="AddressDetails.State.Id"
+                                                                                        formControlName="StateId"
+                                                                                        (change)="stateChanged();">
+                                                                                    <option [value]=null>
+                                                                                        Select
+                                                                                        State
+                                                                                    </option>
+                                                                                    <option id="{{item.StateId}}"
+                                                                                            [value]="item.StateId"
+                                                                                            *ngFor="let item of filteredStatesList">
+                                                                                        {{item.StateName}}
+                                                                                    </option>
+                                                                                </select>
+                                                                                <div *ngIf="formSubmited && f.AddressDetails.get('StateId').errors">
+                                                                                    <span class="text-danger"
+                                                                                          *ngIf="f.AddressDetails.get('StateId').errors?.required">
+                                                                                        State is required
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row">
+                                                                        <div class="col-sm-4">
+                                                                            <div class="form-group">
+                                                                                <label for="DistanceCovered">Distance Covered (In HH:MM)</label><br>
+                                                                                  <input type="text" formControlName="DistanceCovered" class="form-control" id="DistanceCovered" placeholder="HH:MM"  (keypress)="formatTime($event.target)" />
+                                                                                                                                               
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                        <!-- Hiding marine location flag as ports are introduced-->
+                                                                        <div class="row hide-element">
+                                                                            <div class="col-sm-4">
+                                                                                <div class="form-group">
+                                                                                    <div class="form-check form-check-inline">
+                                                                                        <input type="checkbox"
+                                                                                               (change)="marineCheckBoxChanged($event.target.checked)"
+                                                                                               [disableControl]="this.f.FuelPricingDetails.get('FuelPricingDetails').get('PricingSourceId').value==2 || IsTBDRequest"
+                                                                                               formControlName="IsMarineLocation"
+                                                                                               class="enablecityrack form-check-input"
+                                                                                               id="chk-is-marine">
+                                                                                        <label class="form-check-label"
+                                                                                               for="chk-is-marine">
+                                                                                            Is
+                                                                                            Marine Location
+                                                                                        </label>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                        </div>
+                                                        <div class="col-sm-5">
+                                                            <agm-map [zoom]="mapConstants.ZoomArea"
+                                                                     [latitude]="mapConstants.CenterLat"
+                                                                     [longitude]="mapConstants.CenterLon">
+                                                                <agm-marker [latitude]="mapConstants.CenterLat"
+                                                                            [longitude]="mapConstants.CenterLon"
+                                                                            [markerDraggable]="true"
+                                                                            (dragEnd)="markerDragEnd($event)"
+                                                                            [iconUrl]="mapConstants.IconUrl">
+                                                                </agm-marker>
+                                                            </agm-map>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row" id="Delivery_Details">
+                                    <div class="col-sm-12">
+                                        <div class="well">
+                                            <h4>Delivery</h4>
+                                            <div class="row">
+                                                <div class="col-sm-3">
+                                                    <div class="row" formGroupName="FuelDeliveryDetails">
+                                                        <div class="col-sm-12 single-delivery">
+                                                            <label for="FuelDeliveryDetails_SingleDeliverySubTypes">Delivery Type</label>
+                                                            <select class="form-control"
+                                                                    formControlName="DeliveryTypeId"
+                                                                    (change)="deliveryTypeIdChanged($event.target.value)">
+                                                                <option [value]="1">Single Delivery</option>
+                                                                <option [value]="2">Multiple Delivery</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <ng-container formGroupName="FuelDetails">
+                                                        <div class="row">
+                                                            <div class="col-sm-12 disable-in-tpo-edit">
+                                                                <div class="form-group">
+                                                                    <div class="pa bg-white top0 left0 z-index5 loading-wrapper mtm10 loader-fueltype"
+                                                                         *ngIf="_isLoadingProducts">
+                                                                        <span class="spinner-dashboard pa"></span>
+                                                                    </div>
+                                                                    <div class="row standard-fuels">
+                                                                        <div *ngIf="!f.AddressDetails.get('IsMarineLocation').value" class="col-sm-6">
+                                                                            <div>
+                                                                                <label>Fuel Type</label>
+                                                                                <select class="form-control"
+                                                                                        [disableControl]="IsTBDRequest"
+                                                                                        formControlName="FuelDisplayGroupId"
+                                                                                        (change)="deliveryTypeChanged($event.target.value)">
+                                                                                    <option [value]="4">
+                                                                                        In Location Area
+                                                                                    </option>
+                                                                                    <option [value]="1">Common</option>
+                                                                                    <option [value]="2">Less Common</option>
+                                                                                    <option [value]="3">Other</option>
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-6"
+                                                                             *ngIf="(f.FuelDetails['controls']['FuelDisplayGroupId'].value)!=3">
+                                                                            <label>Fuel</label>
+                                                                            <select [disableControl]="IsTBDRequest"
+                                                                                    class="form-control" id="FuelDetails_FuelTypeId"
+                                                                                    formControlName="FuelTypeId"
+                                                                                    (change)="fuelTypeIdChanged($event.target.value)">
+                                                                                <option value="null" disabled>Select</option>
+                                                                                <!-- NON-MARINE FUEL -->
+                                                                                <ng-container *ngIf="!f.AddressDetails.get('IsMarineLocation').value">
+                                                                                    <option *ngFor="let item of FuelProductsList" [value]="item.Id"
+                                                                                            [selected]="item.Id==f.FuelDetails.get('FuelTypeId').value">
+                                                                                        {{item.Name}}
+                                                                                    </option>
+                                                                                </ng-container>
+                                                                                <!-- MARINE FUEL -->
+                                                                                <ng-container *ngIf="f.AddressDetails.get('IsMarineLocation').value">
+                                                                                    <option *ngFor="let item of MarineProductsList" [value]="item.Id"
+                                                                                            [selected]="item.Id==f.FuelDetails.get('FuelTypeId').value">
+                                                                                        {{item.Name}}
+                                                                                    </option>
+                                                                                </ng-container>
+
+                                                                                <ng-container *ngIf="f.FuelDetails.get('FuelDisplayGroupId').value==4">
+                                                                                    <option class="seeMore" value="seeMore">See More</option>
+                                                                                </ng-container>
+                                                                            </select>
+
+                                                                            <!--<input *ngIf="IsTBDRequest" [attr.readonly]="true" class="form-control" type="text" [value]="ProductTypeName">-->
+
+                                                                            <div *ngIf="formSubmited && f.FuelDetails.get('FuelTypeId').errors">
+                                                                                <span class="text-danger"
+                                                                                      *ngIf="f.FuelDetails.get('FuelTypeId').errors?.required">
+                                                                                    Fuel is required.
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-6" *ngIf="(f.FuelDetails['controls']['FuelDisplayGroupId'].value)==3">
+                                                                            <label for="FuelDetails_NonStandardFuelName">
+                                                                                Product
+                                                                                Name<span class="required pl4"
+                                                                                          aria-required="true">*</span>
+                                                                            </label>
+                                                                            <input class="form-control"
+                                                                                   id="FuelDetails_NonStandardFuelName"
+                                                                                   formControlName="NonStandardFuelName"
+                                                                                   type="text" value="" autocomplete="off">
+
+                                                                            <div *ngIf="formSubmited && f.FuelDetails.get('NonStandardFuelName').errors">
+                                                                                <span class="text-danger"
+                                                                                      *ngIf="f.FuelDetails.get('NonStandardFuelName').errors.required">
+                                                                                    Name
+                                                                                    is required.
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-6"
+                                                                             *ngIf="(f.FuelDetails['controls']['FuelDisplayGroupId'].value)==3">
+                                                                            <label for="FuelDetails_NonStandardFuelDescription">
+                                                                                Product
+                                                                                Description
+                                                                            </label>
+                                                                            <textarea class="form-control" cols="20"
+                                                                                      id="FuelDetails_NonStandardFuelDescription"
+                                                                                      formControlName="NonStandardFuelDescription"
+                                                                                      rows="2"></textarea>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </ng-container>
+                                                </div>
+
+                                            </div>
+                                            <ng-container formGroupName="FuelDetails">
+                                                <div class="row mt-2" formGroupName="FuelQuantity">
+                                                    <div class="col-sm-3 fixed-quantity">
+                                                        <div class="single-delivery-sub-types">
+                                                            <label>Quantity Type</label>
+                                                            <select class="form-control" formControlName="QuantityTypeId" (change)="quantityTypeChanged($event.target.value)">
+                                                                <option [value]="1">Fixed</option>
+                                                                <option [value]="2">Range</option>
+                                                                <option [value]="3"> Not Specified</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6 range-quantity"
+                                                         *ngIf="f.FuelDetails['controls']['FuelQuantity']['controls']['QuantityTypeId'].value==2">
+                                                        <div class="resetleftspace">
+                                                            <div class="row">
+                                                                <div class="col">
+                                                                    <div class="dib">
+                                                                        <label for="FuelDetails_FuelQuantity_MinimumQuantity">
+                                                                            Min Quantity<span class="required pl4"
+                                                                                              aria-required="true">*</span>
+                                                                        </label>
+                                                                    </div>
+                                                                    <div class="input-group pull-left">
+                                                                        <input class="form-control datatype-decimal"
+                                                                               id="FuelDetails_FuelQuantity_MinimumQuantity"
+                                                                               formControlName="MinimumQuantity"
+                                                                               type='number' [value]="0">
+                                                                        <span class="input-group-addon uom quantity-uom">
+                                                                            {{
+                                                                                UoM == 1 ? 'Gallons' : 'Litres'
+                                                                            }}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div *ngIf="formSubmited && f.FuelDetails.get('FuelQuantity').get('MinimumQuantity').errors">
+                                                                        <span class="text-danger"
+                                                                              *ngIf="f.FuelDetails.get('FuelQuantity').get('MinimumQuantity').errors.pattern || f.FuelDetails.get('FuelQuantity').get('MinimumQuantity').errors?.min">
+                                                                            Invalid minimum quantity field.
+                                                                        </span>
+                                                                        <span class="text-danger"
+                                                                              *ngIf="f.FuelDetails.get('FuelQuantity').get('MinimumQuantity').errors.required">
+                                                                            Minimum Quantity is
+                                                                            Required.
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col">
+                                                                    <div class="dib">
+                                                                        <label for="FuelDetails_FuelQuantity_MaximumQuantity">
+                                                                            Max Quantity<span class="required pl4"
+                                                                                              aria-required="true">*</span>
+                                                                        </label>
+                                                                    </div>
+                                                                    <div class="input-group pull-left">
+                                                                        <input class="form-control datatype-decimal total-gallons-required"
+                                                                               id="FuelDetails_FuelQuantity_MaximumQuantity"
+                                                                               formControlName="MaximumQuantity"
+                                                                               type="number" [value]="0">
+                                                                        <!-- (change)="validateMinMaxValue(this.f.FuelDetails.get('MaximumQuantity'))" -->
+                                                                        <span class="input-group-addon uom quantity-uom">
+                                                                            {{
+                                                                            UoM
+                                                                            == 1 ? 'Gallons' : 'Litres'
+                                                                            }}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div *ngIf="formSubmited && f.FuelDetails.get('FuelQuantity').get('MaximumQuantity').errors">
+                                                                        <span class="text-danger"
+                                                                              *ngIf="f.FuelDetails.get('FuelQuantity').get('MaximumQuantity').errors.pattern">
+                                                                            Invalid maximum quantity field.
+                                                                        </span>
+                                                                        <span class="text-danger"
+                                                                              *ngIf="formSubmited && f.FuelDetails.get('FuelQuantity').get('MaximumQuantity').errors.required">
+                                                                            Maximum Quantity is
+                                                                            Required.
+                                                                        </span>
+                                                                        <span class="text-danger"
+                                                                              *ngIf="formSubmited && f.FuelDetails.get('FuelQuantity').get('MaximumQuantity').errors.compareNumber">
+                                                                            Max quantity should be greater than
+                                                                            minimum quantity.
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-3 ftl-controls ftl-billable-quantity">
+                                                        <div class="form-group">
+                                                            <label>Billable Quantity</label>
+                                                            <select class="form-control enum-ddl qty-ind"
+                                                                    id="FuelDetails_FuelQuantity_QuantityIndicatorTypes"
+                                                                    formControlName="QuantityIndicatorTypes">
+                                                                <option [value]="1" [selected]="true">
+                                                                    Net
+                                                                </option>
+                                                                <option [value]="2">
+                                                                    Gross
+                                                                </option>
+                                                            </select>
+                                                            <div *ngIf="f.FuelDetails.get('FuelQuantity').get('QuantityIndicatorTypes').value==2"
+                                                                 class="row">
+                                                                <div class="text-danger col-12 fs12 mt5">
+                                                                    <span class="qty-ind-err warning">
+                                                                        Changes
+                                                                        will be updated
+                                                                        on
+                                                                        BOL.
+                                                                        Taxes will continue to
+                                                                        be
+                                                                        calculated as per
+                                                                        state
+                                                                        quantity
+                                                                        regulations.
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-3 fixed-quantity">
+                                                        <div *ngIf="(f.FuelDetails['controls']['FuelQuantity']['controls']['QuantityTypeId'].value)==1" class="form-group"
+                                                             style="pointer-events: visible;">
+                                                            <label>Quantity</label>
+                                                            <div class="input-group">
+                                                                <input class="form-control datatype-decimal total-gallons-required"
+                                                                       id="FuelDetails_FuelQuantity_Quantity"
+                                                                       formControlName="Quantity" type="number"
+                                                                       value="0">
+                                                                <span class="input-group-addon uom quantity-uom">
+                                                                    {{
+UoM
+                                                                                == 1 ? 'Gallons' : 'Litres'
+                                                                    }}
+                                                                </span>
+                                                            </div>
+                                                            <div *ngIf="formSubmited && f.FuelDetails.get('FuelQuantity').get('Quantity').errors">
+                                                                <span class="text-danger"
+                                                                      *ngIf="f.FuelDetails.get('FuelQuantity').get('Quantity').errors?.required">
+                                                                    The Quantity field is
+                                                                    required.
+                                                                </span>
+                                                                <span class="text-danger"
+                                                                      *ngIf="f.FuelDetails.get('FuelQuantity').get('Quantity').errors?.pattern || f.FuelDetails.get('FuelQuantity').get('Quantity').errors?.min">
+                                                                    Invalid quantity field.
+                                                                </span>
+                                                            </div>
+                                                            <div *ngIf="f.FuelDetails.get('FuelQuantity').get('Quantity').errors">
+                                                                <span class="text-danger"
+                                                                      *ngIf="f.FuelDetails.get('FuelQuantity').get('Quantity').errors.pattern">
+                                                                    Invalid.
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <app-pricing-section [locationForm]="locationForm" [formSubmited]="formSubmited" [UoM]="UoM" [IsTBD]="IsTBDRequest" [tbdDrProductTypeId]="tbdDrProductTypeId" [tbdDrProductId]="tbdDrProductId" [productDetails]="productDetails"></app-pricing-section>
+
+                                <div *ngIf="!IsTBDRequest" class="row mb25">
+                                    <div class="col-12" id="Delivery_Request">
+                                        <div class="well">
+                                            <h4>Delivery Request</h4>
+                                            <ng-container formGroupName="DeliveryRequest">
+                                                <div class="row">
+                                                    <div class="col-sm-12">
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" formControlName="Priority"
+                                                                   type="radio" [value]="1" id="radio-must-go">
+                                                            <label class="form-check-label" for="radio-must-go">
+                                                                Must
+                                                                Go
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" formControlName="Priority"
+                                                                   type="radio" [value]="2" id="radio-should-go">
+                                                            <label class="form-check-label" for="radio-should-go">
+                                                                Should
+                                                                Go
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" formControlName="Priority"
+                                                                   type="radio" [value]="3" id="radio-could-go">
+                                                            <label class="form-check-label" for="radio-could-go">
+                                                                Could
+                                                                Go
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-12 mt10 mb10">
+                                                        <div>
+                                                            <div>
+                                                                <span>
+                                                                    <a (click)="editPickupLocation()"
+                                                                       data-toggle="modal"
+                                                                       data-target="#dr-pickup-location2">
+                                                                        <i class="fa fa-edit fs18"></i>
+                                                                    </a>
+                                                                </span>
+                                                                <span class="ml10">
+                                                                    <i class="fas fa-map-marker-alt">
+                                                                    </i>
+                                                                    &nbsp;Pickup :
+                                                                </span>
+                                                                <span class="pr5"
+                                                                      *ngIf="f.DeliveryRequest.get('PickupLocationType')?.value!=2; else location;">
+                                                                    Terminal
+                                                                </span>
+                                                                <ng-template #location>
+                                                                    <span class="pr5">
+                                                                        Location
+                                                                    </span>
+                                                                </ng-template>
+                                                            </div>
+                                                            <div class="pull-left pr5"
+                                                                 *ngIf="(f.DeliveryRequest.get('PickupLocationType').value==1 && f.DeliveryRequest.get('Terminal')['controls']['Name']?.value); else bulkPlant;">
+                                                                <span>
+                                                                    {{f.DeliveryRequest.get('Terminal')['controls']['Name']?.value}}
+                                                                </span>
+                                                                <span>
+                                                                    <a (click)="removePickupLocation()">
+                                                                        <i class="fa fa-trash text-danger fs18"
+                                                                           data-placement="top" data-toggle="tooltip"
+                                                                           title="Remove Location"></i>
+                                                                    </a>
+                                                                </span>
+                                                            </div>
+                                                            <ng-template #bulkPlant class="pull-left pr5">
+                                                                <ng-container *ngIf="f.DeliveryRequest.get('BulkPlant')['controls']['SiteName'].value">
+                                                                    <span>
+                                                                        {{f.DeliveryRequest.get('BulkPlant')['controls']['SiteName'].value}},
+                                                                        {{f.DeliveryRequest.get('BulkPlant')['controls']['City'].value}},
+                                                                        {{f.DeliveryRequest.get('BulkPlant')['controls']['State']?.controls['Code'].value}}
+                                                                        {{f.DeliveryRequest.get('BulkPlant')['controls']['ZipCode'].value}}
+                                                                    </span>
+                                                                    <span>
+                                                                        <a (click)="removePickupLocation()">
+                                                                            <i class="fa fa-trash text-danger fs18"
+                                                                               data-placement="top"
+                                                                               data-toggle="tooltip"
+                                                                               title="Remove Bulk Plant"></i>
+                                                                        </a>
+                                                                    </span>
+                                                                </ng-container>
+                                                            </ng-template>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-2">
+                                                        <div class="form-group">
+                                                            <select formControlName="ScheduleQuantityType"
+                                                                    class="form-control country addressInput">
+                                                                <option value="1"> Quantity </option>
+                                                                <option value="2"> Balance </option>
+                                                                <option value="3"> Full Load </option>
+                                                                <option value="4"> Small Compartment </option>
+                                                                <option value="5"> Not Specified </option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-2">
+                                                        <div class="form-group">
+                                                            <input type="number" formControlName="RequiredQuantity"
+                                                                   class="form-control"
+                                                                   placeholder="Required Fuel"
+                                                                   [disableControl]="f.DeliveryRequest.get('ScheduleQuantityType').value!=1" />
+                                                        </div>
+                                                        <div *ngIf="formSubmited && f.DeliveryRequest.get('RequiredQuantity').invalid">
+                                                            <label class="fs12" style="color:red">
+                                                                Quantity is required
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-2">
+                                                        <div class="form-group">
+                                                            <input  formControlName="DeliveryLevelPO"
+                                                                   class="form-control"
+                                                                   placeholder="Delivery Level PO#"/>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-2">
+                                                        <div class="form-group mb5">
+                                                            <input type="text" class="form-control"
+                                                                   formControlName="BadgeNo1" placeholder="Badge #1">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-2 pr10 pl10">
+                                                        <div class="form-group mb5 ">
+                                                            <input type="text" class="form-control"
+                                                                   formControlName="BadgeNo2" placeholder="Badge #2">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-2 pl5">
+                                                        <div class="form-group mb5 ">
+                                                            <input type="text" class="form-control"
+                                                                   formControlName="BadgeNo3" placeholder="Badge #3">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-6">
+                                                        <div class="form-group">
+                                                            <textarea class="form-control"
+                                                                      formControlName="DispatcherNote"
+                                                                      placeholder="Dispatcher Note">
+                                                                </textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 text-right">
+                                <input type="button" value="Cancel" class="btn" (click)="_opened=false">
+                                <input id="Submit" type="button" value="Submit" (click)="onSubmit()"
+                                       class="btn btn-lg btn-primary btnSubmit">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </ng-sidebar>
+        </ng-sidebar-container>
+        <div id="modal-pricing-codes" class="modal fade" role="dialog" tabindex="-1" data-backdrop="static"
+             keyboard="false">
+            <div class="modal-dialog modal-lg modal-pricingcode-details" role="document">
+                <div class="modal-content">
+                    <div class="modal-header pb0 pl20 no-border">
+                        <h2 class="text-left mt0 mb0 fs21">
+                            Pricing Code <a class="close color-grey pull-right pa actions" data-dismiss="modal"
+                                            aria-label="Close"><span aria-hidden="true">×</span></a>
+                        </h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="dr-pickup-location2" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content" [formGroup]="PickupForm">
+                    <div class="modal-body">
+                        <div class="overflow-h">
+                            <div class="dib border pa5 radius-capsule">
+                                <!--<div class="btn-group btn-filter" data-toggle="buttons">
+                                    <input type="radio" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="1">
+                                    Terminal &nbsp;
+                                    <input type="radio" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="2">
+                                    Bulk Plant
+                                </div>-->
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="inlineTerminal1"
+                                           formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="1">
+                                    <label class="form-check-label" for="inlineTerminal1">Terminal</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="inlineBlukplant2"
+                                           formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="2">
+                                    <label class="form-check-label" for="inlineBlukplant2">Bulk Plant</label>
+                                </div>
+                            </div>
+                            <button type="button" (click)="initPickupForm()" class="close color-grey pull-right pa"
+                                    data-dismiss="modal" aria-label="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="mt10 mb10">
+                            <!-- terminal start -->
+                            <div class="row" [formGroup]="PickupForm.controls['Terminal']"
+                                 *ngIf="this.PickupForm.get('PickupLocationType').value==1">
+                                <div class="col-sm-10">
+                                    <div class="ng-autocomplete">
+                                        <ng-autocomplete [data]="Terminals" searchKeyword="Name"
+                                                         placeholder="Terminal Name" (selected)='onTerminalSelected($event)'
+                                                         [itemTemplate]="itemTemplate" [notFoundTemplate]="notFoundTemplate">
+                                        </ng-autocomplete>
+                                        <ng-template #itemTemplate let-item>
+                                            <a [innerHTML]="item.Name"></a>
+                                        </ng-template>
+                                        <ng-template #notFoundTemplate let-notFound>
+                                            <div [innerHTML]="notFound"></div>
+                                        </ng-template>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- terminal ends -->
+                            <!-- bulk plant starts -->
+                            <div class="row pr" [formGroup]="PickupForm.controls['BulkPlant']"
+                                 *ngIf="this.PickupForm.get('PickupLocationType').value==2">
+                                <div class="col-sm-12">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0">
+                                                <label>Bulk Plant</label>
+                                                <input type="text" formControlName="SiteName" class="form-control"
+                                                       (input)="onBulkPlantSearched($event)"
+                                                       placeholder="Bulk Plant Name" />
+                                                <ul class="auto-select border-dash">
+                                                    <li *ngFor="let plant of BulkPlants;"
+                                                        (click)="onBulkPlantSelected(plant)"
+                                                        [attr.selected]="plant.Name==PickupForm.controls['BulkPlant']['controls'].SiteName.value">
+                                                        {{plant.Name}}
+                                                    </li>
+                                                </ul>
+                                                <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.invalid
+                                              && (PickupForm.controls['BulkPlant']['controls'].SiteName.touched || PickupForm.controls['BulkPlant']['controls'].SiteName.dirty)">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.errors.required">
+                                                        Required
+                                                    </label>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0">
+                                                <label>Address</label>
+                                                <input type="text" class="form-control" formControlName="Address"
+                                                       [disableControl]="isReadOnly" />
+                                                <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.invalid
+                                              && (PickupForm.controls['BulkPlant']['controls'].Address.touched || PickupForm.controls['BulkPlant']['controls'].Address.dirty)">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.required">
+                                                        Required
+                                                    </label>
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.pattern">
+                                                        Invalid (alphanumeric with comma spaces only)
+                                                    </label>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0">
+                                                <label>{{ CountryBasedZipcodeLabel }}</label>
+                                                <input type="text" class="form-control zip-code"
+                                                       formControlName="ZipCode" (input)="getAddressByZipForPickup($event)"
+                                                       [disableControl]="isReadOnly" />
+                                                <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.invalid
+                                              && (PickupForm.controls['BulkPlant']['controls'].ZipCode.touched || PickupForm.controls['BulkPlant']['controls'].ZipCode.dirty)">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.required">
+                                                        Required
+                                                    </label>
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.pattern">
+                                                        Invalid {{ CountryBasedZipcodeLabel }}
+                                                    </label>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0">
+                                                <label>City</label>
+                                                <input type="text" class="form-control" formControlName="City"
+                                                       [disableControl]="isReadOnly" />
+                                                <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].City.invalid
+                                              && (PickupForm.controls['BulkPlant']['controls'].City.touched || PickupForm.controls['BulkPlant']['controls'].City.dirty)">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.required">
+                                                        Required
+                                                    </label>
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.pattern">
+                                                        Invalid (alphanumeric with comma spaces only)
+                                                    </label>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0"
+                                                 [formGroup]="PickupForm.controls['BulkPlant']['controls'].State">
+                                                <label>State</label>
+                                                <select *ngIf="isReadOnly" formControlName="Id" class="form-control"
+                                                        placeholder="Select State" (change)="setStateCode($event)"
+                                                        [attr.readonly]="isReadOnly">
+                                                    <option [value]="null">Select State</option>
+                                                    <option *ngFor="let st of StatesListByCountry" [value]="st.StateId">
+                                                        {{st.StateCode}}
+                                                    </option>
+                                                </select>
+                                                <select *ngIf="!isReadOnly" formControlName="Id" class="form-control"
+                                                        placeholder="Select State" (change)="setStateCode($event)">
+                                                    <option [value]="null">Select State</option>
+                                                    <option *ngFor="let st of StatesListByCountry" [value]="st.StateId">
+                                                        {{st.StateCode}}
+                                                    </option>
+                                                </select>
+                                                <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.invalid
+                                              && (PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.touched || PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.dirty)">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.errors.required">
+                                                        Required
+                                                    </label>
+                                                </ng-container>
+                                                <input type="hidden" formControlName="Code" />
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0"
+                                                 [formGroup]="PickupForm.controls['BulkPlant']['controls'].Country">
+                                                <label>Country</label>
+                                                <select *ngIf="isReadOnly" formControlName="Code" class="form-control"
+                                                        placeholder="Select Country" [attr.readonly]="isReadOnly">
+                                                    <option [value]="null">Select Country</option>
+                                                    <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                        {{ct.Code}}
+                                                    </option>
+                                                </select>
+                                                <select *ngIf="!isReadOnly" formControlName="Code" class="form-control"
+                                                        placeholder="Select Country">
+                                                    <option [value]="null">Select Country</option>
+                                                    <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                        {{ct.Code}}
+                                                    </option>
+                                                </select>
+                                                <ng-container *ngIf="formSubmited && PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.errors">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.errors.required">
+                                                        Required
+                                                    </label>
+                                                </ng-container>
+                                            </div>
+
+                                            <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].CountryGroup" *ngIf="PickupForm.controls['BulkPlant']['controls'].Country.get('Code').value=='CAR'">
+                                                <label>Country Group</label>
+                                                <select *ngIf="isReadOnly" formControlName="Id" class="form-control" placeholder="Select Country Group" [attr.readonly]="isReadOnly">
+                                                    <option [value]="null">Select Country Group</option>
+                                                    <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                                        {{ct.Name}}
+                                                    </option>
+                                                </select>
+                                                <select *ngIf="!isReadOnly" formControlName="Id" class="form-control" placeholder="Select Country Group">
+                                                    <option [value]="null">Select Country Group</option>
+                                                    <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                                        {{ct.Name}}
+                                                    </option>
+                                                </select>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0">
+                                                <label>County</label>
+                                                <input type="text" class="form-control" formControlName="CountyName"
+                                                       [disableControl]="isReadOnly" />
+                                                <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.invalid
+                                              && (PickupForm.controls['BulkPlant']['controls'].CountyName.touched || PickupForm.controls['BulkPlant']['controls'].CountyName.dirty)">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.required">
+                                                        Required
+                                                    </label>
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.pattern">
+                                                        Invalid (alphanumeric with comma spaces only)
+                                                    </label>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0">
+                                                <label>Latitude</label>
+                                                <input type="text" class="form-control" formControlName="Latitude"
+                                                       [disableControl]="isReadOnly" />
+                                                <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.invalid
+                                              && (PickupForm.controls['BulkPlant']['controls'].Latitude.touched || PickupForm.controls['BulkPlant']['controls'].Latitude.dirty)">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.required">
+                                                        Required
+                                                    </label>
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.pattern">
+                                                        Invalid
+                                                    </label>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group mb0">
+                                                <label>Longitude</label>
+                                                <input type="text" class="form-control" formControlName="Longitude"
+                                                       [disableControl]="isReadOnly" />
+                                                <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.invalid
+                                              && (PickupForm.controls['BulkPlant']['controls'].Longitude.touched || PickupForm.controls['BulkPlant']['controls'].Longitude.dirty)">
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.required">
+                                                        Required
+                                                    </label>
+                                                    <label style="color:red"
+                                                           *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.pattern">
+                                                        Invalid
+                                                    </label>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingAddress">
+                                    <span class='spinner-dashboard pa'></span>
+                                </div>
+                            </div>
+                            <!-- bulk plant ends -->
+                        </div>
+                        <div class="text-right">
+                            <button type="button" class="btn" data-dismiss="modal"
+                                    id="btnDrPickupClose2">
+                                Cancel
+                            </button>
+                            <button type="button" (click)="updatePickupLocation()" class="btn btn-primary">Add</button>
+                            <!-- [disabled]="!PickupForm.valid" -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

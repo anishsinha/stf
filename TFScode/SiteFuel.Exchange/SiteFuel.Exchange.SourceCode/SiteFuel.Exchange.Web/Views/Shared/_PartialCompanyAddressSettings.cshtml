@@ -1,0 +1,253 @@
+﻿@model CompanyAddressViewModel
+@Html.HiddenFor(m => m.Id)
+@Html.HiddenFor(m => m.CompanyId)
+@Html.HiddenFor(m => m.Latitude)
+@Html.HiddenFor(m => m.Longitude)
+@Html.HiddenFor(m => m.IsOnboarding)
+
+@if (Model.IsOnboarding || Model.IsDefault)
+{
+    @Html.HiddenFor(m => m.IsDefault)
+}
+
+@if (Model.IsOnboarding)
+{
+    if (CurrentUser.CompanyTypeId == CompanyType.Supplier || CurrentUser.CompanyTypeId == CompanyType.BuyerAndSupplier)
+    {
+        @Html.HiddenFor(m => m.SupplierProfile.IsLocationOwned)
+    }
+}
+<div class="default-address address-container mt5">
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.LabelFor(m => m.Address)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                @Html.TextBoxFor(m => m.Address, new { @class = "form-control mandatory-input", autofocus = "autofocus" })
+                @Html.ValidationMessageFor(m => m.Address)
+                <span class="field-validation-error hide-element address-validation-error" id="spnErrorAddress"></span>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.LabelFor(m => m.Address2)
+                @Html.TextBoxFor(m => m.Address2, new { @class = "form-control mandatory-input", autofocus = "autofocus" })
+                @Html.ValidationMessageFor(m => m.Address2)
+                @*<span class="field-validation-error hide-element address-validation-error" id="spnErrorAddress"></span>*@
+            </div>
+        </div>
+
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.LabelFor(m => m.Address3)
+                @Html.TextBoxFor(m => m.Address3, new { @class = "form-control mandatory-input", autofocus = "autofocus" })
+                @Html.ValidationMessageFor(m => m.Address3)
+               @*<span class="field-validation-error hide-element address-validation-error" id="spnErrorAddress"></span>*@
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.LabelFor(m => m.City)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                @Html.TextBoxFor(m => m.City, new { @class = "form-control mandatory-input city" })
+                @Html.ValidationMessageFor(m => m.City)
+                <span class="field-validation-error hide-element address-validation-error" id="spnErrorCity"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="form-group">
+                @Html.HiddenFor(m => m.State.Name, new { @Value = Resource.lblDummy })
+                @Html.HiddenFor(m => m.State.Code, new { @Value = Resource.lblDummy })
+                @Html.LabelFor(m => m.State)
+                @Html.DropDownListFor(m => m.State.Id, new SelectList(new List<DropdownDisplayItem>(), "Id", "Name", Model.State.Id), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control mandatory-input state" })
+                @Html.ValidationMessageFor(m => m.State.Id)
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                @Html.LabelFor(m => m.ZipCode)<span class="required pl4 mandatory-symbol" aria-required="true">*</span>
+                @Html.TextBoxFor(m => m.ZipCode, new { @class = "form-control mandatory-input zipcode" })
+                @Html.ValidationMessageFor(m => m.ZipCode)
+                <span class="field-validation-error hide-element address-validation-error" id="spnErrorZipCode"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-4">
+            <div class="form-group">
+                @Html.HiddenFor(m => m.Country.Name, new { @Value = Resource.lblDummy })
+                @Html.HiddenFor(m => m.Country.Code, new { @Value = Resource.lblDummy })
+                @Html.LabelFor(m => m.Country.Id)
+                @Html.DropDownListFor(m => m.Country.Id, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.Country.Id), new { @class = "form-control mandatory-input country" })
+                @Html.ValidationMessageFor(m => m.Country.Id)
+            </div>
+        </div>
+        <div class="col-sm-4 countrygroup-div hide-element">
+            <div class="form-group">
+                @Html.LabelFor(m => m.CountryGroupId)
+                @Html.DropDownListFor(m => m.CountryGroupId, new SelectList(CommonHelperMethods.GetCountriesGroupEx(4), "Id", "Name"), Resource.btnLabelSelect, new { @class = "form-control countrygroup addressInput defaultDisabled" })
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                @Html.LabelFor(m => m.Phone.PhoneType)
+                @Html.DropDownListFor(m => m.Phone.PhoneType, new SelectList(CommonHelperMethods.GetPhoneTypes(), "Id", "Name", Model.Phone.PhoneType), new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.Phone.PhoneType)
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                @{
+                    Model.Phone.PhoneNumber = Model.Phone.PhoneNumber.ToFormattedPhoneNumber();
+                }
+                @Html.LabelFor(m => m.Phone.PhoneNumber)
+                @Html.TextBoxFor(m => m.Phone.PhoneNumber, new { @class = "form-control mandatory-input input-phoneformat phone", onchange = "IsPhoneNumberValid(this.value,'companyaddress')" })
+                @Html.ValidationMessageFor(m => m.Phone.PhoneNumber)
+                <div class="color-orange fs12 pt5" id="mobile-validation-msg-companyaddress"></div>
+            </div>
+        </div>
+    </div>
+</div>
+@if (!Model.IsOnboarding)
+{
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="form-check form-check-inline">
+                @Html.CheckBoxFor(m => m.IsDefault, Model.IsDefault ? (object)new { @disabled = "disabled", @class = "form-check-input", @id = "checkbox-defaultaddress" } : new { @class = "form-check-input", @id = "checkbox-defaultaddress" })
+                <label class="form-check-label" for="checkbox-defaultaddress">@Resource.lblDefault</label>
+            </div>
+        </div>
+        @if (CurrentUser.CompanyTypeId == CompanyType.Supplier || CurrentUser.CompanyTypeId == CompanyType.BuyerAndSupplier)
+        {
+            <div class="col-sm-12">
+                <div class="form-check form-check-inline">
+                    @Html.CheckBoxFor(m => m.SupplierProfile.IsLocationOwned, new { @class = "form-check-input", @id = "checkbox-locationowned" })
+                    <label class="form-check-label" for="checkbox-locationowned">@Resource.lblLocationOwnedByUs</label>
+                    @Html.ValidationMessageFor(m => m.SupplierProfile.IsLocationOwned)
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $(".servingareatype").on("change", function (e) {
+            var closestElements = $(e.target).closest("#serving-location-list").find(".zipwidearea");
+            if ($(this).val() == 2) {
+                closestElements.show();
+                var stateEle = $(e.target).closest("#serving-location-list").find(".servingstates");
+                stateEle.trigger("change");
+            } else {
+                closestElements.hide();
+                var cityDropDown = $(e.target).closest("#serving-location-list").find(".servingcity");
+                var zipDropDown = $(e.target).closest("#serving-location-list").find(".servingzip");
+                zipDropDown.empty();
+                cityDropDown.empty();
+                cityDropDown.multiselect('rebuild');
+                zipDropDown.multiselect('rebuild');
+            }
+        });
+
+        $(".servingcountry").on("change", function (e) {
+            var selectedCountry = $(e.target).closest("#serving-location-list").find(".servingcountry").val();
+            var statesDropdown = $(e.target).closest("#serving-location-list").find(".servingstates");
+            var cityDropDown = $(e.target).closest("#serving-location-list").find(".servingcity");
+            var zipDropDown = $(e.target).closest("#serving-location-list").find(".servingzip");
+            zipDropDown.empty();
+            cityDropDown.empty();
+            cityDropDown.multiselect('rebuild');
+            zipDropDown.multiselect('rebuild');
+            getStateList(statesDropdown, selectedCountry);
+        });
+
+        $(".servingstates").on("change", function (e) {
+            var selectedAreaType = $(e.target).closest("#serving-location-list").find(".servingareatype").val();
+            if (selectedAreaType == 2) {
+                var selectedStates = $(e.target).closest("#serving-location-list").find(".servingstates").val();
+                var cityDropDown = $(e.target).closest("#serving-location-list").find(".servingcity");
+                var zipDropDown = $(e.target).closest("#serving-location-list").find(".servingzip");
+                if (selectedStates != "") {
+                    //zipDropDown.empty();
+                    getCityList(cityDropDown, selectedStates);
+                } else {
+                    cityDropDown.empty();
+                    zipDropDown.empty();
+                    cityDropDown.multiselect('rebuild');
+                    zipDropDown.multiselect('rebuild');
+                }
+            }
+        });
+
+        $(".servingcity").on("change", function (e) {
+            var cityIds = $(e.target).closest("#serving-location-list").find(".servingcity").val();
+            var target = $(e.target).closest("#serving-location-list").find(".servingzip");
+            if (cityIds != "") {
+                getZipcodeList(target, cityIds);
+            } else {
+                target.empty();
+                target.multiselect('rebuild');
+            }
+        });
+
+        $(document).on('blur', '.mandatory-input', function () {
+            var eleValue = $.trim($(this).val());
+            if (eleValue != '') {
+                $(this).closest('div').find('.field-validation-error').text('');
+            }
+        });
+    });
+
+    function getStateList(target, countryId) {
+        if (countryId != undefined && countryId > 0) {
+            $.get("@Url.Action("GetStatesEx", "", new { area = "" })", { countryId: countryId }, function (response) {
+                target.empty(),
+                    $.each(response, function (i, element) {
+                        target.append($("<option></option>").val(element.Id).html(element.Name));
+                    });
+                target.multiselect('rebuild');
+            });
+        }
+    }
+
+    function getCityList(target, selectedStates) {
+        var stateIds = selectedStates.join(",");
+        var targetVal = target.val();
+        var isCItyExist = false;
+        target.closest("#serving-location-list").find(".serving-cityZipServiceCall").show();
+        $.post("@Url.Action("GetMultipleCites", "", new { area = "" })", { stateId: stateIds }, function (response) {
+            target.empty(), $.each(response, function (i, element) {
+                //target.append('<li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="' + element.Id + '">' + element.Name + '</label></a></li>');
+                let appenddata = '<option></option>';
+                if (jQuery.inArray(element.Id.toString(), targetVal) > -1) {
+                    isCItyExist = true;
+                    appenddata = '<option selected></option>';
+                }
+                target.append($(appenddata).val(element.Id).html(element.Name));
+            });
+            target.multiselect('rebuild');
+            target.closest("#serving-location-list").find(".serving-cityZipServiceCall").hide();
+            if (isCItyExist) {
+                var cityIds = target.val();
+                var zipDropDown = target.closest("#serving-location-list").find(".servingzip");
+                getZipcodeList(zipDropDown, cityIds);
+            }
+        });
+    }
+
+        function getZipcodeList(target, cityNames) {
+            var targetVal = target.val();
+            var cityIds = cityNames.join(",");
+            target.closest("#serving-location-list").find(".serving-cityZipServiceCall").show();
+            $.post("@Url.Action("GetMultipleZipCodes", "", new { area = "" })", { cityId: cityIds }, function (response) {
+            target.empty(), $.each(response, function (i, element) {
+                if (element.Name != "") {
+                    let appenddata = (jQuery.inArray(element.Name.toString(), targetVal) > -1) ? '<option selected></option>' : '<option></option>';
+                    target.append($(appenddata).val(element.Name).html(element.Name));
+                }
+            });
+            target.multiselect('rebuild');
+            target.closest("#serving-location-list").find(".serving-cityZipServiceCall").hide();
+        });
+    }
+</script>

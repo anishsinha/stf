@@ -1,0 +1,289 @@
+﻿@model ScheduleEditInputViewModel
+@if (Model.TrackableScheduleId.HasValue && Model.TrackableScheduleId.Value > 0)
+{
+    <div class="row form-group">
+        @Html.HiddenFor(m => m.DeliverySchedule.OrderId)
+        @Html.HiddenFor(m => m.DeliverySchedule.ScheduleId)
+        @Html.HiddenFor(m => m.DeliverySchedule.TrackableScheduleId)
+        @Html.HiddenFor(m => m.DeliverySchedule.DriverId)
+        @*@Html.HiddenFor(m => m.DeliverySchedule.Quantity)*@
+        @Html.HiddenFor(m => m.DeliverySchedule.JobCurrentTime)
+        @Html.HiddenFor(m => m.DeliverySchedule.JobEndDate)
+        @Html.HiddenFor(m => m.DeliverySchedule.FuelRequestEndDate)
+        @Html.HiddenFor(m => m.DeliverySchedule.IsFtlOrder)
+        @Html.HiddenFor(m => m.Currency)
+        <div class="col-md-12">
+            <div class="checkbox">
+                <label>
+                    @Html.CheckBoxFor(m => m.IsModifySchedule, new { @onclick = "togglediv(this,'reschedule-fields')" }) @Resource.btnLabelReschedule
+                </label>
+            </div>
+        </div>
+        <div class="col-md-12 reschedule-fields">
+            <div class="row">
+                <div class="col-sm-3 ">
+                    <div class="form-group">
+                        <label>@Resource.lblDeliveryDate</label>
+                        @Html.TextBoxFor(m => m.DeliverySchedule.DeliveryDate, new { @class = "form-control datepicker", @placeholder = @Resource.lblDate })
+                        @Html.ValidationMessageFor(m => m.DeliverySchedule.DeliveryDate)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label>@Resource.lblStartTime</label>
+                        @Html.TextBoxFor(m => m.DeliverySchedule.StartTime, new { @class = "form-control timepicker", @placeholder = @Resource.lblStartTime })
+                        @Html.ValidationMessageFor(m => m.DeliverySchedule.StartTime)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label>@Resource.lblEndTime</label>
+                        @Html.TextBoxFor(m => m.DeliverySchedule.EndTime, new { @class = "form-control timepicker", @placeholder = @Resource.lblEndTime })
+                        @Html.ValidationMessageFor(m => m.DeliverySchedule.EndTime)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label>Quantity Type</label>
+                        @Html.EnumDropDownListFor(m => m.DeliverySchedule.ScheduleQuantityType, new { @class = "form-control schedule-quantity-type", @onchange = "return validateScheduleQuantityType(this);" })
+                        @Html.ValidationMessageFor(m => m.DeliverySchedule.ScheduleQuantityType)
+                    </div>
+                </div>
+                <div class="col-sm-3 schedule-qty-container @(Model.DeliverySchedule.ScheduleQuantityType != ScheduleQuantityType.Quantity ? "hide-element" : "")">
+                    <div class="form-group">
+                        <label>@Resource.lblQuantity</label>
+                        @Html.TextBoxFor(m => m.DeliverySchedule.Quantity, new { @class = "form-control datatype-decimal quantity", @placeholder = @Resource.lblQuantity })
+                        @Html.ValidationMessageFor(m => m.DeliverySchedule.Quantity)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label>@Resource.lblCarrier</label>
+                        @Html.PartialFor("~/Views/Shared/_PartialCarrier.cshtml", m => m.DeliverySchedule.Carrier)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.DeliverySchedule.SupplierSource.Name)
+                        @Html.PartialFor("~/Views/Shared/_PartialSupplierSource.cshtml", m => m.DeliverySchedule.SupplierSource)
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.DeliverySchedule.SupplierSource.ContractNumber)
+                        @Html.TextBoxFor(m => m.DeliverySchedule.SupplierSource.ContractNumber, new { @class = "form-control", @placeholder = @Resource.lblContractNumber })
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.DeliverySchedule.LoadCode)
+                        @Html.TextBoxFor(m => m.DeliverySchedule.LoadCode, new { @class = "form-control", @placeholder = @Resource.lblLoadCode })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@Html.HiddenFor(m => m.OrderId)
+@Html.HiddenFor(m => m.IsFtlOrder)
+@Html.HiddenFor(m => m.EnrouteStatus)
+@Html.HiddenFor(m => m.TrackableScheduleId)
+@Html.HiddenFor(m => m.DeliveryScheduleId)
+@if (Model.EnrouteStatus == (int)EnrouteDeliveryStatus.Unknown || Model.EnrouteStatus == (int)EnrouteDeliveryStatus.OnTheWayToTerminal || Model.EnrouteStatus == (int)EnrouteDeliveryStatus.ArrivedAtTerminal || Model.EnrouteStatus == (int)EnrouteDeliveryStatus.WaitingBeforeFuelPickup)
+{
+    <div class="row">
+        <div class="col-md-12">
+            <div class="radio">
+                <label class="radio-inline">
+                    @Html.RadioButtonFor(m => m.TerminalDetails.IsNewLocation, false, new { @class = "terminal-change", onclick = "inputBoxShowHide('existing-terminal','new-terminal');", onchange = "focusOnFirst(this, 'existing-terminal'); " })
+                    @Resource.lblChangeTerminal
+                </label>
+                <label class="radio-inline">
+                    @Html.RadioButtonFor(m => m.TerminalDetails.IsNewLocation, true, new { @class = "terminal-change", onclick = "inputBoxShowHide('new-terminal','existing-terminal');", onchange = "focusOnFirst(this, 'new-terminal');" })
+                    @Resource.lblChangePickUpLocation
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="row form-group">
+                <div class="col-md-4">
+                    <div class="existing-terminal">
+                        <div class="pa bg-white top0 left0 loading-wrapper terminal-loader hide-element mt5"><span class='spinner-dashboard pa'></span></div>
+                        @Html.LabelFor(m => m.TerminalDetails.TerminalId)
+                        @Html.TextBoxFor(m => m.TerminalDetails.TerminalName, new { @class = "form-control" })
+                        @Html.TextBoxFor(m => m.TerminalDetails.TerminalId, new { @class = "form-control hide" })
+                        @Html.ValidationMessageFor(m => m.TerminalDetails.TerminalName)
+                    </div>
+                </div>
+                <div class="new-terminal defaultDisabled partial-block">
+                    <div class="col-md-12">
+                        <div class="row address-container">
+                            <div class="col-md-6">
+                                <div class="pa bg-white top0 left0 z-index5 loading-wrapper tpo-addressloader hide-element"><span class='spinner-dashboard pa'></span></div>
+                                <div class="address-controls">
+                                    <div class="row">
+                                        <div class="col-sm-4 col-md-6">
+                                            <div class="form-group">
+                                                @Html.HiddenFor(m => m.TerminalDetails.AddressDetails.SiteId, new { @class = "siteId" })
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.SiteName)
+                                                @Html.TextBoxFor(m => m.TerminalDetails.AddressDetails.SiteName, new { @class = "form-control sitename", onblur = "getbulkplantaddress(this);" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.SiteName)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 col-md-6 combineDiv">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.Address)
+                                                @Html.TextBoxFor(m => m.TerminalDetails.AddressDetails.Address, new { @class = "form-control address addressInput disable-pickup-controls" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.Address)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 col-md-6 combineDiv">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.ZipCode)
+                                                @Html.TextBoxFor(m => m.TerminalDetails.AddressDetails.ZipCode, new { @class = "form-control zipcode addressInput disable-pickup-controls" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.ZipCode)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 col-md-6 combineDiv">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.City)
+                                                @Html.TextBoxFor(m => m.TerminalDetails.AddressDetails.City, new { @class = "form-control city addressInput disable-pickup-controls" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.City)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 col-md-6 combineDiv">
+                                            <div class="form-group">
+                                                @Html.HiddenFor(m => m.TerminalDetails.AddressDetails.State.Name, new { @Value = Resource.lblDummy, @class = "statename" })
+                                                @Html.HiddenFor(m => m.TerminalDetails.AddressDetails.State.Code, new { @Value = Resource.lblDummy, @class = "statecode" })
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.State.Id)
+                                                @Html.DropDownListFor(m => m.TerminalDetails.AddressDetails.State.Id, new SelectList(new List<DropdownDisplayItem>(), Model.TerminalDetails.AddressDetails.State.Id), string.Format(Resource.valMessageSelect, Resource.lblState), new { @class = "form-control state addressInput disable-pickup-controls" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.State.Id)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row combineDiv">
+                                        <div class="col-sm-4 col-md-6">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.CountyName)
+                                                <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@Resource.msgCountyNameReason"></i>
+                                                @Html.TextBoxFor(m => m.TerminalDetails.AddressDetails.CountyName, new { @class = "form-control county addressInput" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.CountyName)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 col-md-6">
+                                            <div class="form-group">
+                                                @Html.HiddenFor(m => m.TerminalDetails.AddressDetails.Country.Name, new { @Value = Resource.lblDummy, @class = "countryname" })
+                                                @Html.HiddenFor(m => m.TerminalDetails.AddressDetails.Country.Code, new { @Value = Resource.lblDummy, @class = "countrycode" })
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.Country.Id)
+                                                @Html.DropDownListFor(m => m.TerminalDetails.AddressDetails.Country.Id, new SelectList(CommonHelperMethods.GetCountriesEx(), "Id", "Code", Model.TerminalDetails.AddressDetails.Country.Id), new { @class = "form-control country addressInput disable-pickup-controls" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.Country.Id)
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 col-md-6 countrygroup-div hide-element">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.CountryGroup)
+                                                @Html.DropDownListFor(m => m.TerminalDetails.AddressDetails.CountryGroup.Id, new SelectList(CommonHelperMethods.GetCountriesGroupEx(), "Id", "Name", Model.TerminalDetails.AddressDetails.CountryGroup.Id), new { @class = "form-control countrygroup addressInput disable-pickup-controls" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 combineDiv">
+                                <div class="checkbox mt0">
+                                    <div class="form-group">
+                                        <label>
+                                            @Html.CheckBoxFor(m => m.TerminalDetails.AddressDetails.IsGeocodeUsed, new { onclick = "setReadOnlyMode(this,'geoInput','addressInput')" })
+                                            @Resource.lblGeoCodes
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="combineDiv subSectionOpacity">
+                                    <div class="row geoCntrls">
+                                        <div class="col-xs-6 col-sm-4 col-md-12">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.Latitude)
+                                                @Html.TextBoxFor(m => m.TerminalDetails.AddressDetails.Latitude, new { @class = "form-control datatype-decimal mask-decimal latitude lat geoInput defaultDisabled", @readonly = "true" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.Latitude)
+                                            </div>
+                                        </div>
+                                        <div class="col-xs-6 col-sm-4 col-md-12">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.Longitude)
+                                                @Html.TextBoxFor(m => m.TerminalDetails.AddressDetails.Longitude, new { @class = "form-control datatype-decimal mask-decimal longitude long geoInput defaultDisabled", @readonly = "true" })
+                                                @Html.ValidationMessageFor(m => m.TerminalDetails.AddressDetails.Longitude)
+                                            </div>
+                                        </div>
+                                        <div class="col-xs-6 col-sm-4 col-md-12">
+                                            <div class="form-group">
+                                                @Html.LabelFor(m => m.TerminalDetails.AddressDetails.TimeZoneName)
+                                                @Html.TextBoxFor(m => m.TerminalDetails.AddressDetails.TimeZoneName, new { @class = "form-control timeZoneName defaultDisabled", @readonly = "true" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@if (Model.IsFtlOrder)
+{
+    <div id="splitload-addresses">
+        <div class="row mb10">
+            <div class="col-sm-12">
+                <div class="checkbox mt0 isSplitDrop">
+                    <label>
+                        @Html.CheckBoxFor(m => m.IsSplitLoad, new { onChange = "toggleLocation(this);", @class = "split-drop" }) @Resource.lblIsSplitDrop
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="@(Model.SplitLoadAddresses.Any() ? "show-element": "hide-element")" id="location">
+                <div class="col-md-12 location-controls">
+                    <div id="location-section" class="partial-section">
+                        <div class="partial-block-collection-section">
+                            @foreach (var fuelDropLocation in Model.SplitLoadAddresses)
+                            {
+                                Html.RenderPartial("_PartialSplitLoadDropLocation", fuelDropLocation);
+                            }
+                        </div>
+                        @if (CurrentUser.IsSupplierCompany && (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier))
+                        {
+                            <div class="row">
+                                <div class="form-group col-md-12">
+                                    <a id="LinkAddLocation" href="javascript:void(0)" class="add-partial-block link-addlocation" data-url="@Url.Action("AddLocationForSchedule", "Order", new { area = "Supplier", countryId = Model.CountryId, countryCode = Model.CountryCode })"><i class="fas fa-plus-circle"></i> @Resource.btnLabelAddSplitLoadAddress</a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/stateautofill")
+<script type="text/javascript">
+	scheduleOrderId = @Model.DeliverySchedule.OrderId;
+	scheduleTerminalid = '@Model.TerminalDetails.TerminalId';
+    var allStates =  @Html.Raw(Json.Encode(CommonHelperMethods.GetStatesOfAllCountries()));
+    var stateId = @(Model.TerminalDetails.AddressDetails.State.Id);
+
+	$(document).ready(function () {
+        onLoadPopup();
+        if (@Model.TerminalDetails.AddressDetails.CountryGroup.Id > 0) {
+            $(".countrygroup-div").show();
+        }
+        togglediv("#@Html.IdFor(m => m.IsModifySchedule)", 'reschedule-fields')
+    });
+</script>
+<style>
+    .ui-front {
+        z-index: 9999;
+    }
+</style>

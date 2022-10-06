@@ -1,0 +1,189 @@
+﻿<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<div class="form-horizontal">
+    <div class="col-12">
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="form-group">
+                    @Html.DropDownList("ddlJobs1",
+                    new SelectList(new List<DropdownDisplayExtendedItem>
+                        (), "Id", "Name", 0),
+                        Resource.lblSelectJob,
+                        new { @onchange = "onChangeJob1(this.value);", @class = "select2_customers", required = "required" })
+
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <select id="ddlDays1" class="form-control" onchange="bindChart1();">
+                    <option value="0" disabled>Days</option>
+                    <option value="3" selected>3 Days</option>
+                    <option value="7">7 Days</option>
+                    <option value="10">10 Days</option>
+
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div id="chart1" class="col-sm-6">
+                <div id="timeline-chart1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        bindJobDdl1();
+    })
+    function bindJobDdl1() {
+        allJobs = [];
+        $('#ddlJobs1').html('');
+
+        let tempJob = "<option value = 'null' selected> @Resource.lblSelectJob </option>";
+        $('#ddlJobs1').html(tempJob);
+
+
+        $('#slider-loader').show();
+        let url = '@Url.Action("GetJobsByCompanyType", "Dashboard", new { Area = "Supplier" })?userId=@CurrentUser.Id&companyId=@CurrentUser.CompanyId&companyType=@((int)CurrentUser.CompanyTypeId)';
+        $.ajax({
+            type: "GET",
+            url: url,
+            success: function (data) {
+                var appenddata = tempJob;
+                if (data && data.length > 0) {
+                    allJobs = data;
+                    $.each(data, function (key, value) {
+                        appenddata += "<option value = '" + value.Id + "'>" + value.Name + " </option>";
+                    });
+                    $('#ddlJobs1').html(appenddata);
+                }
+            },
+            error: function (jqXHR, exception) {
+                console.log(jqXHR);
+                console.log(exception);
+            },
+        }).always(function () { $('#slider-loader').hide(); });
+
+    }
+
+    function bindChart1() {
+
+        let noOfDays = $("#ddlDays1").val();
+        if (!noOfDays) { noOfDays = 3; $("#ddlDays1").val(3); }
+
+        $("#chart1").html('<div id="timeline-chart1"></div>');
+
+        $('#slider-loader').show();
+        let jobId = $("#ddlJobs1").val();
+        let companyId = '@CurrentUser.CompanyId';
+
+        let url = '@Url.Action("GetSalesDataForGraph", "Sales", new { area = "Buyer" })' + "?jobId=" + jobId + "&noOfDays=" + noOfDays;
+        $.ajax({
+            type: "GET",
+            url: url,
+            success: function (response) {
+
+                if (response && response.length > 0) {
+                    var _series = [];
+
+                    response.forEach(function (tankReadings) {
+                        var tankName = tankReadings.TankName;
+                        var storageid = tankReadings.StorageId
+                        if (tankReadings) {
+                            var tempTankChart = { name: "", data: [] };
+
+                            tempTankChart.name = tankReadings.TankName;
+                            response.forEach(function (tankReading) {
+                                if (tankReading.TankName == tankName && tankReading.StorageId == storageid)
+                                tempTankChart.data.push([moment(tankReading.CreatedDate).valueOf(), tankReading.Sale]);
+
+                            });
+
+                            _series.push(tempTankChart);
+                        }
+                    });
+
+                    var options = {
+                        chart: {
+                            height: 380,
+                            type: "area",
+                            toolbar: {
+                                show: true,
+                                offsetX: 0,
+                                offsetY: 0,
+                                tools: {
+                                    download: false,
+                                    selection: true,
+                                    zoom: true,
+                                    zoomin: true,
+                                    zoomout: true,
+                                    pan: true,
+                                    reset: true,
+                                },
+                                autoSelected: 'zoom'
+                            },
+                            dropShadow: {
+                                enabled: true,
+                                enabledSeries: [0],
+                                top: -2,
+                                left: 2,
+                                blur: 5,
+                                opacity: 0.06
+                            }
+                        },
+                        series: _series,
+                        dataLabels: { enabled: false },
+                        stroke: {
+                            width: [0, 4],
+                            curve: "straight"
+                        },
+
+                        xaxis: {
+                            type: "datetime",
+                            axisBorder: { show: true },
+                            title: { text: "." }
+                        },
+                        yaxis: {
+                            axisBorder: { show: true },
+                            title: { text: "In Gallons / Litres" },
+                            labels: {
+                                formatter: function (val, index) {
+                                    return val.toFixed(0);
+                                }
+                            }
+                        },
+                        tooltip: {
+                            x: {
+                                format: "dd MMM yyyy",
+                            },
+                            y: {
+                                formatter: function (val) {
+                                    return val.toFixed(2);
+                                },
+                                title: {
+                                    formatter: (seriesName) => 'In Gallons / Litres',
+                                },
+                            },
+                        },
+                    };
+
+                    var chart = new ApexCharts(document.querySelector("#timeline-chart1"), options);
+                    chart.render();
+                }
+                else {
+                    $("#timeline-chart1").html('<div class="alert alert-danger d-inline-block"><i class="fas fa-exclamation-circle fs14 mr5"></i> Dip test details not available since last ' + noOfDays + ' days.</div>');
+                }
+
+            },
+            error: function (jqXHR, exception) {
+                console.log(jqXHR);
+                console.log(exception);
+            },
+        }).always(function () { $('#slider-loader').hide(); });
+
+    }
+    function onChangeJob1(value) {
+        if (value > 0) {
+            bindChart1();
+        }
+    }
+</script>
+

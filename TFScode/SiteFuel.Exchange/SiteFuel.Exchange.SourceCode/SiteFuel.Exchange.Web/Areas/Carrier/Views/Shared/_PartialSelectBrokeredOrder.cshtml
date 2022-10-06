@@ -1,0 +1,498 @@
+﻿@model OrderDetailsViewModel
+@{
+    ViewBag.Title = "Order Details";
+}
+<div class="row">
+    <div class="col-sm-12 text-center mb20">
+        <h1 class="mt0">@Resource.lblActionRequired</h1>
+        <h3 class="mb15">@string.Format(Resource.lblMessageUserCanceledOrder, Model.BuyerUserFirstName, Model.BuyerUserLastName, Model.BuyerCompanyName)</h3>
+        <p>@string.Format(Resource.lblMessageSelectNewOrderTerms, Model.BuyerCompanyName, Model.ParentOrderDetails.BuyerCompanyName)</p>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-6">
+        <div class="row">
+            <div class="col-sm-12 text-center"><h4 class="mt0 pt10 mb0 f-normal">@Resource.headingYourOriginalOrder</h4></div>
+            <div class="col-sm-12 text-center mt10">
+                <input type="button" id="btnOriginalOrder" value="Choose Order" onclick="location.href='@Url.Action("ChooseOrder", "Order", new { area = "Supplier", id= ViewContext.RouteData.Values["id"], selectedId = Model.Id })'" class="btn btn-primary btn-sm" />
+            </div>
+        </div>
+        <div class="well well-sm mt10">
+            <div class="row">
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.headingCustomerInformation</div>
+                    @Model.Supplier.Name<br />
+                    @Model.Supplier.Email<br />
+                    <span class="phone">@Model.Supplier.PhoneNumber</span>
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblDBE <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDBE"></i></div>
+                    <span>
+                        @if (Model.Qualifications.Count > 0)
+                        {
+                            @Html.Raw(string.Join("<br />", Model.Qualifications))
+                        }
+                        else
+                        {
+                            @Resource.lblHyphen
+                        }
+                    </span>
+
+                </div>
+                <div class="col-sm-6 mb10 clearboth">
+                    <div class="f-normal">@Resource.lblPoNumber</div>
+                    @Model.PoNumber
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblPaymentTerms</div>
+                    <span>
+                        @Model.PaymentTermName
+                        @if (Model.PaymentTermId == (int)PaymentTerms.NetDays)
+                        {
+                            <span>@Model.NetDays</span>
+                        }
+                    </span>
+
+                </div>
+            </div>
+        </div>
+        <div class="well well-sm">
+            <div class="row">
+                <div class="col-sm-12 mb10">
+                    <div class="f-normal">@Resource.lblPricePerGallon</div>
+                    @Model.PricePerGallon
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblWetHoseFee</div>
+                    <span>
+                        @if (Model.FuelRequestFees.WetHoseFeeSubTypeId == (int)FeeSubType.NoFee)
+                        {
+                            @Resource.lblNoFee
+                        }
+                        else if (Model.FuelRequestFees.WetHoseFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                        {
+                            @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.FuelRequestFees.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                        }
+                        else if (Model.FuelRequestFees.WetHoseFee > 0)
+                        {
+                            @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.FuelRequestFees.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblHourlyRate.ToLower()}")
+                        }
+                    </span>
+
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblOverWaterFee</div>
+                    @if (Model.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.NoFee)
+                    {
+                        @Resource.lblNoFee
+                    }
+                    else if (Model.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                    {
+                        @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.FuelRequestFees.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                    }
+                    else if (Model.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.HourlyRate)
+                    {
+                        @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.FuelRequestFees.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblHourlyRate.ToLower()}")
+                    }
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblDeliveryFee</div>
+                    @if (Model.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.NoFee)
+                    {
+                        <span>
+                            @Resource.lblNoFee
+                        </span>
+                    }
+                    else if (Model.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.FlatFee)
+                    {
+                        <span>
+                            @($"{Resource.lblFlatFee} {Resource.constSymbolCurrency}{Model.FuelRequestFees.DeliveryFee.ToString(ApplicationConstants.DecimalFormat2)}")
+                        </span>
+                    }
+                    else if (Model.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.ByQuantity)
+                    {
+                        @Resource.lblByQuantity <br />
+                        foreach (var item in Model.DeliveryFeeByQuantity)
+                        {
+                            <span>
+                                @string.Format("{0} {1} {2} {3}{4}{5}{6}",
+                                        item.MinQuantity.GetCommaSeperatedValue(),
+                                        Resource.lblSingleHyphen,
+                                        (item.MaxQuantity.HasValue ? item.MaxQuantity.Value.GetCommaSeperatedValue() : " "),
+                                        Resource.lblQuantity,
+                                        " : ",
+                                        Resource.constSymbolCurrency,
+                                        item.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                            </span>
+                            <br />
+                        }
+                    }
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblDryRunFee</div>
+                    @if (Model.FuelRequestFees.DryRunFeeSubTypeId == (int)FeeSubType.NoFee)
+                    {
+                        @Resource.lblNoFee
+                    }
+                    else if (Model.FuelRequestFees.DryRunFeeSubTypeId == (int)FeeSubType.FlatFee)
+                    {
+                        @($"{Resource.lblFlatFee} {Resource.constSymbolCurrency}{Model.FuelRequestFees.DryRunFee.ToString(ApplicationConstants.DecimalFormat2)}")
+                    }
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblAdditionalFee</div>
+                    @if (Model.AdditionalFees.Count > 0)
+                    {
+                        foreach (var fee in Model.AdditionalFees)
+                        {
+                            if (@fee.FeeDetails != null)
+                            {
+                                <span>
+                                    @string.Format("{0} {1}{2}{3}",
+                                        fee.FeeSubTypeName,
+                                        " : ",
+                                        @Resource.constSymbolCurrency,
+                                        fee.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                    @string.Format(" : {0}", @fee.FeeDetails)
+                                </span>
+                            }
+                            else
+                            {
+                                <span>
+                                    @string.Format("{0} {1}{2}{3}",
+                                        fee.FeeSubTypeName,
+                                        " : ",
+                                        @Resource.constSymbolCurrency,
+                                        fee.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                </span>
+                            }
+                            <br />
+                        }
+                    }
+                    else
+                    {
+                        <span>
+                            @Resource.lblHyphen
+                        </span>
+                    }
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblSalesTaxExempt</div>
+                    @((Model.IsTaxExempted).ToYesNo())
+                </div>
+                <div class="col-sm-12 mb10">
+                    <div class="f-normal">@Resource.lblTier</div>
+                    @if (Model.DifferentFuelPrices.Count > 0)
+                    {
+                        foreach (var item in Model.DifferentFuelPrices)
+                        {
+                            <span>
+                                @item.MinQuantity.GetCommaSeperatedValue()-@(item.MaxQuantity.HasValue ? item.MaxQuantity.Value.GetCommaSeperatedValue() : " ")  @Resource.lblQuantity :
+                                @if (item.PricingTypeId == (int)PricingType.PricePerGallon)
+                                {
+                                    <span>
+                                        @string.Format("{0} : {1}{2}",
+                                            Resource.lblPricePerGallon,
+                                            Resource.constSymbolCurrency,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                    </span>
+                                }
+                                else if (item.PricingTypeId == (int)PricingType.RackAverage
+                                || item.PricingTypeId == (int)PricingType.RackLow
+                                || item.PricingTypeId == (int)PricingType.RackHigh)
+                                {
+                                    if (item.RackAvgTypeId == (int)RackPricingType.PlusPercent)
+                                    {
+                                        <span>
+                                            @string.Format("{0} {1}{2}",
+                                            Resource.lblRackPlus,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2),
+                                            Resource.constSymbolPercent)
+                                        </span>
+                                    }
+                                    else if (item.RackAvgTypeId == (int)RackPricingType.MinusPercent)
+                                    {
+                                        <span>
+                                            @string.Format("{0} {1}{2}",
+                                            Resource.lblRackMinus,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2),
+                                            Resource.constSymbolPercent)
+                                        </span>
+                                    }
+                                    else if (item.RackAvgTypeId == (int)RackPricingType.PlusDollar)
+                                    {
+                                        <span>
+                                            @string.Format("{0} {1}{2}",
+                                            Resource.lblRackPlus,
+                                            Resource.constSymbolCurrency,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                        </span>
+                                    }
+                                    else if (item.RackAvgTypeId == (int)RackPricingType.MinusDollar)
+                                    {
+                                        <span>
+                                            @string.Format("{0} {1}{2}",
+                                            Resource.lblRackMinus,
+                                            Resource.constSymbolCurrency,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                        </span>
+                                    }
+                                }
+                            </span><br />
+                        }
+                    }
+                    else
+                    {
+                        @Resource.lblHyphen
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="row">
+            <div class="col-sm-12 text-center"><h4 class="mt0 pt10 mb0 f-normal">@Resource.headingOrderBetween @Model.BuyerCompanyName and @Model.ParentOrderDetails.BuyerCompanyName</h4></div>
+            <div class="col-sm-12 text-center mt10">
+                <input type="button" id="btnAnotherOrder" value="Choose Order" onclick="location.href='@Url.Action("ChooseOrder", "Order", new { area = "Supplier", id= ViewContext.RouteData.Values["id"], selectedId = Model.ParentOrderDetails.Id })'" class="btn btn-primary btn-sm" />
+            </div>
+        </div>
+        <div class="well well-sm mt10">
+            <div class="row">
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.headingCustomerInformation</div>
+                    @Model.ParentOrderDetails.Supplier.Name<br />
+                    @Model.ParentOrderDetails.Supplier.Email<br />
+                    <span class="phone"> @Model.ParentOrderDetails.Supplier.PhoneNumber</span>
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblDBE <i class="fa fa-question-circle ml2" data-toggle="tooltip" data-placement="top" title="@Resource.tooltipDBE"></i></div>
+                    <span>
+                        @if (Model.ParentOrderDetails.Qualifications.Count > 0)
+                        {
+                            @Html.Raw(string.Join("<br />", Model.ParentOrderDetails.Qualifications))
+                        }
+                        else
+                        {
+                            @Resource.lblHyphen
+                        }
+
+                    </span>
+                </div>
+                <div class="col-sm-6 mb10 clearboth">
+                    <div class="f-normal">@Resource.lblPoNumber</div>
+                    @Model.ParentOrderDetails.PoNumber
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblPaymentTerms</div>
+                    <span>
+                        @Model.ParentOrderDetails.PaymentTermName
+                        @if (Model.ParentOrderDetails.PaymentTermId == (int)PaymentTerms.NetDays)
+                        {
+                            <span>@Model.ParentOrderDetails.NetDays</span>
+                        }
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="well well-sm">
+            <div class="row">
+                <div class="col-sm-12 mb10">
+                    <div class="f-normal">@Resource.lblPricePerGallon</div>
+                    @Model.ParentOrderDetails.PricePerGallon
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblWetHoseFee</div>
+                    <span>
+                        @if (Model.ParentOrderDetails.FuelRequestFees.WetHoseFeeSubTypeId == (int)FeeSubType.NoFee)
+                        {
+                            @Resource.lblNoFee
+                        }
+                        else if (Model.ParentOrderDetails.FuelRequestFees.WetHoseFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                        {
+                            @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                        }
+                        else if (Model.ParentOrderDetails.FuelRequestFees.WetHoseFee > 0)
+                        {
+                            @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblHourlyRate.ToLower()}")
+                        }
+                    </span>
+
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblOverWaterFee</div>
+                    @if (Model.ParentOrderDetails.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.NoFee)
+                    {
+                        @Resource.lblNoFee
+                    }
+                    else if (Model.ParentOrderDetails.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                    {
+                        @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblPerAsset.ToLower()}")
+                    }
+                    else if (Model.ParentOrderDetails.FuelRequestFees.OverWaterFeeSubTypeId == (int)FeeSubType.HourlyRate)
+                    {
+                        @($"{Resource.lblUpto} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2)} {Resource.lblHourlyRate.ToLower()}")
+                    }
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblDeliveryFee</div>
+                    @if (Model.ParentOrderDetails.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.NoFee)
+                    {
+                        <span>
+                            @Resource.lblNoFee
+                        </span>
+                    }
+                    else if (Model.ParentOrderDetails.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.FlatFee)
+                    {
+                        <span>
+                            @($"{Resource.lblFlatFee} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.DeliveryFee.ToString(ApplicationConstants.DecimalFormat2)}")
+                        </span>
+                    }
+                    else if (Model.ParentOrderDetails.FuelRequestFees.DeliveryFeeSubTypeId == (int)FeeSubType.ByQuantity)
+                    {
+                        @Resource.lblByQuantity <br />
+                        foreach (var item in Model.ParentOrderDetails.DeliveryFeeByQuantity)
+                        {
+                            <span>
+                                @string.Format("{0} {1} {2} {3}{4}{5}{6}",
+                                        item.MinQuantity.GetCommaSeperatedValue(),
+                                        Resource.lblSingleHyphen,
+                                        (item.MaxQuantity.HasValue ? item.MaxQuantity.Value.GetCommaSeperatedValue() : " "),
+                                        Resource.lblQuantity,
+                                        " : ",
+                                        Resource.constSymbolCurrency,
+                                        item.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                            </span>
+                            <br />
+                        }
+                    }
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblDryRunFee</div>
+                    @if (Model.ParentOrderDetails.FuelRequestFees.DryRunFeeSubTypeId == (int)FeeSubType.NoFee)
+                    {
+                        @Resource.lblNoFee
+                    }
+                    else if (Model.ParentOrderDetails.FuelRequestFees.DryRunFeeSubTypeId == (int)FeeSubType.FlatFee)
+                    {
+                        @($"{Resource.lblFlatFee} {Resource.constSymbolCurrency}{Model.ParentOrderDetails.FuelRequestFees.DryRunFee.ToString(ApplicationConstants.DecimalFormat2)}")
+                    }
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblAdditionalFee</div>
+                    @if (Model.ParentOrderDetails.AdditionalFees.Count > 0)
+                    {
+                        foreach (var fee in Model.ParentOrderDetails.AdditionalFees)
+                        {
+                            if (@fee.FeeDetails != null)
+                            {
+                                <span>
+                                    @string.Format("{0} {1}{2}{3}",
+                                        fee.FeeSubTypeName,
+                                        " : ",
+                                        @Resource.constSymbolCurrency,
+                                        fee.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                    @string.Format(" : {0}", @fee.FeeDetails)
+                                </span>
+                            }
+                            else
+                            {
+                                <span>
+                                    @string.Format("{0} {1}{2}{3}",
+                                        fee.FeeSubTypeName,
+                                        " : ",
+                                        @Resource.constSymbolCurrency,
+                                        fee.Fee.ToString(ApplicationConstants.DecimalFormat2))
+                                </span>
+                            }
+                            <br />
+                        }
+                    }
+                    else
+                    {
+                        <span>
+                            @Resource.lblHyphen
+                        </span>
+                    }
+                </div>
+                <div class="col-sm-6 mb10">
+                    <div class="f-normal">@Resource.lblSalesTaxExempt</div>
+                    @((Model.ParentOrderDetails.IsTaxExempted).ToYesNo())
+                </div>
+                <div class="col-sm-12 mb10">
+                    <div class="f-normal">@Resource.lblTier</div>
+                    @if (Model.ParentOrderDetails.DifferentFuelPrices.Count > 0)
+                    {
+                        foreach (var item in Model.ParentOrderDetails.DifferentFuelPrices)
+                        {
+                            <span>
+                                @item.MinQuantity.GetCommaSeperatedValue()-@(item.MaxQuantity.HasValue ? item.MaxQuantity.Value.GetCommaSeperatedValue() : " ")  @Resource.lblQuantity :
+                                @if (item.PricingTypeId == (int)PricingType.PricePerGallon)
+                                {
+                                    <span>
+                                        @string.Format("{0} : {1}{2}",
+                                            Resource.lblPricePerGallon,
+                                            Resource.constSymbolCurrency,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                    </span>
+                                }
+                                else if (item.PricingTypeId == (int)PricingType.RackAverage
+                                || item.PricingTypeId == (int)PricingType.RackLow
+                                || item.PricingTypeId == (int)PricingType.RackHigh)
+                                {
+                                    if (item.RackAvgTypeId == (int)RackPricingType.PlusPercent)
+                                    {
+                                        <span>
+                                            @string.Format("{0} {1}{2}",
+                                            Resource.lblRackPlus,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2),
+                                            Resource.constSymbolPercent)
+                                        </span>
+                                    }
+                                    else if (item.RackAvgTypeId == (int)RackPricingType.MinusPercent)
+                                    {
+                                        <span>
+                                            @string.Format("{0} {1}{2}",
+                                            Resource.lblRackMinus,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2),
+                                            Resource.constSymbolPercent)
+                                        </span>
+                                    }
+                                    else if (item.RackAvgTypeId == (int)RackPricingType.PlusDollar)
+                                    {
+                                        <span>
+                                            @string.Format("{0} {1}{2}",
+                                            Resource.lblRackPlus,
+                                            Resource.constSymbolCurrency,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                        </span>
+                                    }
+                                    else if (item.RackAvgTypeId == (int)RackPricingType.MinusDollar)
+                                    {
+                                        <span>
+                                            @string.Format("{0} {1}{2}",
+                                            Resource.lblRackMinus,
+                                            Resource.constSymbolCurrency,
+                                            item.PricePerGallon.Value.ToString(ApplicationConstants.DecimalFormat2))
+                                        </span>
+                                    }
+                                }
+                            </span><br />
+                        }
+                    }
+                    else
+                    {
+                        @Resource.lblHyphen
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 text-center pb20">
+        <a href="@Url.Action("Cancel", "Order", new { area = "Supplier", id = Model.Id })">
+            <input type="button" value="@Resource.btnLabelCancelMyOrder" class="btn btn-danger btn-sm" />
+        </a>
+    </div>
+</div>

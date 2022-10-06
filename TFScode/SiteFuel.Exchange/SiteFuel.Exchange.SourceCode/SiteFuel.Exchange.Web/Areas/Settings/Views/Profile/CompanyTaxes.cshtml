@@ -1,0 +1,113 @@
+﻿@model CompanyTaxesViewModel
+@{
+    ViewBag.Title = "Taxes and Payments";
+    bool IsAdmin = CurrentUser.IsBuyerAdmin || CurrentUser.IsSupplierAdmin || CurrentUser.IsCarrierAdmin;
+}
+<div class="row col-sm-12">
+    <div class="row col-md-12 mb10">
+        <div class="row  col-md-12 tab-headers">
+            <a href="javascript:void(0);" id="auto-tab-direct-tax" onclick="showsection('direct-tax'), activelink(this)" class="active mr20">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.tabheadingDirectTax</span>
+                </div>
+            </a>
+            <a href="javascript:void(0);" id="auto-tab-exemption" onclick="showsection('tax-exemption'), activelink(this)" class="active mr20">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.tabheadingExemption</span>
+                </div>
+            </a>
+            @if (CurrentUser.IsSupplierCompany)
+            {
+                <a id="tab-exclusions" class="mr20" onclick="showsection('tab-contents-exclusion'), activelink(this)" data-ajax="true"
+                   data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace"
+                   data-ajax-update="#tab-contents-exclusion"
+                   data-ajax-url="@Url.Action("GetCompanyTaxExclusion", "TaxExemption", new { area = "Settings" })">
+                    <div class="step-inprogress fs18">
+                        <span class="f-light step-text float-left">@Resource.tabHeadingExclusions</span>
+                    </div>
+                </a>
+            }
+            <a id="tab-payment" class="single-ajax-mode mr20" onclick="showsection('tab-payment-details'), activelink(this)"
+               data-ajax="true" data-ajax-loading="#ajax-loading" data-ajax-method="GET" data-ajax-mode="replace"
+               data-ajax-update="#tab-payment-details"
+               data-ajax-url="@Url.Action("CompanyPaymentDetails", "Profile", new { area = "Settings" })">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text pull-left">@Resource.btnLabelPayments</span>
+                </div>
+            </a>
+
+        </div>
+    </div>
+    <div class="pl0 col-sm-12 tab-container">
+        <div class="ml0 direct-tax-container" id="direct-tax">
+            @using (Html.BeginForm("SaveDirectTax", "TaxExemption", new { area = "Settings" }, FormMethod.Post))
+            {
+                @Html.HiddenFor(m => m.IsEdit)
+
+                <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="form-group mb0">
+                                <div class="form-check form-check-inline">
+                                    @Html.CheckBoxFor(m => m.IsDirectTax, new { @class = "form-check-input", @id = "checkbox-directtax", onclick = "showHideElementOnRadioChange(this, 'div-direct-tax-states')" })
+                                    <label class="form-check-label" for="checkbox-directtax">@Resource.lblEnableDirectTaxes</label>
+                                </div>
+                                <div>
+                                    <span class="field-validation-error"><span id="spn-enable-direct-tax-error"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="col-sm-12 div-direct-tax-states @(Model.IsDirectTax ? "" : "hide-element")">
+                    <div class="col-sm-6 partial-section">
+                        <div class="partial-block-collection-section">
+                            @foreach (var DirectTaxes in Model.DirectTaxes)
+                            {
+                                @Html.PartialFor("_PartialStates", m => DirectTaxes)
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12  text-right mt10">
+                    <input type="button" class="btn" value="@Resource.btnLabelCancel" onclick="location.href='@Url.Action("CompanyTaxes", "TaxExemption", new { area = "Settings" })'">
+                    <input type="submit" class="btn btn-lg btn-primary" id="idSaveDirectTax" value="@Resource.btnLabelSave" onclick="return validateDirectTaxDetails();">
+                </div>
+            }
+        </div>
+        <div id="tax-exemption">
+            <div class="row">
+                <div class="col-md-12">
+                    @Html.Partial("~/Areas/Settings/Views/Profile/TaxExemptLicensesGrid.cshtml")
+                </div>
+            </div>
+        </div>
+        <div id="tab-contents-exclusion"></div>
+        <div id="tab-payment-details">
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if (!@IsAdmin) {
+                $("#checkbox-directtax").attr("disabled", "disabled");
+                $("#idSaveDirectTax").attr("disabled", "disabled");
+
+            }
+        });
+
+        function validateDirectTaxDetails() {
+            var isDirectTaxChecked = $('#@Html.IdFor(m => m.IsDirectTax)').prop('checked');
+            var isEdit = $('#@Html.IdFor(m => m.IsEdit)').val();
+            if (!isDirectTaxChecked && isEdit == 'False') {
+                $('#spn-enable-direct-tax-error').text('@Resource.errMessageSelectDirectTax');
+                return false;
+            }
+            return true;
+        }
+    </script>
+}

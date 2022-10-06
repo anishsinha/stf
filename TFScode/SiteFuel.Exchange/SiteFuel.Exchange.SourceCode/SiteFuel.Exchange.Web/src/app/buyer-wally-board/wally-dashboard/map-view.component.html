@@ -1,0 +1,169 @@
+<div class='pa bg-white top0 left0 z-index5 loading-wrapper' *ngIf="loadingData">
+    <span class='spinner-dashboard pa'></span>
+</div>
+<div class="row animated mt60">
+    <div class="" [ngClass]="{'fadeIn': FilterForm.get('ToggleMap').value, 'display_hide': !FilterForm.get('ToggleMap').value ,'col-sm-9': !FilterForm.get('ToggleExpandMapView').value , 'col-sm-12':FilterForm.get('ToggleExpandMapView').value === true  }">
+        <div class="expand_map_btn">
+            <a class="" (click)="toggleExpandMapView()">
+                <i class="fa fa-2x" [ngClass]="{'fa-arrow-circle-right': !FilterForm.get('ToggleExpandMapView').value, 'fa-arrow-circle-left': FilterForm.get('ToggleExpandMapView').value}"></i>
+            </a>
+        </div>
+        <div id="map-view" class="mb15">
+            <div id="mapLegend" style="z-index: 1; position: absolute; top: -5px; left: 10px; font-size: 11px;">
+                <div id="status-legends" class="well pa0">
+                    <div class="border-b pb5 pt5 pl5">
+                        <a (click)="filterMapByStatus(11)" class="db pa5" [ngClass]="{'activeRoute':selectedMaplable==11}">
+                            <img src="src/assets/truck-11.svg" data-statusid="11">
+                            On the way to terminal
+                        </a>
+
+                    </div>
+                    <div class="border-b pb5 pt5 pl5">
+                        <a (click)="filterMapByStatus(12)" class="db pa5" [ngClass]="{'activeRoute':selectedMaplable==12}">
+                            <img src="src/assets/truck-12.svg" data-statusid="12">
+                            Arrived at terminal
+                        </a>
+
+                    </div>
+                    <div class="border-b pb5 pt5 pl5">
+                        <a (click)="filterMapByStatus(1)" class="db pa5" [ngClass]="{'activeRoute':selectedMaplable==1}">
+                            <img src="src/assets/truck-1.svg" data-statusid="1">
+                            On the way to location
+                        </a>
+
+                    </div>
+                    <div class="border-b pb5 pt5 pl5">
+                        <a (click)="filterMapByStatus(18)" class="db pa5" [ngClass]="{'activeRoute':selectedMaplable==18}">
+                            <img src="src/assets/truck-18.svg" data-statusid="18">
+                            Arrived at location
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+            <div style="z-index: 1; position: absolute; top: 0; right: 65px; font-size: 11px; opacity:0.9">
+                <div class="well pa5">Auto Refresh in: <b>{{autoRefreshTicks * 1000 | date:'mm:ss':'UTC'}}</b> minutes</div>
+            </div>
+            <agm-map [ngStyle]="{'height':singleMulti == 2 ? '80vh' : '60vh' }"  [zoom]="zoomLevel" [maxZoom]="16" [minZoom]="2"
+                (mapReady)="mapReady($event)" [fullscreenControl]="true" [fullscreenControlOptions]="screenOptions">
+                <ng-container *ngFor="let driver of OnGoingLoads let indx=index">
+                    <agm-marker *ngIf="driver.Lat!= null &&driver.Lng!= null" [latitude]="driver.Lat" [longitude]="driver.Lng"
+                                [iconUrl]="{'url':'src/assets/truck-'+driver.SttsId+'.svg','scaledSize':{'height':40,'width':50}}" (mouseOver)="mouseHoverMarker(infoWindow,$event)" (markerClick)="showHideRoutes(indx)" (mouseOut)="mouseHoveOutMarker(null,$event,indx)">
+                        <agm-info-window [disableAutoPan]="false" #infoWindow>
+                            <div>
+                                <p><strong>Driver Name: </strong> {{ driver.Name}}</p>
+                                <p><strong>Contact Number: </strong><a href="tel:{{driver.PhNo}}" target="_blank" title="Call {{driver.Name}}">{{driver.PhNo}}</a></p>
+                                <p><strong>Last UpdatedAt: </strong> {{ driver.AppLastUpdatedDate}}</p>
+                                <p style="font-size:11px;padding-top: 10px;" *ngIf="driver.routeShow else showRouteTemplate"><strong>Note:</strong> Click truck to hide routes.</p>
+                                <ng-template #showRouteTemplate>
+                                    <p style="font-size:11px;padding-top: 10px;"><strong>Note:</strong>  Click truck to view routes</p>
+                                </ng-template>
+                            </div>
+                        </agm-info-window>
+                    </agm-marker>
+                    <agm-marker [latitude]="driver.dLat" [longitude]="driver.dLng" [iconUrl]='{ "url": "https://maps.google.com/mapfiles/ms/icons/red-dot.png", "scaledSize": { "height": 25, "width": 25 } }' (mouseOver)="mouseHoverMarker(infoWindow2,$event)" (mouseOut)="mouseHoveOutMarker(infoWindow2,$event,null)">
+                        <agm-info-window [disableAutoPan]="false" [maxWidth]="200" #infoWindow2>
+                            <div>
+                                <p><b>Engaged Driver : </b> {{ driver.Name}}</p>
+                                <p><b>Drop Location: </b>{{ driver.Loc}}</p>
+                            </div>
+                        </agm-info-window>
+                    </agm-marker>
+                    <agm-direction *ngIf="driver.dLat && driver.dLng && driver.Lat!= null && driver.Lng!= null" [origin]="{lat:driver.Lat, lng: driver.Lng}" [destination]="{lat:driver.dLat, lng: driver.dLng}"
+                                   [visible]="driver.routeShow" [renderOptions]="{ suppressMarkers: true , polylineOptions: { strokeColor: driver.statusColor }}"></agm-direction>
+                </ng-container>
+            </agm-map>
+        </div>
+    </div>
+
+    <div class="pl0" [ngClass]="{'col-sm-3': (FilterForm.get('ToggleExpandMapView').value === false && FilterForm.get('ToggleMap').value === true), 'absolute_driver': FilterForm.get('ToggleMap').value===false, 'hide_absolute_driver': (FilterForm.get('ToggleDriverView').value === true && FilterForm.get('ToggleMap').value === false), 'display_hide': (FilterForm.get('ToggleExpandMapView').value === true && FilterForm.get('ToggleMap').value===true) }">
+        <div class="driver_btn" *ngIf="!FilterForm.get('ToggleMap').value">
+            <a class="" (click)="toggleDriverView()">
+                <i class="fa fa-2x" [ngClass]="{'fa-arrow-circle-right': !FilterForm.get('ToggleDriverView').value, 'fa-arrow-circle-left': FilterForm.get('ToggleDriverView').value}"></i>
+            </a>
+        </div>
+        <div class="mt10">
+            <h3 class="pull-left mt6 pb0 dib">Drivers</h3>
+            <div class="inner-addon left-addon pull-left ml10">
+                <i class="glyphicon glyphicon-search"></i>
+                <input class="form-control" name="txtSearch" placeholder="Search Drivers" type="text" (input)="searchDrivers($event)" autocomplete="off">
+            </div>
+        </div>
+
+        <div class="driver-list dib full-width">
+            <div class="driver-details dib full-width pa5" *ngFor="let driver of Drivers let indx=index;">
+                <div class="pull-left driver-initials radius-capsule mr10 fs15 color-white pr"><span [ngClass]="driver.IsOnline ? 'live':''"></span>{{driver.Intl}}</div>
+                <div class="pull-left" [ngClass]="{'activeRoute':driver.routeShow}" [ngStyle]="{ 'color': (driver.routeShow ? driver.statusColor : '#2b2b2b') }" title="Click to {{driver.routeShow ? 'hide':'show'}} routes" (click)="showHideRoutes(indx)">
+                    <span class="fs15">{{driver.Name}}</span>
+                    <span class="fs12 db opacity8">{{driver.PhNo}}</span>
+                </div>
+            </div>
+            <div class="driver-details dib full-width pa5" *ngFor="let driver of OfflineDrivers let indx=index;">
+                <div class="pull-left driver-initials radius-capsule mr10 fs15 color-white pr">{{driver.Intl}}</div>
+                <div class="pull-left" title="Last location is not available">
+                    <span class="fs15">{{driver.Name}}</span>
+                    <span class="fs12 db opacity8">{{driver.PhNo}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<button type="button" id="btnconfirm-memberInfo" class="hide-element" data-toggle="modal" data-target="#confirm-memberInfo" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-memberInfo" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Group Member Information</h2>
+                <table id="member-datatable" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>LastSeenAt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let member of memberInfo">
+                            <td>{{member.nickname}}</td>
+                            <td>{{member.userId}}</td>
+                            <td>{{member.connectionStatus}}</td>
+                            <td>{{member.lastSeenAt}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-right">
+                    <button type="button" class="btn btn-success btn-lg" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="chat-wrapper" style="z-index: 9999;">
+    <app-buyer-sendbird></app-buyer-sendbird>
+</div>
+<ng-template #driverDetailsModal let-modalDetails="modalDetails">
+    <div [ngClass]="{'modal':true, 'left':true,'fade':true,'show': modalDetails.display==='block'}" [ngStyle]="{'display':modalDetails.display}" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class='pa bg-white top0 left0 z-index5 loading-wrapper' *ngIf="loadingData">
+                <span class='spinner-dashboard pa'></span>
+            </div>
+            <div class="modal-content">
+                <div class="modal-header pb0 pt0">
+                    <h4 class="modal-title" id="assetDetailsModal">
+                        {{selectedDriverDetails.Name}}
+                        <a (click)="doChat(modalDetails.data.Id);" title="Chat"> <span class="fs18 far fa-comment"></span></a>
+                    </h4>
+                    <a data-dismiss="modal" class="float-right mt10" (click)="modalClose()" aria-label="Close"> <i class="fa fa-close fa-lg"></i></a>
+                </div>               
+            </div>
+        </div>
+    </div>
+</ng-template>
+
+
+<ng-container *ngTemplateOutlet="driverDetailsModal;context:driverModal">
+</ng-container>
+<div id="invoice" class="hide-element">
+</div>
+

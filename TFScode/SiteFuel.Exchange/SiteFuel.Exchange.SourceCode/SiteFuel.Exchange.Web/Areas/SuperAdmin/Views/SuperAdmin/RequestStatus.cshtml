@@ -1,0 +1,92 @@
+﻿@{
+    ViewBag.Title = Resource.lblDataUploadStatus;
+}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mt0 f-light pb5 fs21 mb5 float-left">@Resource.lblDataUploadStatus</h2>
+        <button class="btn btn-primary btn-sm float-left ml15 mtm3 fs12" onclick="ReloadGrid();"><i class="fa fa-refresh mr10 "></i>@Resource.lblRefresh</button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div class="table-responsive">
+                        <table id="MeterDataUpload-status" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnRequestId</th>
+                                    <th>@Resource.gridColumnStatus</th>
+                                    <th>@Resource.gridColumnDetails</th>
+                                    <th>@Resource.gridcolumnRequestedDateTime</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var DataUploadStatus, exportColumns = { columns: [0, 1, 2, 3] };
+        $(document).ready(function () {
+
+            DataUploadStatus = $('#MeterDataUpload-status').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("ExternalMeterDataUploadStatusDetails", "SuperAdmin", new { area = "SuperAdmin" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    { "data": "RequestNumber", "autoWidth": true },
+                    { "data": "Status", "autoWidth": true },
+                    { "data": "Details", "autoWidth": true },
+                    {
+						"data": "TimeRequested", "sType": 'date-dd-mmm-yyyy hh:mm:ss',
+                        "render": function (d) {
+                            return moment(d).format("MM/DD/YYYY </br> hh:mm:ss A");
+                        }, "autoWidth": true
+                    }
+                ],
+                pageLength: 10,
+                responsive: true,
+                'lengthMenu': [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "order": [],
+                "initComplete": function (settings, json) {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'csv', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingInvoices', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingInvoices', exportOptions: exportColumns, orientation: 'landscape' },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+
+        });
+
+        function ReloadGrid() {
+            DataUploadStatus.ajax.reload();
+        }
+    </script>
+}

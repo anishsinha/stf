@@ -1,0 +1,127 @@
+<div class="row">
+    <!-- <div class="col-sm-12">
+        <button type="button" #openSidePannel class="btn btn-link float-right pa0" data-target="raisedr"
+            onclick="slidePanel('#terminal_i_code_map','40%')" (click)="addTerminalItemCode()"><i
+                class="fas fa-plus-circle fs18 mr5"></i> Create
+            Terminal Item Code</button>
+    </div> -->
+    <div class="col-sm-6">
+        <button type="button" #openSidePannel class="btn btn-link float-left pa0 mt10" data-target="raisedr"
+            onclick="slidePanel('#terminal_i_code_map','45%')" (click)="addTerminalItemCode()">
+            <i class="fas fa-plus-circle fs18 mr5"></i> Create
+            Terminal Item Code
+        </button>
+    </div>
+    <div class="col-sm-6">
+        <button id="showBulkUploadPopupBtn" type="button" class="btn btn-primary float-right mb5 valid"
+            (click)="showBulkUploadPopup()" data-toggle="modal" data-target="#bulkUploadTerminalModalPopup">Bulk
+            Upload</button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-padding no-border">
+                    <div id="div-terminal-item-code" class="table-responsive">
+                        <table class="table table-bordered" datatable [dtOptions]="dtOptions" [dtTrigger]="dtTrigger">
+                            <thead>
+                                <tr>
+                                    <th data-key="tSName">Terminal Supplier</th>
+                                    <th data-key="tItem">Terminal Item</th>
+                                    <th data-key="tItemCode">Terminal Item Code</th>
+                                    <th data-key="tEffectiveDate">Effective Date</th>
+                                    <th data-key="tExpiryDate">Expiry Date</th>
+                                    <th data-key="Action">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let terminal of terminalMappingList">
+                                    <td>{{terminal.TerminalSupplier}}</td>
+                                    <td>{{terminal.ItemDescription}}</td>
+                                    <td> {{terminal.ItemCode}} </td>
+                                    <td>{{terminal.EffectiveDate}}</td>
+                                    <td>{{terminal.ExpiryDate}}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link"
+                                            onclick="slidePanel('#terminal_i_code_map','40%')"
+                                            (click)="editTerminalMapping(terminal)"><i
+                                                class="fas fa-pencil-square-o color-blue fs16" alt="Update"
+                                                title="Update"></i></button>
+                                        <button type="button" class="btn btn-link" mwlConfirmationPopover
+                                            [popoverTitle]="popoverDeleteTitle" [confirmText]="confirmButtonText"
+                                            [cancelText]="cancelButtonText" placement="bottom"
+                                            (confirm)="deleteTerminalItemCode(terminal)"><i
+                                                class="fas fa-trash-alt color-maroon" alt="Delete"
+                                                title="Delete"></i></button>
+                                        <!-- <button type="button" class="btn btn-link" mwlConfirmationPopover
+                                            [popoverTitle]="popoverSaveTitle" [confirmText]="confirmButtonText"
+                                            [cancelText]="cancelButtonText" placement="bottom"
+                                            (confirm)="updateTerminalId(terminal)"
+                                            (cancel)="cancelUpdateTerminalNames(terminal)"><i
+                                                class="fs21 fas fa-save color-green" alt="Update"
+                                                title="Update"></i></button>
+                                        <button type="button" class="btn btn-link" mwlConfirmationPopover
+                                            [popoverTitle]="popoverDeleteTitle" [confirmText]="confirmButtonText"
+                                            [cancelText]="cancelButtonText" placement="bottom"
+                                            (confirm)="deleteMapping(terminal.Id, terminal.CreatedByCompanyId)"><i
+                                                class="fas fa-trash-alt color-maroon" alt="Delete"
+                                                title="Delete"></i></button> -->
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="loader" *ngIf="IsLoading">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Loading...</div>
+    </div>
+</div>
+<div class="side-panel" id="terminal_i_code_map">
+    <div class="side-panel-wrapper">
+        <div class="pt10 pb0">
+            <a class="ml20 close-panel" onclick="closeSlidePanel();"><i class="fa fa-close fs18"></i></a>
+            <h3 class="dib mt0 mb0 ml15">{{title}} Terminal Item Code Mapping</h3>
+        </div>
+        <div class="pt10 pb10 pl20 pr20">
+            <app-create-terminal-item-code [countryId]="countryId" (result)="getOutput($event)">
+            </app-create-terminal-item-code>
+        </div>
+    </div>
+</div>
+
+<div id="bulkUploadTerminalModalPopup" class="modal fade" role="dialog" *ngIf="IsShowBulkUploadPopup">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header pt0 pb5">
+                <h4 class="modal-title">Item Code Mapping Bulk Upload</h4>
+                <button type="button" #btnCloseBulkUploadPopup class="close color-grey" data-dismiss="modal"
+                    aria-label="Close" (click)="closePopup()">
+                    <i class="fa fa-close fs21 mt15"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb10">
+                    <span class="fa fa-download mr10 mt10"></span>
+                    <a role="button" (click)="downloadCsvTemplate()" class="mb5 btn-download">Download Template</a>
+                </div>
+                <div class="mb5 mt5">
+                    <input type="file" id="bulkUploadFile" (change)="selectFiles($event.target.files)" accept=".csv">
+                </div>
+                <div class='pa bg-white top0 left0 z-index5 loading-wrapper' *ngIf="IsLoading"><span
+                        class='spinner-dashboard pa'></span></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default"
+                    (click)="uploadTerminalItemCodeMappingFile()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,159 @@
+﻿@model AssetFilterViewModel
+
+@{
+    ViewBag.Title = ViewContext.RouteData.Values["id"] != null ? "Job Asset and Tank Summary" : "Asset and Tank Summary";
+}
+
+<div class="row">
+    @if (Model.DuplicateExists == true)
+    {
+        <div class="col-md-4 mb15 tab-headers">
+            <a id="tab-asset-view" href="javascript:void(0)" onclick="showHideControls(this,'asset-view,tank-view','asset-duplicates'), activelink(this)" class="active mr20">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.headingAssets</span>
+                </div>
+            </a>
+            <a id="tab-asset-duplicates" href="javascript:void(0)" onclick="showHideControls(this,'asset-duplicates','asset-view,tank-view'), activelink(this)">
+                <div class="step-inprogress fs18">
+                    <span class="f-light step-text float-left">@Resource.headingDuplicates</span>
+                </div>
+            </a>
+        </div>
+    }
+</div>
+<div class="tab-container">
+
+    <!-- Start Asset Details -->
+    <div class="asset-view subTabs" data-parent-tab="tab-asset-view">
+        <div class="row">
+            <div class="col-sm-12">
+                @if (Model.DuplicateExists == false)
+                {
+                    <h3 class="mt0 f-light pb5 fs21 mb5 float-left mr20">@Resource.headingAssets</h3>
+                }
+                @if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+                {
+                    <a onclick='LoadAsset();' id="auto-linkcreatenew" class="float-left mb10 mt3">
+                        <span class="fa fa-plus-circle fs18 float-left mt1 mr5"></span> @Resource.btnLabelCreateNew
+                    </a>
+                }
+                @if (!(Model.JobId > 0))
+                {
+                    <a href="@Url.Action("View", "Asset", new { area = "Buyer", id = UrlParameter.Optional })" class="float-left ml20 mt3">@Resource.btnLabelViewAll</a>
+                }
+            </div>
+        </div>
+        <div class="well mb10">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                        <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtAssetFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                        <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtAssetToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                        <div class="col-xs-12 col-sm-4 col-md-3">
+                            <input type="button" class="btn btn-primary" id="btnApplyFilter" value="@Resource.btnLabelApply" onclick="ReloadDataTable_AssetTank(1);" />
+                            <input type="button" class="btn ml5" id="btnClearFilter" value="@Resource.btnLabelClearFilter" onclick="ClearFilter_AssetTank(1);" />
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        @{ Html.RenderPartial("_PartialAssetGrid", Model); }
+    </div>
+    <!-- End Asset Details -->
+    <!-- Start Tank Details -->
+    <div class="tank-view subTabs" data-parent-tab="tab-tank-view">
+        <div class="row">
+            <div class="col-sm-12">
+                <h3 class="mt0 f-light pb5 fs21 mb5 float-left mr20">@Resource.headingTanks</h3>
+                @*@if (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer)
+                    {
+                        <a href="@Url.Action("Create", "Asset" , new { area="Buyer", type = (int)AssetType.Tank })" id="auto-linkcreatenewtank" class="float-left mb10 mt3">
+                            <span class="fa fa-plus-circle fs18 float-left mt1"></span> @Resource.btnLabelCreateNew
+                        </a>
+                    }*@
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="well pb10 pt15 mb10">
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-2 col-md-1 pt5 pr0"><i class="fa fa-filter mr5 fs16"></i><label class="f-normal fs16">@Resource.lblFilter</label></div>
+                        <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtTankFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                        <div class="col-xs-6 col-sm-3 col-md-2 mb5"><input type="text" id="txtTankToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                        <div class="col-xs-12 col-sm-4 col-md-3">
+                            <input type="button" class="btn btn-primary" id="btnApplyFilter" value="@Resource.btnLabelApply" onclick="ReloadDataTable_AssetTank(2);" />
+                            <input type="button" class="btn ml5" id="btnClearFilter" value="@Resource.btnLabelClearFilter" onclick="ClearFilter_AssetTank(2);" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                @{ Html.RenderPartial("_PartialTankGrid", Model); }
+            </div>
+        </div>
+    </div>
+    <!-- End Tank Details -->
+
+    <div class="asset-duplicates subTabs hide-element" data-parent-tab="tab-asset-duplicates">
+        <div class="alert alert-info mb10">@Resource.lblAssetWithDuplicates</div>
+        @Html.Action("PartialDuplicateAssetView", "Asset", new { area = "Buyer" })
+    </div>
+</div>
+
+<script type="text/javascript">
+    var isJobEdit = false;
+
+    function LoadAsset() {
+        var url = '@Url.Action("Create", "Asset", new { area = "Buyer", type = 1 })';
+        $.get(url, function (response) {
+            if (response != null || response != "") {
+                $("#slider-heading").text('Create New Asset');
+                $("#slider-content").html(response);
+                parseForm();
+                slidePanel("#sliderpanel");
+                $(".lblforcastingNote").text('');
+                $(".lblforcastingNote").hide();
+                $("#createAssetForm").closest(".side-panel-wrapper").addClass("newasset")
+            }
+        }).always(
+            function () {
+                $("#slider-loader").hide();
+            }
+        );
+    }
+
+    function ReloadDataTable_AssetTank(type) {
+
+        let fromDate = (type == 1) ? '#txtAssetFromDate' : '#txtTankFromDate';
+        if ($(fromDate).val() != '' || $(fromDate).val() != '') {
+            $('#90DaysDataWarning').hide();
+        }
+
+        if (type == 1) {
+            assetDataTable.ajax.reload();
+        } else {
+            tankDataTable.ajax.reload();
+        }
+    }
+
+    var ClearFilter_AssetTank;
+    $(document).ready(function () {
+
+        ClearFilter_AssetTank = function (type) {
+
+            let fromDate = (type == 1) ? '#txtAssetFromDate' : '#txtTankFromDate';
+            let toDate = (type == 1) ? '#txtAssetToDate' : '#txtTankToDate';
+
+            $(fromDate).val('');
+            $(toDate).val('');
+            $(toDate).data("DateTimePicker").minDate($(fromDate).datetimepicker("minDate"));
+            ReloadDataTable_AssetTank(type);
+        }
+    });
+
+</script>

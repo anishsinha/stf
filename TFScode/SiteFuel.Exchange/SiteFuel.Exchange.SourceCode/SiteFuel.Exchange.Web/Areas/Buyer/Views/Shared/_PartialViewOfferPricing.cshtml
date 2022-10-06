@@ -1,0 +1,159 @@
+﻿@model SiteFuel.Exchange.ViewModels.Offer.BuyerOfferViewodel
+
+<div class="row">
+    <div class="col-sm-10">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group mb0">
+                    <div class="radio wrapper-rackprice dib mr20">
+                        <label>
+                            @Html.RadioButtonFor(m => m.FuelPricing.PricingTypeId, (int)PricingType.RackAverage,
+                            new { onclick = "showHideControls(this,'market-control,indices,div-selectpricingcode','cost-control,fixed-control,different-fuelprices,product-source');radioChange(this,'terminal-price','different-fuelprices,fixed-price,supplier-cost,dd-cityrack');ddCityRackToggle();ShowHideIndicesControls();clearPricingCode();",
+                                onchange = "focusOnFirst(this, 'terminal-price');", @class = "radio-rack-price" })
+                            @Resource.lblMarketBased
+                        </label>
+                        @*<div class="alert alert-info fs12 pt5 pb5 dib mtm5 ml15 mb0 show-in-tpo hide-element">@Resource.msgMarketBasedPrice</div>*@
+                    </div>
+                    <div class="radio dib wrapper-suppliercost mr20">
+                        <label>
+                            @Html.RadioButtonFor(m => m.FuelPricing.PricingTypeId, (int)PricingType.Suppliercost,
+                            new { onclick = "showHideControls(this,'cost-control,product-source','market-control,fixed-control,different-fuelprices,indices,div-selectpricingcode');radioChange(this,'supplier-cost','different-fuelprices,fixed-price,terminal-price');ddCityRackToggle();clearPricingCode();", onchange = "focusOnFirst(this, 'supplier-cost');"})
+                            @Resource.lblFuelCost
+                            <i class="fa fa-info-circle ml5" data-toggle="tooltip" data-placement="top" title="@(CurrentUser.CompanySubTypeId == CompanyType.Buyer || CurrentUser.CompanyTypeId == CompanyType.Buyer ? Resource.msgFuelCostInBuyer : Resource.msgFuelCostInSupplier)"></i>
+                        </label>
+                    </div>
+                    <div class="radio dib mr20">
+                        <label>
+                            @Html.RadioButtonFor(m => m.FuelPricing.PricingTypeId, (int)PricingType.PricePerGallon,
+                            new { onclick = "showHideControls(this,'fixed-control,product-source','market-control,cost-control,different-fuelprices,indices,div-selectpricingcode');radioChange(this,'fixed-price','different-fuelprices,terminal-price,supplier-cost');ddCityRackToggle();clearPricingCode();", onchange = "focusOnFirst(this, 'fixed-price');", @class = "fixed-pricing" })
+                            @Resource.lblFixed
+                        </label>
+                    </div>
+                    @Html.HiddenFor(m => m.FuelPricing.IsTierPricingRequired)
+                    @if (Model.FuelPricing.IsTierPricingRequired)
+                    {
+                        <div class="radio dib mr20">
+                            <label>
+                                @Html.RadioButtonFor(m => m.FuelPricing.PricingTypeId, (int)PricingType.Tier,
+                                new { onclick = "showHideControls(this,'different-fuelprices,div-selectpricingcode,product-source','fixed-control,market-control,cost-control,indices');radioChange(this,'different-fuelprices','fixed-price,terminal-price,supplier-cost');ddCityRackToggle();clearPricingCode();", onchange = "focusOnFirst(this, 'different-fuelprices');", @class = "revalidate fixed-pricing" })
+                                @Resource.lblTier
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            @*<div class="disable-in-tpo-edit">
+                    <div class="pricing-source">
+                        <div class="">
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <span class="indices">@Html.LabelFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId)</span>
+                                    <span class="product-source hide-element"><label>@Resource.lblProductSource<span class="required pl4">*</span></label></span>
+                                    @Html.DropDownListFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId, new SelectList(CommonHelperMethods.GetPricingSources(), "Id", "Name", Model.FuelPricing.FuelPricingDetails.PricingSourceId), new { @class = "form-control ddl-pricing-source" })
+                                    @Html.ValidationMessageFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>*@
+            @Html.HiddenFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId, new { @class = "ddl-pricing-source" })
+            <div class="col-sm-3 form-group">
+                @Html.LabelFor(model => model.FuelTypes)
+                @Html.DropDownListFor(m => m.FuelTypes, new SelectList(Model.FilterFuelTypes, "Id", "Name"), string.Format(Resource.valMessageSelect, Resource.lblFuelType), new { @class = "form-control fueltypes" })
+                @Html.ValidationMessageFor(m => m.FuelTypes)
+            </div>
+            <div class="pricing-code col-sm-6">
+                <div class="row">
+                    @Html.PartialFor("_PartialPricingCodes", m => m.FuelPricing.FuelPricingDetails.PricingCode)
+                    <div class="col div-selectpricingcode">
+                        <button type="button" class="btn btn-info" data-toggle="modal" data-target="#modal-pricing-codes" onclick="reloadPricingData()">@Resource.lblSelectPricingCode</button>
+                    </div>
+                    <div id="pricing-code-info" class="float-right col-sm-6 hide-element v-middle">
+                        <label></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-10">
+        <div class="row">
+            <div class="col-xs-3 terminal-price-check">
+                <div class="form-group mb5">
+                    <div class="dib terminal-price">
+                        <div class="dib mr10 pr float-left">
+                            <div class="checkbox chk-cityrack mb0 mt0 hide-element">
+                                <label><input type="checkbox" onclick="checkBoxChange(this,'dd-cityrack');" class="enablecityrack" id="chk-enable-cityrack" />@Resource.lblSelectCityTerminal</label>
+                            </div>
+                            <div class="pr defaultDisabled mt10 subSectionOpacity dd-cityrack hide-element" id="cityrack-div">
+                                <div class="pa bg-white top0 left0 z-index5 loading-wrapper cityrack-loader hide-element"><span class='spinner-dashboard pa'></span></div>
+                                <select id="@Html.IdFor(m => m.FuelPricing.CityGroupTerminalId)" name="@Html.NameFor(m => m.FuelPricing.CityGroupTerminalId)" class="cityrackterminallist singleselect">
+                                    <option selected disabled class="hidden" value="noneselected">@Resource.lblSelectCityTerminal</option>
+                                    <optgroup label="@Resource.lblWithinState"> </optgroup>
+                                    <optgroup label="@Resource.lblOtherStates"> </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        @Html.ValidationMessageFor(m => m.FuelPricing.CityGroupTerminalId, string.Empty, new { @class = "dib cityrack-validation float-left" })
+                    </div>
+                </div>
+            </div>
+            <div class="col-xs-3 terminal-price city-groupterminal hidden mb25" id="terminalContainer">
+                <div class="form-group">
+                    <div class="row pr">
+                        <div class="pa bg-white top0 left0 loading-wrapper ddterminal-loader hide-element mt5"><span class='spinner-dashboard pa'></span></div>
+                        <div class="col-sm-12">
+                            @Html.DropDownListFor(m => m.FuelPricing.TerminalId, Enumerable.Empty<SelectListItem>(), new { @class = "form-control ddterminallist" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@using (Html.BeginScripts())
+{
+    <script>
+        $(document).ready(function () {
+             $(".enablecityrack").on('change', function () {
+                 $('#@Html.IdFor(m => m.FuelPricing.CityGroupTerminalId)').multiselect('select', ['noneselected']);
+                 if ($(this).prop("checked") == false) {
+                     $(".dd-cityrack").css("pointer-events", "none");
+                     $(".dd-cityrack,.cityrackterminallist").css("pointer-events", "none");
+                     $(".multiselect").addClass("pntr-none");
+                     $(".dd-cityrack").removeClass("show-element").addClass("hide-element");
+                     $(".cityrack-validation").addClass("hide-element");
+                }
+                else {
+                     $(".dd-cityrack").css("pointer-events", "visible");
+                     $(".dd-cityrack").removeClass("hide-element").addClass("show-element");
+                 }
+            });
+
+            var pricingTypeId = parseInt($('input[name="@Html.NameFor(m => m.FuelPricing.PricingTypeId)"]:checked').val());
+            if (pricingTypeId != 1 && !isNaN(pricingTypeId)) {
+                pricingTypeId = (pricingTypeId == 0 || isNaN(pricingTypeId)) ? 2 : pricingTypeId;
+                setPricingCodeForFixedAndFC(pricingTypeId, 0);
+            }
+        });
+
+        $('input[name="@Html.NameFor(m => m.FuelPricing.PricingTypeId)"]').change(function () {
+            ShowHideIndicesControls();
+            GetCityRackTerminalList();
+        });
+        $("#@Html.IdFor(m => m.FuelTypes)").change(function () {
+            var pricingTypeId = parseInt($('input[name="@Html.NameFor(m => m.FuelPricing.PricingTypeId)"]:checked').val());
+            if(pricingTypeId == 1)
+                clearPricingCode();
+        });
+
+        function setPricingCodeForFixedAndFC(pricingTypeId, pricingSourceId) {
+            var pricingCode = getPricingCode(pricingTypeId, pricingSourceId);
+            if (pricingCode != null) {
+                $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingCode.Code)").val(pricingCode.Code);
+                $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingCode.Id)").val(pricingCode.Id);
+            }
+        }
+    </script>
+}

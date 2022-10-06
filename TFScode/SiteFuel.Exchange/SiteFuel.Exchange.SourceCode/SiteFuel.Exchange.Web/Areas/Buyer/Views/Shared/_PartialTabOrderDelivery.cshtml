@@ -1,0 +1,274 @@
+﻿@model OrderDetailsViewModel
+<div class="well">
+    @if (Model.CurrentOrderVersionToEdit != null)
+    {
+        using (Html.BeginForm("SaveDeliverySchedules", "Order", new { area = "Buyer" }, FormMethod.Post, new { id = "deliveryschedule-form", @class = "no-tab-change" }))
+        {
+            @Html.HiddenFor(m => m.Id)
+            @Html.HiddenFor(m => m.FuelDeliveryDetails.OrderVersion)
+            <div class="@((Model.StatusId == (int)OrderStatus.Open) ? "" : "disable-controls")">
+                @if (CurrentUser.IsOnsitePerson && !CurrentUser.IsBuyer)
+                {
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h4 class="pb10">@Resource.headingDeliveryRequest</h4>
+                            <div class="row">
+                                <div class="col-md-12 no-sm-padding schedule-controls">
+                                    <div id="delivery-request-section" class="partial-section">
+                                        <div class="partial-block-collection-section">
+                                            @if (Model.CurrentOrderVersionToEdit.OnsiteDeliveryRequests != null && Model.CurrentOrderVersionToEdit.OnsiteDeliveryRequests.Any())
+                                            {
+                                                foreach (var deliverySchedule in Model.CurrentOrderVersionToEdit.OnsiteDeliveryRequests)
+                                                {
+                                                    Html.RenderPartial("_PartialDeliveryScheduleOrder", deliverySchedule);
+                                                }
+                                            }
+                                        </div>
+                                        <div class="form-group mt7">
+                                            @if (Model.StatusId == (int)OrderStatus.Open && CurrentUser.IsBuyerCompany && CurrentUser.IsOnsitePerson)
+                                            {
+                                                <a id="LinkAddDeliverySchedule" href="javascript:void(0)" class="add-partial-block" data-url="@Url.Action("DeliverySchedule", "Order", new { area = "Buyer", orderId = Model.Id })"><i class="fas fa-plus-circle"></i> @Resource.btnLabelAddDeliveryRequest</a>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <div class="row">
+                    <div class="col-sm-12">
+                        <h4 class="pb10 pt0">@Resource.headingSchedule</h4>
+                        <div class="row">
+                            <div class="col-md-12 schedule-controls">
+                                <div id="delivery-schedule-section" class="partial-section">
+                                    <div class="partial-block-collection-section col-sm-12">
+                                        @if (Model.CurrentOrderVersionToEdit.DeliverySchedules != null && Model.CurrentOrderVersionToEdit.DeliverySchedules.Count() > 0)
+                                        {
+                                            foreach (var deliverySchedule in Model.CurrentOrderVersionToEdit.DeliverySchedules)
+                                            {
+                                                Html.RenderPartial("_PartialDeliveryScheduleOrder", deliverySchedule);
+                                            }
+                                            <input type="hidden" id="SaveButtonEnable" />
+                                        }
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                @if (Model.StatusId == (int)OrderStatus.Open && CurrentUser.IsBuyerCompany && (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer))
+                                                {
+                                                    <a id="LinkAddDeliverySchedule" href="javascript:void(0)" class="add-partial-block mb10" data-url="@Url.Action("DeliverySchedule", "Order", new { area = "Buyer", orderId = Model.Id })"><i class="fas fa-plus-circle"></i> @Resource.btnLabelAddDeliverySchedule</a>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @if (Model.StatusId == (int)OrderStatus.Open && CurrentUser.IsBuyerCompany && (CurrentUser.IsBuyerAdmin || CurrentUser.IsBuyer || CurrentUser.IsOnsitePerson))
+                {
+                    <div class="row">
+                        <div class="col-sm-2"></div>
+                        <div class="col-sm-10 text-right mt10">
+                            <div class="dib">
+                                <input type="button" id="Cancel" value="@Resource.btnLabelCancel"
+                                       class="btn btnSubmit btnsubmit-partialcollection" onclick="btnCancel();" />
+                                <input type="button" id="Submit" value="@Resource.btnLabelSave" class="btn btn-lg btn-primary btnSubmit btnsubmit-partialcollection btnSubmitSchedule" onclick="return submitForm();" />
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <h4>@Resource.headingMissedSchedules</h4>
+        <div class="row">
+            <div class="col-md-12">
+                @Html.Partial("_PartialMissedSchedulesGrid", new OrderMissedSchedulesViewModel() { OrderId = Model.Id, IsEndSupplier = true, IsBrokeredOrder = false, IsOpenOrder = (Model.StatusId != (int)OrderStatus.Canceled && Model.StatusId != (int)OrderStatus.Closed) })
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12">
+        <h4>@Resource.headingHistory</h4>
+        <div class="row">
+            <div class="col-md-12">
+                @Html.PartialFor("_PartialDeliveryScheduleHistoryGrid", m => m.Id)
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    if ('@(Model.StatusId != (int)OrderStatus.Open)' == 'True')
+    {
+        $('.partial-block').each(function () {
+            $(this).find("a").attr('readonly', 'readonly').addClass("pntr-none");
+        });
+    }
+
+	documentReady(true);
+
+    $(document).on('change', '.schedule-type', function () {
+        var url = '@Url.Action("DeliverySchedule", "Order")';
+        var data = $(this).val();
+        var row = $(this).closest('.partial-block');
+        $.get(url, { 'scheduleType': data, 'orderId': '@Model.Id' }, function (response) {
+            var newElement = $(response);
+            newElement.find("input[type='text']:not([disabled]):not([readonly])").each(function () {
+                if (!($(this).hasClass('timepicker') || $(this).hasClass('quantity')))
+                    $(this).val('');
+            });
+            $(row).replaceWith(newElement);
+            parseForm();
+            documentReady(true);
+            enableSubmit();
+        });
+	});
+
+
+	function submitForm() {
+        var isValidForm = true;
+        try {
+            $(".endtime").each(function () {
+                var endTimeVal = $(this).val();
+                var startTimeVal = $(this).parents('.partial-block').find('.starttime').val();
+                if (endTimeVal != '' && startTimeVal != '' && endTimeVal != startTimeVal) {
+                    var startTimevalInMinutes = getMinutes(convertTo24Hour(startTimeVal));
+                    var endTimevalInMinutes = getMinutes(convertTo24Hour(endTimeVal));
+                    if (parseInt(startTimevalInMinutes) > parseInt(endTimevalInMinutes)) {
+                        validationMessageFor($(this).attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageGreaterThanOrEqual, new object[] { Resource.lblEndTime, Resource.lblStartTime })');
+                        isValidForm = false;
+                    }
+                }
+            });
+
+            if (isValidForm == true && ValidateAndSubmit()) {
+                SetLocalStorage(window.location.href, true);
+                $('#deliveryschedule-form').submit();
+            }
+            else {
+                $('#Submit').removeAttr('disabled');
+                return false;
+            }
+        }
+        catch (error) {
+            console.log(error.message);
+            $('#Submit').removeAttr('disabled');
+            return false;
+        }
+    }
+
+    function ValidateAndSubmit() {
+        var isValidForm = true;
+        var fuelRequestStartDate = '@Model.FuelDeliveryDetails.StartDate.ToString(Resource.constFormatDate)';
+        var startDate = new Date(fuelRequestStartDate).setHours(0, 0, 0, 0);
+        var endDate, quantity = 0, totalQuantity = 0, jobEndDate = '';
+
+        var deliveryEndDate = '@(Model.FuelDeliveryDetails.EndDate != null ? Model.FuelDeliveryDetails.EndDate.Value.ToString(Resource.constFormatDate) : "")';
+        if (deliveryEndDate.length > 0){
+            endDate = new Date(deliveryEndDate).setHours(0, 0, 0, 0);
+        }
+        else
+        {
+            jobEndDate = '@(Model.JobEndDate != null ? Model.JobEndDate.Value.ToString(Resource.constFormatDate) : "")';
+            if (jobEndDate.length > 0)
+            {
+                jobEndDate = new Date(jobEndDate).setHours(0, 0, 0, 0);
+            }
+        }
+
+        $('#delivery-schedule-section .partial-block').each(function () {
+            totalQuantity += GetScheduleQuantity(this);
+            isValidForm = ValidateScheduleDate(this, startDate, endDate, jobEndDate, deliveryEndDate);
+        });
+
+        quantity = parseInt('@(Model.GallonsOrdered)');
+        if (totalQuantity > quantity)
+        {
+            validationMessageFor($('#delivery-schedule-section .partial-block:last').find('.quantity').attr('name'),
+                                        '@ResourceMessages.GetMessage(Resource.valMessageScheduleQuantity)');
+            return false;
+        }
+
+        $('#delivery-request-section .partial-block').each(function () {
+            totalQuantity += GetScheduleQuantity(this);
+            isValidForm = ValidateScheduleDate(this, startDate, endDate, jobEndDate, deliveryEndDate);
+        });
+
+        if (totalQuantity > quantity)
+        {
+            validationMessageFor($('#delivery-request-section .partial-block:last').find('.quantity').attr('name'),
+                                        '@ResourceMessages.GetMessage(Resource.valMessageScheduleQuantity)');
+            return false;
+        }
+
+        return isValidForm;
+    }
+
+    function GetScheduleQuantity(element) {
+        var quantity = 0, scheduleType = $(element).find('.schedule-type').val();
+        if (scheduleType == '@((int)DeliveryScheduleType.Weekly)' || scheduleType == '@((int)DeliveryScheduleType.BiWeekly)') {
+            quantity = parseInt($(element).find('.quantity').val()) * $(element).find('.schedule-days').val().length;
+        }
+        else {
+            quantity = parseInt($(element).find('.quantity').val());
+        }
+
+        return quantity;
+    }
+
+    function ValidateScheduleDate(element, startDate, endDate, jobEndDate, deliveryEndDate) {
+        var date = $(element).find('.datepicker').val();
+        var result = true, scheduleType = $(element).find('.schedule-type').val();
+        if (scheduleType == '@((int)DeliveryScheduleType.SpecificDates)' || scheduleType == '@((int)DeliveryScheduleType.Monthly)') {
+            var curDate = new Date().setHours(0, 0, 0, 0);
+            var scheduleDate = new Date(date).setHours(0, 0, 0, 0);
+			var trackableScheduleId = $(element).find('[id$="RescheduledTrackableId"]').length ? $(element).find('[id$="RescheduledTrackableId"]').val() : 0;
+                    if (trackableScheduleId > 0) {
+                        if (scheduleDate < curDate) {
+                            validationMessageFor($(element).find('.datepicker').attr('name'),
+                                '@ResourceMessages.GetMessage(Resource.valRescheduleDate)');
+                            result = false;
+                        }
+                    }
+            if (scheduleDate < startDate || (deliveryEndDate != '' && scheduleDate > endDate)) {
+                validationMessageFor($(element).find('.datepicker').attr('name'),
+                    '@ResourceMessages.GetMessage(Resource.valMessageScheduleDate)');
+                result = false;
+            }
+            if (deliveryEndDate.length == 0 && (jobEndDate != '' && scheduleDate > jobEndDate)) {
+                validationMessageFor($(element).find('.datepicker').attr('name'),
+                    '@ResourceMessages.GetMessage(Resource.valMessageScheduleDateExceedsJobDate)');
+                result = false;
+            }
+        }
+
+        return result;
+    }
+
+    function EnableDisableSaveButton() {
+        var container = $('#delivery-schedule-section').find('.partial-block-collection-section').find(".partial-block");
+        if (container && container.length > 0) {
+            $('.btnSubmitSchedule').removeAttr("disabled");
+        }
+        else {
+            if ($("#SaveButtonEnable").length > 0) {
+
+            } else {
+                $(".btnSubmitSchedule").attr("disabled", true);
+            }
+        }
+    }
+
+    $(document).ready(function () {
+        EnableDisableSaveButton()
+    });
+</script>

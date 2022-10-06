@@ -1,0 +1,902 @@
+<div class="driver-column-view-container" [formGroup]="SbForm">
+    <ng-container [formArrayName]="'Shifts'">
+        <div class="row flex-nowrap mx-0" style="min-height: 92%;">
+            <ng-container *ngFor="let shift of SbForm.controls['Shifts']['controls'];  let i = index; trackBy: trackByShiftId">
+                <div *ngIf="checkShiftVisibility(shift);">
+                    <div class="shift-view" id="shift" *ngIf="shift.controls['IsVisible'].value">
+                        <ng-container [formGroupName]="i">
+                            <div class="shift-info">
+                                <span class="row-number mr5 fs12 mt1">Shift {{shift.controls['OrderNo'].value+1}}</span>
+                                <i class="far fa-clock mr5"></i> Shift - {{shift.controls['StartTime'].value}} - {{shift.controls['EndTime'].value}}
+                                <a (click)="moveShiftToLoadQueue(i, shift)" *ngIf="disableControl==false" placement="top" ngbTooltip="Move Shift to Load Queue" class="fs14 ml10 pointer">
+                                    <i class="far fa-arrow-alt-circle-left"></i>
+                                </a>
+                                <span class="mt2 ml5">
+                                    <input *ngIf="SbForm.get('IsAssignDrEnabled').value && isDrExistInShift(shift.controls['Schedules'])"
+                                           type="checkbox"
+                                           id="shift_{{i}}"
+                                           name="shift_{{i}}"
+                                           [checked]="isAllShiftDrSelected(shift.controls['Schedules'])"
+                                           (change)="shiftSelectedForCarrierAssignment($event, shift.controls['Schedules'])">
+                                </span>
+                            </div>
+                            <div class="row flex-nowrap plr-5" [formArrayName]="'Schedules'" id="shift{{i+1}}">
+                                <ng-container *ngFor="let schedule of shift.controls['Schedules'].controls; let j = index; let firstSchedule = first; let isLast=last; trackBy: trackByScheduleIndex">
+                                    <ng-container [formGroupName]="j">
+                                        <ng-container *ngIf="schedule && schedule.get('IsLoadQueueCollapsed').value != true">
+                                            <app-driver-schedule-column-view [i]="i" [j]="j" [shiftOrderNo]="shift.controls['OrderNo'].value+1" [ShiftId]="shift.controls['Id'].value" [SbForm]="SbForm" [schedule]="schedule" [ScheduleLength]="shift.controls['Schedules'].controls.length"></app-driver-schedule-column-view>
+                                        </ng-container>
+                                    </ng-container>
+                                </ng-container>
+                                <div id="visibilityObserver{{i}}" [attr.data-shiftIndex]="i" style="height:5px; background: transparent;"></div>
+                            </div>
+                        </ng-container>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+    </ng-container>
+    <div *ngIf="SbForm.controls['Shifts']['controls'].length==0 && IsNoDriverShiftFound==0" class="text-center shift-wrapper">
+        <i class="fa fas fa-exclamation-triangle opacity8"></i>
+        <label class="color-grey mb0 ml10">No shifts available in this region</label>
+    </div>
+</div>
+<div class="pa bg-white z-index5 loading-wrapper" *ngIf="_savingBuilder" style="position:fixed !important">
+    <span class='spinner-dashboard pa'></span>
+</div>
+
+<div class="modal fade" id="driverTrailerModel" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" [ngClass]="{' modal-sm': !IsTrailerExists}" role="document">
+        <div class="modal-content">
+            <div class="modal-body" [formGroup]="DriverTrailerForm">
+                <div class="overflow-h">
+                    <h4 class="pull-left mt2 mb15 pt0 pb0">{{IsTrailerExists ? 'Assign Driver / Trailers' : 'Assign Driver'}}</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close" (click)="editDriverCancel()">
+                        <i class="fa fa-close fs21"></i>
+                    </button>
+                </div>
+                <input type="hidden" formControlName="Index1" />
+                <input type="hidden" formControlName="Index2" />
+                <input type="hidden" formControlName="StartTime" />
+                <input type="hidden" formControlName="EndTime" />
+                <input type="hidden" formControlName="Compartments" />
+                <input type="hidden" formControlName="TrailerType" />
+                <div id="dt-section" *ngIf="!(_otherRegionDriverSubject | async) && !_publishedRequestExists">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-check form-check-inline pull-right">
+                                <input class="form-check-input" type="checkbox" formControlName="IsFilldCompatible" (change)="toggleFilldCompatible();" id="FilldCompatible">
+                                <label class="form-check-label" for="FilldCompatible">TrueFill Inc. Compatible</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" *ngIf="(DriverTrailerForm.controls['IsIncludeAllRegionDriver'].value || (!UnassignedDrivers || UnassignedDrivers.length == 0)) && SbForm.get('IsDsbDriverSchedule').value">
+                        <div class="col-md-12">
+                            <div class="form-check form-check-inline pull-right">
+                                <input class="form-check-input" type="checkbox" formControlName="IsIncludeAllRegionDriver" (change)="getDriverdetails();" id="IncludeAllRegion">
+                                <label class="form-check-label" for="IncludeAllRegion">Other Regions' Drivers</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6 form-group" *ngIf="IsTrailerExists">
+                            <label>Trailers</label>
+                            <ng-multiselect-dropdown formControlName="Trailers" [(ngModel)]="SelectedTrailers" [placeholder]="'Select Trailers'"
+                                                     [settings]="TrailerDdlSettings" [data]="UnassignedTrailers||[]" (onSelectAll)="onTrailerSelectAll($event)"
+                                                     (onDeSelectAll)="onTrailerDeSelectAll()">
+
+                                <ng-template #optionsTemplate let-item let-option="option" let-id="id" let-isSelected="isSelected">
+                                    <div>
+                                        <label>
+                                            {{getTrailerByIdFrolList[id].TrailerId}}
+
+                                            <label *ngIf="getTrailerByIdFrolList[id].RetainFuel && getTrailerByIdFrolList[id].RetainFuel.length>0"
+                                                   class="multiselect-letf-text"
+                                                   placement="right"
+                                                   [ngbPopover]="retain_popContent"
+                                                   #p="ngbPopover"
+                                                   container="body"
+                                                   popoverClass="dsb-popover-retain"
+                                                   (mouseenter)="p.open();bindRetainInfo(id);"
+                                                   (mouseleave)="p.close();">
+                                                ({{getTrailerByIdFrolList[id].RetainFuel.length}})
+                                            </label>
+                                        </label>
+                                    </div>
+                                </ng-template>
+
+                            </ng-multiselect-dropdown>
+                        </div>
+                        <div class="form-group" [ngClass]="{' col-sm-12 ': !IsTrailerExists,' col-sm-6':IsTrailerExists }">
+                            <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingDrivers">
+                                <span class='spinner-dashboard pa'></span>
+                            </div>
+                            <label>Driver</label>
+                            <select class="form-control" formControlName="Driver" id="scheduleDriver">
+                                <option [value]="null">Select Driver</option>
+                                <ng-container *ngFor="let driver Of UnassignedDrivers||[]">
+                                    <option [value]="driver.Id" [selected]="driver.Id == DriverTrailerForm.controls['Driver'].value">
+                                        {{driver.Name}}
+                                    </option>
+                                </ng-container>
+                            </select>
+                            <span class="color-maroon" *ngIf="DriverTrailerForm.controls['Driver'].errors && (DriverTrailerForm.controls['Driver'].touched ||
+                                  DriverTrailerForm.controls['Driver'].dirty)">
+                                <span *ngIf="DriverTrailerForm.controls['Driver'].errors.required">
+                                    Required.
+                                </span>
+                            </span>
+                        </div>
+
+                    </div>
+                    <div class="text-right mt10">
+                        <button type="button" id="btnDriverTrailerDismiss" class="btn btn-lg" data-dismiss="modal" (click)="editDriverCancel()">Cancel</button>
+                        <button type="button" id="btnDriverTrailerUpdate" class="btn btn-lg btn-primary" (click)="checkOtherRegionDriver()">
+                            Save &nbsp;
+                            <i *ngIf="(dataService.IsLoadingButtonSubject | async)" class="fa fa-circle-o-notch fa-spin"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="dt-alert" *ngIf="(_otherRegionDriverSubject | async)">
+                    <label><b>{{SelectedDriverName}}</b> does not work in this shift. Do you really want to assign?</label>
+                    <div class="text-right mt10">
+                        <button type="button" id="btnOtherRegionDriverNo" class="btn btn-lg" (click)="onOtherRegionDriverNo()">No</button>
+                        <button type="button" id="btnOtherRegionDriverYes" class="btn btn-lg btn-primary" (click)="onOtherRegionDriverYes()">Yes</button>
+                    </div>
+                </div>
+                <div id="dt-alert" *ngIf="_publishedRequestExists">
+                    <label> Do you want to reflect this changes to already published group(s)?</label>
+                    <div class="text-right mt10">
+                        <button type="button" id="btnPublishChangesNo" class="btn btn-lg" (click)="onPublishChangesNo()">No</button>
+                        <button type="button" id="btnPublishChangesYes" class="btn btn-lg btn-danger" (click)="onPublishChangesYes()">Yes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation -->
+<button type="button" id="btnconfirm-delete-delgrp" class="hide-element" data-toggle="modal" data-target="#confirm-delete-delgrp" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade confirm-box" id="confirm-delete-delgrp" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Are you sure?</h2>
+                <p class="pb10" id="deleteDelGrpHeading">Driver is on the way to job.</p>
+                <div class="text-right">
+                    <button type="button" (click)="deleteLoadNo()" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="deleteLoadYes()" data-dismiss="modal" class="btn btn-danger btn-lg">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<button type="button" id="btnconfirm-publish-delgrp" class="hide-element" data-toggle="modal" data-target="#confirm-publish-delgrp" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade confirm-box" id="confirm-publish-delgrp" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Are you sure?</h2>
+                <p class="pb10" id="publishDelGrpHeading">Driver is on the way to job.</p>
+                <div class="text-right mt10">
+                    <button type="button" (click)="publishLoadNo()" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="publishLoadYes()" data-dismiss="modal" class="btn btn-danger btn-lg">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button type="button" id="btnconfirm-dragdrop-dr" class="hide-element" data-toggle="modal" data-target="#confirm-dragdrop-dr" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-dragdrop-dr" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Are you sure?</h2>
+                <p class="pb10" id="deleteDrHeading">Changes will reflect for already published load(s).</p>
+                <div class="text-right">
+                    <button type="button" class="btn btn-lg" data-dismiss="modal" (click)="dragDelReqToAnotherLoadNo()">No</button>
+                    <button type="button" (click)="dragDelReqToAnotherLoadYes()" data-dismiss="modal" class="btn btn-danger btn-lg">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="compartment-assigning" class="side-panel pl5 pr5">
+    <div class="side-panel-wrapper col-sm-12">
+        <div class="pa top0 bg-white left0 z-index5 loading-wrapper" *ngIf="_loadingCmprts"><span class="spinner-dashboard pa"></span></div>
+        <div class="row">
+            <div class="col-sm-8 pt10">
+                <a class="close-panel" onclick="closeSlidePanel();">
+                    <i class="fa fa-close fs18"></i>
+                </a>
+                <h3 class="dib mt0 mb0 ml15">
+                    <ng-container *ngFor="let trailer of CompartmentEditModel.Schedule?.Trailers||[]; let isLast= last">
+                        {{trailer.TrailerId}} <a (click)="TrailerRetainDetails(trailer.Id);" title="Fuel Retain Details" *ngIf="checkIfTrailerFuelRetainExists(trailer.Id)"><i class="fa fa-info-circle color-maroon"></i> </a> <span *ngIf="!isLast">,</span>
+                    </ng-container> : <small>Assign products to compartments</small>
+                </h3>
+            </div>
+        </div>
+        <div class="compartment-wrapper">
+            <div class="row" *ngIf="CompartmentDetails.length>0">
+                <div class="col-sm-6">
+                    <div class="alert alert-warning pa5 pb0 mb0">
+                        <h2 class="fs12 f-bold mb10 mt0">There is some fuel retained in container <a class="fa fa-times color-maroon pull-right" (click)="closeRetainInfo()"></a></h2>
+                        <table class="table fs12 table-sm table-borderless mb0">
+                            <thead>
+                                <tr class="f-bold">
+                                    <th>Compartment</th>
+                                    <th>Fuel Type</th>
+                                    <th>Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let compData of CompartmentDetails">
+                                    <td>{{compData.CompartmentId}}</td>
+                                    <td>{{compData.ProductType}}</td>
+                                    <td>
+                                        {{compData.Quantity}}
+                                        <span *ngIf="compData.UOM==1">G</span>
+                                        <span *ngIf="compData.UOM!=1">L</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="row row-mlr5" [formGroup]="CompartmentViewFormGroup">
+                <ng-container [formArrayName]="'Trips'">
+                    <ng-container *ngFor="let trip of CompartmentViewFormGroup.controls['Trips']['controls']; let i = index;">
+                        <div class="col-sm-3 col-plr5 mb10" [formGroupName]="i">
+                            <div class="border pa5 shadow-b radius-5 mt10 mb15 full-height">
+                                <div class="mt0 mb0 fs14">
+                                    Load {{i+1}} -
+                                    <span class="opacity8"><i class="far fa-clock"></i></span>
+                                    <span class="ml5 mr5 opacity8">{{trip.controls['StartTime'].value}}</span>
+                                </div>
+                                <input type="hidden" formControlName="ShiftIndex" />
+                                <input type="hidden" formControlName="DriverRowIndex" />
+                                <input type="hidden" formControlName="DriverColIndex" />
+                                <ng-container [formArrayName]="'DeliveryRequests'">
+                                    <ng-container *ngFor="let dr of trip.controls['DeliveryRequests']['controls']; let j = index;">
+                                        <div class="bg-lightgrey pa5 shadow-b radius-5" [formGroupName]="j">
+                                            <input type="hidden" formControlName="RequiredQuantity" [ValidateCompartmentsQuantity]="dr" />
+                                            <h5 class="fs14">
+                                                {{dr.controls['ProductType'].value}},
+                                                <span *ngIf="dr.controls['ScheduleQuantityType'].value==1">{{dr.controls['RequiredQuantity'].value | number:'1.0-2'}} {{dr.controls['UoM'].value==1 ? 'G' : 'L'}}</span>
+                                                <span *ngIf="dr.controls['ScheduleQuantityType'].value>1">{{dr.controls['ScheduleQuantityTypeText'].value}}</span> -
+                                                <small>{{dr.controls['PickupName'].value}}</small>
+                                            </h5>
+                                            <ng-container [formArrayName]="'Compartments'">
+                                                <ng-container *ngFor="let comp of dr.controls['Compartments']['controls']; let k = index; let isLast = last;">
+                                                    <div class="row row-mlr5" [formGroupName]="k">
+                                                        <div class="col-sm-12 col-plr5" [ngClass]="{'hide-element': CompartmentEditModel.Schedule.Trailers.length<=1}">
+                                                            <select class="form-control mb5" formControlName="TrailerId" [ngClass]="{'border-red' : comp.controls['TrailerId'].touched && comp.controls['TrailerId'].errors?.required}" (change)="getRetainTrailerInfo(comp, dr)">
+                                                                <option [value]="null">Select Trailer</option>
+                                                                <ng-container *ngFor="let trailer of CompartmentEditModel.Schedule.Trailers">
+                                                                    <option [value]="trailer.Id">{{trailer.TrailerId}}</option>
+                                                                </ng-container>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-sm-7 col-plr5">
+                                                            <select class="form-control" formControlName="CompartmentId" [ngClass]="{'border-red' : comp.controls['CompartmentId'].touched && comp.controls['CompartmentId'].errors?.required}" (change)="getRetainCompartmentInfo(comp, dr)">
+                                                                <option [value]=null>Select Compartment</option>
+                                                                <ng-container *ngFor="let cpt of TrailerCompartments[comp.controls['TrailerId'].value]||[]; let l = index">
+                                                                    <option [value]="cpt.CompartmentId">
+                                                                        {{cpt.CompartmentId}} ({{cpt.Capacity | number:'1.0-2'}} {{dr.controls['UoM'].value==1 ? 'G' : 'L'}})
+                                                                    </option>
+                                                                </ng-container>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-sm-5 col-plr5">
+                                                            <div class="input-group" *ngIf="dr.controls['ScheduleQuantityType'].value<=1">
+                                                                <input [readonly]="(dr.controls['disabledControl'].value || dr.controls['IsRetainFuelLoaded']?.value)?true:null" type="text" formControlName="Quantity" class="form-control" placeholder="Quantity" (change)="validateDrQuantity(dr.controls['RequiredQuantity'])"
+                                                                       [ngClass]="{'border-red' : comp.controls['Quantity'].touched && comp.controls['Quantity'].errors}" />
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text fs12">
+                                                                        {{dr.controls['UoM'].value==1 ? 'G' : 'L'}}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="mt9" *ngIf="dr.controls['ScheduleQuantityType'].value>1">
+                                                                {{dr.controls['ScheduleQuantityTypeText'].value}}
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-12 col-plr5" *ngIf="!dr.controls['disabledControl'].value">
+                                                            <button type="button" class="btn btn-link mr5 fs11 mb5 pt0 mt2" (click)="removeCompartment(dr, k)">
+                                                                <i class="fa fa-trash-alt color-maroon float-left mr5 mt3 fs11"></i><span class="float-left mt1">Remove</span>
+                                                            </button>
+                                                        </div>
+                                                        <div class="col-sm-6 col-plr5" *ngIf="isLast && !dr.controls['disabledControl'].value">
+                                                            <button type="button" class="btn btn-link mr5 pt0" (click)="addCompartment(dr, comp.controls['TrailerId'].value)">
+                                                                <i class="fa fa-plus-circle float-left mr5 mt3"></i><span class="float-left">Compartment</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </ng-container>
+                                            </ng-container>
+                                            <div *ngIf="dr.controls['RequiredQuantity'].errors?.CompartmentQuantity">
+                                                <span class="color-maroon">Compartment(s) exceeded DR quantity.</span>
+                                            </div>
+                                            <button *ngIf="dr.controls['Compartments']['controls'].length==0" type="button" class="btn btn-link mr5" (click)="addCompartment(dr, null)">
+                                                <i class="fa fa-plus-circle float-left mr5 mt3"></i><span class="float-left">Compartment</span>
+                                            </button>
+                                        </div>
+                                    </ng-container>
+                                </ng-container>
+                            </div>
+                        </div>
+                    </ng-container>
+                </ng-container>
+            </div>
+        </div>
+        <div class="row mt10">
+            <div class="text-right col-sm-12">
+                <button class="btn btn-lg" type="button" onclick="closeSlidePanel();">Cancel</button>
+                <button class="btn btn-primary btn-lg" (click)="saveCompartmentAssignment()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="TransferDSModel" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="pa top0 bg-white left0 z-index5 loading-wrapper" *ngIf="_loadingDSData"><span class="spinner-dashboard pa"></span></div>
+                <div class="overflow-h">
+                    <h4 class="pull-left mt2 mb15 pt0 pb0 heading">Transfer DS to another load</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close">
+                        <i class="fa fa-close fs21"></i>
+                    </button>
+                </div>
+                <div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="selectshift">Shift</label>
+                                <select class="form-control" id="selectshift" [(ngModel)]="SelectedShift" (change)="GetShiftColInfo(SelectedShift)">
+                                    <option *ngFor="let shift of DSShifts" [ngValue]="shift">{{shift.ShiftInfo}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="selectcolumn">Column</label>
+                                <select class="form-control" [(ngModel)]="SelectedShiftColumn" (change)="GetShiftLoadInfo(SelectedShiftColumn)">
+                                    <option *ngFor="let shiftCol of ShiftColumn" [ngValue]="shiftCol">{{shiftCol.ColIndexName}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="selectload">Loads</label>
+                                <select class="form-control" id="selectload" [(ngModel)]="SelectedLoad">
+                                    <option *ngFor="let shiftld of ShiftLoad" [ngValue]="shiftld">{{shiftld.LoadName}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group" *ngIf="SelectedDriverName!=''">
+                                <label class="d-block mb-1">Driver</label>
+                                <label class="driver-name d-block">{{SelectedDriverName}}</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right mt10">
+                        <button type="button" id="btnTransferDS" class="btn btn-primary btn-lg" data-dismiss="modal" (click)="TransferDSInfo()">Transfer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="TrailerInformation" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="pa top0 bg-white left0 z-index5 loading-wrapper" *ngIf="_loadingRemoveTrailer"><span class="spinner-dashboard pa"></span></div>
+                <div class="overflow-h">
+                    <h4 class="pull-left mb15 pt0 pb0 heading">Trailer Information</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close" id="closeTrailerInformationModal">
+                        <i class="fa fa-close fs21"></i>
+                    </button>
+                </div>
+                <div>
+                    <div class="row">
+                        <div class="col-12">
+                            <ng-container *ngIf="scheduleTrailerInfo">
+                                <ng-container *ngFor="let trailer of scheduleTrailerInfo.controls['Trailers']['controls']; let y = index; let islast = last; trackBy: trackByTrailerId">
+                                    <ng-container>
+                                        <div class="card mb5">
+                                            <div class="card-body pt5 pb5 pl10 pr10">
+                                                <div class="row">
+                                                    <div class="col-sm-9"><span class="mt2 dib">{{trailer.controls['TrailerId'].value}}</span></div>
+                                                    <div class="col-sm-3 text-right" *ngIf="disableControl==false">
+                                                        <a (click)="UnAssignTrailerFromShift(scheduleTrailerInfo,'trailer',trailer.controls['Id'].value)" class="dib" placement="bottom" ngbTooltip="Unassign Trailer">
+                                                            <i class="far fa-times-circle mt4 fs16"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ng-container>
+                                </ng-container>
+                            </ng-container>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<a class="hidden-element" data-toggle="modal" data-target="#resetDrByRouteModal" id="openRouteListModal"></a>
+<div id="resetDrByRouteModal" class="modal fade" role="dialog">
+    <div class="modal-dialog" style="width: 350px;">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="pa top0 bg-white left0 z-index5 loading-wrapper" *ngIf="_loadingRemoveRoute"><span class="spinner-dashboard pa"></span></div>
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">Reset Delivery Request(s) By Route</h4>
+                    <button type="button" id="closeResetDrByRouteModal" class="close color-grey pull-right pa" data-dismiss="modal"
+                            aria-label="Close">
+                        <i class="fa fa-close fs21"></i>
+                    </button>
+                </div>
+                <div class="mt20">
+                    <table class="table">
+                        <tr *ngFor="let route of RouteListForTrip">
+                            <td>
+                                {{route.Name}}
+                                <a class="ml20 pull-right" (click)="deleteDrsForRoute(route);">
+                                    <i class="fa fa-trash-alt mt14 color-maroon"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="text-right mt15">
+                    <button type="button" class="btn btn-lg" data-dismiss="modal">Cancel</button>
+                </div>
+
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="optional-pickup-location" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" [formGroup]="PickupForm">
+            <div class="modal-body">
+                <div class="pa top0 bg-white left0 z-index5 loading-wrapper" *ngIf="_loadingOptionTerminal"><span class="spinner-dashboard pa"></span></div>
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">Optional Pickup(s) Information</h4>
+                    <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+
+                <div class="mt10 mb10" *ngIf="disableControl==false">
+                    <div class="row">
+                        <div class="col-sm-10">
+                            <ng-multiselect-dropdown formControlName="SelectedFuelTypeDetails"
+                                                     [placeholder]="'Select Fuel Type'" [settings]="FuelTypeDdlSettings" [data]="FuelTypeDetails" 
+                                                     (onSelect)="onFuelTypeSelect($event)" (onDeSelect)="onFuelTypeDeSelect($event)"
+                                                     (onSelectAll)="onFuelTypeSelectAll($event)"
+                                                     (onDeSelectAll)="onFuelTypeDeSelectAll()">
+                            </ng-multiselect-dropdown>
+                            <div *ngIf="PickupForm.get('SelectedFuelTypeDetails').invalid && PickupForm.get('SelectedFuelTypeDetails').touched" class="color-maroon">
+                                <div *ngIf="PickupForm.get('SelectedFuelTypeDetails').errors.required">
+                                    Fuel Type is required.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-h" *ngIf="SelectedFuelTypeDetails.length>0 && disableControl==false">
+                    <div class="dib border pa5 radius-capsule">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="inlineTerminal1" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="1">
+                            <label class="form-check-label" for="inlineTerminal1">Terminal</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="inlineBlukplant2" formControlName="PickupLocationType" [name]="'PickupLocationType'" [value]="2">
+                            <label class="form-check-label" for="inlineBlukplant2">Bulk Plant</label>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="section-optpickup pr-2">
+                    <div class="mt10 mb10" *ngIf="SelectedFuelTypeDetails.length>0 && disableControl==false">
+                        <!-- terminal start -->
+                        <div class="row" [formGroup]="PickupForm.controls['Terminal']" *ngIf="LocationType==1">
+                            <div class="col-sm-10">
+                                <div class="ng-autocomplete">
+                                    <ng-autocomplete [data]="Terminals" formControlName="Name"
+                                                     [searchKeyword]="keyword"
+                                                     placeholder="Terminal Name"
+                                                     (selected)='onTerminalSelected_($event)'
+                                                     [itemTemplate]="itemTemplate"
+                                                     [notFoundTemplate]="notFoundTemplate">
+                                    </ng-autocomplete>
+
+                                    <ng-template #itemTemplate let-item>
+                                        <a [innerHTML]="item.Name"></a>
+                                    </ng-template>
+
+                                    <ng-template #notFoundTemplate let-notFound>
+                                        <div [innerHTML]="notFound"></div>
+                                    </ng-template>
+                                </div>
+
+                            </div>
+                        </div>
+                        <!-- terminal ends -->
+                        <!-- bulk plant starts -->
+                        <div class="row pr" [formGroup]="PickupForm.controls['BulkPlant']" *ngIf="LocationType==2">
+                            <div class="col-sm-12">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0">
+                                            <label>Bulk Plant</label>
+                                            <input type="text" formControlName="SiteName" class="form-control" (input)="onBulkPlantSearched_($event)" placeholder="Bulk Plant Name" (blur)="onBulkPlantBlur_($event)" />
+                                            <ul class="auto-select border-dash">
+                                                <li *ngFor="let plant of BulkPlants;" (click)="onBulkPlantSelected_(plant)"
+                                                    [attr.selected]="plant.Name==PickupForm.controls['BulkPlant']['controls'].SiteName.value">{{plant.Name}}</li>
+                                            </ul>
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].SiteName.touched || PickupForm.controls['BulkPlant']['controls'].SiteName.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].SiteName.errors.required">
+                                                    Required
+                                                </label>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0">
+                                            <label>Address</label>
+                                            <input type="text" class="form-control" formControlName="Address" [readonly]="isReadOnly" />
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Address.touched || PickupForm.controls['BulkPlant']['controls'].Address.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.required">
+                                                    Required
+                                                </label>
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Address.errors.pattern">
+                                                    Invalid (alphanumeric with comma spaces only)
+                                                </label>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0">
+                                            <label>{{ CountryBasedZipcodeLabel }}</label>
+                                            <input type="text" class="form-control zip-code" formControlName="ZipCode" (input)="getAddressByZip_($event)" [readonly]="isReadOnly" />
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].ZipCode.touched || PickupForm.controls['BulkPlant']['controls'].ZipCode.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.required">
+                                                    Required
+                                                </label>
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].ZipCode.errors.pattern">
+                                                    Invalid {{ CountryBasedZipcodeLabel }}
+                                                </label>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0">
+                                            <label>City</label>
+                                            <input type="text" class="form-control" formControlName="City" [readonly]="isReadOnly" />
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].City.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].City.touched || PickupForm.controls['BulkPlant']['controls'].City.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.required">
+                                                    Required
+                                                </label>
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].City.errors.pattern">
+                                                    Invalid (alphanumeric with comma spaces only)
+                                                </label>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].State">
+                                            <label>State</label>
+                                            <select *ngIf="isReadOnly" formControlName="Id" class="form-control" placeholder="Select State" (change)="setStateCode_($event)" [attr.readonly]="isReadOnly">
+                                                <option [value]="null">Select State</option>
+                                                <option *ngFor="let st of StateList" [value]="st.Id">
+                                                    {{st.Code}}
+                                                </option>
+                                            </select>
+                                            <select *ngIf="!isReadOnly" formControlName="Id" class="form-control" placeholder="Select State" (change)="setStateCode_($event)">
+                                                <option [value]="null">Select State</option>
+                                                <option *ngFor="let st of StateList" [value]="st.Id">
+                                                    {{st.Code}}
+                                                </option>
+                                            </select>
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.touched || PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].State['controls'].Id.errors.required">
+                                                    Required
+                                                </label>
+                                            </ng-container>
+                                            <input type="hidden" formControlName="Code" />
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0" [formGroup]="PickupForm.controls['BulkPlant']['controls'].Country">
+                                            <label>Country</label>
+                                            <select *ngIf="isReadOnly" formControlName="Code" class="form-control" placeholder="Select Country" [attr.readonly]="isReadOnly">
+                                                <option [value]="null">Select Country</option>
+                                                <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                    {{ct.Code}}
+                                                </option>
+                                            </select>
+                                            <select *ngIf="!isReadOnly" formControlName="Code" class="form-control" placeholder="Select Country">
+                                                <option [value]="null">Select Country</option>
+                                                <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                                    {{ct.Code}}
+                                                </option>
+                                            </select>
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.touched || PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Country['controls'].Code.errors.required">
+                                                    Required
+                                                </label>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0">
+                                            <label>County</label>
+                                            <input type="text" class="form-control" formControlName="CountyName" [readonly]="isReadOnly" />
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].CountyName.touched || PickupForm.controls['BulkPlant']['controls'].CountyName.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.required">
+                                                    Required
+                                                </label>
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].CountyName.errors.pattern">
+                                                    Invalid (alphanumeric with comma spaces only)
+                                                </label>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0">
+                                            <label>Latitude</label>
+                                            <input type="text" class="form-control" formControlName="Latitude" [readonly]="isReadOnly" />
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Latitude.touched || PickupForm.controls['BulkPlant']['controls'].Latitude.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.required">
+                                                    Required
+                                                </label>
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Latitude.errors.pattern">
+                                                    Invalid
+                                                </label>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb0">
+                                            <label>Longitude</label>
+                                            <input type="text" class="form-control" formControlName="Longitude" [readonly]="isReadOnly" />
+                                            <ng-container *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.invalid
+                                      && (PickupForm.controls['BulkPlant']['controls'].Longitude.touched || PickupForm.controls['BulkPlant']['controls'].Longitude.dirty)">
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.required">
+                                                    Required
+                                                </label>
+                                                <label style="color:red" *ngIf="PickupForm.controls['BulkPlant']['controls'].Longitude.errors.pattern">
+                                                    Invalid
+                                                </label>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingAddress">
+                                <span class='spinner-dashboard pa'></span>
+                            </div>
+                        </div>
+                        <!-- bulk plant ends -->
+                    </div>
+                    <div class="mt10 mb10" *ngIf="SelectedFuelTypeDetails.length>0 && disableControl==false">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <input type="text" class="form-control" formControlName="BadgeNo1" placeholder="Badge#" />
+                            </div>
+                            <div class="col-sm-3">
+                                <input type="text" class="form-control" formControlName="BadgeNo2" placeholder="Badge#" />
+                            </div>
+                            <div class="col-sm-3">
+                                <input type="text" class="form-control" formControlName="BadgeNo3" placeholder="Badge#" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right" *ngIf="SelectedFuelTypeDetails.length>0 && disableControl==false">
+                        <button type="button" [disabled]="!PickupForm.valid" (click)="addOptionalPickupLocation()" class="btn btn-primary">Add</button>
+                    </div>
+                    <div class="mt10 mb10" *ngIf="OptionalPickupLocationInfo.length>0">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <table class="table fs12 table-sm table-borderless mb0">
+                                    <thead>
+                                        <tr class="f-bold">
+                                            <th>Fuel Type</th>
+                                            <th>Location Type</th>
+                                            <th>Location Info</th>
+                                            <th>BadgeNo#</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr *ngFor="let optionPickupInfo of OptionalPickupLocationInfo">
+                                            <td>{{optionPickupInfo.TfxFuelTypeName}}</td>
+                                            <td>{{optionPickupInfo.DSBPickupLocationInfo.PickupLocationType==1?'Terminal':'Bulk Plant'}}</td>
+                                            <td *ngIf="optionPickupInfo.DSBPickupLocationInfo.PickupLocationType==1">
+                                                {{optionPickupInfo.DSBPickupLocationInfo.TfxTerminal.Name}}
+                                            </td>
+                                            <td *ngIf="optionPickupInfo.DSBPickupLocationInfo.PickupLocationType==2">
+                                                {{optionPickupInfo.DSBPickupLocationInfo.TfxBulkPlant.SiteName}} -
+                                                {{optionPickupInfo.DSBPickupLocationInfo.TfxBulkPlant.Address}},
+                                                {{optionPickupInfo.DSBPickupLocationInfo.TfxBulkPlant.City}},
+                                                {{optionPickupInfo.DSBPickupLocationInfo.TfxBulkPlant.State.Name}}
+                                            </td>
+                                            <td>
+                                                {{optionPickupInfo.DSBPickupLocationInfo.BadgeNoInfo}}
+                                            </td>
+                                            <td>
+                                                <a class="ml20 pull-left" *ngIf="disableControl==false" (click)="deleteOptionPickup(optionPickupInfo);">
+                                                    <i class="fa fa-trash-alt mt14 color-maroon"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-right mt-2" *ngIf="this.OptionalPickupLocationInfo.length>0 && disableControl==false">
+                    <button type="button" (click)="submitOptionalPickupLocation()" class="btn btn-primary">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Confirmation -->
+<button type="button" id="btn-completed-optionpickup" class="hide-element" data-toggle="modal" data-target="#confirm-completed-optionpickup" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade confirm-box" id="confirm-completed-optionpickup" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2 class="fs18 f-bold mt0">Optional Pickup Information:</h2>
+                <p class="pb10" id="deleteDelGrpHeading">Unable to delete the optional pickup information due to some of DS in completed state.</p>
+                <div class="text-right">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Confirmation -->
+<button type="button" id="btn-inprogress-onthewayoptionpickup" class="hide-element" data-toggle="modal" data-target="#confirm-delete-onthewayoptionpickup" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade confirm-box" id="confirm-delete-onthewayoptionpickup" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                <h2 class="fs18 f-bold mt0">Are you sure?</h2>
+                <p class="pb10" id="deleteDelGrpHeading">Driver is on the way to job OR Some of DS are in-progress.</p>
+                <div class="text-right">
+                    <button type="button" (click)="deleteOptionalPickupNo()" class="btn btn-primary" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="deleteOptionalPickupYes()" data-dismiss="modal" class="btn btn-danger btn-lg">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<ng-template #retain_popContent>
+    <div class="pop-header"></div>
+    <div class="popover-details">
+        <table class="table table-sm table-striped table-borderless">
+            <tbody>
+                <tr *ngFor="let retain of hoveredTrailer.RetainFuel; let i = index;">
+                    <td>{{retain.CompartmentId}}</td>
+                    <td>{{retain.ProductType}}</td>
+                    <td>{{retain.Quantity}}&nbsp;{{retain.UOM==1 ? 'G' : 'L'}}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</ng-template>
+
+<!-- Confirmation -->
+<button type="button" id="btn-cancel-ds" class="hide-element" data-toggle="modal" data-target="#confirm-cancel-ds" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade confirm-box" id="confirm-cancel-ds" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                <h2 class="fs18 f-bold mt0">Do you want to cancel DS(s)?</h2>
+                <p class="pb10" id="deleteDelGrpHeading">Only Accepted/Scheduled/on the way to pick up DS are cancelled.</p>
+                <div class="text-right">
+                    <button type="button" (click)="rejectDriverSchedule()" class="btn btn-primary" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="cancelDriverSchedule()" data-dismiss="modal" class="btn btn-danger btn-lg">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation -->
+<button type="button" id="btn-cancel-location-ds" class="hide-element" data-toggle="modal" data-target="#confirm-location-cancel-ds" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade confirm-box" id="confirm-location-cancel-ds" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <button type="button" class="close color-grey pull-right pa" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                <h2 class="fs18 f-bold mt0">Do you want to cancel DS(s)?</h2>
+                <p class="pb10" id="deleteDelGrpHeading">Only Accepted/Scheduled/on the way to pick up DS are cancelled.</p>
+                <div class="text-right">
+                    <button type="button" id="cancelLocationDS" class="btn btn-primary" data-dismiss="modal">Cancel</button>
+                    <button type="button" (click)="cancelLocationDriverSchedule()" data-dismiss="modal" class="btn btn-danger btn-lg">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--Cancel DS Infomration-->
+<button type="button" id="btn-location-cancel-ds-info" class="hide-element" data-toggle="modal" data-target="#confirm-location-cancel-ds-info" data-backdrop="static" data-keyboard="false"></button>
+<div class="modal fade" id="confirm-location-cancel-ds-info" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="overflow-h">
+                    <h4 class="pull-left mb5 pt0 pb0">Delivery Schedule Information</h4>
+                    <button type="button" class="close color-grey pull-right pa" id="confirm-location-cancel-ds-dismiss" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mt10 mb10" *ngIf="cancelDSDeliveryScheduleViewModel.length>0">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <table class="table fs12 table-sm table-borderless mb0">
+                                <thead>
+                                    <tr class="f-bold">
+                                        <th><input id="selectAllLocationDSBGroupCancel" type="checkbox" class="form-check-input" (change)="checkAllLocationDS()" /></th>
+                                        <th>Driver Name</th>
+                                        <th>Quantity</th>
+                                        <th>Fuel Type</th>
+                                        <th>Current State</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let dsInfo of cancelDSDeliveryScheduleViewModel;let j = index">
+                                        <td><input type="checkbox" class="form-check-input" id="dsLocationCheck{{j}}" (change)="checkLocationDSChange(j,dsInfo)" [(ngModel)]='dsInfo.IsChecked'></td>
+                                        <td>{{dsInfo.DriverName}}</td>
+                                        <td>{{dsInfo.Quantity}}</td>
+                                        <td>{{dsInfo.FuelType}}</td>
+                                        <td>{{dsInfo.CurrentState}}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div class="text-right mt-2" *ngIf="this.cancelDSDeliveryScheduleViewModel.length>0">
+                    <button type="button" (click)="CancelSelectedLocationDS()" class="btn btn-primary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

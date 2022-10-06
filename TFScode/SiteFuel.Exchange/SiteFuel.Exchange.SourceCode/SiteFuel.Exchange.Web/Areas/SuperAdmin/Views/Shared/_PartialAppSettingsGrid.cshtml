@@ -1,0 +1,101 @@
+﻿<div class="col-sm-12">
+    <div class="row">
+        <div class="col-sm-12 col-12">
+            <h4>@Resource.headingAppSettings</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="well bg-white shadow-b">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-border no-padding">
+                        <div class="table-responsive">
+                            <table id="appsettings-datatable" class="table table-striped table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.gridColumnKey</th>
+                                        <th>@Resource.gridColumnValue</th>
+                                        <th>@Resource.gridColumnDesciption</th>
+                                        <th>@Resource.gridColumnUpdatedBy</th>
+                                        <th>@Resource.gridColumnUpdatedDate</th>
+                                        <th>@Resource.gridColumnActive</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var appSettingsDataTable;
+
+        $(document).ready(function () {
+
+            appSettingsDataTable = $('#appsettings-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetAppSettings", "MasterData", new { area ="SuperAdmin" })",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": "",
+                },
+                "columns":
+                [
+                    { "data": "Key", "autoWidth": true },
+                    { "data": "Value", "autoWidth": true },
+                    { "data": "Description", "autoWidth": true },
+                    { "data": "UpdatedBy", "autoWidth": true },
+                    { "data": "UpdatedDate", "autoWidth": true, "sType":"date" },
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            return data.IsActive ? '@Resource.lblYes' : '@Resource.lblNo';
+                        }, "autoWidth": true
+                    },
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            var viewAppSettingUrl = '@Url.Action("EditAppSettings", "MasterData", new { area = "SuperAdmin" })';
+                            return '<a href=' + viewAppSettingUrl + '/' + data.Id + '>' + "Edit" + '</a>';
+                        }, "width": "50px", "bSortable": false, "className": "text-center"
+                    }
+                ],
+                pageLength: 100,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json)
+                {
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingAppSettings' },
+                    { extend: 'excel', title: '@Resource.headingAppSettings' },
+                    { extend: 'pdf', title: '@Resource.headingAppSettings' },
+
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+        });
+    </script>
+}

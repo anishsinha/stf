@@ -1,0 +1,98 @@
+﻿@model int
+<div class="row">
+    <div class="col-md-12">
+        <div class="well bg-white shadow-b">
+            <div class="ibox mb0">
+                <div class="ibox-content no-border no-padding">
+                    <div class="table-responsive">
+                        <table id="statemenhistory-datatable" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>@Resource.gridColumnStatementNumber</th>
+									<th>@Resource.gridColumnVersion</th>
+                                    <th>@Resource.gridColumnBillingPeriod</th>
+                                    <th>@Resource.gridColumnDueDate</th>
+                                    <th>@Resource.gridColumnQuantityDropped</th>
+                                    <th>@Resource.gridColumnStatementValue</th>
+                                    <th>@Resource.gridColumnCustomer</th>
+                                    <th>@Resource.gridColumnInvoiceCount</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var statementHistoryDatatable;
+    var exportColumns = { columns: [0, 1, 2, 3, 4, 5, 6, 7] };
+		$(document).ready(function () {
+			statementHistoryDatatable = $('#statemenhistory-datatable').dataTable({
+				 "ajax": {
+                    "url": "@Url.Action("StatementHistory", "BillingStatement", new { area ="Supplier"})?Id=@Model",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": ""
+                },
+				"columns": [
+					{ "data": "StatementNumber", "autoWidth": true },
+					{ "data": "Version", "autoWidth": true },
+                    { "data": "BillingPeriod", "autoWidth": true },
+                    { "data": "StmtDueDate", "autoWidth": true },
+                    { "data": "TotalQuantityDropped", "autoWidth": true },
+                    { "data": "TotalStmtValue", "autoWidth": true, render: $.fn.dataTable.render.number(',', '.', 2, '@Resource.constSymbolCurrency')},
+                    { "data": "Customer", "autoWidth": true },
+                    { "data": "InvoiceCount", "autoWidth": true },
+                    {
+						"data": function (data, type, row, meta) {
+                            var url = "location.href='@Url.Action("DownloadPdf", "BillingStatement", new { area = "Supplier" })" + "/" + data.Id + "'";
+                            return '<input type="button" class="btn btn-warning download-pdf btn-xs" value="@Resource.btnLabelDownload" onclick=' + url + ' />';
+                        }, "autoWidth": true
+                    },
+				],
+				"columnDefs": [{
+					"targets": [0,1,2,3,4,5,6,7],
+					"searchable": false,
+					"orderable": false
+				}],
+				"order":[],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json) {
+                    $('#statemenhistory-datatable th').addClass('filtering-disabled');
+                    wrapperHeight();
+                },
+                dom: '<"html5buttons"B>lTfgitp',
+				buttons: [
+                    { extend: 'csv', title: '@Resource.headingStatementHistory', exportOptions: exportColumns },
+                    { extend: 'excel', title: '@Resource.headingStatementHistory', exportOptions: exportColumns },
+                    { extend: 'pdf', title: '@Resource.headingStatementHistory', exportOptions: exportColumns },
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+				],
+				dom: '<"html5buttons"B>lTfgitp',
+				language: {
+					sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+				}
+			});
+
+			$("#statemenhistory-datatable").on("click", ".download-pdf", function () {
+				hideLoader()
+			});
+	});
+
+</script>

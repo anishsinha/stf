@@ -1,0 +1,79 @@
+﻿@model InvoiceFilterViewModel
+@if (Model.JobId == 0)
+{
+    <div class="col-sm-12 pl0 pr0 mb10">
+        <div class="col-sm-12 pl0 pr0">
+            <div class="well pb10 mb0 mt-n3">
+                <div class="row">
+                    <div class="col-sm-8">
+                        <div class="row">
+                            <div class="col-6 col-sm-3"><input type="text" id="txtBuyerInvoiceFromDate" placeholder="@Resource.lblFrom" class="form-control datepicker" /></div>
+                            <div class="col-6 col-sm-3"><input type="text" id="txtBuyerInvoiceToDate" placeholder="@Resource.lblTo" class="form-control datepicker" /></div>
+                            <div class="col-12 col-sm-4 mt5-xs">
+                                <div class="row">
+                                    <div class="col col-sm-2" >
+                                        <input type="button" class="btn btn-primary" value="@Resource.btnLabelApply" onclick="reloadInvoiceDataTable();" />
+                                    </div>
+                                    <div class="col col-sm-2" >
+                                        <input type="button" class="border-0 bg-white color-blue ml5 ml-4 mt-2" value="Clear" onclick="clearInvoiceFilter();" />
+                                    </div>
+                                    <div class="col col-sm-5 ml-5 mt-2" >
+                                       
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 text-right pt-1">
+                        <a href="#." id="hide-view-filter" data-toggle="modal" data-target="#invoicefilterassignment-modal" class="color-blue mr-2 fs14">
+                        <span class="filter-circle-badge" id="inv-filter-count" style="display:none"></span>
+                        <i class="fa fa-filter mr5 fs14"></i>
+                        <span class="f-normal mb-0 fs14">Filters</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<div class="col-md-12 pr0 pl0">
+    @Html.PartialFor("_PartialInvoiceGrid", m => m)
+</div>
+<script type="text/javascript">
+    filterType = 'invoice-filterType';
+    locationsFilter = 'invoice-locations';
+    assetsFilter = 'invoice-assets';
+    tanksFilter = 'invoice-tanks';
+    vesselsFilter = 'invoice-vessels';
+    $(document).ready(function () {
+        loadBuyerDropdownData(true);
+        ToggleFilterCount();
+        if (window.location.href.toLowerCase().indexOf("dropticketsview") != -1 || @Model.AllowedInvoiceType == @((int)InvoiceType.DigitalDropTicketManual)) {
+            $('#tab-ddt-container').trigger('click').addClass('active');
+            $('#tab-invoice-container').removeClass('active');
+            $("#radio-landjobs").rules("remove", "required");
+            $("#radio-landjobs").removeAttr('data-val-required');
+        }
+    });
+    function ApplyCustomerFilter() {
+        SetBuyerFilterLocalStorage();
+        buyerInvoiceGrid.ajax.reload();
+        $("#invoicefilterassignment-modal").modal('hide');
+        ToggleFilterCount();
+    }
+    function ResetFilter() {
+        ResetBuyerOrderFilter();
+        buyerInvoiceGrid.ajax.reload();
+        $("#invoicefilterassignment-modal").modal('hide');
+        ToggleFilterCount();
+    }
+    function ToggleFilterCount() {
+        var filterCount = getFilterCount();
+        if (filterCount == 0) {
+            $("#inv-filter-count").attr("style", "display: none !important");
+        }
+        else {
+            $("#inv-filter-count").html(filterCount).show();
+        }
+    }
+</script>

@@ -1,0 +1,422 @@
+﻿@model SiteFuel.Exchange.ViewModels.Offer.BuyerOfferViewodel
+@{
+    ViewBag.Title = "Offer Summary";
+}
+    <div class="row mb10">
+        <div class="col-sm-12">
+            <div class="pull-right mr15">@Html.PartialFor("_PartialCurrencyFilter", m => m.Country)</div>
+        </div>
+        </div>
+            @Html.HiddenFor(m => m.JobId, new { @class = "hdnSearchedJobId" })
+            @Html.HiddenFor(m => m.Quantity, new { @class = "hdnSearchedQuantity" })
+            <div class="row mb10">
+                <div class="col-sm-12">
+                    <div class="well pb10 pt15 mb10">
+                        <div class="row">
+                            <div class="col-sm-11">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="radio dib mr20">
+                                            <label class="radio-inline">
+                                                @Html.RadioButton("IsJobSearch", true, true, new { onclick = "showHideControls(this,'search-by-job','search-by-location')" })
+                                                @Resource.lblSearchByJob
+                                            </label>
+                                        </div>
+                                        <div class="radio dib ">
+                                            <label class="radio-inline">
+                                                @Html.RadioButton("IsJobSearch", false, new { onclick = "showHideControls(this,'search-by-location','search-by-job')" })
+                                                @Resource.lblSearchByLocation
+                                            </label>
+                                        </div>
+                                        @*<div class="form-check form-check-inline radio">
+                                            @Html.RadioButton("IsJobSearch", true, true, new { onclick = "showHideControls(this,'search-by-job','search-by-location')", @id = "RadioSearchByJob", @class = "form-check-input" })
+                                            <label class="form-check-label" for="RadioSearchByJob"> @Resource.lblSearchByJob</label>
+                                        </div>
+                                        <div class="form-check form-check-inline radio">
+                                            @Html.RadioButton("IsJobSearch", false, new { onclick = "showHideControls(this,'search-by-location','search-by-job')", @id = "RadioSearchByLocation", @class = "form-check-input" })
+                                            <label class="form-check-label" for="RadioSearchByLocation"> @Resource.lblSearchByLocation</label>
+                                        </div>*@
+                                    </div>
+                                </div>
+                                <div class="row mt0">
+                                    <div class="col-sm-4 col-md-3 search-by-job">
+                                        @Html.LabelFor(m => m.JobId)
+                                        @Html.DropDownListFor(m => m.JobId, new SelectList(CommonHelperMethods.GetJobs(CurrentUser.Id, Model.CountryId), "Id", "Name", Model.JobId), string.Format(Resource.valMessageSelect, Resource.lblJob), new { @class = "form-control job-select" })
+                                        @Html.ValidationMessageFor(m => m.JobId)
+                                    </div>
+                                    <div class="col-md-6 search-by-location defaultDisabled">
+                                        @Html.PartialFor("_PartialOfferLocationType", m => m.SearchLocationViewModel)
+                                    </div>
+                                    <div class="col-md-2 col-sm-4 form-group">
+                                        @Html.LabelFor(m => m.Quantity)
+                                        @Html.EditorFor(m => m.Quantity, new { htmlAttributes = new { @class = "form-control qty", @type = "number", @min = "1", @step = "1", @value = "1" } })
+                                        @Html.ValidationMessageFor(m => m.Quantity)
+                                    </div>
+                                    <div class="col-sm-2 col-md-2 form-group">
+                                        @Html.LabelFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypeId)
+                                        @Html.EnumDropDownListFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes, null,
+                                           new
+                                           {
+                                               @class = "form-control truckLoadTypes enum-ddl"
+                                           })
+                                    </div>
+                                </div>
+                                <div class="row ">
+                                    <div class="col-md-12">
+                                        @Html.PartialFor("~/Areas/Buyer/Views/Shared/_PartialViewOfferPricing.cshtml", m => m)
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12 text-right">
+                                        <div class="form-group mt10">
+                                            <input type="button" id="btn-search" formnovalidate value="@Resource.lblSearch" class="btn btn-primary btnSubmit readOnlyModeFR" onclick="SearchOffers()" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row ">
+                <div class="col-sm-12">
+                    <div class="buyeroffergrid">
+                        @Html.Partial("_PartialBuyerOfferGrid", new SiteFuel.Exchange.ViewModels.Offer.UspBuyerOfferGridViewModel())
+                    </div>
+                </div>
+            </div>
+            <div class="modal animated" id="modal-view-offer" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" keyboard="false">
+                <div class="modal-dialog modal-tax modal-acceptoffer modal-lg" role="document">
+                    @using (Ajax.BeginForm("Accept", "Offer", null, new AjaxOptions
+                    {
+                        HttpMethod = "POST",
+                        OnSuccess = "showAcceptSuccessMessage",
+                        OnFailure = "showAcceptFailedMessage"
+                    }, new { id = "accept-offer-form" })) // set new Id name for  Form
+                    {
+                        <div class="pa bg-white top0 left0 z-index5 loading-wrapper hide-element"><span class='spinner-dashboard pa'></span></div>
+                        <div class="modal-content pa10">
+                            <div class="modal-header no-border text-center pt10 pl0 pr0 pb0">
+                                <div class="col-sm-11">
+                                    <h2 class="text-left mt0 mb0 fs21">@Resource.lblAcceptOffer</h2>
+                                </div>
+                                <div class="col-sm-1">
+                                    <button type="button" class="close actions" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                </div>
+                            </div>
+                            <div class="modal-body" id="accept-offer">
+                                @{Html.RenderPartial("_PartialAcceptOffer", Model.OrderViewModel);}
+                            </div>
+                            <div class="modal-footer no-border">
+                                <a href="#." data-dismiss="modal" class="btn actions">@Resource.btnLabelCancel</a>
+                                <input id="Submit" type="button" value="@Resource.btnLabelBuy" class="btn btn-lg btn-primary btnSubmit" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            @using (Html.BeginScripts())
+            {
+                @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Content/js/pricing")
+                <script type="text/javascript" charset="utf-8">
+        var productListUrl = "@Url.Action("GetAllOfferProducts", "Offer", new { area = "Buyer" })";
+
+        $(document).ready(function () {
+            $('.ddl-pricing-source').on('change', function () {
+                ShowHideIndicesControls();
+                //UpdateFuelTypeList();
+                GetCityRackTerminalList();
+                if ($('.ddl-pricing-source').val() == '@((int)PricingSource.Axxis)') {
+                    EnableRackHighLow();
+                }
+                else if ($('.ddl-pricing-source').val() == '@((int)PricingSource.OPIS)') {
+                    EnableRackHighLow();
+                    //PrependFeedType();
+                }
+                else { // platts case
+                    DisableRackHighLow();
+                    //RemoveFeedType();
+                }
+            });
+        });
+
+        //function PrependFeedType() {
+        //    var morningFeedVal = 1;
+        //    if (!$(".feed-types").find("option:contains('" + morningFeedVal + "')").length) {
+        //        $(".feed-types").prepend($('<option></option>').val(morningFeedVal).html('Contract (10am EST)'));
+        //    }
+        //}
+
+        //function RemoveFeedType() {
+        //    var morningFeedVal = 1;
+        //    $(".feed-types").find('[value="' + morningFeedVal + '"]').remove();
+        //}
+
+        function selectAxxis() {
+            $('.ddl-pricing-source').val(@((int)PricingSource.Axxis));
+            $('.ddl-pricing-source').trigger('change');
+        }
+
+        $('.radio-rack-price').click(function () {
+            var source = getPricingSource();
+            var enablecityrack = $('.enablecityrack');
+            if (source === @((int)PricingSource.OPIS)) {
+                enablecityrack.prop('checked', false);
+                enablecityrack.parent().addClass('pntr-none');
+                enablecityrack.trigger('click');
+            }
+            else {
+                enablecityrack.parent().removeClass('pntr-none');
+            }
+        });
+
+        function ShowHideIndicesControls() {
+            if ($('#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes)').val() == '@((int)TruckLoadTypes.FullTruckLoad)') {
+                $('.ftl-pricing-controls').show();
+            }
+            else {
+                $('.ftl-pricing-controls').hide();
+            }
+            $('.pricing-code').addClass('hide-element');
+            $('#pricing-code-info label').text('');
+            var pricingTypeId = parseInt($('input[name="@Html.NameFor(m => m.FuelPricing.PricingTypeId)"]:checked').val());
+            var pricingSourceId = $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId)").val();
+            if (pricingTypeId == 1) {
+                    $('.pricing-code').removeClass('hide-element');
+                }
+            if (pricingSourceId == '@((int)PricingSource.Axxis)') {
+                //$('.opis-controls,.feed-type').hide();
+                $(".dd-cityrack").addClass("hide-element");
+
+            }
+            else if ((pricingSourceId == '@((int)PricingSource.OPIS)' || pricingSourceId == '@((int)PricingSource.PLATTS)') && pricingTypeId == 1) {
+                //$('.opis-controls,.feed-type').show();
+                if ($(".enablecityrack").prop('checked', false)) {
+                    $(".enablecityrack").trigger("click");
+                    $(".chk-cityrack").addClass("pntr-none subSectionOpacity");
+                }
+                $(".dd-cityrack").show();
+            }
+            else if (pricingSourceId == '@((int)PricingSource.PLATTS)' && pricingTypeId == 1) {
+                //$('.feed-type').show();
+                $('.fuel-display-group').hide();
+            }
+            else {
+                //$('.opis-controls,.feed-type').hide();
+                $('.fuel-display-group').hide();
+                $(".cont-control-wrapper,.standard-fuels").addClass("mt25");
+                $(".dd-cityrack").hide();
+            }
+
+            if (pricingTypeId != 1) {
+                setPricingCodeForFixedAndFC(pricingTypeId, pricingSourceId);
+            }
+        }
+
+        function UpdateFuelTypeList() {
+            var target = $("#@Html.IdFor(m => m.FuelTypes)");
+            $(".spinner-xsmall").show();
+
+            var source = '@((int)(PricingSource.Axxis))';
+            if ($("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId)").length > 0) {
+                source = parseInt($("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId)").val(), 10);
+            }
+
+            $.get(productListUrl, { companyId: @Model.CompanyId, countryId: @Model.CountryId, sourceId: source }, function (response) {
+                target.find('option').not(':first').remove();
+                $(".nearest-fuellist ul").empty();
+                $.each(response, function (i, element) {
+                    target.append($('<option></option>').val(element.Id).html(element.Name));
+                });
+                $(".loading-wrapper.loader-fueltype").addClass("hide-element");
+                $(".spinner-xsmall").hide();
+            });
+
+        }
+
+        function GetCityRackTerminalList() {
+            var isJobSearch = $('input[name=IsJobSearch]:checked').val();
+            var selectedStateId = 0;
+            if (isJobSearch == 'False')
+                selectedStateId = $("#@Html.IdFor(m => m.SearchLocationViewModel.StateId)").val();
+
+            var selectedJobId = $(".job-select").val();
+            if (selectedJobId == '')
+                selectedJobId = 0;
+            var source = getPricingSource();
+            if ((isJobSearch == 'False' && selectedStateId > 0) || isJobSearch == 'True' && selectedJobId > 0) {
+                $.get("@Url.Action("GetBuyerOfferCityGroupTerminals", "Offer")", { fromJobSearch: isJobSearch, jobId: selectedJobId, stateId: selectedStateId, allStates: true, selectedCityRackId: 0, sourceId: source }, function (response) {
+                    var optionGroups = $("#@Html.IdFor(m => m.FuelPricing.CityGroupTerminalId) optgroup");
+                    $(optionGroups[0]).empty();
+                    $(optionGroups[1]).empty();
+                    $.each(response, function (i, element) {
+                        if (element.IsWithinState) {
+                            $(optionGroups[0]).append($('<option></option>').val(element.Id).html(element.Name));
+                        }
+                        else {
+                            $(optionGroups[1]).append($('<option></option>').val(element.Id).html(element.Name));
+                        }
+                    });
+
+                }).done(function () {
+                    $('#@Html.IdFor(m => m.FuelPricing.CityGroupTerminalId)').multiselect({
+                        enableFiltering: true,
+                        enableCaseInsensitiveFiltering: true,
+                    });
+                    $('#@Html.IdFor(m => m.FuelPricing.CityGroupTerminalId)').multiselect('rebuild');
+                });
+            }
+        }
+
+        $('.qty').keydown(function (e) {
+            if (e.keyCode === 190) { // do not allow dot
+                e.preventDefault();
+            }
+        });
+
+        $('.qty').blur(function () {
+            var qty = parseInt($(".qty").val())
+            if (qty <= 0) {
+                $('.qty').val('1');
+            }
+        });
+
+        function SearchOffers() {
+            validationMessageFor($("#@Html.IdFor(m => m.JobId)").attr('name'), '');
+            validationMessageFor($("#@Html.IdFor(m => m.Quantity)").attr('name'), '');
+            validationMessageFor($("#@Html.IdFor(m => m.SearchLocationViewModel.StateId)").attr('name'), '');
+            validationMessageFor($("#@Html.IdFor(m => m.SearchLocationViewModel.CityId)").attr('name'), '');
+            validationMessageFor($("#@Html.IdFor(m => m.SearchLocationViewModel.ZipStringList)").attr('name'), '');
+            validationMessageFor($("#@Html.IdFor(m => m.FuelTypes)").attr('name'), '');
+
+            var pricingSourceId = $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId)").val();
+            var cityGroupTerminalId = $('select.cityrackterminallist option:selected').val();
+            var pricingCodeId = $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingCode.Id)").val();
+			var pricingTypeId = $("#@Html.IdFor(m=> m.FuelPricing.PricingTypeId):checked").val();
+            var isJobSearch = $('input[name=IsJobSearch]:checked').val();
+            var currentlySelectedJobId = 0;
+            var currentlySearchedQuantity = parseInt($(".qty").val()) || 0;
+            if (currentlySearchedQuantity == "" || currentlySearchedQuantity <= 0) {
+                validationMessageFor($("#@Html.IdFor(m => m.Quantity)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblQuantity })');
+                return;
+            }
+            if (isJobSearch == 'True' && $(".job-select").val() == "") {
+                validationMessageFor($("#@Html.IdFor(m => m.JobId)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblJob })');
+                return;
+            }
+            if (isJobSearch == 'False' && $(".offerstate").val() == "") {
+                validationMessageFor($("#@Html.IdFor(m => m.SearchLocationViewModel.StateId)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblState })');
+                return;
+            }
+            if (isJobSearch == 'False' && $(".offercity").val() == "") {
+                validationMessageFor($("#@Html.IdFor(m => m.SearchLocationViewModel.CityId)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblCity })');
+                return;
+            }
+            if (isJobSearch == 'False' && $(".offerzip").val() == "") {
+                validationMessageFor($("#@Html.IdFor(m => m.SearchLocationViewModel.ZipStringList)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblZipcode })');
+                return;
+            }
+            if ($(".fueltypes").val() == "") {
+                validationMessageFor($("#@Html.IdFor(m => m.FuelTypes)").attr('name'), '@ResourceMessages.GetMessage(Resource.valMessageRequired, new object[] { Resource.lblFuelType })');
+                return;
+            }
+			if (pricingSourceId != @((int)PricingSource.Axxis) && pricingTypeId == 1 && (cityGroupTerminalId == null || cityGroupTerminalId == 0 || cityGroupTerminalId == '' || cityGroupTerminalId == 'noneselected')) {
+                msgerror('Please select city rack/terminal', 'Error');
+            }
+            if (pricingCodeId == null || pricingCodeId == 0 || pricingCodeId == '') {
+                msgerror('Please select pricing code', 'Error');
+            }
+
+            if (isJobSearch == 'True' && $(".job-select").val() !== "") {
+                currentlySelectedJobId = $(".job-select").val();
+            }
+            $(".hdnSearchedJobId").val(currentlySelectedJobId);
+            $(".hdnSearchedQuantity").val(currentlySearchedQuantity);
+            ReloadBuyerOfferDataTable();
+        }
+
+        function setNewJobDetails() {
+            $(".zip").val($("#@Html.IdFor(m => m.SearchLocationViewModel.ZipStringList)").val()[0]);
+            $(".state").val($("#@Html.IdFor(m => m.SearchLocationViewModel.StateId)").val());
+            $(".city").val($("#@Html.IdFor(m => m.SearchLocationViewModel.CityId) option:selected").text());
+        }
+
+        function showAcceptOfferModal(offerPricingId) {
+            var pricingCodeId = $('#FuelPricing_FuelPricingDetails_PricingCode_Id').val();
+            var pricingCode = $('#FuelPricing_FuelPricingDetails_PricingCode_Code').val();
+            var pricingDescription = $('#FuelPricing_FuelPricingDetails_PricingCode_Description').val();
+            var searchCityGroupTerminal = $('select.cityrackterminallist option:selected').val();
+            var jobId = parseInt($(".hdnSearchedJobId").val());
+            var fuelTypeId = parseInt($(".fueltypes").val());
+            var quantity = parseInt($(".hdnSearchedQuantity").val());
+            var source = getPricingSource();
+            var loadType = $('#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes)').val();
+            var url = '@Url.Action("PartialAcceptOffer", "Offer", new { area = "Buyer" })?jobId=' + jobId + '&fuelTypeId=' + fuelTypeId + '&offerPricingId=' + offerPricingId + '&quantity=' + quantity + '&truckLoadType=' + loadType + '&pricingSource=' + source;
+            $.get(url).done(function (response) {
+                if (response != null) {
+                    $("#accept-offer").html(response);
+                    GetJobsForOffer(offerPricingId, jobId);
+                    ToggleSingleDeliverySubTypes();
+                    ToggleEndDate();
+                    $("#spnPricingCode").text(pricingCode);
+                    if (pricingDescription != null && pricingDescription != '') {
+                        $("#spnPricingDescription").text(pricingDescription);
+                        $('#divPricingDesc').removeClass('hide-element');
+                    }
+                    else {
+                        $('#divPricingDesc').addClass('hide-element');
+                    }
+                    $('#hdnPricingCodeId').val(pricingCodeId);
+                    $('#hdnPricingCode').val(pricingCode);
+                    $(".cityTerminalFromSearch").val(searchCityGroupTerminal);
+                    if (jobId > 0) {
+                        $(".new-job").addClass('hide-element');
+                        $("#AddressDetails_IsNewJob").prop("disabled", true);
+                    }
+                    else {
+                        setNewJobDetails();
+                        $(".job-select-modal").attr("readonly", false);
+                        $(".existing-job").addClass('hide-element');
+                    }
+                    $("#modal-view-offer").modal("show");
+                    showHideElements(null, 'resetleftspace');
+
+                    $('.datepicker').datetimepicker({
+                        format: 'L',
+                        widgetPositioning: {
+                            horizontal: 'right',
+                            vertical: 'top'
+                        }
+                    });
+                    $('.timepicker').datetimepicker({
+                        format: 'LT',
+                        widgetPositioning: {
+                            horizontal: 'right',
+                            vertical: 'top'
+                        }
+                    });
+                    $('.datepicker').data("DateTimePicker").minDate(moment());
+                    parseForm();
+                }
+            })
+        }
+        function ReloadDataTable() {
+            getBuyerOfferUrl();
+        }
+
+        function getPricingFilter() {
+            return {
+                "PricingSourceId": $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceId)").val(),
+                "PricingTypeId": $("#@Html.IdFor(m=> m.FuelPricing.PricingTypeId):checked").val(),
+                "tfxProdId": parseInt($(".fueltypes").val()),
+            };
+        }
+                </script>
+                <script type="text/javascript">
+        var truckLoadDropDown = $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.TruckLoadTypes)");
+        var quantityIndicatorDropDown = $("#@Html.IdFor(m => m.FuelPricing.FuelPricingDetails.PricingSourceQuantityIndicatorTypes)");
+        var defaultQuantityIndicator = @((int)QuantityIndicatorTypes.Net);
+                </script>
+                @Scripts.RenderFormat(SiteKeys.ScriptVersion, "~/Scripts/Main/Ftl")
+            }

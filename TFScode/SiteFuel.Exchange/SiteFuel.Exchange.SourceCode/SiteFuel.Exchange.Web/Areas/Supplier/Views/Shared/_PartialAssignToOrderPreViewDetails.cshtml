@@ -1,0 +1,248 @@
+﻿@model AssignToOrderPreviewViewModel
+
+@using (Html.BeginForm("AssignInvoiceToOrder", "Invoice", new { area = "Supplier" }, FormMethod.Post))
+{
+    <div class="border-b mb10 mt10">
+        <h4 class="f-light fs18 dib mt0">@Resource.lblDropTicketDetails</h4>
+    </div>
+    <div class="row mt10">
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblCustomerName</label>
+            <div>@Model.DriverCustomerName</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblDropped</label>
+            <div>@Model.DriverDroppedGallons.ToString(ApplicationConstants.DecimalFormat2) @Model.InvoiceUoM</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblDropDate</label>
+            <div>@Model.DropEndDate.ToString(Resource.constFormatDate)</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblDropTime</label>
+            <div>@(Model.DropStartDate.DateTime.ToShortTimeString())@Resource.lblSingleHyphen@(Model.DropEndDate.DateTime.ToShortTimeString())</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblAssetFilled</label>
+            <div>@Model.AssetFilled</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblDriver</label>
+            <div>@Model.DriverName</div>
+        </div>
+    </div>
+    <div class="row mt10">
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblLocation</label>
+            <div>@Model.DriverDropAddress</div>
+            <div>@Model.DriverDropCity, @Model.DriverDropState</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblWetHoseFee</label>
+            <div>@((Model.IsWetHoseFee).ToYesNo())</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblOverWaterFee</label>
+            <div>@((Model.IsOverWaterFee).ToYesNo())</div>
+        </div>
+    </div>
+    <div class="border-b mb10 mt10">
+        <h4 class="f-light fs18 dib mt0">@Resource.headingOrderPreview</h4>
+        @if (Model.InvoiceUoM != Model.OrderUoM && Model.OrderId > 0)
+        {
+            <div class="dib alert font-bold alert-danger pt5 pb5 pl5 pr5 ml20 fs13 mb10 mb0 f-normal">
+                <div>@string.Format(@Resource.errMessageDifferntUofMForOrderAndInvoice, Model.InvoiceUoM, Model.OrderUoM)</div>
+            </div>
+        }
+    </div>
+    <div class="row mt10">
+        @Html.HiddenFor(m => m.OrderId)
+        @Html.HiddenFor(m => m.InvoiceId)
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblCustomer</label>
+            <div>@Model.AssignToOrderGrid.CustomerName</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblLabelPONumber</label>
+            <div>@Model.AssignToOrderGrid.PoNumber</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblStartDate</label>
+            <div>@Model.StartDate</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblDeliveryWindow</label>
+            <div>@(Model.StartTime)@Resource.lblSingleHyphen@(Model.EndTime)</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblAssets</label>
+            <div>@Model.Assets</div>
+        </div>
+        @if (Model.DeliveryTypeId == (int)DeliveryType.OneTimeDelivery)
+        {
+            <div class="col-md-2 col-xs-6 mb10">
+                <label class="f-normal">@Resource.lblAssignedDriver</label>
+                <div>@Model.AssignedDriver</div>
+            </div>
+        }
+    </div>
+    <div class="row mt10">
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblLocation</label>
+            <div>@Model.AssignToOrderGrid.Location</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblTotalDelivered </label>
+            <div>@Model.DeliveryPercentage</div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblDeliveryTypeSummary</label>
+            <div>
+                @if (Model.DeliveryTypeId > 0)
+                {
+                    @(CommonHelperMethods.GetName<DeliveryType>(Model.DeliveryTypeId))
+                }
+                else
+                {
+                    @Resource.lblHyphen
+                }
+            </div>
+        </div>
+        @if (Model.QuantityTypeId != (int)QuantityType.NotSpecified)
+        {
+            <div class="col-md-2 col-xs-6 mb10">
+                <label class="f-normal">@Resource.lblOrdered</label>
+                <div>@Model.GallonsOrdered.ToString(ApplicationConstants.DecimalFormat2) @Model.OrderUoM</div>
+            </div>
+        }
+        else
+        {
+            <div class="col-md-2 col-xs-6 mb10">
+                <label class="f-normal">@Resource.lblOrdered</label>
+                <div>@Resource.lblNotSpecified</div>
+            </div>
+        }
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblDroppedTillDate</label>
+            <div>@Model.GallonsDropped.ToString(ApplicationConstants.DecimalFormat2) @Model.OrderUoM</div>
+        </div>
+        @if (Model.QuantityTypeId != (int)QuantityType.NotSpecified)
+        {
+            <div class="col-md-2 col-xs-6 mb10">
+                <label class="f-normal">@Resource.lblFuelRemaining</label>
+                <div>@Model.GallonsRemaining.ToString(ApplicationConstants.DecimalFormat2) @Model.OrderUoM</div>
+            </div>
+        }
+        else
+        {
+            <div class="col-md-2 col-xs-6 mb10">
+                <label class="f-normal">@Resource.lblFuelRemaining</label>
+                <div>@Resource.lblHyphen</div>
+            </div>
+        }
+    </div>
+    <div class="row mt10">
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblWetHoseFee</label>
+            <div>
+                @if (Model.FuelRequestFee.WetHoseFeeIncludeInPPG || Model.FuelRequestFee.WetHoseFeeSubTypeId == (int)FeeSubType.NoFee)
+                {
+                    <p>@Resource.lblNoFee</p>
+                }
+                else if (Model.FuelRequestFee.WetHoseFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                {
+                    <p>@Resource.constSymbolCurrency@Model.FuelRequestFee.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2) @Model.Currency @Resource.lblPerAsset.ToLower()</p>
+                }
+                else if (Model.FuelRequestFee.WetHoseFeeSubTypeId == (int)FeeSubType.HourlyRate)
+                {
+                    <p>@Resource.constSymbolCurrency@Model.FuelRequestFee.WetHoseFee.ToString(ApplicationConstants.DecimalFormat2) @Model.Currency @Resource.lblHourlyRate.ToLower()</p>
+                }
+            </div>
+        </div>
+        <div class="col-md-2 col-xs-6 mb10">
+            <label class="f-normal">@Resource.lblOverWaterFee </label>
+            <div>
+                @if (Model.FuelRequestFee.OverWaterFeeIncludeInPPG || Model.FuelRequestFee.OverWaterFeeSubTypeId == (int)FeeSubType.NoFee)
+                {
+                    <p>@Resource.lblNoFee</p>
+                }
+                else if (Model.FuelRequestFee.OverWaterFeeSubTypeId == (int)FeeSubType.ByAssetCount)
+                {
+                    <p>@Resource.constSymbolCurrency@Model.FuelRequestFee.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2) @Model.Currency @Resource.lblPerAsset.ToLower()</p>
+                }
+                else if (Model.FuelRequestFee.OverWaterFeeSubTypeId == (int)FeeSubType.HourlyRate)
+                {
+                    <p>@Resource.constSymbolCurrency@Model.FuelRequestFee.OverWaterFee.ToString(ApplicationConstants.DecimalFormat2) @Model.Currency @Resource.lblHourlyRate.ToLower()</p>
+                }
+            </div>
+        </div>
+    </div>
+    if (Model.DeliveryTypeId == (int)DeliveryType.MultipleDeliveries)
+    {
+        <div class="row mt10">
+            <div class="col-md-12 mb10">
+                <label class="f-normal">@Resource.lblDeliverySchedules</label>
+                <div class="row">
+                    <div class="col-12 mb10">
+                        <div>
+                            @if (Model.DeliverySchedules != null && Model.DeliverySchedules.Count > 0)
+                            {
+                                <table class="table table-hover mb0 details-table">
+                                    <thead>
+                                        <tr>
+                                            <th>@Resource.lblType</th>
+                                            <th>@Resource.lblNeeded</th>
+                                            <th>@Resource.lblFrom</th>
+                                            <th>@Resource.lblTo</th>
+                                            <th>@Model.OrderUoM</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var schedule in Model.DeliverySchedules)
+                                        {
+                                            <tr>
+                                                <td>@schedule.ScheduleTypeName</td>
+                                                <td>
+                                                    @((schedule.ScheduleType == (int)DeliveryScheduleType.Weekly || schedule.ScheduleType == (int)DeliveryScheduleType.BiWeekly) ? string.Join(", ", schedule.ScheduleDayNames)
+                                                                                                                                                                            : schedule.ScheduleDate.ToString(Resource.constFormatDate))
+                                                </td>
+                                                <td>@schedule.ScheduleStartTime</td>
+                                                <td>@schedule.ScheduleEndTime</td>
+                                                <td>@schedule.ScheduleQuantity.GetCommaSeperatedValue()</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                @Resource.lblHyphen
+                            }
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 mb15 text-right">
+            @if (Model.OrderId <= 0)
+            {
+                <button class="btn btn-primary btn_nxt_skb btn_ybrwn" type="button" disabled="disabled">@Resource.btnLabelAssign</button>
+            }
+            else
+            {
+                if (Model.InvoiceUoM != Model.OrderUoM && Model.OrderId > 0)
+                {
+                    <button class="btn btn-primary btn_nxt_skb btn_ybrwn btn-assignorder-uom" type="button" data-toggle='confirmation' data-html='true' data-popout='true' data-singleton='true' data-placement='top' id="btnAssignToOrder" data-title="Fuel was dropped in @Model.InvoiceUoM and selected Order is in @Model.OrderUoM,<br> Do you wish to convert and Assign?" data-confirmation-event="assignToOrder">@Resource.btnLabelAssign</button>
+                }
+                else
+                {
+                    <button class="btn btn-primary btn_nxt_skb btn_ybrwn" type="button" data-toggle='confirmation' data-html='true' data-popout='true' data-singleton='true' data-placement='top' id="btnAssignToOrder" data-confirmation-event="assignToOrder">@Resource.btnLabelAssign</button>
+                }
+            }
+        </div>
+    </div>
+}

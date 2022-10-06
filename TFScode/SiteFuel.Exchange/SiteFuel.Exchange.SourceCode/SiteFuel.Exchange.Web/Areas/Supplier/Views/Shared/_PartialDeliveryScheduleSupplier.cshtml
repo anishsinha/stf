@@ -1,0 +1,100 @@
+﻿@model SiteFuel.Exchange.ViewModels.DeliveryScheduleViewModel
+@{
+    string selectMessage = string.Format(Resource.valMessageSelect, Resource.lblDriver);
+    var QualifiedDriversList = new SelectList(CommonHelperMethods.GetAllDrivers(CurrentUser.CompanyId), "Id", "Name", Model.DriverId);
+}
+@using (Html.BeginCollectionItem("DeliverySchedules"))
+{
+<div class="partial-block border-dash-dark radius-5 pt20 pb20 mb20">
+    <div class="col-sm-12">
+        <div class="mb10 pb5">
+            @if (CurrentUser.IsAccountingPerson || CurrentUser.IsReportingPerson)
+            {
+                @Html.PartialFor("_PartialCommonDeliveryScheduleViewOnly", m => m)
+            }
+            else
+            {
+                <div class="row supp-status">
+                    <div class="col-sm-12">
+                        <div class="my-schedule">
+                            @Html.PartialFor("_PartialCommonDeliverySchedule", m => m)
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    @Html.DropDownListFor(m => m.DriverId, QualifiedDriversList, selectMessage, new { @class = "form-control" })
+                                </div>
+                                <div class="col-sm-1">
+                                    @if (Model.IsDeliveryIn24Hrs && Model.DriverId.HasValue)
+                                    {
+                                        <a href="javascript:void(0)" class="fa fa-bell fs18 mt10 color-lightgreen notify-driver" title="Send update to driver" data-groupid="@Model.GroupId" data-driverid="@Model.DriverId"></a>
+                                    }
+                                </div>
+                                <div class="col-sm-8">
+                                    <div class="row">
+                                        @Html.Partial("_PartialCommonDeliveryScheduleStatus", Model.StatusId)
+                                    </div>
+                                </div>
+                            </div>
+                            @if (Model.IsFtlOrder)
+                            {
+                                <div class="row mt15">
+                                    <div class="col-sm-12">
+                                        <div class="checkbox mt0 isSplitDrop">
+                                            <label>
+                                                @Html.CheckBoxFor(m => m.IsSplitDrop, new { onChange = "toggleLocation(this);", @class = "split-drop" }) @Resource.lblIsSplitDrop
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            @if (Model.IsFtlOrder)
+                            {
+                                var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+                                <div class="row">
+                                    <div class="location col-sm-12 @(Model.SplitLoadAddresses.Any() ? "" :"hide-element")" id="@prefix">
+                                        <div class="location-controls">
+                                            <div id="location-section-@Guid.NewGuid()" class="partial-section">
+                                                <div class="partial-block-collection-section">
+                                                    @foreach (var fuelDropLocation in Model.SplitLoadAddresses)
+                                                    {
+                                                        fuelDropLocation.CollectionHtmlPrefix = prefix +".";
+                                                        Html.RenderPartial("_PartialSplitLoadDropLocation", fuelDropLocation);
+                                                    }
+                                                </div>
+                                                @if (CurrentUser.IsSupplierCompany && (CurrentUser.IsSupplierAdmin || CurrentUser.IsSupplier))
+                                                {
+                                                    <div class="row">
+                                                        <div class="form-group col-md-12">
+                                                            <a id="LinkAddLocation" href="javascript:void(0)" class="add-partial-block link-addlocation" data-url="@Url.Action("AddLocationForSchedule", "Order", new { area = "Supplier", prefix = prefix+"." })"><i class="fas fa-plus-circle"></i> @Resource.btnLabelAddSplitLoadAddress</a>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 text-right">
+            <a href="javascript:void(0)" class="btn btn-default label-danger btn-sm mr15" id="removeSchedule_@Model.Id" onclick="removePartial(this);EnableDisableSaveButtonChild()">Remove Schedule</a>
+        </div>
+    </div>
+</div>
+}
+<script type="text/javascript">
+		$(document).ready(function () {
+            updateAddSplitLoadAddressUrl();
+			$(".hide-orderdetails").hide();
+    })
+    function EnableDisableSaveButtonChild() {
+        if (typeof EnableDisableSaveButton == 'function') {
+            //Call Parent function
+            EnableDisableSaveButton()
+        }
+    }
+</script>

@@ -1,0 +1,111 @@
+﻿
+<div class="well bg-white shadow-b">
+    <div class="ibox mb0">
+        <div class="ibox-content no-border no-padding">
+            <div id="CarrierNames-div" class="table-responsive">
+                <table id="tbl-carrierNames-grid" data-gridname="@GridName.LiftFileCarrierNamesGrid" class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th data-key="@Resource.lblLFVCarrierId">@Resource.lblLFVCarrierId</th>
+                            <th data-key="@Resource.gridColumnAction">@Resource.gridColumnAction</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var carrierNamesGrid, exportColumns = { columns: [0] };
+    $(document).ready(function () {
+        carrierNamesGrid = $('#tbl-carrierNames-grid').DataTable({
+            "ajax": {
+                "url": "@Url.Action("GetCarrierNamesListGridData", "LiftData", new { area = "Settings" })",
+                "type": "POST",
+                "data": function (data) {
+                    $('#CarrierNames-div').append("<div class='pa bg-white top0 left0 z-index5 loading-wrapper'><span class='spinner-dashboard pa'></span></div>");
+                },
+                "datatype": "json",
+                "dataSrc": function (json) {
+                    $("#CarrierNames-div").find('.loading-wrapper').hide();
+                    return json.data;
+                }
+            },
+            'lengthMenu': [[10, 25, 50, 100, 99999999], [10, 25, 50, 100, "All"]],
+            aaSorting: [[0, 'desc']],
+            "serverSide": false,
+            "searchDelay": 500,
+            processing: true,
+            "searching": true,
+            "bProcessing": true,
+            lengthChange: true,
+            responsive: true,
+            "columns": [
+                { "data": "CarrierName","width": "350px" },
+                {
+                    "data": "Id", "render": function (data) { return "<a class='fs12 ml5 mr5' onclick='DeleteCarrierName("+data+")'title='Delete'><i class='fa fa-trash-alt fs13 color-maroon'></i></a>";                  },
+                   "orderable":false,
+                   "autoWidth": true,
+                   "className": 'dt-body-center'
+                }
+            ],
+            pageLength: 10,
+            responsive: true,
+            "order": [],
+            "initComplete": function (settings, json) {
+                wrapperHeight();
+            },
+            "columnDefs": [
+                { "name": "BadgeNumber", "targets": 0 }
+            ],
+            dom: '<"html5buttons"B>lTfgitp',
+            buttons: [
+                //{ extend: 'colvis', columns: exportColumns.columns },
+                { extend: 'csv', title: '@Resource.lblGridBadgeNumbers', exportOptions: exportColumns },
+                { extend: 'excel', title: '@Resource.lblGridBadgeNumbers', exportOptions: exportColumns },
+                { extend: 'pdf', title: '@Resource.lblGridBadgeNumbers', exportOptions: exportColumns, orientation: 'landscape' },
+                {
+                    extend: 'print', exportOptions: exportColumns,
+                    customize: function (win) {
+                        $(win.document.body).addClass('white-bg');
+                        $(win.document.body).css('font-size', '10px');
+
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ],
+            language: {
+                sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+            }
+        });
+    });
+
+    function DeleteCarrierName(recordId) {
+        //alert("recordId " + recordId);
+        var url = '@Url.Action("DeleteCarrierName", "LiftData", new { area = "Settings" })';
+        $(".carrier-List-grid-loader").show();
+        $.get(url, {recordId : recordId }, function (response) {
+            if (response) {
+                   if(response.StatusCode == @((int)Status.Success)){
+                       msgsuccess(response.StatusMessage);
+                       ReloadDataTable();
+                    } else if (response.StatusCode == @((int)Status.Failed)){
+                       msgerror(response.StatusMessage);
+                     }
+            }
+        }).always(
+            function () {
+                $(".carrier-List-grid-loader").hide();
+            }
+        );
+    }
+
+    function ReloadDataTable() {
+        if (carrierNamesGrid != null && carrierNamesGrid != undefined){
+            carrierNamesGrid.ajax.reload();
+       }
+    }
+</script>
+

@@ -1,0 +1,204 @@
+﻿@model SiteFuelUserFilterType
+
+<div class="col-sm-12">
+    <div class="row">
+        <div class="col-sm-12 col-12">
+            @if (Model == SiteFuelUserFilterType.AllSuperAdmin)
+            {
+                <h4 class="float-left pt3">@Resource.headingSuperAdmins</h4>
+            }
+            else if (Model == SiteFuelUserFilterType.InternalSalesPerson)
+            {
+                <h4 class="float-left pt3">@Resource.headingSalesCalculatorUsers</h4>
+            }
+            else if (Model == SiteFuelUserFilterType.ExternalVendor)
+            {
+                <h4 class="float-left pt3">@Resource.headingExternalVendors</h4>
+            }
+            else if (Model == SiteFuelUserFilterType.AccountSpecialist)
+            {
+                <h4 class="float-left pt3">@Resource.headingAccountSpecialistUsers</h4>
+            }
+            <a href="@Url.Action("Create", "SuperAdmin", new { area = "SuperAdmin", userRole = CommonHelperMethods.GetUserRole(Model) })" class="fs18 float-left ml20">
+                <i class="fa fa-plus-circle fs18 mt5 float-left mb10"></i><span class="fs14 mt4 float-left">@Resource.btnLabelCreateNew</span>
+            </a>
+            <a href="@Url.Action("ViewSiteFuelUsers", "SuperAdmin", new { area = "SuperAdmin", filter = Model })" class="float-left ml20 mt4">@Resource.btnLabelViewAll</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="well bg-white shadow-b">
+                <div class="ibox mb0">
+                    <div class="ibox-content no-border no-padding">
+                        <div class="table-responsive">
+                            <table id="sitefueluser-datatable" class="table table-striped table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>@Resource.gridColumnName</th>
+                                        <th>@Resource.gridColumnEmail</th>
+                                        <th>@Resource.gridColumnContact</th>
+                                        <th>@Resource.gridColumnRoles</th>
+                                        <th>@Resource.gridColumnAddedBy</th>
+                                        <th>@Resource.gridColumnDateAdded</th>
+                                        <th>@Resource.gridColumnActive</th>
+                                        <th>@Resource.gridColumnCalculator</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@using (Html.BeginScripts())
+{
+    <script type="text/javascript">
+        var sitefuelUserDataTable;
+
+        $(document).ready(function () {
+
+            sitefuelUserDataTable = $('#sitefueluser-datatable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetSiteFuelUsers", "SuperAdmin", new { area ="SuperAdmin", filter = Model})",
+                    "type": "GET",
+                    "datatype": "json",
+                    "dataSrc": "",
+                },
+                "columns":
+                [
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            if ('@CurrentUser.IsSuperAdmin' == 'True') {
+                                var viewUserUrl = '@Url.Action("UserDetails", "Profile", new { area = "Settings" })';
+                                return '<a href=' + viewUserUrl + '/' + data.Id + '>' + data.Name + '</a>';
+                            }
+                            else {
+                                return data.Name;
+                            }
+
+                        }, "autoWidth": true
+                    },
+                    { "data": "Email", "autoWidth": true },
+                    { "data": "PhoneNumber", "autoWidth": true, "className":"phone" },
+                    {
+                        "data": function (data, type, row, meta) {
+
+                            return data.RoleNames;
+
+                        }, "autoWidth": true
+                    },
+                    { "data": "AddedBy", "autoWidth": true },
+					{
+						"data": "AddedDate", "autoWidth": true, "sType":"date"
+					},
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            if ('@CurrentUser.IsSuperAdmin' == 'True')
+                            {
+                                var isDisabled = data.IsDefault ? "disabled = \"disabled\"" : "";
+                                var url = '@Url.Action("ChangeUserStatus", "Profile", new { area = "Settings"})/' + data.Id + '';
+                                var checked = data.IsActive ? "checked=\"checked\"" : "";
+
+                                var columnCtrl = '<input type = "checkbox" data-url = "' + url + '" onchange = "updateSiteFuelUserStatus(this)" ' + isDisabled + ' ' + checked + '></input>';
+                                columnCtrl += '<span class="hidden">' + (data.IsActive ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+
+                                return columnCtrl;
+                            }
+                            else
+                            {
+                                return data.IsActive ? '@Resource.lblYes' : '@Resource.lblNo';
+                            }
+                        }, "width": "50px", "bSortable": false, className:"text-center"
+                    },
+                    {
+                        "data": function (data, type, row, meta)
+                        {
+                            if ('@CurrentUser.IsSuperAdmin' == 'True')
+                            {
+                                var url = '@Url.Action("ChangeAllowSalesCalculatorStatus", "Profile", new { area = "Settings"})/' + data.Id + '';
+                                var checked = data.IsSalesCalculatorAllowed ? "checked=\"checked\"" : "";
+
+                                var columnCtrl = '<input type = "checkbox" data-url = "' + url + '" onchange = "AllowSalesCalculator(this)" ' + checked + '></input>';
+                                columnCtrl += '<span class="hidden">' + (data.IsSalesCalculatorAllowed ? '@Resource.lblYes' : '@Resource.lblNo') + '</span>';
+
+                                return columnCtrl;
+                            }
+                            else
+                            {
+                                return data.IsSalesCalculatorAllowed ? '@Resource.lblYes' : '@Resource.lblNo';
+                            }
+                        }, "width": "50px", "bSortable": false, className: "text-center"
+                    }
+                ],
+                pageLength: 10,
+                responsive: true,
+                "order": [],
+                "initComplete": function (settings, json)
+                {
+                    if ('@Model' == '@SiteFuelUserFilterType.InternalSalesPerson') {
+                        sitefuelUserDataTable.column(7).visible(true);
+                    }
+                    else {
+                        sitefuelUserDataTable.column(7).visible(false);
+                    }
+                    wrapperHeight();
+                },
+				dom: '<"html5buttons"B>lTfgitp',
+                buttons: [
+                    { extend: 'copy' },
+                    { extend: 'csv', title: '@Resource.headingSiteFuelUsers' },
+                    { extend: 'excel', title: '@Resource.headingSiteFuelUsers' },
+                    { extend: 'pdf', title: '@Resource.headingSiteFuelUsers' },
+
+                    {
+                        extend: 'print',
+                        customize: function (win) {
+                            $(win.document.body).addClass('white-bg');
+                            $(win.document.body).css('font-size', '10px');
+
+                            $(win.document.body).find('table')
+                                    .addClass('compact')
+                                    .css('font-size', 'inherit');
+                        }
+                    }
+                ],
+                language: {
+                    sLoadingRecords: "<div class='spinner-small'></div><div class='fs14'>@Resource.lblLoading</div>"
+                }
+            });
+            $('#sitefueluser-datatable').on('draw.dt', function () {
+                console.log("page changed");
+                changePhoneFormat();
+            });
+        });
+        function updateSiteFuelUserStatus(element) {
+            var url = $(element).data('url') + '?isActive=' + $(element).is(':checked') + '';
+            $.get(url, function (response) {
+                if (response.StatusMessage != '@Status.Success') {
+                    showSuccessErrorMsg(response);
+                }
+                else {
+                    sitefuelUserDataTable.ajax.url("@Url.Action("GetSiteFuelUsers", "SuperAdmin", new { area ="SuperAdmin", filter = Model})");
+                    sitefuelUserDataTable.ajax.reload();
+                }
+            });
+        }
+        function AllowSalesCalculator(element) {
+            var url = $(element).data('url') + '?isAllowed=' + $(element).is(':checked') + '';
+            $.get(url, function (response) {
+                if (response.StatusMessage != '@Status.Success') {
+                    showSuccessErrorMsg(response);
+                }
+                else {
+                    sitefuelUserDataTable.ajax.url("@Url.Action("GetSiteFuelUsers", "SuperAdmin", new { area ="SuperAdmin", filter = Model})");
+                    sitefuelUserDataTable.ajax.reload();
+                }
+            });
+        }
+    </script>
+}

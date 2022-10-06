@@ -1,0 +1,238 @@
+<div class="row mb10">
+    <div class="col-sm-12">
+        <agm-map [maxZoom]="16" [fitBounds]="true" [latitude]="centerLocationLat" [zoom]="zoomLevel" [longitude]="centerLocationLog" (boundsChange)="setCenterMap($event)"
+                 (mapReady)="mapReady($event)" [fullscreenControl]="true" [fullscreenControlOptions]="screenOptions" [mapTypeControl]="true">
+            <ng-container *ngFor="let loc of locations">
+                <agm-marker [latitude]="loc.Latitude" [longitude]="loc.Longitude" [agmFitBounds]="true" (mouseOver)="infoWindow.open()" (mouseOut)="infoWindow.close()">
+                    <agm-info-window [disableAutoPan]="false" #infoWindow>
+                        <div>
+                            <p>
+                                <span>{{loc.Name}}</span> <br />
+                                <span *ngIf="loc.Address">{{loc.Address}}, {{loc.City}}, </span>{{loc.StateCode}}
+                            </p>
+                        </div>
+                    </agm-info-window>
+                </agm-marker>
+            </ng-container>
+        </agm-map>
+    </div>
+</div>
+<div class="row mb10">
+    <div class="col-md-12">
+        <button class="btn btn-default btn-xs pull-left" data-toggle="modal" data-target="#pickup-location" (click)="clearPickUpform()">
+            <i class="fas fa-map-marker-alt"></i> Add New Pick-Up Location
+        </button>
+    </div>
+</div>
+<div class="well bg-white shadow-b pr">
+    <div class="ibox mb0">
+        <div class="ibox-content no-padding no-border">
+            <div class="table-responsive">
+                <table id="table-bulk-plants" class="table table-bordered table-hover" datatable [dtOptions]="dtOptions" [dtTrigger]="dtTrigger">
+                    <thead>
+                        <tr>
+                            <th data-key="tName">Name</th>
+                            <th data-key="tAddress">Address</th>
+                            <th data-key="tCity">City</th>
+                            <th data-key="tStateCode">State</th>
+                            <th data-key="tCounty">County</th>
+                            <th data-key="tLatitude">Latitude</th>
+                            <th data-key="tLongitude">Longitude</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let row of locations">
+                            <td>{{row.Name}}</td>
+                            <td>{{row.Address}}</td>
+                            <td>{{row.City}}</td>
+                            <td>{{row.StateCode}}</td>
+                            <td>{{row.County}}</td>
+                            <td>{{row.Latitude}}</td>
+                            <td>{{row.Longitude}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="pickup-location" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="mt10 mb10">
+                    <div class="row pr" [formGroup]="PickupForm">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Bulk Plant</label>
+                                <input type="text" formControlName="Name" class="form-control" placeholder="Bulk Plant Name" />
+                                <ng-container *ngIf="PickupForm.get('Name').errors
+                                      && (PickupForm.get('Name').touched || PickupForm.get('Name').dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.get('Name').errors.required">
+                                        Required
+                                    </label>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Address</label>
+                                <input type="text" class="form-control" formControlName="Address" />
+                                <ng-container *ngIf="PickupForm.get('Address').errors
+                                      && (PickupForm.get('Address').touched || PickupForm.get('Address').dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.get('Address').errors.required">
+                                        Required
+                                    </label>
+                                    <label style="color:red" *ngIf="PickupForm.get('Address').errors.pattern">
+                                        Invalid (alphanumeric with comma spaces only)
+                                    </label>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Zip</label>
+                                <input type="text" class="form-control" formControlName="ZipCode" (input)="getAddressByZip($event)" />
+                                <!--<input type="text" class="form-control" formControlName="ZipCode" (input)="getAddressByZip($event)" />-->
+                                <ng-container *ngIf="PickupForm.get('ZipCode').errors
+                                      && (PickupForm.get('ZipCode').touched || PickupForm.get('ZipCode').dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.get('ZipCode').errors.required">
+                                        Required
+                                    </label>
+                                    <label style="color:red" *ngIf="PickupForm.get('ZipCode').errors.pattern">
+                                        Invalid zipcode
+                                    </label>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" class="form-control" formControlName="City" />
+                                <ng-container *ngIf="PickupForm.get('City').errors
+                                      && (PickupForm.get('City').touched || PickupForm.get('City').dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.get('City').errors.required">
+                                        Required
+                                    </label>
+                                    <label style="color:red" *ngIf="PickupForm.get('City').errors.pattern">
+                                        Invalid (alphanumeric with comma spaces only)
+                                    </label>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>State</label>
+                                <select formControlName="StateId" class="form-control" placeholder="Select State" (change)="setStateCode($event)">
+                                    <option [value]="null">Select State</option>
+                                    <option *ngFor="let st of StatesListByCountry" [value]="st.Id">
+                                        {{st.Name}}
+                                    </option>
+                                </select>
+                                <ng-container *ngIf="PickupForm.get('StateId').errors
+                                      && (PickupForm.get('StateId').touched || PickupForm.get('StateId').dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.get('StateId').errors.required">
+                                        Required
+                                    </label>
+                                </ng-container>
+                                <input type="hidden" formControlName="StateCode" />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Country/Group</label>
+                                <select formControlName="CountryCode" class="form-control" placeholder="Select Country"
+                                        (change)="countryChanged()">
+                                    <option [value]="null">Select Country</option>
+                                    <option *ngFor="let ct of CountryList" [value]="ct.Code">
+                                        {{ct.Code}}
+                                    </option>
+                                </select>
+                                <ng-container *ngIf="PickupForm.get('CountryCode').errors
+                                      && (PickupForm.get('CountryCode').touched || PickupForm.get('CountryCode').dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.get('CountryCode').errors.required">
+                                        Required
+                                    </label>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="col-sm-6" *ngIf="PickupForm.get('CountryCode').value == 'CAR'">
+                            <div class="form-group">
+                                <label>Country</label>
+                                <select formControlName="CountryGroupId" class="form-control" placeholder="Select CountryGroup">
+                                    <option [value]="null">Select Country</option>
+                                    <option *ngFor="let ct of CountryGroupList" [value]="ct.Id">
+                                        {{ct.Name}}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>County</label>
+                                <input type="text" class="form-control" formControlName="County" />
+                                <ng-container *ngIf="PickupForm.get('County').errors
+                                      && (PickupForm.get('County').touched || PickupForm.get('County').dirty)">
+                                    <!--<label style="color:red" *ngIf="PickupForm.get('County').errors.required">
+                                        Required
+                                    </label>-->
+                                    <!--<label style="color:red" *ngIf="PickupForm.get('County').errors.pattern">
+                                        Invalid (alphanumeric with comma spaces only)
+                                    </label>-->
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Latitude</label>
+                                <input type="text" class="form-control" formControlName="Latitude" />
+                                <ng-container *ngIf="PickupForm.get('Latitude').errors
+                                      && (PickupForm.get('Latitude').touched || PickupForm.get('Latitude').dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.get('Latitude').errors.required">
+                                        Required
+                                    </label>
+                                    <label style="color:red" *ngIf="PickupForm.get('Latitude').errors.pattern">
+                                        Invalid
+                                    </label>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Longitude</label>
+                                <input type="text" class="form-control" formControlName="Longitude" />
+                                <ng-container *ngIf="PickupForm.get('Longitude').errors
+                                      && (PickupForm.get('Longitude').touched || PickupForm.get('Longitude').dirty)">
+                                    <label style="color:red" *ngIf="PickupForm.get('Longitude').errors.required">
+                                        Required
+                                    </label>
+                                    <label style="color:red" *ngIf="PickupForm.get('Longitude').errors.pattern">
+                                        Invalid
+                                    </label>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="pa bg-white z-index5 loading-wrapper" *ngIf="_loadingAddress">
+                            <span class='spinner-dashboard pa'></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <button type="button" class="btn" data-dismiss="modal" #closePickUpModal id="btnPickupClose">Cancel</button>
+                    <button type="button" [disabled]="!PickupForm.valid" (click)="savePickupLocation()" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="loader" *ngIf="IsLoading">
+    <div class="loading-content text-center">
+        <div class="spinner"></div>
+        <div class="font-bold">Loading...</div>
+    </div>
+</div>
